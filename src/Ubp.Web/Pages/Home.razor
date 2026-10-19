@@ -1,0 +1,81 @@
+@page "/"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject SettingsService Settings
+@inject PermissionService Permissions
+@inject BranchService Branches
+<PageTitle>@T.T("screen.dashboard")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <div class="ubp-hero">
+        <div>
+            <div class="ubp-eyebrow">@T.T("dashboard.welcome")</div>
+            <h1>@_companyName</h1>
+            <p>@Actor!.DisplayName — @_branchName</p>
+        </div>
+        <div class="ubp-hero-mark">U</div>
+    </div>
+
+    <div class="ubp-stats">
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.AccountTree" />
+            <div><span>@T.T("dashboard.branch")</span><strong>@_branchName</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.Person" />
+            <div><span>@T.T("dashboard.user")</span><strong>@Actor!.DisplayName</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.Language" />
+            <div><span>@T.T("dashboard.language")</span><strong>@(T.Language == "ar" ? "العربية" : "English")</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.Shield" />
+            <div><span>@T.T("dashboard.role")</span><strong>@(Actor!.IsSuperAdmin ? T.T("role.super_admin") : Actor.IsAdmin ? T.T("role.admin") : T.T("role.user"))</strong></div>
+        </div>
+    </div>
+
+    <PageHeader Title="@T.T("dashboard.shortcuts")" Subtitle="@T.T("dashboard.shortcuts_hint")" />
+    <div class="ubp-shortcuts">
+        @foreach (var screen in _shortcuts)
+        {
+            <a href="@screen.Route" class="ubp-shortcut">
+                <MudIcon Icon="@AppIcons.Resolve(screen.Icon)" />
+                <span>@T.T(screen.TitleKey)</span>
+                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+            </a>
+        }
+    </div>
+}
+
+@code {
+    protected override string ScreenCode => ScreenCodes.Dashboard;
+
+    private string _companyName = "";
+    private string _branchName = "";
+    private IReadOnlyList<ScreenDefinition> _shortcuts = Array.Empty<ScreenDefinition>();
+
+    protected override async Task OnLoadAsync()
+    {
+        var settings = await Settings.GetAsync();
+        _companyName = settings.CompanyName;
+        var branchOptions = await Branches.OptionsAsync(Actor!);
+        _branchName = Actor!.CurrentBranchId is { } branchId
+            ? branchOptions.FirstOrDefault(b => b.Id == branchId)?.NameAr ?? T.T("branch.none")
+            : T.T("branch.none");
+
+        var visible = (await Permissions.GetVisibleScreenCodesAsync(Actor!)).ToHashSet();
+        _shortcuts = AppRegistry.Screens
+            .Where(s => s.Code != ScreenCodes.Dashboard && visible.Contains(s.Code))
+            .Take(12).ToList();
+    }
+}

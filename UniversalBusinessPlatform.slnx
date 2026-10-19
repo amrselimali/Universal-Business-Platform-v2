@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ubp.Application/Ubp.Application.csproj" />
+    <Project Path="src/Ubp.Core/Ubp.Core.csproj" />
+    <Project Path="src/Ubp.Infrastructure/Ubp.Infrastructure.csproj" />
+    <Project Path="src/Ubp.Web/Ubp.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ubp.Tests/Ubp.Tests.csproj" />
+  </Folder>
+</Solution>

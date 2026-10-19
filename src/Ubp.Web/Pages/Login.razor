@@ -1,0 +1,82 @@
+@page "/login"
+@layout EmptyLayout
+@inject UiCulture T
+@inject SettingsService Settings
+@attribute [AllowAnonymous]
+
+<PageTitle>@T.T("auth.login")</PageTitle>
+
+<div class="ubp-login">
+    <section class="ubp-login-brand">
+        <div class="ubp-login-brand-inner">
+            <div class="ubp-brand-mark large">U</div>
+            <h1>@_companyName</h1>
+            <p>@T.T("app.tagline")</p>
+            <ul class="ubp-login-points">
+                <li><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" /> @T.T("app.point_cloud")</li>
+                <li><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" /> @T.T("app.point_branches")</li>
+                <li><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" /> @T.T("app.point_permissions")</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="ubp-login-panel">
+        <form method="post" action="/auth/login" class="ubp-login-card" autocomplete="on">
+            <AntiforgeryToken />
+            <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+
+            @if (!string.IsNullOrWhiteSpace(LogoUrl))
+            {
+                <img src="@LogoUrl" alt="" class="ubp-login-logo" />
+            }
+            <h2>@T.T("auth.welcome")</h2>
+            <p class="ubp-muted">@T.T("auth.subtitle")</p>
+
+            @if (!string.IsNullOrWhiteSpace(Error))
+            {
+                <div class="ubp-alert error">@T.T(Error)</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Expired))
+            {
+                <div class="ubp-alert warning">@T.T("auth.session_expired")</div>
+            }
+
+            <label class="ubp-field">
+                <span>@T.T("auth.username")</span>
+                <input name="username" autocomplete="username" required minlength="3" maxlength="150" />
+            </label>
+            <label class="ubp-field">
+                <span>@T.T("auth.password")</span>
+                <input name="password" type="password" autocomplete="current-password" required />
+            </label>
+
+            <button type="submit" class="ubp-primary-btn">@T.T("auth.login")</button>
+        </form>
+
+        <div class="ubp-login-footer">
+            <span>@T.T("auth.language")</span>
+            <form method="post" action="/auth/language" class="ubp-inline-form">
+                <AntiforgeryToken />
+                <input type="hidden" name="language" value="@(T.Language == "ar" ? "en" : "ar")" />
+                <input type="hidden" name="returnUrl" value="/login" />
+                <button type="submit" class="ubp-lang-btn">@(T.Language == "ar" ? "English" : "العربية")</button>
+            </form>
+        </div>
+    </section>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "expired")] public string? Expired { get; set; }
+    [SupplyParameterFromQuery(Name = "returnUrl")] public string? ReturnUrl { get; set; }
+
+    private string _companyName = "Universal Business Platform";
+    private string? LogoUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var settings = await Settings.GetAsync();
+        _companyName = settings.CompanyName;
+        LogoUrl = settings.LogoUrl;
+    }
+}

@@ -1,0 +1,9 @@
+@page "/not-found"
+@layout EmptyLayout
+@inject UiCulture T
+@attribute [AllowAnonymous]
+<PageTitle>@T.T("error.not_found")</PageTitle>
+<NotFoundView />
+
+@code {
+}

@@ -1,0 +1,90 @@
+@page "/settings/general"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject SettingsService Settings
+<PageTitle>@T.T("screen.settings_general")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.settings_general")" Subtitle="@T.T("settings.general_hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudTextField @bind-Value="_model.CompanyName" Label="@T.T("settings.company_name")" Required="true"
+                              Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))" />
+                <MudTextField @bind-Value="_model.LogoUrl" Label="@T.T("settings.logo_url")"
+                              Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))" />
+                <MudSelect @bind-Value="_model.DefaultLanguage" Label="@T.T("settings.default_language")"
+                           Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))">
+                    <MudSelectItem Value="@("ar")">@T.T("language.ar")</MudSelectItem>
+                    <MudSelectItem Value="@("en")">@T.T("language.en")</MudSelectItem>
+                </MudSelect>
+                <MudTextField @bind-Value="_model.DateFormat" Label="@T.T("settings.date_format")"
+                              Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))" />
+                <MudTextField @bind-Value="_model.TimeFormat" Label="@T.T("settings.time_format")"
+                              Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))" />
+                <MudTextField @bind-Value="_model.NumberFormat" Label="@T.T("settings.number_format")"
+                              Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))" />
+                <MudNumericField @bind-Value="_sessionTimeout" Label="@T.T("settings.session_timeout")"
+                                 Variant="Variant.Outlined" Min="5" Max="480" Disabled="@(!Can(ActionCodes.Edit))" />
+                <MudNumericField @bind-Value="_passwordMin" Label="@T.T("settings.password_min")"
+                                 Variant="Variant.Outlined" Min="8" Max="64" Disabled="@(!Can(ActionCodes.Edit))" />
+                <MudNumericField @bind-Value="_maxAttempts" Label="@T.T("settings.max_attempts")"
+                                 Variant="Variant.Outlined" Min="1" Max="20" Disabled="@(!Can(ActionCodes.Edit))" />
+                <MudNumericField @bind-Value="_lockoutMinutes" Label="@T.T("settings.lockout_minutes")"
+                                 Variant="Variant.Outlined" Min="1" Max="1440" Disabled="@(!Can(ActionCodes.Edit))" />
+            </div>
+
+            <div class="ubp-form-footer">
+                <MudText Typo="Typo.caption" Class="ubp-muted">@T.T("settings.version") @_model.Version</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
+                           Disabled="@(!Can(ActionCodes.Edit) || _busy)">@T.T("common.save")</MudButton>
+            </div>
+        </MudForm>
+    </MudPaper>
+}
+
+@code {
+    protected override string ScreenCode => ScreenCodes.SettingsGeneral;
+
+    private MudForm _form = default!;
+    private AppSettings _model = new();
+    private int _sessionTimeout = 30;
+    private int _passwordMin = 8;
+    private int _maxAttempts = 5;
+    private int _lockoutMinutes = 15;
+    private bool _busy;
+
+    protected override async Task OnLoadAsync()
+    {
+        _model = await Settings.GetAsync();
+        _sessionTimeout = _model.SessionTimeoutMinutes;
+        _passwordMin = _model.PasswordMinLength;
+        _maxAttempts = _model.MaxFailedAttempts;
+        _lockoutMinutes = _model.LockoutMinutes;
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        await RunAsync(async () =>
+        {
+            _model.SessionTimeoutMinutes = (short)_sessionTimeout;
+            _model.PasswordMinLength = (short)_passwordMin;
+            _model.MaxFailedAttempts = (short)_maxAttempts;
+            _model.LockoutMinutes = (short)_lockoutMinutes;
+            _model = await Settings.UpdateAsync(Actor!, _model);
+            ShowSuccess("settings.updated");
+        });
+        _busy = false;
+    }
+}

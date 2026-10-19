@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: ubp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ubp
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - ubp_pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ubp"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  app:
+    build: .
+    container_name: ubp-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      Database__ConnectionString: "Host=postgres;Port=5432;Database=ubp;Username=ubp_app;Password=ubp_app_dev_password"
+      Database__MigrationConnectionString: "Host=postgres;Port=5432;Database=ubp;Username=postgres;Password=${POSTGRES_PASSWORD:-postgres}"
+      Database__QaConnectionString: "Host=postgres;Port=5432;Database=ubp_qa;Username=postgres;Password=${POSTGRES_PASSWORD:-postgres}"
+      Database__AutoMigrate: "true"
+      Database__AutoMigrateQa: "true"
+      Jwt__Key: "${JWT_KEY:?JWT_KEY is required}"
+      Bootstrap__SuperAdminPassword: "${SUPER_ADMIN_PASSWORD:-Admin@123}"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ubp_logs:/app/logs
+
+volumes:
+  ubp_pgdata:
+  ubp_logs:

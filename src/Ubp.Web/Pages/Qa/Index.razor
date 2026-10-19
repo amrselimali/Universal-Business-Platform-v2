@@ -1,0 +1,91 @@
+@page "/qa"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.qa")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.qa")" Subtitle="@T.T("qa.hint")">
+        <Actions>
+            @if (Can(ActionCodes.RunTests))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PlayArrow"
+                           OnClick="RunAllAsync" Disabled="@_running">@T.T("qa.run_all")</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="ms-2"
+                           OnClick="RunSelectedAsync" Disabled="@(_running || _selected.Count == 0)">
+                    @T.T("qa.run_selected") (@_selected.Count)
+                </MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+        @T.T("qa.isolation_note")
+    </MudAlert>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <MudTable Items="_matrix" Dense="true" Hover="true" Striped="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh></MudTh>
+                <MudTh>@T.T("qa.code")</MudTh>
+                <MudTh>@T.T("qa.test")</MudTh>
+                <MudTh>@T.T("qa.category")</MudTh>
+                <MudTh>@T.T("qa.criticality")</MudTh>
+                <MudTh>@T.T("qa.last_result")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <MudCheckBox T="bool" Value="@_selected.Contains(context.Definition.Code)" Dense="true"
+                                 ValueChanged="@(v => Toggle(context.Definition.Code, v))" />
+                </MudTd>
+                <MudTd><span class="ubp-code">@context.Definition.Code</span></MudTd>
+                <MudTd>@(T.Language == "en" ? context.Definition.NameEn : context.Definition.NameAr)</MudTd>
+                <MudTd>@context.Definition.Category</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@CriticalityColor(context.Definition.Criticality)">
+                        @context.Definition.Criticality
+                    </MudChip>
+                </MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@StatusColor(context.Status)">@context.Status</MudChip>
+                    @if (context.LastRunAt is not null)
+                    {
+                        <span class="ubp-muted ubp-small">@context.LastRunAt.Value.ToLocalTime().ToString("dd/MM HH:mm")</span>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+
+    <PageHeader Title="@T.T("qa.runs")" Subtitle="@T.T("qa.runs_hint")" />
+    <MudPaper Elevation="0" Class="ubp-card">
+        <MudTable Items="_runs" Dense="true" Hover="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("qa.started")</MudTh>
+                <MudTh>@T.T("qa.status")</MudTh>
+                <MudTh>@T.T("qa.passed")</MudTh>
+                <MudTh>@T.T("qa.failed")</MudTh>
+                <MudTh>@T.T("qa.trace")</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.StartedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)" Variant="Variant.Outlined">@context.Status</MudChip></MudTd>
+                <MudTd>@context.PassedCount</MudTd>
+                <MudTd>@context.FailedCount</MudTd>
+                <MudTd><span class="ubp-trace-code">@context.TraceId</span></MudTd>
+                <MudTd><MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => ShowResultsAsync(context))">@T.T("qa.results")</MudButton></MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}

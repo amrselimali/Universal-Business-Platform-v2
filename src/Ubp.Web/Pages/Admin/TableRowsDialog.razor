@@ -1,0 +1,58 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Table</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else
+        {
+            <div class="ubp-inline mb-3">
+                <MudText Typo="Typo.caption">@T.T("database.page") @_page @T.T("database.of") @TotalPages</MudText>
+                <MudSpacer />
+                <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="@(_page <= 1)"
+                           OnClick="PrevAsync">@T.T("common.previous")</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="@(_page >= TotalPages)"
+                           OnClick="NextAsync">@T.T("common.next")</MudButton>
+            </div>
+
+            @foreach (var row in _rows)
+            {
+                <MudExpansionPanel Dense="true" Class="ubp-row-panel">
+                    <TitleContent>
+                        <div class="ubp-inline">
+                            <MudIcon Icon="@Icons.Material.Filled.DataObject" Size="Size.Small" />
+                            <span class="ubp-code">@RowId(row)</span>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        <pre class="ubp-json">@Pretty(row)</pre>
+                        @if (Editable)
+                        {
+                            <div class="ubp-inline mt-3">
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.Edit"
+                                           OnClick="@(() => EditAsync(row))">@T.T("common.edit")</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
+                                           StartIcon="@Icons.Material.Filled.Delete"
+                                           OnClick="@(() => DeleteAsync(row))">@T.T("common.delete")</MudButton>
+                            </div>
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+
+            @if (_rows.Count == 0)
+            {
+                <div class="ubp-empty">@T.T("common.no_data")</div>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@T.T("common.close")</MudButton>
+    </DialogActions>
+</MudDialog>

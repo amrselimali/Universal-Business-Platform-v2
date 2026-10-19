@@ -1,0 +1,32 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("qa.results")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="ubp-detail-meta mb-3">
+            <div><span>@T.T("qa.status")</span><strong>@Run.Status</strong></div>
+            <div><span>@T.T("qa.total")</span><strong>@Run.TotalCount</strong></div>
+            <div><span>@T.T("qa.trace")</span><strong class="ubp-trace-code">@Run.TraceId</strong></div>
+        </div>
+        <MudTable Items="_results" Dense="true" Hover="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("qa.code")</MudTh>
+                <MudTh>@T.T("qa.status")</MudTh>
+                <MudTh>@T.T("qa.duration")</MudTh>
+                <MudTh>@T.T("qa.message")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@context.TestCode</span></MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                Color="@(context.Status == "Passed" ? Color.Success : Color.Error)">@context.Status</MudChip></MudTd>
+                <MudTd>@context.DurationMs ms</MudTd>
+                <MudTd>@context.Message</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@T.T("common.close")</MudButton>
+    </DialogActions>
+</MudDialog>

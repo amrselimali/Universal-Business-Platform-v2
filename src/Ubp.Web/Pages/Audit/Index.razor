@@ -1,0 +1,99 @@
+@page "/audit"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.audit")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.audit")" Subtitle="@T.T("audit.hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card mb-4">
+        <div class="ubp-filter-grid">
+            <MudDatePicker @bind-Date="_from" Label="@T.T("audit.from")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" Clearable="true" />
+            <MudDatePicker @bind-Date="_to" Label="@T.T("audit.to")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" Clearable="true" />
+            <MudSelect T="Guid?" @bind-Value="_userId" Label="@T.T("audit.user")" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Clearable="true">
+                @foreach (var user in _users)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)user.Id)">@user.Username</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="Guid?" @bind-Value="_branchId" Label="@T.T("audit.branch")" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Clearable="true">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string" @bind-Value="_tableName" Label="@T.T("audit.table")" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Clearable="true">
+                @foreach (var table in _tables)
+                {
+                    <MudSelectItem Value="@table">@table</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string" @bind-Value="_action" Label="@T.T("audit.action")" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Clearable="true">
+                @foreach (var action in _actions)
+                {
+                    <MudSelectItem Value="@action">@action</MudSelectItem>
+                }
+            </MudSelect>
+            <div class="ubp-inline">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshAsync">
+                    @T.T("common.apply")
+                </MudButton>
+                <MudButton Variant="Variant.Text" OnClick="ClearAsync">@T.T("common.clear")</MudButton>
+            </div>
+        </div>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("audit.time")</MudTh>
+                <MudTh>@T.T("audit.user")</MudTh>
+                <MudTh>@T.T("audit.branch")</MudTh>
+                <MudTh>@T.T("audit.table")</MudTh>
+                <MudTh>@T.T("audit.action")</MudTh>
+                <MudTh>@T.T("audit.record")</MudTh>
+                <MudTh>@T.T("audit.trace")</MudTh>
+                <MudTh Align="Right"></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@CairoTime(context.CreatedAt)</MudTd>
+                <MudTd>@(context.Username ?? "—")</MudTd>
+                <MudTd>@(context.BranchName ?? "—")</MudTd>
+                <MudTd><span class="ubp-code">@context.TableName</span></MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@ActionColor(context.Action)">@context.Action</MudChip></MudTd>
+                <MudTd>@context.RecordId</MudTd>
+                <MudTd><span class="ubp-trace-code">@context.TraceId</span></MudTd>
+                <MudTd Align="Right">
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                   OnClick="@(() => ShowDetailAsync(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+        @if (_items.Count == 0)
+        {
+            <div class="ubp-empty">@T.T("common.no_data")</div>
+        }
+        @if (_hasMore)
+        {
+            <div class="ubp-load-more">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadMoreAsync"
+                           Disabled="@_loadingMore">@T.T("common.load_more")</MudButton>
+            </div>
+        }
+    </MudPaper>
+}

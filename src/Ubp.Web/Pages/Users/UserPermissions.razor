@@ -1,0 +1,75 @@
+@inherits ComponentBase
+
+<div class="ubp-perm-toolbar">
+    <div class="ubp-inline">
+        <MudSelect T="Guid?" @bind-Value="_copyFrom" Label="@T.T("users.copy_from")"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Class="ubp-copy-select">
+            @foreach (var user in _copyUsers)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)user.Id)">@user.Username</MudSelectItem>
+            }
+        </MudSelect>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="CopyAsync"
+                   Disabled="@(_copyFrom is null || !CanEdit)">@T.T("users.copy")</MudButton>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
+               Disabled="@(!CanEdit || _busy)">@T.T("users.save_permissions")</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    @foreach (var screen in AppRegistry.Screens)
+    {
+        var actions = screen.Actions;
+        <div class="ubp-perm-screen">
+            <div class="ubp-perm-header">
+                <div>
+                    <MudIcon Icon="@AppIcons.Resolve(screen.Icon)" Size="Size.Small" />
+                    <strong>@T.T(screen.TitleKey)</strong>
+                    <span class="ubp-code">@screen.Code</span>
+                </div>
+                <div class="ubp-inline">
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => SelectAll(screen, true))"
+                               Disabled="@(!CanEdit)">@T.T("common.select_all")</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => SelectAll(screen, false))"
+                               Disabled="@(!CanEdit)">@T.T("common.clear_all")</MudButton>
+                </div>
+            </div>
+            @foreach (var action in actions)
+            {
+                var key = $"{screen.Code}/{action.Code}";
+                var row = _rows[key];
+                <div class="ubp-perm-row">
+                    <MudCheckBox T="bool" Value="@row.Allowed" Color="Color.Primary"
+                                 Disabled="@(!CanEdit)" ValueChanged="@(v => SetAllowed(key, v))" Dense="true" />
+                    <span class="ubp-perm-action">@T.T(action.TitleKey)</span>
+                    <MudSelect T="short" Value="@row.Scope" Dense="true" Variant="Variant.Outlined"
+                               Disabled="@(!CanEdit || !row.Allowed)" ValueChanged="@(v => SetScope(key, v))"
+                               Class="ubp-perm-scope">
+                        <MudSelectItem T="short" Value="@PermissionScope.Own">@T.T("scope.own")</MudSelectItem>
+                        <MudSelectItem T="short" Value="@PermissionScope.Branches">@T.T("scope.branches")</MudSelectItem>
+                        <MudSelectItem T="short" Value="@PermissionScope.All">@T.T("scope.all")</MudSelectItem>
+                    </MudSelect>
+                    <span class="ubp-perm-badges">
+                        @if (row.Source.RoleAllowed)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info">
+                                @T.T("permissions.from_role")
+                            </MudChip>
+                        }
+                        @if (row.Source.HasOverride)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">
+                                @T.T("permissions.override")
+                            </MudChip>
+                        }
+                    </span>
+                </div>
+            }
+        </div>
+    }
+}

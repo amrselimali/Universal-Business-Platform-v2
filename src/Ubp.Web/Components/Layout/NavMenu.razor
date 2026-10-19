@@ -1,0 +1,48 @@
+@inject UiCulture T
+@inject NavigationManager Navigation
+
+<nav class="ubp-nav">
+    @foreach (var group in Groups)
+    {
+        if (group.Screens.Count == 0) continue;
+        <div class="ubp-nav-group">
+            <div class="ubp-nav-group-title">@T.T(group.TitleKey)</div>
+            @foreach (var screen in group.Screens)
+            {
+                <MudNavLink Href="@screen.Route"
+                            Icon="@AppIcons.Resolve(screen.Icon)"
+                            Match="@(screen.Route == "/" ? NavLinkMatch.All : NavLinkMatch.Prefix)"
+                            Class="ubp-nav-link">
+                    @T.T(screen.TitleKey)
+                </MudNavLink>
+            }
+        </div>
+    }
+</nav>
+
+@code {
+    [Parameter] public IReadOnlyList<string> VisibleScreens { get; set; } = Array.Empty<string>();
+
+    private sealed record Group(string TitleKey, List<ScreenDefinition> Screens);
+
+    private List<Group> Groups
+    {
+        get
+        {
+            var visible = VisibleScreens.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var groups = new List<Group>
+            {
+                new("group.main", new()),
+                new("group.definitions", new()),
+                new("group.security", new()),
+                new("group.system", new())
+            };
+            foreach (var screen in AppRegistry.Screens.Where(s => visible.Contains(s.Code)))
+            {
+                var group = groups.FirstOrDefault(g => g.TitleKey == screen.GroupKey);
+                group?.Screens.Add(screen);
+            }
+            return groups;
+        }
+    }
+}

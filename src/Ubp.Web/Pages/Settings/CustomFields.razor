@@ -1,0 +1,76 @@
+@page "/settings/custom-fields"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.custom_fields")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.custom_fields")" Subtitle="@T.T("custom_fields.hint")">
+        <Actions>
+            @if (Can(ActionCodes.Add))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="AddAsync">@T.T("common.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="string" Value="_entity" Label="@T.T("custom_fields.entity")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" ValueChanged="OnEntityChanged"
+                       Clearable="true">
+                <MudSelectItem Value="@("branches")">@T.T("branches.title")</MudSelectItem>
+                <MudSelectItem Value="@("warehouses")">@T.T("warehouses.title")</MudSelectItem>
+            </MudSelect>
+        </div>
+
+        <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" RowsPerPage="25" RowsPerPageOptions="new[] { 25 }" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("custom_fields.entity")</MudTh>
+                <MudTh>@T.T("custom_fields.key")</MudTh>
+                <MudTh>@T.T("custom_fields.label")</MudTh>
+                <MudTh>@T.T("custom_fields.type")</MudTh>
+                <MudTh>@T.T("custom_fields.required")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@T.T(context.EntityName == "branches" ? "branches.title" : "warehouses.title")</MudTd>
+                <MudTd><span class="ubp-code">@context.FieldKey</span></MudTd>
+                <MudTd>@(T.Language == "en" && !string.IsNullOrWhiteSpace(context.LabelEn) ? context.LabelEn : context.LabelAr)</MudTd>
+                <MudTd>@T.T($"custom_fields.type_{context.DataType}")</MudTd>
+                <MudTd>@(context.IsRequired ? T.T("common.yes") : T.T("common.no"))</MudTd>
+                <MudTd>@(context.IsActive ? T.T("common.active") : T.T("common.inactive"))</MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true" AnchorOrigin="Origin.BottomRight">
+                        @if (Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => EditAsync(context))" Icon="@Icons.Material.Filled.Edit">
+                                @T.T("common.edit")
+                            </MudMenuItem>
+                        }
+                        @if (Can(ActionCodes.Delete))
+                        {
+                            <MudMenuItem OnClick="@(() => DeleteAsync(context))" Icon="@Icons.Material.Filled.Delete">
+                                @T.T("common.delete")
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" InfoFormat="@T.T("common.pager_info")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}

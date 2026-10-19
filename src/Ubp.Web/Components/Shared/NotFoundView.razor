@@ -1,0 +1,8 @@
+@namespace Ubp.Web.Components.Shared
+@inject UiCulture T
+<div class="ubp-public-state">
+    <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" />
+    <h1>@T.T("error.not_found")</h1>
+    <p>@T.T("error.not_found_detail")</p>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/" Class="mt-4">@T.T("common.home")</MudButton>
+</div>

@@ -1,0 +1,8 @@
+@namespace Ubp.Web.Components.Shared
+@inject UiCulture T
+<div class="ubp-public-state">
+    <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Color="Color.Warning" />
+    <h1>@T.T("error.forbidden")</h1>
+    <p>@T.T("error.forbidden_detail")</p>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/" Class="mt-4">@T.T("common.home")</MudButton>
+</div>

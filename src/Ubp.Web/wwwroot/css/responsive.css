@@ -1,0 +1,25 @@
+@media (max-width: 960px) {
+    .ubp-login { grid-template-columns: 1fr; }
+    .ubp-login-brand { display: none; }
+    .ubp-login-panel { min-height: 100vh; }
+    .ubp-page { padding: 18px 14px 50px; }
+    .ubp-menu-btn { display: inline-flex !important; flex: 0 0 auto; }
+    .ubp-appbar-brand { display: none; }
+    .ubp-header-actions { margin-inline-start: auto; gap: 4px; }
+    .ubp-lang-form { display: none; }
+    .ubp-user-name { display: none; }
+    .ubp-company { max-width: 150px; }
+    .ubp-span-2 { grid-column: span 1; }
+    .ubp-appbar { padding-inline: 8px; gap: 6px; }
+}
+
+@media (max-width: 640px) {
+    .ubp-header-actions { gap: 2px; }
+    .ubp-select { max-width: 120px; font-size: .78rem; }
+    .ubp-hero { padding: 22px; }
+    .ubp-hero h1 { font-size: 1.4rem; }
+    .ubp-hero-mark { display: none; }
+    .ubp-page-header h1 { font-size: 1.25rem; }
+    .ubp-perm-row { grid-template-columns: 36px 1fr 140px; }
+    .ubp-perm-badges { grid-column: 1 / -1; }
+}

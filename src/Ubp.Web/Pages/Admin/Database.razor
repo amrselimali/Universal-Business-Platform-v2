@@ -1,0 +1,110 @@
+@page "/admin/database"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.database_admin")</PageTitle>
+
+@if (Denied || (Actor is not null && !Actor.IsSuperAdmin))
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.database_admin")" Subtitle="@T.T("database.hint")">
+        <Actions>
+            @if (Can(ActionCodes.RunMigrations))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="RunMigrationsAsync"
+                           Disabled="@_busy">@T.T("database.run_migrations")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <div class="ubp-stats">
+        <div class="ubp-stat">
+            <MudIcon Icon="@(_status?.Connected == true ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" />
+            <div>
+                <span>@T.T("database.status")</span>
+                <strong>@T.T(_status?.Connected == true ? "database.connected" : "database.disconnected")</strong>
+            </div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.Dns" />
+            <div><span>@T.T("database.server")</span><strong class="ubp-small">@(_status?.Server ?? "—")</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.Storage" />
+            <div><span>@T.T("database.tables")</span><strong>@(_status?.Tables.Count ?? 0)</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.Sync" />
+            <div><span>@T.T("database.pending")</span><strong>@(_status?.Pending.Count ?? 0)</strong></div>
+        </div>
+    </div>
+
+    @if (_status?.Error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-4">@_status.Error</MudAlert>
+    }
+
+    <MudTabs Elevation="0" Rounded="true" PanelClass="pt-4">
+        <MudTabPanel Text="@T.T("database.tab_tables")" Icon="@Icons.Material.Filled.TableChart">
+            <MudPaper Elevation="0" Class="ubp-card">
+                <MudTextField @bind-Value="_tableSearch" Placeholder="@T.T("common.search")" Immediate="true"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search mb-3" />
+                <MudTable Items="FilteredTables" Dense="true" Hover="true" Striped="true" Elevation="0"
+                          Class="ubp-table">
+                    <HeaderContent>
+                        <MudTh>@T.T("database.table_name")</MudTh>
+                        <MudTh>@T.T("database.rows")</MudTh>
+                        <MudTh>@T.T("database.columns")</MudTh>
+                        <MudTh Align="Right"></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd><span class="ubp-code">@context.Name</span></MudTd>
+                        <MudTd>@context.RowCount.ToString("N0")</MudTd>
+                        <MudTd>@context.ColumnCount</MudTd>
+                        <MudTd Align="Right">
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                       OnClick="@(() => OpenTableAsync(context))">@T.T("database.browse")</MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@T.T("database.tab_migrations")" Icon="@Icons.Material.Filled.Sync">
+            <MudPaper Elevation="0" Class="ubp-card">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@T.T("database.applied")</MudText>
+                <div class="ubp-chip-list">
+                    @foreach (var script in _status?.Applied ?? Array.Empty<string>())
+                    {
+                        <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">@script</MudChip>
+                    }
+                </div>
+                <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">@T.T("database.pending_list")</MudText>
+                @if ((_status?.Pending.Count ?? 0) == 0)
+                {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">@T.T("database.up_to_date")</MudAlert>
+                }
+                else
+                {
+                    <div class="ubp-chip-list">
+                        @foreach (var script in _status!.Pending)
+                        {
+                            <MudChip T="string" Color="Color.Warning" Variant="Variant.Outlined" Size="Size.Small">@script</MudChip>
+                        }
+                    </div>
+                }
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4">
+                    @T.T("database.migration_note")
+                </MudAlert>
+            </MudPaper>
+        </MudTabPanel>
+    </MudTabs>
+}

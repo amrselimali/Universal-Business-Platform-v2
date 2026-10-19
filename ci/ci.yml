@@ -1,0 +1,67 @@
+name: Universal Business Platform v2 CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      UBP_TEST_CONNECTION: "Host=localhost;Port=5432;Database=ubp_test;Username=postgres;Password=postgres"
+      UBP_QA_CONNECTION: "Host=localhost;Port=5432;Database=ubp_qa;Username=postgres;Password=postgres"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Create test databases
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE ubp_test;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE ubp_qa;"
+
+      - name: Check file size limit (300 lines)
+        run: |
+          violations=$(find src tests -type f \( -name '*.cs' -o -name '*.razor' \) \
+            ! -path '*/obj/*' ! -path '*/bin/*' -exec wc -l {} + \
+            | awk '$1 > 300 && $2 != "total" {print $1, $2}')
+          if [ -n "$violations" ]; then
+            echo "Files over 300 lines:"; echo "$violations"; exit 1
+          fi
+
+      - name: Restore
+        run: dotnet restore UniversalBusinessPlatform.slnx
+
+      - name: Build
+        run: dotnet build UniversalBusinessPlatform.slnx -c Release --no-restore
+
+      - name: Test
+        run: dotnet test UniversalBusinessPlatform.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx"
+
+      - name: Publish
+        run: dotnet publish src/Ubp.Web/Ubp.Web.csproj -c Release -o ./publish /p:UseAppHost=false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubp-v2-test-results
+          path: "**/TestResults/*.trx"

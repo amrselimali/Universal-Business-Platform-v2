@@ -1,0 +1,13 @@
+@inherits LayoutComponentBase
+@inject UiCulture T
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider CloseButton="true" />
+<MudSnackbarProvider />
+
+<MudRTLProvider RightToLeft="@T.IsRtl">
+    <div class="ubp-empty-layout">
+        @Body
+    </div>
+</MudRTLProvider>

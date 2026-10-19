@@ -1,0 +1,107 @@
+@inherits LayoutComponentBase
+@inject UserContext UserContext
+@inject SettingsService Settings
+@inject BranchService Branches
+@inject PermissionService Permissions
+@inject UiCulture T
+@inject NavigationManager Navigation
+
+<MudThemeProvider Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider MaxWidth="MaxWidth.Medium" CloseButton="true" />
+<MudSnackbarProvider />
+
+<MudRTLProvider RightToLeft="@T.IsRtl">
+    <MudLayout>
+        @if (_actor is not null)
+        {
+            <HeaderBar Actor="@_actor" CompanyName="@_companyName" LogoUrl="@_logoUrl"
+                       Branches="@_branches" DrawerToggle="ToggleDrawer" />
+        }
+        <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="1"
+                   Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md" Class="ubp-drawer">
+            <MudDrawerHeader Class="ubp-drawer-header">
+                <div class="ubp-brand">
+                    <div class="ubp-brand-mark">U</div>
+                    <div>
+                        <div class="ubp-brand-title">Universal</div>
+                        <div class="ubp-brand-sub">@T.T("app.business_platform")</div>
+                    </div>
+                </div>
+            </MudDrawerHeader>
+            <NavMenu VisibleScreens="_visibleScreens" />
+        </MudDrawer>
+        <MudMainContent Class="ubp-main">
+            <div class="ubp-page">
+                <ErrorBoundaryWithLogging>
+                    <ChildContent>@Body</ChildContent>
+                    <ErrorContent Context="exception">
+                        <div class="ubp-public-state circuit-error">
+                            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Large" Color="Color.Error" />
+                            <h1>@T.T("error.title")</h1>
+                            <p>@T.T("error.generic")</p>
+                            <p class="ubp-muted">@T.T("error.trace_id"): @Activity.Current?.TraceId</p>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/" Class="mt-3">
+                                @T.T("common.home")
+                            </MudButton>
+                        </div>
+                    </ErrorContent>
+                </ErrorBoundaryWithLogging>
+            </div>
+        </MudMainContent>
+    </MudLayout>
+</MudRTLProvider>
+
+@code {
+    private ActorContext? _actor;
+    private string _companyName = "Universal Business Platform";
+    private string? _logoUrl;
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private IReadOnlyList<string> _visibleScreens = Array.Empty<string>();
+    private bool _drawerOpen = true;
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#0F766E",
+            Secondary = "#475569",
+            AppbarBackground = "#FFFFFF",
+            AppbarText = "#0F172A",
+            Background = "#F3F6F8",
+            DrawerBackground = "#FFFFFF",
+            Surface = "#FFFFFF",
+            TextPrimary = "#0F172A",
+            TextSecondary = "#64748B",
+            ActionDefault = "#475569",
+            Divider = "#E2E8F0"
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography
+            {
+                FontFamily = new[] { "Cairo", "Inter", "Segoe UI", "sans-serif" }
+            }
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DrawerWidthLeft = "272px",
+            DrawerWidthRight = "272px",
+            AppbarHeight = "68px",
+            DefaultBorderRadius = "10px"
+        }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _actor = await UserContext.GetAsync();
+        if (_actor is null) return;
+        var settings = await Settings.GetAsync();
+        _companyName = settings.CompanyName;
+        _logoUrl = settings.LogoUrl;
+        _branches = await Branches.OptionsAsync(_actor);
+        _visibleScreens = await Permissions.GetVisibleScreenCodesAsync(_actor);
+    }
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+}

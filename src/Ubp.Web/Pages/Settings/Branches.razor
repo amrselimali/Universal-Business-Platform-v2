@@ -1,0 +1,76 @@
+@page "/settings/branches"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.branches")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.branches")" Subtitle="@T.T("branches.hint")">
+        <Actions>
+            @if (Can(ActionCodes.Add))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="AddAsync">@T.T("common.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudTextField @bind-Value="_search" Placeholder="@T.T("common.search")" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search" DebounceInterval="300"
+                          OnDebounceIntervalElapsed="ReloadAsync" />
+            <MudSwitch T="bool" Value="_includeInactive" Label="@T.T("common.include_inactive")" Color="Color.Primary"
+                       ValueChanged="OnFilterChanged" />
+        </div>
+
+        <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="Branch" SortLabel="code" InitialDirection="SortDirection.Ascending">@T.T("common.code")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="Branch" SortLabel="name_ar">@T.T("common.name_ar")</MudTableSortLabel></MudTh>
+                <MudTh>@T.T("common.phone")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@T.T("common.code")"><span class="ubp-code">@context.Code</span></MudTd>
+                <MudTd DataLabel="@T.T("common.name_ar")">@context.NameAr</MudTd>
+                <MudTd DataLabel="@T.T("common.phone")">@context.Phone</MudTd>
+                <MudTd DataLabel="@T.T("common.status")">
+                    <MudSwitch T="bool" Value="@context.IsActive" Color="Color.Success"
+                               Disabled="@(!Can(ActionCodes.ToggleActive))"
+                               ValueChanged="@(v => ToggleAsync(context, v))" />
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true" AnchorOrigin="Origin.BottomRight">
+                        @if (Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => EditAsync(context))" Icon="@Icons.Material.Filled.Edit">
+                                @T.T("common.edit")
+                            </MudMenuItem>
+                        }
+                        @if (Can(ActionCodes.Delete))
+                        {
+                            <MudMenuItem OnClick="@(() => DeleteAsync(context))" Icon="@Icons.Material.Filled.Delete">
+                                @T.T("common.delete")
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}

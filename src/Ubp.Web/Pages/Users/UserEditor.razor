@@ -1,0 +1,96 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(IsEdit ? T.T("users.edit") : T.T("users.add"))</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pt-4">
+            <MudTabPanel Text="@T.T("users.tab_data")" Icon="@Icons.Material.Filled.Person">
+                <MudForm @ref="_form">
+                    <div class="ubp-form-grid">
+                        <MudTextField @bind-Value="_input.Name" Label="@T.T("users.name")"
+                                      Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="_input.Username" Label="@T.T("auth.username")" Required="true"
+                                      Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="_password" Label="@(IsEdit ? T.T("users.new_password_optional") : T.T("auth.password"))"
+                                      InputType="InputType.Password" Variant="Variant.Outlined"
+                                      Required="@(!IsEdit)" HelperText="@T.T("users.password_helper")" />
+                        <MudSelect @bind-Value="_input.Language" Label="@T.T("users.language")"
+                                   Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("ar")">@T.T("language.ar")</MudSelectItem>
+                            <MudSelectItem Value="@("en")">@T.T("language.en")</MudSelectItem>
+                        </MudSelect>
+                        <MudSwitch @bind-Value="_input.IsActive" Label="@T.T("common.active")" Color="Color.Success" />
+                    </div>
+                    @if (Actor!.IsSuperAdmin)
+                    {
+                        <MudDivider Class="my-4" />
+                        <div class="ubp-inline">
+                            <MudCheckBox @bind-Value="_input.IsAdmin" Label="@T.T("role.admin")" />
+                            <MudCheckBox @bind-Value="_input.IsSuperAdmin" Label="@T.T("role.super_admin")" />
+                        </div>
+                    }
+                </MudForm>
+            </MudTabPanel>
+
+            <MudTabPanel Text="@T.T("users.tab_branches")" Icon="@Icons.Material.Filled.AccountTree">
+                <MudSelect T="Guid" Label="@T.T("users.branches")" MultiSelection="true"
+                           @bind-SelectedValues="_selectedBranches" Variant="Variant.Outlined"
+                           SelectAll="true" SelectAllText="@T.T("common.select_all")">
+                    @foreach (var branch in _branches)
+                    {
+                        <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid?" @bind-Value="_defaultBranch" Label="@T.T("users.default_branch")"
+                           Variant="Variant.Outlined" Class="mt-3" Clearable="true">
+                    @foreach (var branch in _branches.Where(b => _selectedBranches.Contains(b.Id)))
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-3">
+                    @T.T("users.branch_required_hint")
+                </MudAlert>
+            </MudTabPanel>
+
+            <MudTabPanel Text="@T.T("users.tab_warehouses")" Icon="@Icons.Material.Filled.Warehouse">
+                <MudSelect T="Guid" Label="@T.T("users.warehouses")" MultiSelection="true"
+                           @bind-SelectedValues="_selectedWarehouses" Variant="Variant.Outlined"
+                           SelectAll="true" SelectAllText="@T.T("common.select_all")">
+                    @foreach (var warehouse in _warehouses)
+                    {
+                        <MudSelectItem T="Guid" Value="@warehouse.Id">@warehouse.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-3">
+                    @T.T("users.warehouse_coverage_hint")
+                </MudAlert>
+            </MudTabPanel>
+
+            <MudTabPanel Text="@T.T("users.tab_roles")" Icon="@Icons.Material.Filled.AdminPanelSettings">
+                <MudSelect T="Guid" Label="@T.T("users.roles")" MultiSelection="true"
+                           @bind-SelectedValues="_selectedRoles" Variant="Variant.Outlined"
+                           SelectAll="true" SelectAllText="@T.T("common.select_all")">
+                    @foreach (var role in _roles)
+                    {
+                        <MudSelectItem T="Guid" Value="@role.Id">@RoleName(role)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudTabPanel>
+
+            @if (IsEdit && CanManagePermissions)
+            {
+                <MudTabPanel Text="@T.T("users.tab_permissions")" Icon="@Icons.Material.Filled.Shield">
+                    <UserPermissions UserId="@Detail!.User.Id" CanEdit="true" />
+                </MudTabPanel>
+            }
+        </MudTabs>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

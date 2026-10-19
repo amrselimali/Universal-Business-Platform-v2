@@ -1,0 +1,88 @@
+@inject UiCulture T
+@inject NavigationManager Navigation
+
+<MudAppBar Elevation="0" Class="ubp-appbar" Dense="false">
+    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
+                   Class="ubp-menu-btn" OnClick="DrawerToggle" />
+
+    <div class="ubp-appbar-brand">
+        @if (!string.IsNullOrWhiteSpace(LogoUrl))
+        {
+            <img src="@LogoUrl" alt="logo" class="ubp-logo" />
+        }
+        else
+        {
+            <div class="ubp-brand-mark small">U</div>
+        }
+        <span class="ubp-company">@CompanyName</span>
+    </div>
+
+    <MudSpacer />
+
+    <div class="ubp-header-actions">
+        @if (Branches.Count > 1 || Actor.IsAdmin)
+        {
+            <form method="post" action="/auth/branch" class="ubp-inline-form">
+                <AntiforgeryToken />
+                <input type="hidden" name="returnUrl" value="@CurrentPath" />
+                <select name="branchId" class="ubp-select" onchange="this.form.submit()" aria-label="@T.T("branch.current")">
+                    @if (Actor.IsAdmin)
+                    {
+                        <option value="" selected="@(CurrentBranchId is null)">@T.T("branch.none")</option>
+                    }
+                    @foreach (var branch in Branches)
+                    {
+                        <option value="@branch.Id" selected="@(CurrentBranchId == branch.Id)">@branch.NameAr</option>
+                    }
+                </select>
+            </form>
+        }
+        else if (Branches.Count == 1)
+        {
+            <span class="ubp-branch-label">@Branches[0].NameAr</span>
+        }
+
+        <form method="post" action="/auth/language" class="ubp-inline-form ubp-lang-form">
+            <AntiforgeryToken />
+            <input type="hidden" name="language" value="@(T.Language == "ar" ? "en" : "ar")" />
+            <input type="hidden" name="returnUrl" value="@CurrentPath" />
+            <button type="submit" class="ubp-lang-btn">@(T.Language == "ar" ? "EN" : "ع")</button>
+        </form>
+
+        <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            <ActivatorContent>
+                <button type="button" class="ubp-user-btn">
+                    <span class="ubp-user-avatar">@Initial</span>
+                    <span class="ubp-user-name">@Actor.DisplayName</span>
+                    <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small" />
+                </button>
+            </ActivatorContent>
+            <ChildContent>
+                <MudMenuItem Href="/change-password" Icon="@Icons.Material.Filled.Key">
+                    @T.T("auth.change_password")
+                </MudMenuItem>
+                <MudMenuItem Href="/" Icon="@Icons.Material.Filled.Home">
+                    @T.T("common.home")
+                </MudMenuItem>
+            </ChildContent>
+        </MudMenu>
+
+        <form method="post" action="/auth/logout" class="ubp-inline-form">
+            <AntiforgeryToken />
+            <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit"
+                           ButtonType="ButtonType.Submit" title="@T.T("auth.logout")" />
+        </form>
+    </div>
+</MudAppBar>
+
+@code {
+    [Parameter] public ActorContext Actor { get; set; } = default!;
+    [Parameter] public string CompanyName { get; set; } = "";
+    [Parameter] public string? LogoUrl { get; set; }
+    [Parameter] public IReadOnlyList<Branch> Branches { get; set; } = Array.Empty<Branch>();
+    [Parameter] public EventCallback DrawerToggle { get; set; }
+
+    private Guid? CurrentBranchId => Actor.CurrentBranchId;
+    private string CurrentPath => "/" + Navigation.ToBaseRelativePath(Navigation.Uri).TrimStart('/');
+    private string Initial => (Actor.DisplayName.Length > 0 ? Actor.DisplayName[..1] : "U").ToUpperInvariant();
+}

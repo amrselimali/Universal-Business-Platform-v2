@@ -1,0 +1,84 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(IsEdit ? T.T("roles.edit") : T.T("roles.add"))</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTabs Elevation="0" Rounded="true" TabPanelsClass="pt-4">
+            <MudTabPanel Text="@T.T("roles.tab_data")" Icon="@Icons.Material.Filled.AdminPanelSettings">
+                <MudForm @ref="_form">
+                    <div class="ubp-form-grid">
+                        <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true"
+                                      Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true"
+                                      Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="_input.NameEn" Label="@T.T("common.name_en")"
+                                      Variant="Variant.Outlined" />
+                        <MudSwitch @bind-Value="_input.IsActive" Label="@T.T("common.active")" Color="Color.Success" />
+                    </div>
+                </MudForm>
+            </MudTabPanel>
+
+            @if (CanManagePermissions)
+            {
+                <MudTabPanel Text="@T.T("roles.tab_permissions")" Icon="@Icons.Material.Filled.Shield">
+                    <div class="ubp-perm-toolbar">
+                        <div class="ubp-inline">
+                            <MudSelect T="Guid?" @bind-Value="_copyFrom" Label="@T.T("roles.copy_from")"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                                       Class="ubp-copy-select">
+                                @foreach (var role in _roleOptions.Where(r => r.Id != Model?.Id))
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)role.Id)">@NameOf(role)</MudSelectItem>
+                                }
+                            </MudSelect>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="CopyAsync"
+                                       Disabled="@(_copyFrom is null)">@T.T("roles.copy")</MudButton>
+                        </div>
+                    </div>
+
+                    @foreach (var screen in AppRegistry.Screens)
+                    {
+                        <div class="ubp-perm-screen">
+                            <div class="ubp-perm-header">
+                                <div>
+                                    <MudIcon Icon="@AppIcons.Resolve(screen.Icon)" Size="Size.Small" />
+                                    <strong>@T.T(screen.TitleKey)</strong>
+                                </div>
+                                <div class="ubp-inline">
+                                    <MudButton Size="Size.Small" Variant="Variant.Text"
+                                               OnClick="@(() => SelectAll(screen, true))">@T.T("common.select_all")</MudButton>
+                                    <MudButton Size="Size.Small" Variant="Variant.Text"
+                                               OnClick="@(() => SelectAll(screen, false))">@T.T("common.clear_all")</MudButton>
+                                </div>
+                            </div>
+                            @foreach (var action in screen.Actions)
+                            {
+                                var key = $"{screen.Code}/{action.Code}";
+                                var row = _rows[key];
+                                <div class="ubp-perm-row">
+                                    <MudCheckBox T="bool" Value="@row.Allowed" Color="Color.Primary" Dense="true"
+                                                 ValueChanged="@(v => row.Allowed = v)" />
+                                    <span class="ubp-perm-action">@T.T(action.TitleKey)</span>
+                                    <MudSelect T="short" Value="@row.Scope" Dense="true" Variant="Variant.Outlined"
+                                               Disabled="@(!row.Allowed)" Class="ubp-perm-scope"
+                                               ValueChanged="@(v => row.Scope = v)">
+                                        <MudSelectItem T="short" Value="@PermissionScope.Own">@T.T("scope.own")</MudSelectItem>
+                                        <MudSelectItem T="short" Value="@PermissionScope.Branches">@T.T("scope.branches")</MudSelectItem>
+                                        <MudSelectItem T="short" Value="@PermissionScope.All">@T.T("scope.all")</MudSelectItem>
+                                    </MudSelect>
+                                </div>
+                            }
+                        </div>
+                    }
+                </MudTabPanel>
+            }
+        </MudTabs>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

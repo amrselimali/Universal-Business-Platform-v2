@@ -1,0 +1,45 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(IsEdit ? T.T("custom_fields.edit") : T.T("custom_fields.add"))</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudSelect T="string" @bind-Value="_input.EntityName" Label="@T.T("custom_fields.entity")"
+                           Variant="Variant.Outlined" Required="true" Disabled="@IsEdit">
+                    <MudSelectItem Value="@("branches")">@T.T("branches.title")</MudSelectItem>
+                    <MudSelectItem Value="@("warehouses")">@T.T("warehouses.title")</MudSelectItem>
+                </MudSelect>
+                <MudTextField @bind-Value="_input.FieldKey" Label="@T.T("custom_fields.key")" Required="true"
+                              Variant="Variant.Outlined" HelperText="@T.T("custom_fields.key_hint")" />
+                <MudTextField @bind-Value="_input.LabelAr" Label="@T.T("custom_fields.label_ar")" Required="true"
+                              Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_input.LabelEn" Label="@T.T("custom_fields.label_en")"
+                              Variant="Variant.Outlined" />
+                <MudSelect T="string" @bind-Value="_input.DataType" Label="@T.T("custom_fields.type")"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("text")">@T.T("custom_fields.type_text")</MudSelectItem>
+                    <MudSelectItem Value="@("number")">@T.T("custom_fields.type_number")</MudSelectItem>
+                    <MudSelectItem Value="@("date")">@T.T("custom_fields.type_date")</MudSelectItem>
+                    <MudSelectItem Value="@("bool")">@T.T("custom_fields.type_bool")</MudSelectItem>
+                    <MudSelectItem Value="@("list")">@T.T("custom_fields.type_list")</MudSelectItem>
+                </MudSelect>
+                <MudNumericField @bind-Value="_sortOrder" Label="@T.T("custom_fields.sort_order")"
+                                 Variant="Variant.Outlined" Min="0" />
+                <MudTextField @bind-Value="_options" Label="@T.T("custom_fields.options")"
+                              Variant="Variant.Outlined" Class="ubp-span-2"
+                              HelperText="@T.T("custom_fields.options_hint")"
+                              Disabled="@(_input.DataType != "list")" />
+                <MudCheckBox @bind-Value="_input.IsRequired" Label="@T.T("custom_fields.required")" />
+                <MudCheckBox @bind-Value="_input.IsActive" Label="@T.T("common.active")" />
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

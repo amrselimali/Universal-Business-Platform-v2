@@ -1,0 +1,9 @@
+@page "/forbidden"
+@layout EmptyLayout
+@inject UiCulture T
+@attribute [AllowAnonymous]
+<PageTitle>@T.T("error.forbidden")</PageTitle>
+<ForbiddenView />
+
+@code {
+}

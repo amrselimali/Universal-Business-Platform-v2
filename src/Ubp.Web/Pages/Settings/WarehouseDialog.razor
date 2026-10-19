@@ -1,0 +1,65 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(IsEdit ? T.T("warehouses.edit") : T.T("warehouses.add"))</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true"
+                              Variant="Variant.Outlined" MaxLength="30" />
+                <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true"
+                              Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_input.NameEn" Label="@T.T("common.name_en")"
+                              Variant="Variant.Outlined" />
+                <MudSwitch @bind-Value="_input.IsActive" Label="@T.T("common.active")" Color="Color.Success" />
+                <MudSelect T="Guid" Label="@T.T("warehouses.branches")" MultiSelection="true"
+                           @bind-SelectedValues="_selectedBranches" Variant="Variant.Outlined"
+                           Class="ubp-span-2" SelectAll="true" SelectAllText="@T.T("common.select_all")">
+                    @foreach (var branch in _branches)
+                    {
+                        <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+
+            @if (_fields.Count > 0)
+            {
+                <MudDivider Class="my-4" />
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@T.T("custom_fields.title")</MudText>
+                <div class="ubp-form-grid">
+                    @foreach (var field in _fields)
+                    {
+                        var key = field.FieldKey;
+                        if (field.DataType == "bool")
+                        {
+                            <MudCheckBox T="bool" Value="@GetBool(key)" Label="@Label(field)"
+                                         ValueChanged="@(v => SetBool(key, v))" />
+                        }
+                        else if (field.DataType == "list")
+                        {
+                            <MudSelect T="string" Value="@Get(key)" Label="@Label(field)"
+                                       Variant="Variant.Outlined" ValueChanged="@(v => Set(key, v))">
+                                @foreach (var option in field.Options)
+                                {
+                                    <MudSelectItem Value="@option">@option</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                        else
+                        {
+                            <MudTextField T="string" Value="@Get(key)" Label="@Label(field)"
+                                          Variant="Variant.Outlined" ValueChanged="@(v => Set(key, v))" />
+                        }
+                    }
+                </div>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

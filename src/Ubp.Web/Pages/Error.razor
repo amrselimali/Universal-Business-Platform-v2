@@ -1,0 +1,23 @@
+@page "/error"
+@layout EmptyLayout
+@inject UiCulture T
+@attribute [AllowAnonymous]
+<PageTitle>@T.T("error.title")</PageTitle>
+
+<div class="ubp-public-state">
+    <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Large" Color="Color.Error" />
+    <h1>@T.T("error.title")</h1>
+    <p>@T.T("error.generic")</p>
+    @if (!string.IsNullOrWhiteSpace(TraceId))
+    {
+        <div class="ubp-trace">
+            <span>@T.T("error.trace_id"):</span>
+            <code>@TraceId</code>
+        </div>
+    }
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/" Class="mt-4">@T.T("common.home")</MudButton>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "traceId")] public string? TraceId { get; set; }
+}

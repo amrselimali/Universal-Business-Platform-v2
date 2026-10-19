@@ -1,0 +1,50 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("audit.detail")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="ubp-detail-meta">
+            <div><span>@T.T("audit.time")</span><strong>@Entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</strong></div>
+            <div><span>@T.T("audit.user")</span><strong>@(Entry.Username ?? "—")</strong></div>
+            <div><span>@T.T("audit.branch")</span><strong>@(Entry.BranchName ?? "—")</strong></div>
+            <div><span>@T.T("audit.action")</span><strong>@Entry.Action</strong></div>
+            <div><span>@T.T("audit.record")</span><strong>@Entry.TableName / @Entry.RecordId</strong></div>
+            <div><span>@T.T("audit.trace")</span><strong class="ubp-trace-code">@Entry.TraceId</strong></div>
+            <div><span>@T.T("audit.ip")</span><strong>@(Entry.IpAddress ?? "—")</strong></div>
+        </div>
+
+        @if (_rows.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-3">
+                @T.T("audit.no_payload")
+            </MudAlert>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true" Class="ubp-diff-table mt-4">
+                <thead>
+                    <tr>
+                        <th>@T.T("audit.field")</th>
+                        <th>@T.T("audit.old_value")</th>
+                        <th>@T.T("audit.new_value")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _rows)
+                    {
+                        <tr class="@(row.Changed ? "ubp-diff-changed" : "")">
+                            <td><span class="ubp-code">@row.Field</span></td>
+                            <td>@row.OldValue</td>
+                            <td>@row.NewValue</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@T.T("common.close")</MudButton>
+    </DialogActions>
+</MudDialog>

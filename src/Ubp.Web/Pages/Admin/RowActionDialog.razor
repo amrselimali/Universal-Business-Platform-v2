@@ -1,0 +1,31 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(Mode == "delete" ? T.T("database.delete_row") : T.T("database.edit_row")) — @Table</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-3">
+            @(Mode == "delete" ? T.T("database.delete_warning") : T.T("database.edit_warning"))
+        </MudAlert>
+
+        @if (Mode != "delete")
+        {
+            <MudTextField @bind-Value="_json" Label="JSON" Variant="Variant.Outlined" Lines="14"
+                          Class="ubp-json-input" />
+            <MudText Typo="Typo.caption" Class="ubp-muted mt-1">
+                @T.T("database.protected_columns_hint")
+            </MudText>
+        }
+
+        <MudTextField @bind-Value="_confirmation" Class="mt-4"
+                      Label="@T.T("database.type_to_confirm", Expected)" Variant="Variant.Outlined" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="ExecuteAsync"
+                   Disabled="@(_busy || _confirmation != Expected)">
+            @(Mode == "delete" ? T.T("common.delete") : T.T("common.save"))
+        </MudButton>
+    </DialogActions>
+</MudDialog>
