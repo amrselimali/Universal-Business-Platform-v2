@@ -113,6 +113,12 @@ public static class ServiceRegistration
         services.AddScoped<IUnitRepository, UnitRepository>();
         services.AddScoped<IItemCategoryRepository, ItemCategoryRepository>();
         services.AddScoped<IItemRepository, ItemRepository>();
+        services.AddScoped<IPartnerRepository, PartnerRepository>();
+        services.AddScoped<IPeriodRepository, PeriodRepository>();
+        services.AddScoped<IStockDocumentRepository, StockDocumentRepository>();
+        services.AddScoped<IStockPostingRepository, StockPostingRepository>();
+        services.AddScoped<IStocktakeRepository, StocktakeRepository>();
+        services.AddScoped<IStockReportRepository, StockReportRepository>();
     }
 
     private static void AddApplicationServices(IServiceCollection services)
@@ -134,5 +140,10 @@ public static class ServiceRegistration
         services.AddScoped<UnitService>();
         services.AddScoped<ItemCategoryService>();
         services.AddScoped<ItemService>();
+        services.AddScoped<PartnerService>();
+        services.AddScoped<PeriodService>();
+        services.AddScoped<StockDocumentService>();
+        services.AddScoped<StocktakeService>();
+        services.AddScoped<StockReportService>();
     }
 }
