@@ -205,6 +205,8 @@
   "settings.password_min": "الحد الأدنى لطول كلمة المرور",
   "settings.max_attempts": "محاولات الدخول قبل القفل",
   "settings.lockout_minutes": "مدة القفل (دقائق)",
+  "settings.allow_negative_stock": "السماح بالرصيد السالب",
+  "settings.allow_negative_stock_hint": "عند التعطيل يُرفض أي صرف أو تحويل يجعل رصيد الصنف في المخزن أقل من صفر.",
   "settings.version": "الإصدار",
   "settings.updated": "تم تحديث الإعدادات",
   "language.ar": "العربية",

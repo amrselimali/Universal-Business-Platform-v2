@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-10-21 — Phase 2a: settings + document numbering
+
+### Added
+- Migration `0011_phase2a_settings_and_sequences.sql`: `app_settings.allow_negative_stock`,
+  table `document_sequences`, function `next_document_number`.
+- `DocumentSequenceRepository` (atomic numbering inside the caller's transaction).
+- "Allow negative stock" switch on the General Settings screen (ar/en).
+- `document_sequences` listed (read-only) in the Database admin screen.
+
+### Fixed
+- General Settings screen edited the cached settings instance directly; it now edits a clone.
+
 ## 2026-10-19 — v0.1.0 Phase 1
 
 ### Added

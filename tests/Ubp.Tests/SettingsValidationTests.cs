@@ -22,7 +22,7 @@ public sealed class SettingsValidationTests : IClassFixture<TestDb>
     {
         var actor = await _db.AdminActorAsync();
         var settings = _db.Settings();
-        var current = await settings.GetAsync();
+        var current = (await settings.GetAsync()).Clone();
         current.CompanyName = "شركة الاختبار";
         var updated = await settings.UpdateAsync(actor, current);
         Assert.Equal(current.Version + 1, updated.Version);
@@ -30,11 +30,50 @@ public sealed class SettingsValidationTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Allow_negative_stock_defaults_to_false_and_can_be_changed()
+    {
+        var actor = await _db.AdminActorAsync();
+        var settings = _db.Settings();
+        var current = (await settings.GetAsync()).Clone();
+        Assert.False(current.AllowNegativeStock);
+
+        current.AllowNegativeStock = true;
+        var updated = await settings.UpdateAsync(actor, current);
+        Assert.True(updated.AllowNegativeStock);
+        Assert.Equal(current.Version + 1, updated.Version);
+
+        var reloaded = await _db.SettingsRepo.GetAsync();
+        Assert.True(reloaded!.AllowNegativeStock);
+
+        // إرجاع القيمة الافتراضية حتى لا تتأثر الاختبارات الأخرى
+        reloaded.AllowNegativeStock = false;
+        await settings.UpdateAsync(actor, reloaded);
+    }
+
+    [Fact]
+    public async Task Stale_settings_version_is_rejected()
+    {
+        var actor = await _db.AdminActorAsync();
+        var settings = _db.Settings();
+        var snapshot = (await settings.GetAsync()).Clone();
+
+        var first = snapshot.Clone();
+        first.CompanyName = "تعديل أول";
+        await settings.UpdateAsync(actor, first);
+
+        // UpdateAsync يقرأ الإصدار الحالي من القاعدة، لذلك نختبر شرط version على مستوى الـ repository
+        var stale = snapshot.Clone();
+        stale.CompanyName = "تعديل متأخر";
+        Assert.Null(await _db.SettingsRepo.UpdateAsync(stale));
+    }
+
+    [Fact]
     public void Applied_migrations_are_reported_with_short_names()
     {
         var applied = new Ubp.Infrastructure.Migrations.MigrationRunner(_db.Options).GetAppliedScripts();
-        Assert.True(applied.Count >= 10);
+        Assert.True(applied.Count >= 11);
         Assert.All(applied, item => Assert.DoesNotContain("Ubp.Infrastructure", item.Name));
         Assert.Contains(applied, item => item.Name == "0001_extensions.sql");
+        Assert.Contains(applied, item => item.Name == "0011_phase2a_settings_and_sequences.sql");
     }
 }

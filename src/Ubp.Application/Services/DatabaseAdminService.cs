@@ -37,11 +37,14 @@ public sealed partial class DatabaseAdminService
     {
         RequireSuperAdmin(actor);
         await _permissions.RequireAsync(actor, ScreenCodes.DatabaseAdmin, ActionCodes.View, ct: ct);
+
         var test = await _schema.TestAsync(ct);
         var tables = test.Ok ? await _schema.GetTablesAsync(ct) : Array.Empty<TableInfo>();
+
         var applied = _runner.GetAppliedScripts().Select(a => a.Name).ToList();
         var appliedSet = applied.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var pending = _runner.GetEmbeddedScriptNames().Where(s => !appliedSet.Contains(s)).ToList();
+
         return new DatabaseStatus(test.Ok, test.Server, test.Database, test.User, test.Error,
             tables, applied, pending);
     }

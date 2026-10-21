@@ -20,7 +20,7 @@ public sealed partial class SchemaAdminRepository
         "user_permissions", "user_branches", "user_warehouses", "users",
         "refresh_tokens", "user_sessions", "audit_log",
         "qa_test_definitions", "qa_test_runs", "qa_test_results", "qa_test_artifacts",
-        "schemaversions"
+        "document_sequences", "schemaversions"
     };
 
     public async Task<RowPage> GetRowsAsync(string table, int page, CancellationToken ct = default)

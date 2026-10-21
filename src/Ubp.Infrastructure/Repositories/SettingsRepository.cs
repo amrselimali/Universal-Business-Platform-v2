@@ -26,6 +26,7 @@ public sealed class SettingsRepository : ISettingsRepository
                password_min_length AS PasswordMinLength,
                max_failed_attempts AS MaxFailedAttempts,
                lockout_minutes AS LockoutMinutes,
+               allow_negative_stock AS AllowNegativeStock,
                created_at AS CreatedAt, updated_at AS UpdatedAt, version AS Version
         FROM app_settings LIMIT 1
         """;
@@ -57,7 +58,8 @@ public sealed class SettingsRepository : ISettingsRepository
                 session_timeout_minutes = @SessionTimeoutMinutes,
                 password_min_length = @PasswordMinLength,
                 max_failed_attempts = @MaxFailedAttempts,
-                lockout_minutes = @LockoutMinutes
+                lockout_minutes = @LockoutMinutes,
+                allow_negative_stock = @AllowNegativeStock
             WHERE id = @Id AND version = @Version
             RETURNING id AS Id, company_name AS CompanyName, logo_url AS LogoUrl,
                       default_language AS DefaultLanguage, date_format AS DateFormat,
@@ -66,6 +68,7 @@ public sealed class SettingsRepository : ISettingsRepository
                       password_min_length AS PasswordMinLength,
                       max_failed_attempts AS MaxFailedAttempts,
                       lockout_minutes AS LockoutMinutes,
+                      allow_negative_stock AS AllowNegativeStock,
                       created_at AS CreatedAt, updated_at AS UpdatedAt, version AS Version
             """;
 

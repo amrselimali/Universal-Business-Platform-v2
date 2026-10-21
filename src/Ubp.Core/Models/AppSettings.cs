@@ -13,7 +13,11 @@ public sealed class AppSettings
     public short PasswordMinLength { get; set; } = 8;
     public short MaxFailedAttempts { get; set; } = 5;
     public short LockoutMinutes { get; set; } = 15;
+    public bool AllowNegativeStock { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public int Version { get; set; } = 1;
+
+    /// <summary>نسخة مستقلة للتعديل في الواجهة دون المساس بالنسخة المخزنة في الكاش.</summary>
+    public AppSettings Clone() => (AppSettings)MemberwiseClone();
 }

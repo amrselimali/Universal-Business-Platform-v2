@@ -109,6 +109,7 @@ public static class ServiceRegistration
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<ISchemaAdminRepository, SchemaAdminRepository>();
         services.AddScoped<IQaRepository, QaRepository>();
+        services.AddScoped<IDocumentSequenceRepository, DocumentSequenceRepository>();
     }
 
     private static void AddApplicationServices(IServiceCollection services)

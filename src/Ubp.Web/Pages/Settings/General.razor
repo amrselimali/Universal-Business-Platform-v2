@@ -42,6 +42,12 @@ else
                                  Variant="Variant.Outlined" Min="1" Max="20" Disabled="@(!Can(ActionCodes.Edit))" />
                 <MudNumericField @bind-Value="_lockoutMinutes" Label="@T.T("settings.lockout_minutes")"
                                  Variant="Variant.Outlined" Min="1" Max="1440" Disabled="@(!Can(ActionCodes.Edit))" />
+                <div style="grid-column: 1 / -1;">
+                    <MudSwitch T="bool" @bind-Value="_model.AllowNegativeStock" Color="Color.Primary"
+                               Label="@T.T("settings.allow_negative_stock")"
+                               Disabled="@(!Can(ActionCodes.Edit))" />
+                    <MudText Typo="Typo.caption" Class="ubp-muted">@T.T("settings.allow_negative_stock_hint")</MudText>
+                </div>
             </div>
 
             <div class="ubp-form-footer">
@@ -66,7 +72,7 @@ else
 
     protected override async Task OnLoadAsync()
     {
-        _model = await Settings.GetAsync();
+        _model = (await Settings.GetAsync()).Clone();
         _sessionTimeout = _model.SessionTimeoutMinutes;
         _passwordMin = _model.PasswordMinLength;
         _maxAttempts = _model.MaxFailedAttempts;

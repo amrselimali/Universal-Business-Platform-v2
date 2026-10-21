@@ -205,6 +205,8 @@
   "settings.password_min": "Minimum password length",
   "settings.max_attempts": "Failed attempts before lockout",
   "settings.lockout_minutes": "Lockout duration (minutes)",
+  "settings.allow_negative_stock": "Allow negative stock",
+  "settings.allow_negative_stock_hint": "When disabled, any issue or transfer that would drop an item below zero in a warehouse is rejected.",
   "settings.version": "Version",
   "settings.updated": "Settings updated",
   "language.ar": "العربية",

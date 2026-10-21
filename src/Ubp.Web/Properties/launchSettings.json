@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Ubp.Web": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:50895;http://localhost:50896"
+    }
+  }
+}
