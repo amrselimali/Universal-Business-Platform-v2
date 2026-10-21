@@ -33,8 +33,11 @@
             var groups = new List<Group>
             {
                 new("group.main", new()),
+                new("group.inventory", new()),
+                new("group.partners", new()),
                 new("group.definitions", new()),
                 new("group.security", new()),
+                new("group.reports", new()),
                 new("group.system", new())
             };
             foreach (var screen in AppRegistry.Screens.Where(s => visible.Contains(s.Code)))

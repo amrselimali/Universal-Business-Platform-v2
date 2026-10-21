@@ -1,0 +1,24 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("stocktake.add")</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudSelect T="Guid" @bind-Value="_branchId" Label="@T.T("common.branch")" Variant="Variant.Outlined" Required="true"
+                       @bind-Value:after="OnBranchChanged">
+                @foreach (var branch in _branches) { <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem> }
+            </MudSelect>
+            <MudSelect T="Guid" @bind-Value="_warehouseId" Label="@T.T("common.warehouse")" Variant="Variant.Outlined" Required="true" Class="mt-3">
+                @foreach (var warehouse in _warehouses.Where(w => w.BranchIds.Contains(_branchId)))
+                {
+                    <MudSelectItem T="Guid" Value="@warehouse.Id">@warehouse.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="_notes" Label="@T.T("common.notes")" Variant="Variant.Outlined" Class="mt-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

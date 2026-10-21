@@ -11,7 +11,7 @@ public sealed partial class CustomFieldService
 {
     private static readonly Regex FieldKeyPattern = new("^[a-z][a-z0-9_]*$", RegexOptions.Compiled);
     private static readonly HashSet<string> Entities = new(StringComparer.OrdinalIgnoreCase)
-    { "branches", "warehouses" };
+    { "branches", "warehouses", "items", "customers", "suppliers" };
     private static readonly HashSet<string> Types = new(StringComparer.OrdinalIgnoreCase)
     { "text", "number", "date", "bool", "list" };
 

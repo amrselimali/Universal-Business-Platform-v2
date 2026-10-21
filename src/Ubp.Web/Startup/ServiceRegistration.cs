@@ -110,6 +110,15 @@ public static class ServiceRegistration
         services.AddScoped<ISchemaAdminRepository, SchemaAdminRepository>();
         services.AddScoped<IQaRepository, QaRepository>();
         services.AddScoped<IDocumentSequenceRepository, DocumentSequenceRepository>();
+        services.AddScoped<IUnitRepository, UnitRepository>();
+        services.AddScoped<IItemCategoryRepository, ItemCategoryRepository>();
+        services.AddScoped<IItemRepository, ItemRepository>();
+        services.AddScoped<IPartnerRepository, PartnerRepository>();
+        services.AddScoped<IPeriodRepository, PeriodRepository>();
+        services.AddScoped<IStockDocumentRepository, StockDocumentRepository>();
+        services.AddScoped<IStockPostingRepository, StockPostingRepository>();
+        services.AddScoped<IStocktakeRepository, StocktakeRepository>();
+        services.AddScoped<IStockReportRepository, StockReportRepository>();
     }
 
     private static void AddApplicationServices(IServiceCollection services)
@@ -128,5 +137,13 @@ public static class ServiceRegistration
         services.AddScoped<AuditQueryService>();
         services.AddScoped<DatabaseAdminService>();
         services.AddScoped<QaService>();
+        services.AddScoped<UnitService>();
+        services.AddScoped<ItemCategoryService>();
+        services.AddScoped<ItemService>();
+        services.AddScoped<PartnerService>();
+        services.AddScoped<PeriodService>();
+        services.AddScoped<StockDocumentService>();
+        services.AddScoped<StocktakeService>();
+        services.AddScoped<StockReportService>();
     }
 }

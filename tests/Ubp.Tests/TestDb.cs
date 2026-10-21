@@ -67,6 +67,15 @@ public sealed class TestDb
     public CurrencyRepository CurrencyRepo => new(Factory);
     public CustomFieldRepository CustomFieldRepo => new(Factory);
     public QaRepository QaRepo => new(Factory);
+    public UnitRepository UnitRepo => new(Factory);
+    public ItemRepository ItemRepo => new(Factory);
+    public ItemCategoryRepository ItemCategoryRepo => new(Factory);
+    public PartnerRepository PartnerRepo => new(Factory);
+    public PeriodRepository PeriodRepo => new(Factory);
+    public StockDocumentRepository StockDocRepo => new(Factory);
+    public StockPostingRepository StockPostingRepo => new(Factory);
+    public StocktakeRepository StocktakeRepo => new(Factory);
+    public StockReportRepository StockReportRepo => new(Factory);
 
     public PermissionService Permissions() => new(PermissionRepo, Cache);
 
@@ -131,6 +140,65 @@ public sealed class TestDb
         });
         return detail.User.Id;
     }
+
+    public CustomFieldService CustomFields() => new(
+        CustomFieldRepo, Permissions(), new AuditService(AuditRepo));
+
+    public ItemService ItemService() => new(
+        ItemRepo, UnitRepo, ItemCategoryRepo, CustomFields(), Permissions(),
+        new AuditService(AuditRepo));
+
+    public StocktakeService StocktakeService() => new(
+        StocktakeRepo, StockDocRepo, StockPostingRepo, ItemRepo, WarehouseRepo, Settings(),
+        Permissions(), new AuditService(AuditRepo));
+
+    public PeriodService PeriodService() =>
+        new(PeriodRepo, BranchRepo, Permissions(), new AuditService(AuditRepo));
+
+    public StockDocumentService StockDocumentService() => new(
+        StockDocRepo, StockPostingRepo, ItemRepo, WarehouseRepo, Settings(), Permissions(),
+        new AuditService(AuditRepo));
+
+    public async Task<Item> CreateItemAsync(string code, string nameAr)
+    {
+        var unit = await UnitRepo.CreateAsync(new UnitInput
+        {
+            Code = "U" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant(),
+            NameAr = "وحدة " + nameAr
+        });
+        return await ItemRepo.CreateAsync(new ItemInput
+        {
+            Code = code,
+            NameAr = nameAr,
+            BaseUnitId = unit.Id,
+            Units = new List<ItemUnitInput> { new() { UnitId = unit.Id, ConversionFactor = 1 } }
+        });
+    }
+
+    public async Task<StockDocument> PostReceiptAsync(Item item, Guid branchId, Guid warehouseId,
+        decimal quantity, decimal cost, bool allowNegative = false)
+    {
+        var actor = await AdminActorAsync();
+        var draft = await StockDocRepo.CreateDraftAsync(new StockDocumentInput
+        {
+            DocType = StockDocumentTypes.Receipt,
+            DocDate = DateTime.UtcNow.Date,
+            BranchId = branchId,
+            WarehouseId = warehouseId,
+            Lines =
+            {
+                new StockDocumentLineInput
+                {
+                    ItemId = item.Id, UnitId = item.BaseUnitId, ConversionFactor = 1,
+                    Quantity = quantity, UnitCost = cost
+                }
+            }
+        }, actor.UserId);
+        return await StockPostingRepo.PostAsync(draft.Id, actor.UserId, allowNegative);
+    }
+
+    public async Task<decimal> OnHandAsync(Guid itemId, Guid warehouseId) =>
+        await StockReportRepo.GetOnHandAsync(itemId, warehouseId);
 
     public sealed class FakeTokenIssuer : IAccessTokenIssuer
     {

@@ -10,6 +10,8 @@ public static class DbErrorMapper
         if (ex.SqlState == PostgresErrorCodes.UniqueViolation)
         {
             var constraint = ex.ConstraintName ?? "";
+            if (constraint.Contains("barcode", StringComparison.OrdinalIgnoreCase))
+                return new ValidationAppException("validation.duplicate_barcode");
             if (constraint.Contains("username", StringComparison.OrdinalIgnoreCase))
                 return new ValidationAppException("validation.username_taken");
             if (constraint.Contains("code", StringComparison.OrdinalIgnoreCase))
@@ -41,6 +43,8 @@ public static class DbErrorMapper
             }
             if (ex.MessageText == "LAST_SUPER_ADMIN")
                 return new ValidationAppException("validation.last_super_admin");
+            if (ex.MessageText == "STOCKTAKE_REASON_REQUIRED")
+                return new ValidationAppException("validation.stocktake_reason_required");
         }
 
         if (ex.SqlState == PostgresErrorCodes.NotNullViolation)

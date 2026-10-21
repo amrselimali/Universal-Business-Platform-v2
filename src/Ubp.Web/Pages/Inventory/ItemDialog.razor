@@ -1,0 +1,106 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@(IsEdit ? T.T("common.edit") : T.T("common.add"))</MudText></TitleContent>
+    <DialogContent>
+        <MudTabs Elevation="0" Rounded="true" PanelClass="pt-4">
+            <MudTabPanel Text="@T.T("items.tab_data")" Icon="@Icons.Material.Filled.Inventory2">
+                <MudForm @ref="_form">
+                    <div class="ubp-form-grid">
+                        <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true" Variant="Variant.Outlined" MaxLength="50" />
+                        <MudSelect T="string" @bind-Value="_input.ItemType" Label="@T.T("items.type")" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("GOODS")">@T.T("items.type_goods")</MudSelectItem>
+                            <MudSelectItem Value="@("SERVICE")">@T.T("items.type_service")</MudSelectItem>
+                        </MudSelect>
+                        <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true" Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="_input.NameEn" Label="@T.T("common.name_en")" Variant="Variant.Outlined" />
+                        <MudSelect T="Guid?" @bind-Value="_input.CategoryId" Label="@T.T("items.category")" Variant="Variant.Outlined" Clearable="true">
+                            @foreach (var category in _categories)
+                            {
+                                <MudSelectItem T="Guid?" Value="@((Guid?)category.Id)">@CategoryName(category)</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudSelect T="Guid" @bind-Value="_input.BaseUnitId" Label="@T.T("items.base_unit")" Variant="Variant.Outlined" Required="true">
+                            @foreach (var unit in _units)
+                            {
+                                <MudSelectItem T="Guid" Value="@unit.Id">@UnitName(unit)</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudTextField @bind-Value="_input.Notes" Label="@T.T("common.notes")" Variant="Variant.Outlined" Lines="2" Class="ubp-span-2" />
+                        <MudSwitch @bind-Value="_input.IsActive" Label="@T.T("common.active")" Color="Color.Success" />
+                    </div>
+
+                    @if (_fields.Count > 0)
+                    {
+                        <MudDivider Class="my-4" />
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">@T.T("custom_fields.title")</MudText>
+                        <div class="ubp-form-grid">
+                            @foreach (var field in _fields)
+                            {
+                                var key = field.FieldKey;
+                                if (field.DataType == "bool")
+                                {
+                                    <MudCheckBox T="bool" Value="@GetBool(key)" Label="@Label(field)"
+                                                 ValueChanged="@(v => SetBool(key, v))" />
+                                }
+                                else if (field.DataType == "list")
+                                {
+                                    <MudSelect T="string" Value="@Get(key)" Label="@Label(field)"
+                                               Variant="Variant.Outlined" ValueChanged="@(v => Set(key, v))">
+                                        @foreach (var option in field.Options)
+                                        {
+                                            <MudSelectItem Value="@option">@option</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                }
+                                else
+                                {
+                                    <MudTextField T="string" Value="@Get(key)" Label="@Label(field)"
+                                                  Variant="Variant.Outlined" ValueChanged="@(v => Set(key, v))" />
+                                }
+                            }
+                        </div>
+                    }
+                </MudForm>
+            </MudTabPanel>
+
+            <MudTabPanel Text="@T.T("items.tab_units")" Icon="@Icons.Material.Filled.Straighten">
+                <MudText Typo="Typo.caption" Class="ubp-muted mb-3">@T.T("items.units_hint")</MudText>
+                @foreach (var row in _unitRows)
+                {
+                    <div class="ubp-inline mb-2" style="gap:8px;flex-wrap:wrap">
+                        <MudSelect T="Guid" @bind-Value="row.UnitId" Label="@T.T("common.unit")" Variant="Variant.Outlined" Dense="true" Style="min-width:180px">
+                            @foreach (var unit in _units)
+                            {
+                                <MudSelectItem T="Guid" Value="@unit.Id">@UnitName(unit)</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudNumericField T="decimal" @bind-Value="row.ConversionFactor" Label="@T.T("items.conversion")" Variant="Variant.Outlined" Dense="true" Min="0.000001m" Style="width:140px" />
+                        <MudNumericField T="decimal?" @bind-Value="row.SalePrice" Label="@T.T("items.sale_price")" Variant="Variant.Outlined" Dense="true" Min="0m" Style="width:140px" />
+                        <MudNumericField T="decimal?" @bind-Value="row.PurchasePrice" Label="@T.T("items.purchase_price")" Variant="Variant.Outlined" Dense="true" Min="0m" Style="width:140px" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                       OnClick="@(() => _unitRows.Remove(row))" />
+                    </div>
+                }
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="AddUnitRow">@T.T("items.add_unit")</MudButton>
+            </MudTabPanel>
+
+            <MudTabPanel Text="@T.T("items.tab_barcodes")" Icon="@Icons.Material.Filled.QrCode">
+                <div class="ubp-inline mb-3" style="gap:8px">
+                    <MudTextField @bind-Value="_barcode" Label="@T.T("items.barcode")" Variant="Variant.Outlined" Dense="true" />
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="AddBarcode">@T.T("common.add")</MudButton>
+                </div>
+                <div class="ubp-inline" style="gap:6px;flex-wrap:wrap">
+                    @foreach (var barcode in _barcodes)
+                    {
+                        <MudChip T="string" OnClose="@(() => _barcodes.Remove(barcode))" Color="Color.Default">@barcode</MudChip>
+                    }
+                </div>
+            </MudTabPanel>
+        </MudTabs>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

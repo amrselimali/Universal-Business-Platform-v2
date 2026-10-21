@@ -1,0 +1,74 @@
+@page "/accounting/periods"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.periods")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.periods")" Subtitle="@T.T("periods.hint")">
+        <Actions>
+            @if (Can(ActionCodes.Add))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="AddAsync">@T.T("periods.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudTextField @bind-Value="_search" Placeholder="@T.T("common.search")" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search" DebounceInterval="300"
+                          OnDebounceIntervalElapsed="ReloadAsync" />
+            <MudSelect T="string?" @bind-Value="_status" Label="@T.T("common.status")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       @bind-Value:after="ReloadAsync">
+                <MudSelectItem T="string?" Value="@("OPEN")">@T.T("periods.open")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("CLOSED")">@T.T("periods.closed")</MudSelectItem>
+            </MudSelect>
+        </div>
+
+        <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="FiscalPeriod" SortLabel="start_date" InitialDirection="SortDirection.Descending">@T.T("periods.start")</MudTableSortLabel></MudTh>
+                <MudTh>@T.T("periods.code")</MudTh>
+                <MudTh>@T.T("common.name_ar")</MudTh>
+                <MudTh>@T.T("periods.end")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@T.T("periods.start")">@context.StartDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd DataLabel="@T.T("periods.code")"><span class="ubp-code">@context.Code</span></MudTd>
+                <MudTd DataLabel="@T.T("common.name_ar")">@Name(context)</MudTd>
+                <MudTd DataLabel="@T.T("periods.end")">@context.EndDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd DataLabel="@T.T("common.status")">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@(context.Status == "CLOSED" ? Color.Error : Color.Success)">
+                        @T.T(context.Status == "CLOSED" ? "periods.closed" : "periods.open")
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true" AnchorOrigin="Origin.BottomRight">
+                        <MudMenuItem OnClick="@(() => DetailsAsync(context))" Icon="@Icons.Material.Filled.Visibility">@T.T("periods.details")</MudMenuItem>
+                        @if (context.Status == "OPEN" && Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => EditAsync(context))" Icon="@Icons.Material.Filled.Edit">@T.T("common.edit")</MudMenuItem>
+                        }
+                        @if (context.Status == "OPEN" && Can(ActionCodes.Delete))
+                        {
+                            <MudMenuItem OnClick="@(() => DeleteAsync(context))" Icon="@Icons.Material.Filled.Delete">@T.T("common.delete")</MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}

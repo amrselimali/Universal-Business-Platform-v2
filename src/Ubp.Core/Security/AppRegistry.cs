@@ -23,6 +23,15 @@ public static class ScreenCodes
     public const string AuditLog = "AUDIT_LOG";
     public const string DatabaseAdmin = "DATABASE_ADMIN";
     public const string QaCenter = "QA_CENTER";
+    public const string Units = "UNITS";
+    public const string ItemCategories = "ITEM_CATEGORIES";
+    public const string Items = "ITEMS";
+    public const string Customers = "CUSTOMERS";
+    public const string Suppliers = "SUPPLIERS";
+    public const string StockDocuments = "STOCK_DOCUMENTS";
+    public const string Stocktake = "STOCKTAKE";
+    public const string FinancialPeriods = "FINANCIAL_PERIODS";
+    public const string StockReports = "STOCK_REPORTS";
 }
 
 public static class ActionCodes
@@ -42,6 +51,11 @@ public static class ActionCodes
     public const string RunMigrations = "RUN_MIGRATIONS";
     public const string EditRows = "EDIT_ROWS";
     public const string RunTests = "RUN_TESTS";
+    public const string Post = "POST";
+    public const string Reverse = "REVERSE";
+    public const string Receive = "RECEIVE";
+    public const string ClosePeriod = "CLOSE_PERIOD";
+    public const string ReopenPeriod = "REOPEN_PERIOD";
 }
 
 public sealed record ScreenAction(string Code, string TitleKey);
@@ -60,6 +74,9 @@ public static class AppRegistry
     public const string GroupDefinitions = "group.definitions";
     public const string GroupSecurity = "group.security";
     public const string GroupSystem = "group.system";
+    public const string GroupInventory = "group.inventory";
+    public const string GroupPartners = "group.partners";
+    public const string GroupReports = "group.reports";
 
     private static ScreenAction A(string code) => new(code, $"action.{code.ToLowerInvariant()}");
 
@@ -84,6 +101,41 @@ public static class AppRegistry
 
         new(ScreenCodes.CustomFields, "/settings/custom-fields", "Tune", "screen.custom_fields", GroupDefinitions,
             new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit), A(ActionCodes.Delete) }),
+
+        new(ScreenCodes.Units, "/inventory/units", "Straighten", "screen.units", GroupInventory,
+            new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit),
+                    A(ActionCodes.Delete), A(ActionCodes.ToggleActive) }),
+
+        new(ScreenCodes.ItemCategories, "/inventory/item-categories", "Category", "screen.item_categories", GroupInventory,
+            new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit),
+                    A(ActionCodes.Delete), A(ActionCodes.ToggleActive) }),
+
+        new(ScreenCodes.Items, "/inventory/items", "Inventory2", "screen.items", GroupInventory,
+            new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit),
+                    A(ActionCodes.Delete), A(ActionCodes.ToggleActive) }),
+
+        new(ScreenCodes.StockDocuments, "/inventory/documents", "Description", "screen.stock_documents", GroupInventory,
+            new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit),
+                    A(ActionCodes.Delete), A(ActionCodes.Post), A(ActionCodes.Reverse), A(ActionCodes.Receive) }),
+
+        new(ScreenCodes.Stocktake, "/inventory/stocktake", "FactCheck", "screen.stocktake", GroupInventory,
+            new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit),
+                    A(ActionCodes.Delete), A(ActionCodes.Post) }),
+
+        new(ScreenCodes.Customers, "/partners/customers", "People", "screen.customers", GroupPartners,
+            new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit),
+                    A(ActionCodes.Delete), A(ActionCodes.ToggleActive) }),
+
+        new(ScreenCodes.Suppliers, "/partners/suppliers", "LocalShipping", "screen.suppliers", GroupPartners,
+            new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit),
+                    A(ActionCodes.Delete), A(ActionCodes.ToggleActive) }),
+
+        new(ScreenCodes.FinancialPeriods, "/accounting/periods", "EventNote", "screen.periods", GroupDefinitions,
+            new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit), A(ActionCodes.Delete),
+                    A(ActionCodes.ClosePeriod), A(ActionCodes.ReopenPeriod) }),
+
+        new(ScreenCodes.StockReports, "/reports/stock", "Assessment", "screen.stock_reports", GroupReports,
+            new[] { A(ActionCodes.View) }),
 
         new(ScreenCodes.Users, "/users", "ManageAccounts", "screen.users", GroupSecurity,
             new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit), A(ActionCodes.Delete),

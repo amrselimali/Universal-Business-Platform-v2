@@ -20,7 +20,12 @@ public sealed partial class SchemaAdminRepository
         "user_permissions", "user_branches", "user_warehouses", "users",
         "refresh_tokens", "user_sessions", "audit_log",
         "qa_test_definitions", "qa_test_runs", "qa_test_results", "qa_test_artifacts",
-        "document_sequences", "schemaversions"
+        "document_sequences", "schemaversions",
+        "units", "item_categories", "items", "item_units", "item_barcodes",
+        "customer_categories", "customers", "supplier_categories", "suppliers",
+        "fiscal_periods", "period_scope_closures", "period_close_checks", "period_events",
+        "stock_documents", "stock_document_lines", "stock_movements", "stock_balances",
+        "stock_transfer_receipts", "stock_transfer_receipt_lines", "stocktakes", "stocktake_lines"
     };
 
     public async Task<RowPage> GetRowsAsync(string table, int page, CancellationToken ct = default)

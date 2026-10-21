@@ -1,0 +1,58 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("stocktake.count") — @Code</MudText></TitleContent>
+    <DialogContent>
+        @if (_detail is null) { <MudProgressLinear Indeterminate="true" /> }
+        else
+        {
+            <MudText Typo="Typo.caption" Class="ubp-muted mb-3">@T.T("stocktake.count_hint")</MudText>
+            <div style="overflow-x:auto">
+                <table class="ubp-table" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>@T.T("common.code")</th>
+                            <th>@T.T("stock.item")</th>
+                            <th>@T.T("stocktake.book_qty")</th>
+                            <th>@T.T("stocktake.counted_qty")</th>
+                            <th>@T.T("stocktake.difference")</th>
+                            <th>@T.T("stocktake.reason")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in _detail.Lines)
+                        {
+                            <tr>
+                                <td><span class="ubp-code">@line.ItemCode</span></td>
+                                <td>@line.ItemName</td>
+                                <td>@line.BookQty</td>
+                                <td style="min-width:130px">
+                                    <MudNumericField T="decimal" Value="@Counted(line.Id)" ValueChanged="@(v => SetCounted(line.Id, v))"
+                                                     Dense="true" Variant="Variant.Outlined" Min="0m" />
+                                </td>
+                                <td>@(Counted(line.Id) - line.BookQty)</td>
+                                <td style="min-width:220px">
+                                    @if (Counted(line.Id) != line.BookQty)
+                                    {
+                                        <MudTextField T="string" Value="@Reason(line.ItemId)"
+                                                      ValueChanged="@(v => SetReason(line.ItemId, v))"
+                                                      Placeholder="@T.T("stocktake.reason_hint")"
+                                                      Variant="Variant.Outlined" Dense="true" Required="true" />
+                                    }
+                                    else
+                                    {
+                                        <span class="ubp-muted">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@(_busy || _detail is null)">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

@@ -1,0 +1,108 @@
+@page "/inventory/documents"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.stock_documents")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.stock_documents")" Subtitle="@T.T("stock.hint")">
+        <Actions>
+            @if (Can(ActionCodes.Add))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="AddAsync">@T.T("common.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudTextField @bind-Value="_search" Placeholder="@T.T("common.search")" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search" DebounceInterval="300"
+                          OnDebounceIntervalElapsed="ReloadAsync" />
+            <MudSelect T="string?" @bind-Value="_type" Label="@T.T("stock.type")" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Clearable="true" @bind-Value:after="ReloadAsync">
+                @foreach (var type in StockDocumentTypes.All.Where(t => t != StockDocumentTypes.Reversal))
+                {
+                    <MudSelectItem T="string?" Value="@type">@T.T("stock.type_" + type.ToLowerInvariant())</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string?" @bind-Value="_status" Label="@T.T("common.status")" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Clearable="true" @bind-Value:after="ReloadAsync">
+                @foreach (var status in new[] { "DRAFT", "POSTED", "PARTIALLY_RECEIVED", "RECEIVED", "CANCELLED" })
+                {
+                    <MudSelectItem T="string?" Value="@status">@T.T("stock.status_" + status.ToLowerInvariant())</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="StockDocument" SortLabel="doc_date" InitialDirection="SortDirection.Descending">@T.T("stock.doc_date")</MudTableSortLabel></MudTh>
+                <MudTh>@T.T("stock.doc_no")</MudTh>
+                <MudTh>@T.T("stock.type")</MudTh>
+                <MudTh>@T.T("common.branch")</MudTh>
+                <MudTh>@T.T("common.warehouse")</MudTh>
+                <MudTh>@T.T("stock.total_cost")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@T.T("stock.doc_date")">@context.DocDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd DataLabel="@T.T("stock.doc_no")"><span class="ubp-code">@(context.DocNo ?? "—")</span></MudTd>
+                <MudTd DataLabel="@T.T("stock.type")">
+                    @T.T("stock.type_" + context.DocType.ToLowerInvariant())
+                    @if (context.IsReversed) { <MudChip T="string" Size="Size.Small" Color="Color.Warning">@T.T("stock.is_reversed")</MudChip> }
+                </MudTd>
+                <MudTd DataLabel="@T.T("common.branch")">@context.BranchName</MudTd>
+                <MudTd DataLabel="@T.T("common.warehouse")">
+                    @context.WarehouseName
+                    @if (context.ToWarehouseName is not null) { <span class="ubp-muted ubp-small"> → @context.ToWarehouseName</span> }
+                </MudTd>
+                <MudTd DataLabel="@T.T("stock.total_cost")">@context.TotalCost.ToString("N2")</MudTd>
+                <MudTd DataLabel="@T.T("common.status")">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@StatusColor(context.Status)">
+                        @T.T("stock.status_" + context.Status.ToLowerInvariant())
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true" AnchorOrigin="Origin.BottomRight">
+                        @if (context.Status == StockStatuses.Draft && Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => EditAsync(context))" Icon="@Icons.Material.Filled.Edit">@T.T("common.edit")</MudMenuItem>
+                        }
+                        @if (context.Status == StockStatuses.Draft && Can(ActionCodes.Post))
+                        {
+                            <MudMenuItem OnClick="@(() => PostAsync(context))" Icon="@Icons.Material.Filled.CheckCircle">@T.T("stock.post")</MudMenuItem>
+                        }
+                        @if (context.DocType == StockDocumentTypes.Transfer && Can(ActionCodes.Receive) &&
+                             context.Status is StockStatuses.Posted or StockStatuses.PartiallyReceived)
+                        {
+                            <MudMenuItem OnClick="@(() => ReceiveAsync(context))" Icon="@Icons.Material.Filled.MoveToInbox">@T.T("stock.receive")</MudMenuItem>
+                        }
+                        @if (context.Status != StockStatuses.Draft && context.DocType != StockDocumentTypes.Transfer &&
+                             context.DocType != StockDocumentTypes.Reversal && !context.IsReversed && Can(ActionCodes.Reverse))
+                        {
+                            <MudMenuItem OnClick="@(() => ReverseAsync(context))" Icon="@Icons.Material.Filled.Undo">@T.T("stock.reverse")</MudMenuItem>
+                        }
+                        @if (context.Status == StockStatuses.Draft && Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => CancelAsync(context))" Icon="@Icons.Material.Filled.Block">@T.T("stock.cancel")</MudMenuItem>
+                        }
+                        @if (context.Status == StockStatuses.Draft && Can(ActionCodes.Delete))
+                        {
+                            <MudMenuItem OnClick="@(() => DeleteAsync(context))" Icon="@Icons.Material.Filled.Delete">@T.T("common.delete")</MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}

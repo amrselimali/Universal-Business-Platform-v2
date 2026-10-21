@@ -1,0 +1,78 @@
+@page "/inventory/stocktake"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.stocktake")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.stocktake")" Subtitle="@T.T("stocktake.hint")">
+        <Actions>
+            @if (Can(ActionCodes.Add))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="AddAsync">@T.T("stocktake.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudTextField @bind-Value="_search" Placeholder="@T.T("common.search")" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search" DebounceInterval="300"
+                          OnDebounceIntervalElapsed="ReloadAsync" />
+            <MudSelect T="string?" @bind-Value="_status" Label="@T.T("common.status")" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Clearable="true" @bind-Value:after="ReloadAsync">
+                <MudSelectItem T="string?" Value="@("DRAFT")">@T.T("stocktake.status_draft")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("POSTED")">@T.T("stocktake.status_posted")</MudSelectItem>
+            </MudSelect>
+        </div>
+
+        <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="Stocktake" SortLabel="code">@T.T("stocktake.code")</MudTableSortLabel></MudTh>
+                <MudTh>@T.T("common.branch")</MudTh>
+                <MudTh>@T.T("common.warehouse")</MudTh>
+                <MudTh>@T.T("stocktake.lines")</MudTh>
+                <MudTh>@T.T("stocktake.total_difference")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@T.T("stocktake.code")"><span class="ubp-code">@context.Code</span></MudTd>
+                <MudTd DataLabel="@T.T("common.branch")">@context.BranchName</MudTd>
+                <MudTd DataLabel="@T.T("common.warehouse")">@context.WarehouseName</MudTd>
+                <MudTd DataLabel="@T.T("stocktake.lines")">@context.LinesCount</MudTd>
+                <MudTd DataLabel="@T.T("stocktake.total_difference")">@context.TotalDifference.ToString("N2")</MudTd>
+                <MudTd DataLabel="@T.T("common.status")">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@(context.Status == "POSTED" ? Color.Success : Color.Default)">
+                        @T.T("stocktake.status_" + context.Status.ToLowerInvariant())
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true" AnchorOrigin="Origin.BottomRight">
+                        @if (context.Status == "DRAFT" && Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => CountAsync(context))" Icon="@Icons.Material.Filled.FactCheck">@T.T("stocktake.count")</MudMenuItem>
+                        }
+                        @if (context.Status == "DRAFT" && Can(ActionCodes.Post))
+                        {
+                            <MudMenuItem OnClick="@(() => PostAsync(context))" Icon="@Icons.Material.Filled.CheckCircle">@T.T("stocktake.post")</MudMenuItem>
+                        }
+                        @if (context.Status == "DRAFT" && Can(ActionCodes.Delete))
+                        {
+                            <MudMenuItem OnClick="@(() => DeleteAsync(context))" Icon="@Icons.Material.Filled.Delete">@T.T("common.delete")</MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}

@@ -98,11 +98,19 @@ Bootstrap__SuperAdminPassword="<strong password>"
 - **Audit log** غير قابل للتعديل أو الحذف (Trigger)، ويستخدم Keyset Pagination.
 - **عملة أساسية واحدة** مضمونة بفهرس Unique جزئي.
 
-### الجداول (المرحلة الأولى)
-`app_settings` · `branches` · `warehouses` · `warehouse_branches` · `currencies` ·
+### الجداول
+
+**المرحلة 1:** `app_settings` · `branches` · `warehouses` · `warehouse_branches` · `currencies` ·
 `custom_field_definitions` · `users` · `refresh_tokens` · `user_sessions` ·
 `user_branches` · `user_warehouses` · `roles` · `role_permissions` · `user_roles` ·
-`user_permissions` · `audit_log` · جداول QA.
+`user_permissions` · `audit_log` · جداول QA · `document_sequences`.
+
+**المرحلة 2:** `units` · `item_categories` · `items` · `item_units` · `item_barcodes` ·
+`customer_categories` · `customers` · `supplier_categories` · `suppliers` ·
+`fiscal_periods` · `period_scope_closures` · `period_close_checks` · `period_events` ·
+`stock_documents` · `stock_document_lines` · `stock_movements` · `stock_balances` ·
+`stock_transfer_receipts` · `stock_transfer_receipt_lines` · `stocktakes` · `stocktake_lines`.
+إجمالي 43 جدولًا بعد الترحيلات 0001–0018.
 
 ---
 
@@ -149,6 +157,15 @@ Bootstrap__SuperAdminPassword="<strong password>"
 | سجل الأنشطة | `/audit` | قراءة فقط + مقارنة قديم/جديد |
 | مركز الجودة | `/qa` | مصفوفة اختبارات + تشغيل + نتائج |
 | إدارة قاعدة البيانات | `/admin/database` | Super Admin فقط: حالة/جداول/ترحيلات/صفوف |
+| وحدات القياس | `/inventory/units` | دقة عشرية + تعطيل بدل الحذف |
+| تصنيفات الأصناف | `/inventory/item-categories` | تصنيفات هرمية |
+| الأصناف | `/inventory/items` | وحدات متعددة + باركود + أسعار مرجعية |
+| العملاء | `/partners/customers` | نطاق شركة أو فرع + تصنيفات + حد ائتمان |
+| الموردون | `/partners/suppliers` | نفس نموذج العملاء |
+| مستندات المخزون | `/inventory/documents` | استلام/صرف/تحويل/تسوية/رصيد افتتاحي + ترحيل وعكس |
+| الجرد | `/inventory/stocktake` | جلسات جرد + تسوية آلية بالفروق |
+| الفترات المالية | `/accounting/periods` | إغلاق فرع/وحدة/شركة + فحوصات + سجل |
+| تقارير المخزون | `/reports/stock` | أرصدة المخزون + كارت الصنف |
 
 كل شاشة مقسّمة إلى **Component + Service + Repository**، وكل ملف كود ≤ 300 سطر.
 
@@ -171,11 +188,14 @@ Bootstrap__SuperAdminPassword="<strong password>"
 createdb -h localhost -U postgres ubp_test
 createdb -h localhost -U postgres ubp_qa
 
-# تشغيل الكل (25 اختباراً)
+# تشغيل الكل (52 اختباراً)
 dotnet test
 ```
 تغطي الاختبارات: الصلاحيات ونطاقها، قفل الحساب وفكه، عزل الفروع، تعارض `version`،
-ترقيم 25 صفاً، البحث العربي، تغطية المخازن للفروع، عدم قابلية Audit للتعديل، وعزل QA.
+ترقيم 25 صفاً، البحث العربي، تغطية المخازن للفروع، عدم قابلية Audit للتعديل، عزل QA،
+ترقيم المستندات تحت التزامن، المتوسط المرجح المتحرك، منع المخزون السالب، إغلاق الفترات
+(مسودات/تحويلات معلقة/جرد غير مرحّل/تكلفة صفر)، التحويل والاستلام الجزئي، العكس ومنع تكراره،
+الجرد والتسوية وسبب الفرق، الحقول المخصصة للأصناف والعملاء والموردين، وثبات الأرصدة مع الحركات.
 
 في CI:
 ```bash
@@ -211,11 +231,17 @@ docker compose up -d --build
 الفروع/المخازن/العملات/الحقول المخصصة، سجل الأنشطة، إدارة قاعدة البيانات، مركز جودة أولي،
 اختبارات آلية، توثيق، Docker، وقالب CI.
 
+**منجز في المرحلة الثانية:** البيانات الأساسية للمخزون (وحدات/تصنيفات/أصناف/باركود)،
+العملاء والموردون بنطاق شركة أو فرع، محرك فترات موحد، مستندات مخزون بترحيل ذري
+ومتوسط تكلفة مرجح متحرك، تحويلات باستلام جزئي، جرد وتسويات، عكس مستندات،
+تقارير أرصدة وكارت صنف، و9 شاشات جديدة. التفاصيل في `docs/PHASE2-AR.md`.
+
 **المرحلة التالية المقترحة:**
-1. شاشات ERP التشغيلية (منتجات، مخزون، فواتير، محاسبة، شركاء).
-2. ترحيل محاسبي بقواعد Posting Rules + فترات مقفلة.
-3. RBAC على مستوى الحقول + تخصيص أعمدة/نماذج لكل مستخدم.
-4. QA متقدم: Playwright، تقارير تغطية، بوابات إصدار، وبيانات اختبار معزولة.
-5. فهارس/بارتشنات لسجل الأنشطة عند تجاوز ملايين الصفوف.
+1. فواتير المبيعات والمشتريات وربطها بالمخزون والعملاء والموردين.
+2. ترحيل محاسبي (Journal Entries) وقواعد Posting Rules على محرك الفترات الحالي.
+3. `tenant_id` + RLS إذا تقرر دعم عدة شركات.
+4. RBAC على مستوى الحقول + تخصيص أعمدة/نماذج لكل مستخدم.
+5. QA متقدم: Playwright، تقارير تغطية، بوابات إصدار، وبيانات اختبار معزولة.
+6. بارتشنات لسجل الأنشطة وحركات المخزون عند تجاوز ملايين الصفوف.
 
 > راجع `docs/PHASE1-AR.md` للتفاصيل و`docs/SECURITY-AR.md` لمراجعة الأمان.
