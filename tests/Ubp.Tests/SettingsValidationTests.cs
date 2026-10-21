@@ -68,6 +68,23 @@ public sealed class SettingsValidationTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Settings_service_rejects_a_stale_version()
+    {
+        var actor = await _db.AdminActorAsync();
+        var settings = _db.Settings();
+        var snapshot = (await settings.GetAsync()).Clone();
+
+        var first = snapshot.Clone();
+        first.CompanyName = "تعديل أول عبر الخدمة";
+        await settings.UpdateAsync(actor, first);
+
+        var stale = snapshot.Clone();
+        stale.CompanyName = "تعديل متأخر عبر الخدمة";
+        await Assert.ThrowsAsync<Ubp.Core.Results.ConflictException>(async () =>
+            await settings.UpdateAsync(actor, stale));
+    }
+
+    [Fact]
     public void Applied_migrations_are_reported_with_short_names()
     {
         var applied = new Ubp.Infrastructure.Migrations.MigrationRunner(_db.Options).GetAppliedScripts();

@@ -12,7 +12,7 @@
 - Screens added: `/inventory/units`, `/inventory/item-categories`, `/inventory/items`,
   `/partners/customers`, `/partners/suppliers`, `/inventory/documents`, `/inventory/stocktake`,
   `/accounting/periods`, `/reports/stock`.
-- 45 automated tests pass on a real PostgreSQL instance; app boots and all screens return 200.
+- 46 automated tests pass on a real PostgreSQL instance; app boots and all screens return 200.
 
 ### Decisions
 - Single company per database (no `tenant_id`) — documented in `docs/PHASE2-AR.md` (D1).

@@ -188,7 +188,7 @@ Bootstrap__SuperAdminPassword="<strong password>"
 createdb -h localhost -U postgres ubp_test
 createdb -h localhost -U postgres ubp_qa
 
-# تشغيل الكل (45 اختباراً)
+# تشغيل الكل (46 اختباراً)
 dotnet test
 ```
 تغطي الاختبارات: الصلاحيات ونطاقها، قفل الحساب وفكه، عزل الفروع، تعارض `version`،

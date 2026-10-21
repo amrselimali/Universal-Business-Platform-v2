@@ -47,8 +47,8 @@ public sealed class SettingsService : ISettingsService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SettingsGeneral, ActionCodes.Edit, ct: ct);
         var old = await _repository.GetAsync(ct) ?? throw new NotFoundAppException();
+        // لا نستبدل نسخة النموذج بنسخة حديثة: يجب أن يُرفض الحفظ إذا عدّل مستخدم آخر السجل.
         input.Id = old.Id;
-        input.Version = old.Version;
 
         if (input.SessionTimeoutMinutes is < 5 or > 480)
             throw new ValidationAppException("validation.session_timeout");

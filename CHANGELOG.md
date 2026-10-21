@@ -10,7 +10,7 @@
 - Atomic stock posting with moving weighted average, negative-stock guard, reversal documents,
   partial transfer receiving, stocktake adjustments and period-close checks/events.
 - Permission actions `POST` · `REVERSE` · `RECEIVE` · `CLOSE_PERIOD` · `REOPEN_PERIOD`.
-- 13 new automated tests (45 total) covering posting, costing, periods, transfers, stocktake.
+- 14 new automated tests (46 total) covering posting, costing, periods, transfers, stocktake.
 
 ### Fixed
 - `0011` sequence prefix was `varchar(10)` while `STOCK_RECEIPT` needs 13 → 4 failing tests.
