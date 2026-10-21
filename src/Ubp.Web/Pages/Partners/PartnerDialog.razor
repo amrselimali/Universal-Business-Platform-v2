@@ -35,6 +35,38 @@
                 <MudTextField @bind-Value="_input.Notes" Label="@T.T("common.notes")" Variant="Variant.Outlined" Lines="2" Class="ubp-span-2" />
                 <MudSwitch @bind-Value="_input.IsActive" Label="@T.T("common.active")" Color="Color.Success" />
             </div>
+
+            @if (_fields.Count > 0)
+            {
+                <MudDivider Class="my-4" />
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@T.T("custom_fields.title")</MudText>
+                <div class="ubp-form-grid">
+                    @foreach (var field in _fields)
+                    {
+                        var key = field.FieldKey;
+                        if (field.DataType == "bool")
+                        {
+                            <MudCheckBox T="bool" Value="@GetBool(key)" Label="@Label(field)"
+                                         ValueChanged="@(v => SetBool(key, v))" />
+                        }
+                        else if (field.DataType == "list")
+                        {
+                            <MudSelect T="string" Value="@Get(key)" Label="@Label(field)"
+                                       Variant="Variant.Outlined" ValueChanged="@(v => Set(key, v))">
+                                @foreach (var option in field.Options)
+                                {
+                                    <MudSelectItem Value="@option">@option</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                        else
+                        {
+                            <MudTextField T="string" Value="@Get(key)" Label="@Label(field)"
+                                          Variant="Variant.Outlined" ValueChanged="@(v => Set(key, v))" />
+                        }
+                    }
+                </div>
+            }
         </MudForm>
     </DialogContent>
     <DialogActions>

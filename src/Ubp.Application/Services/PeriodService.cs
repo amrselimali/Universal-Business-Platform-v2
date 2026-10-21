@@ -22,10 +22,10 @@ public sealed partial class PeriodService
     }
 
     public async Task<PagedResult<FiscalPeriod>> ListAsync(ActorContext actor, PageRequest request,
-        CancellationToken ct = default)
+        string? status, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.FinancialPeriods, ActionCodes.View, ct: ct);
-        return await _repository.ListAsync(request, ct);
+        return await _repository.ListAsync(request, status, ct);
     }
 
     public async Task<IReadOnlyList<FiscalPeriod>> OptionsAsync(ActorContext actor,

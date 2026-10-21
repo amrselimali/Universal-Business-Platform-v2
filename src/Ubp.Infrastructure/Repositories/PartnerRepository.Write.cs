@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Dapper;
 using Ubp.Core.Models;
 
@@ -11,14 +12,21 @@ public sealed partial class PartnerRepository
         var sql = $"""
             INSERT INTO {Table(kind)}
                 (code, name_ar, name_en, category_id, scope_type, branch_id, phone, email,
-                 address, tax_number, credit_limit, notes, is_active)
+                 address, tax_number, credit_limit, notes, is_active, custom_fields)
             VALUES
                 (@Code, @NameAr, @NameEn, @CategoryId, @ScopeType, @BranchId, @Phone, @Email,
-                 @Address, @TaxNumber, @CreditLimit, @Notes, @IsActive)
+                 @Address, @TaxNumber, @CreditLimit, @Notes, @IsActive,
+                  CAST(@CustomFields AS jsonb))
             RETURNING id
             """;
         await using var connection = await _factory.OpenAsync(ct);
-        var id = await connection.ExecuteScalarAsync<Guid>(new CommandDefinition(sql, input, cancellationToken: ct));
+        var id = await connection.ExecuteScalarAsync<Guid>(new CommandDefinition(sql, new
+        {
+            input.Code, input.NameAr, input.NameEn, input.CategoryId, input.ScopeType,
+            input.BranchId, input.Phone, input.Email, input.Address, input.TaxNumber,
+            input.CreditLimit, input.Notes, input.IsActive,
+            CustomFields = JsonSerializer.Serialize(input.CustomFields)
+        }, cancellationToken: ct));
         return (await GetAsync(kind, id, ct))!;
     }
 
@@ -30,7 +38,8 @@ public sealed partial class PartnerRepository
                 code = @Code, name_ar = @NameAr, name_en = @NameEn, category_id = @CategoryId,
                 scope_type = @ScopeType, branch_id = @BranchId, phone = @Phone, email = @Email,
                 address = @Address, tax_number = @TaxNumber, credit_limit = @CreditLimit,
-                notes = @Notes, is_active = @IsActive
+                notes = @Notes, is_active = @IsActive,
+                custom_fields = CAST(@CustomFields AS jsonb)
             WHERE id = @id AND version = @version
             RETURNING id
             """;
@@ -39,7 +48,8 @@ public sealed partial class PartnerRepository
         {
             id, version, input.Code, input.NameAr, input.NameEn, input.CategoryId, input.ScopeType,
             input.BranchId, input.Phone, input.Email, input.Address, input.TaxNumber,
-            input.CreditLimit, input.Notes, input.IsActive
+            input.CreditLimit, input.Notes, input.IsActive,
+            CustomFields = JsonSerializer.Serialize(input.CustomFields)
         }, cancellationToken: ct));
         return updated is null ? null : await GetAsync(kind, id, ct);
     }

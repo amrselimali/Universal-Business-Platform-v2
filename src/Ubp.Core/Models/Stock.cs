@@ -205,6 +205,7 @@ public sealed class StocktakeLine
     public decimal CountedQty { get; set; }
     public decimal Difference { get; set; }
     public decimal UnitCost { get; set; }
+    public string? Reason { get; set; }
 }
 
 public sealed class StocktakeDetail
@@ -225,4 +226,5 @@ public sealed class StocktakeLineInput
     public Guid ItemId { get; set; }
     public decimal CountedQty { get; set; }
     public decimal UnitCost { get; set; }
+    public string? Reason { get; set; }
 }

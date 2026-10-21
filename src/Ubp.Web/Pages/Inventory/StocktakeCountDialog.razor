@@ -16,6 +16,7 @@
                             <th>@T.T("stocktake.book_qty")</th>
                             <th>@T.T("stocktake.counted_qty")</th>
                             <th>@T.T("stocktake.difference")</th>
+                            <th>@T.T("stocktake.reason")</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -30,6 +31,19 @@
                                                      Dense="true" Variant="Variant.Outlined" Min="0m" />
                                 </td>
                                 <td>@(Counted(line.Id) - line.BookQty)</td>
+                                <td style="min-width:220px">
+                                    @if (Counted(line.Id) != line.BookQty)
+                                    {
+                                        <MudTextField T="string" Value="@Reason(line.ItemId)"
+                                                      ValueChanged="@(v => SetReason(line.ItemId, v))"
+                                                      Placeholder="@T.T("stocktake.reason_hint")"
+                                                      Variant="Variant.Outlined" Dense="true" Required="true" />
+                                    }
+                                    else
+                                    {
+                                        <span class="ubp-muted">—</span>
+                                    }
+                                </td>
                             </tr>
                         }
                     </tbody>

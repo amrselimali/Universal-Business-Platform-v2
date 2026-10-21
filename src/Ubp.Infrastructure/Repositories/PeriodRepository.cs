@@ -7,7 +7,8 @@ namespace Ubp.Infrastructure.Repositories;
 
 public interface IPeriodRepository
 {
-    Task<PagedResult<FiscalPeriod>> ListAsync(PageRequest request, CancellationToken ct = default);
+    Task<PagedResult<FiscalPeriod>> ListAsync(PageRequest request, string? status,
+        CancellationToken ct = default);
     Task<IReadOnlyList<FiscalPeriod>> ListOptionsAsync(CancellationToken ct = default);
     Task<FiscalPeriod?> GetAsync(Guid id, CancellationToken ct = default);
     Task<FiscalPeriod> CreateAsync(FiscalPeriodInput input, CancellationToken ct = default);
@@ -29,6 +30,11 @@ public interface IPeriodRepository
     Task<int> CountDraftDocumentsAsync(DateTime from, DateTime to, Guid? branchId,
         CancellationToken ct = default);
     Task<int> CountUnbalancedBalancesAsync(CancellationToken ct = default);
+    Task<int> CountUnfinishedTransfersAsync(DateTime from, DateTime to, Guid? branchId,
+        CancellationToken ct = default);
+    Task<int> CountDraftStocktakesAsync(DateTime from, DateTime to, Guid? branchId,
+        CancellationToken ct = default);
+    Task<int> CountZeroCostBalancesAsync(Guid? branchId, CancellationToken ct = default);
 
     Task AddCheckAsync(PeriodCheckInput input, Guid userId, CancellationToken ct = default);
     Task<IReadOnlyList<PeriodCheck>> ListChecksAsync(Guid periodId, CancellationToken ct = default);
@@ -58,9 +64,11 @@ public sealed partial class PeriodRepository : IPeriodRepository
 
     public PeriodRepository(IDbConnectionFactory factory) => _factory = factory;
 
-    public async Task<PagedResult<FiscalPeriod>> ListAsync(PageRequest request, CancellationToken ct = default)
+    public async Task<PagedResult<FiscalPeriod>> ListAsync(PageRequest request, string? status,
+        CancellationToken ct = default)
     {
         var where = new List<string>();
+        if (!string.IsNullOrWhiteSpace(status)) where.Add("status = @status");
         if (!string.IsNullOrWhiteSpace(request.Search))
             where.Add("normalize_search(code || ' ' || name_ar || ' ' || coalesce(name_en,'')) LIKE '%' || normalize_search(@search) || '%'");
         var whereSql = where.Count == 0 ? "WHERE true" : "WHERE " + string.Join(" AND ", where);
@@ -74,7 +82,7 @@ public sealed partial class PeriodRepository : IPeriodRepository
         await using var connection = await _factory.OpenAsync(ct);
         using var multi = await connection.QueryMultipleAsync(new CommandDefinition(sql, new
         {
-            search = request.Search, take = request.SafePageSize, offset = request.Offset
+            search = request.Search, status, take = request.SafePageSize, offset = request.Offset
         }, cancellationToken: ct));
         var items = (await multi.ReadAsync<FiscalPeriod>()).ToList();
         var total = await multi.ReadFirstAsync<int>();
@@ -164,6 +172,52 @@ public sealed partial class PeriodRepository : IPeriodRepository
         await using var connection = await _factory.OpenAsync(ct);
         return await connection.ExecuteScalarAsync<int>(new CommandDefinition(sql,
             new { from, to, excludeId }, cancellationToken: ct));
+    }
+
+    public async Task<int> CountUnfinishedTransfersAsync(DateTime from, DateTime to, Guid? branchId,
+        CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT CASE WHEN to_regclass('public.stock_documents') IS NULL THEN 0 ELSE (
+                SELECT count(*)::int FROM stock_documents d
+                WHERE d.doc_type = 'TRANSFER'
+                  AND d.status IN ('POSTED','PARTIALLY_RECEIVED')
+                  AND d.doc_date BETWEEN @from AND @to
+                  AND (@branchId IS NULL OR d.branch_id = @branchId OR d.to_branch_id = @branchId)) END
+            """;
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteScalarAsync<int>(new CommandDefinition(sql,
+            new { from, to, branchId }, cancellationToken: ct));
+    }
+
+    public async Task<int> CountDraftStocktakesAsync(DateTime from, DateTime to, Guid? branchId,
+        CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT CASE WHEN to_regclass('public.stocktakes') IS NULL THEN 0 ELSE (
+                SELECT count(*)::int FROM stocktakes s
+                WHERE s.status = 'DRAFT'
+                  AND s.created_at::date BETWEEN @from AND @to
+                  AND (@branchId IS NULL OR s.branch_id = @branchId)) END
+            """;
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteScalarAsync<int>(new CommandDefinition(sql,
+            new { from, to, branchId }, cancellationToken: ct));
+    }
+
+    public async Task<int> CountZeroCostBalancesAsync(Guid? branchId, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT CASE WHEN to_regclass('public.stock_balances') IS NULL THEN 0 ELSE (
+                SELECT count(*)::int FROM stock_balances b
+                WHERE b.on_hand > 0 AND b.average_cost = 0
+                  AND (@branchId IS NULL OR EXISTS (
+                      SELECT 1 FROM warehouse_branches wb
+                      WHERE wb.warehouse_id = b.warehouse_id AND wb.branch_id = @branchId))) END
+            """;
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteScalarAsync<int>(new CommandDefinition(sql,
+            new { branchId }, cancellationToken: ct));
     }
 
     public async Task<int> CountBranchesWithoutClosureAsync(Guid periodId, string moduleCode,

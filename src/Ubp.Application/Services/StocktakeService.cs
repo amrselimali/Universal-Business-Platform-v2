@@ -70,12 +70,17 @@ public sealed class StocktakeService
         if (detail.Header.Status != "DRAFT")
             throw new ValidationAppException("validation.stocktake_not_draft");
 
+        var books = detail.Lines.ToDictionary(l => l.ItemId, l => l.BookQty);
         foreach (var line in lines)
         {
             if (line.CountedQty < 0)
                 throw new ValidationAppException("validation.quantity_invalid");
             if (line.UnitCost < 0)
                 throw new ValidationAppException("validation.price_invalid");
+            if (books.TryGetValue(line.ItemId, out var book) && line.CountedQty != book
+                && string.IsNullOrWhiteSpace(line.Reason))
+                throw new ValidationAppException("validation.stocktake_reason_required");
+            line.Reason = string.IsNullOrWhiteSpace(line.Reason) ? null : line.Reason!.Trim();
         }
 
         await _stocktakes.UpdateLinesAsync(id, lines, ct);

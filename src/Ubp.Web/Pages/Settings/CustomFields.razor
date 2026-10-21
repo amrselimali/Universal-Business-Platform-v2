@@ -30,6 +30,9 @@ else
                        Clearable="true">
                 <MudSelectItem Value="@("branches")">@T.T("branches.title")</MudSelectItem>
                 <MudSelectItem Value="@("warehouses")">@T.T("warehouses.title")</MudSelectItem>
+                <MudSelectItem Value="@("items")">@T.T("screen.items")</MudSelectItem>
+                <MudSelectItem Value="@("customers")">@T.T("screen.customers")</MudSelectItem>
+                <MudSelectItem Value="@("suppliers")">@T.T("screen.suppliers")</MudSelectItem>
             </MudSelect>
         </div>
 
@@ -45,7 +48,7 @@ else
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd>@T.T(context.EntityName == "branches" ? "branches.title" : "warehouses.title")</MudTd>
+                <MudTd>@EntityLabel(context.EntityName)</MudTd>
                 <MudTd><span class="ubp-code">@context.FieldKey</span></MudTd>
                 <MudTd>@(T.Language == "en" && !string.IsNullOrWhiteSpace(context.LabelEn) ? context.LabelEn : context.LabelAr)</MudTd>
                 <MudTd>@T.T($"custom_fields.type_{context.DataType}")</MudTd>

@@ -18,6 +18,19 @@ else
     </PageHeader>
 
     <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudTextField @bind-Value="_search" Placeholder="@T.T("common.search")" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search" DebounceInterval="300"
+                          OnDebounceIntervalElapsed="ReloadAsync" />
+            <MudSelect T="string?" @bind-Value="_status" Label="@T.T("common.status")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       @bind-Value:after="ReloadAsync">
+                <MudSelectItem T="string?" Value="@("OPEN")">@T.T("periods.open")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("CLOSED")">@T.T("periods.closed")</MudSelectItem>
+            </MudSelect>
+        </div>
+
         <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
                   Elevation="0" RowsPerPage="25" Class="ubp-table">
             <HeaderContent>

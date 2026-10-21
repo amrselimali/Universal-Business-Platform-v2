@@ -40,8 +40,9 @@ public sealed partial class StocktakeRepository
         CancellationToken ct = default)
     {
         const string sql = """
-            UPDATE stocktake_lines SET counted_qty = @CountedQty, unit_cost = @UnitCost
-            WHERE stocktake_id = @id AND item_id = @ItemId
+            UPDATE stocktake_lines
+               SET counted_qty = @CountedQty, unit_cost = @UnitCost, reason = @Reason
+             WHERE stocktake_id = @id AND item_id = @ItemId
             """;
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
@@ -49,7 +50,7 @@ public sealed partial class StocktakeRepository
         {
             await connection.ExecuteAsync(new CommandDefinition(sql, new
             {
-                id, line.ItemId, line.CountedQty, line.UnitCost
+                id, line.ItemId, line.CountedQty, line.UnitCost, line.Reason
             }, tx, cancellationToken: ct));
         }
         await tx.CommitAsync(ct);

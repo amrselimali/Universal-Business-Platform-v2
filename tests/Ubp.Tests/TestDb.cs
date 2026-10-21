@@ -69,6 +69,7 @@ public sealed class TestDb
     public QaRepository QaRepo => new(Factory);
     public UnitRepository UnitRepo => new(Factory);
     public ItemRepository ItemRepo => new(Factory);
+    public ItemCategoryRepository ItemCategoryRepo => new(Factory);
     public PartnerRepository PartnerRepo => new(Factory);
     public PeriodRepository PeriodRepo => new(Factory);
     public StockDocumentRepository StockDocRepo => new(Factory);
@@ -139,6 +140,17 @@ public sealed class TestDb
         });
         return detail.User.Id;
     }
+
+    public CustomFieldService CustomFields() => new(
+        CustomFieldRepo, Permissions(), new AuditService(AuditRepo));
+
+    public ItemService ItemService() => new(
+        ItemRepo, UnitRepo, ItemCategoryRepo, CustomFields(), Permissions(),
+        new AuditService(AuditRepo));
+
+    public StocktakeService StocktakeService() => new(
+        StocktakeRepo, StockDocRepo, StockPostingRepo, ItemRepo, WarehouseRepo, Settings(),
+        Permissions(), new AuditService(AuditRepo));
 
     public PeriodService PeriodService() =>
         new(PeriodRepo, BranchRepo, Permissions(), new AuditService(AuditRepo));

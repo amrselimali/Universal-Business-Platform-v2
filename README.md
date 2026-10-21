@@ -110,7 +110,7 @@ Bootstrap__SuperAdminPassword="<strong password>"
 `fiscal_periods` · `period_scope_closures` · `period_close_checks` · `period_events` ·
 `stock_documents` · `stock_document_lines` · `stock_movements` · `stock_balances` ·
 `stock_transfer_receipts` · `stock_transfer_receipt_lines` · `stocktakes` · `stocktake_lines`.
-إجمالي 43 جدولًا بعد الترحيلات 0001–0017.
+إجمالي 43 جدولًا بعد الترحيلات 0001–0018.
 
 ---
 
@@ -188,13 +188,14 @@ Bootstrap__SuperAdminPassword="<strong password>"
 createdb -h localhost -U postgres ubp_test
 createdb -h localhost -U postgres ubp_qa
 
-# تشغيل الكل (46 اختباراً)
+# تشغيل الكل (52 اختباراً)
 dotnet test
 ```
 تغطي الاختبارات: الصلاحيات ونطاقها، قفل الحساب وفكه، عزل الفروع، تعارض `version`،
 ترقيم 25 صفاً، البحث العربي، تغطية المخازن للفروع، عدم قابلية Audit للتعديل، عزل QA،
-ترقيم المستندات تحت التزامن، المتوسط المرجح المتحرك، منع المخزون السالب، إغلاق الفترات،
-التحويل والاستلام الجزئي، العكس ومنع تكراره، الجرد والتسوية، وثبات الأرصدة مع الحركات.
+ترقيم المستندات تحت التزامن، المتوسط المرجح المتحرك، منع المخزون السالب، إغلاق الفترات
+(مسودات/تحويلات معلقة/جرد غير مرحّل/تكلفة صفر)، التحويل والاستلام الجزئي، العكس ومنع تكراره،
+الجرد والتسوية وسبب الفرق، الحقول المخصصة للأصناف والعملاء والموردين، وثبات الأرصدة مع الحركات.
 
 في CI:
 ```bash

@@ -12,14 +12,16 @@ public sealed class ItemService
     private readonly IItemRepository _items;
     private readonly IUnitRepository _units;
     private readonly IItemCategoryRepository _categories;
+    private readonly CustomFieldService _customFields;
     private readonly PermissionService _permissions;
     private readonly AuditService _audit;
 
     public ItemService(IItemRepository items, IUnitRepository units,
-        IItemCategoryRepository categories, PermissionService permissions, AuditService audit)
+        IItemCategoryRepository categories, CustomFieldService customFields,
+        PermissionService permissions, AuditService audit)
     {
         _items = items; _units = units; _categories = categories;
-        _permissions = permissions; _audit = audit;
+        _customFields = customFields; _permissions = permissions; _audit = audit;
     }
 
     public async Task<PagedResult<Item>> ListAsync(ActorContext actor, PageRequest request,
@@ -160,5 +162,7 @@ public sealed class ItemService
             .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (input.Barcodes.Any(b => b.Length > 64))
             throw new ValidationAppException("validation.barcode_invalid");
+
+        input.CustomFields = await _customFields.ValidateValuesAsync("items", input.CustomFields, ct);
     }
 }

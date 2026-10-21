@@ -14,6 +14,7 @@ public partial class ItemDialog
     [Inject] private ItemService Items { get; set; } = default!;
     [Inject] private UnitService Units { get; set; } = default!;
     [Inject] private ItemCategoryService Categories { get; set; } = default!;
+    [Inject] private CustomFieldService CustomFields { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
     [Inject] private UiCulture T { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
@@ -24,6 +25,8 @@ public partial class ItemDialog
     private IReadOnlyList<ItemCategory> _categories = Array.Empty<ItemCategory>();
     private readonly List<ItemUnitInput> _unitRows = new();
     private readonly List<string> _barcodes = new();
+    private IReadOnlyList<CustomFieldDefinition> _fields = Array.Empty<CustomFieldDefinition>();
+    private readonly Dictionary<string, string?> _values = new(StringComparer.OrdinalIgnoreCase);
     private string? _barcode;
     private bool _busy;
     private bool IsEdit => Model is not null;
@@ -33,6 +36,7 @@ public partial class ItemDialog
         var actor = await UserContext.RequireAsync();
         _units = await Units.OptionsAsync(actor);
         _categories = await Categories.OptionsAsync(actor);
+        _fields = (await CustomFields.ListActiveAsync("items")).ToList();
 
         if (Model is null)
         {
@@ -53,7 +57,17 @@ public partial class ItemDialog
             SalePrice = u.SalePrice, PurchasePrice = u.PurchasePrice, IsActive = u.IsActive
         }));
         _barcodes.AddRange(detail.Barcodes.Select(b => b.Barcode));
+        foreach (var pair in detail.Item.CustomFields)
+            _values[pair.Key] = pair.Value?.ToString();
     }
+
+    private string Label(CustomFieldDefinition field) =>
+        T.Language == "en" && !string.IsNullOrWhiteSpace(field.LabelEn) ? field.LabelEn! : field.LabelAr;
+
+    private string? Get(string key) => _values.TryGetValue(key, out var value) ? value : null;
+    private void Set(string key, string? value) => _values[key] = value;
+    private bool GetBool(string key) => bool.TryParse(Get(key), out var value) && value;
+    private void SetBool(string key, bool value) => _values[key] = value.ToString().ToLowerInvariant();
 
     private string UnitName(Unit unit) => T.Language == "en" && !string.IsNullOrWhiteSpace(unit.NameEn) ? unit.NameEn! : unit.NameAr;
     private string CategoryName(ItemCategory category) =>
@@ -85,6 +99,7 @@ public partial class ItemDialog
             var actor = await UserContext.RequireAsync();
             _input.Units = _unitRows.ToList();
             _input.Barcodes = _barcodes.ToList();
+            _input.CustomFields = _values.ToDictionary(p => p.Key, p => (object?)p.Value);
             var saved = Model is null
                 ? await Items.CreateAsync(actor, _input)
                 : await Items.UpdateAsync(actor, Model.Id, Model.Version, _input);

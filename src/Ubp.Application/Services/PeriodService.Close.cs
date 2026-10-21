@@ -63,6 +63,23 @@ public sealed partial class PeriodService
         checks.Add(Check(period, PeriodScopes.Company, null, PeriodModules.Inventory, "UNBALANCED_STOCK",
             unbalanced == 0 ? "PASS" : "BLOCKED", $"أرصدة لا تطابق الحركات: {unbalanced}"));
 
+        var transfers = await _repository.CountUnfinishedTransfersAsync(period.StartDate,
+            period.EndDate, null, ct);
+        checks.Add(Check(period, PeriodScopes.Company, null, PeriodModules.Inventory,
+            "UNFINISHED_TRANSFERS", transfers == 0 ? "PASS" : "BLOCKED",
+            $"تحويلات لم تُستكمل: {transfers}"));
+
+        var stocktakes = await _repository.CountDraftStocktakesAsync(period.StartDate,
+            period.EndDate, null, ct);
+        checks.Add(Check(period, PeriodScopes.Company, null, PeriodModules.Inventory,
+            "UNPOSTED_STOCKTAKES", stocktakes == 0 ? "PASS" : "BLOCKED",
+            $"جلسات جرد لم تُرحّل: {stocktakes}"));
+
+        var zeroCost = await _repository.CountZeroCostBalancesAsync(null, ct);
+        checks.Add(Check(period, PeriodScopes.Company, null, PeriodModules.Inventory,
+            "ZERO_COST_BALANCES", zeroCost == 0 ? "PASS" : "BLOCKED",
+            $"أرصدة بتكلفة صفر: {zeroCost}"));
+
         foreach (var check in checks)
             await PersistAsync(check, actor.UserId, ct);
 
@@ -145,6 +162,21 @@ public sealed partial class PeriodService
             var unbalanced = await _repository.CountUnbalancedBalancesAsync(ct);
             checks.Add(Check(period, scopeType, branchId, moduleCode, "UNBALANCED_STOCK",
                 unbalanced == 0 ? "PASS" : "BLOCKED", $"أرصدة لا تطابق الحركات: {unbalanced}"));
+
+            var transfers = await _repository.CountUnfinishedTransfersAsync(period.StartDate,
+                period.EndDate, scopeType == PeriodScopes.Branch ? branchId : null, ct);
+            checks.Add(Check(period, scopeType, branchId, moduleCode, "UNFINISHED_TRANSFERS",
+                transfers == 0 ? "PASS" : "BLOCKED", $"تحويلات لم تُستكمل: {transfers}"));
+
+            var stocktakes = await _repository.CountDraftStocktakesAsync(period.StartDate,
+                period.EndDate, scopeType == PeriodScopes.Branch ? branchId : null, ct);
+            checks.Add(Check(period, scopeType, branchId, moduleCode, "UNPOSTED_STOCKTAKES",
+                stocktakes == 0 ? "PASS" : "BLOCKED", $"جلسات جرد لم تُرحّل: {stocktakes}"));
+
+            var zeroCost = await _repository.CountZeroCostBalancesAsync(
+                scopeType == PeriodScopes.Branch ? branchId : null, ct);
+            checks.Add(Check(period, scopeType, branchId, moduleCode, "ZERO_COST_BALANCES",
+                zeroCost == 0 ? "PASS" : "BLOCKED", $"أرصدة بتكلفة صفر: {zeroCost}"));
         }
 
         if (scopeType == PeriodScopes.Company)

@@ -33,7 +33,10 @@ public sealed class StocktakeTests : IClassFixture<TestDb>
 
         await _db.StocktakeRepo.UpdateLinesAsync(stocktake.Id, new[]
         {
-            new StocktakeLineInput { ItemId = item.Id, CountedQty = 8, UnitCost = line.UnitCost }
+            new StocktakeLineInput
+            {
+                ItemId = item.Id, CountedQty = 8, UnitCost = line.UnitCost, Reason = "تلف"
+            }
         });
 
         var adjustment = await _db.StockDocRepo.CreateDraftAsync(new StockDocumentInput
@@ -92,5 +95,45 @@ public sealed class StocktakeTests : IClassFixture<TestDb>
                 "UPDATE stocktake_lines SET counted_qty = 5 WHERE stocktake_id=@id",
                 new { id = stocktake.Id }));
         Assert.Equal("23514", exception.SqlState);
+    }
+}
+
+public sealed class StocktakeReasonTests : IClassFixture<TestDb>
+{
+    private readonly TestDb _db;
+
+    public StocktakeReasonTests(TestDb db) => _db = db;
+
+    [Fact]
+    public async Task Difference_without_reason_is_rejected_by_the_database()
+    {
+        var branch = await _db.CreateBranchAsync("RSN-B", "فرع سبب الفرق");
+        var warehouse = await _db.CreateWarehouseAsync("RSN-W", "مخزن سبب الفرق", branch);
+        var item = await _db.CreateItemAsync("IT-RSN", "صنف سبب الفرق");
+        var actor = await _db.AdminActorAsync();
+        await _db.PostReceiptAsync(item, branch, warehouse, 10, 4);
+
+        var code = await _db.StocktakeRepo.NextCodeAsync(branch, DateTime.UtcNow.Date);
+        var stocktake = await _db.StocktakeRepo.CreateAsync(new StocktakeInput
+        {
+            BranchId = branch, WarehouseId = warehouse
+        }, code, actor.UserId);
+
+        var exception = await Assert.ThrowsAsync<Npgsql.PostgresException>(async () =>
+            await _db.StocktakeRepo.UpdateLinesAsync(stocktake.Id, new[]
+            {
+                new StocktakeLineInput { ItemId = item.Id, CountedQty = 9, UnitCost = 4 }
+            }));
+        Assert.Equal("STOCKTAKE_REASON_REQUIRED", exception.MessageText);
+
+        await _db.StocktakeRepo.UpdateLinesAsync(stocktake.Id, new[]
+        {
+            new StocktakeLineInput
+            {
+                ItemId = item.Id, CountedQty = 9, UnitCost = 4, Reason = "فقد أثناء النقل"
+            }
+        });
+        var detail = await _db.StocktakeRepo.GetDetailAsync(stocktake.Id);
+        Assert.Equal("فقد أثناء النقل", detail!.Lines.Single().Reason);
     }
 }

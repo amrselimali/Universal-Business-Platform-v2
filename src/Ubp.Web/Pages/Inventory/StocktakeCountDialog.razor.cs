@@ -20,6 +20,7 @@ public partial class StocktakeCountDialog
     private StocktakeDetail? _detail;
     private readonly Dictionary<Guid, decimal> _counted = new();
     private readonly Dictionary<Guid, decimal> _costs = new();
+    private readonly Dictionary<Guid, string?> _reasons = new();
     private bool _busy;
 
     protected override async Task OnInitializedAsync()
@@ -31,11 +32,14 @@ public partial class StocktakeCountDialog
         {
             _counted[line.ItemId] = line.CountedQty;
             _costs[line.ItemId] = line.UnitCost;
+            _reasons[line.ItemId] = line.Reason;
         }
     }
 
     private decimal Counted(Guid itemId) => _counted.TryGetValue(itemId, out var value) ? value : 0;
     private void SetCounted(Guid itemId, decimal value) => _counted[itemId] = value;
+    private string? Reason(Guid itemId) => _reasons.TryGetValue(itemId, out var value) ? value : null;
+    private void SetReason(Guid itemId, string? value) => _reasons[itemId] = value;
     private void Cancel() => MudDialog.Cancel();
 
     private async Task SaveAsync()
@@ -47,7 +51,8 @@ public partial class StocktakeCountDialog
             var lines = _counted.Select(pair => new StocktakeLineInput
             {
                 ItemId = pair.Key, CountedQty = pair.Value,
-                UnitCost = _costs.TryGetValue(pair.Key, out var cost) ? cost : 0
+                UnitCost = _costs.TryGetValue(pair.Key, out var cost) ? cost : 0,
+                Reason = _reasons.TryGetValue(pair.Key, out var reason) ? reason : null
             }).ToList();
             await Stocktakes.UpdateLinesAsync(actor, Id, lines);
             MudDialog.Close(DialogResult.Ok(true));

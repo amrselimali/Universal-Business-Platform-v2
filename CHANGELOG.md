@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-10-21 — Phase 2 gap closure (0018)
+
+### Added
+- `stocktake_lines.reason` + trigger `STOCKTAKE_REASON_REQUIRED`; the service requires a reason
+  whenever the counted quantity differs from the book quantity.
+- Period-close checks: unfinished transfers, unposted stocktakes, zero-cost balances
+  (in addition to drafts and unbalanced balances), for branch and final closures.
+- Custom fields for `items`, `customers` and `suppliers`, rendered automatically in their forms.
+- Periods screen filters (search + status).
+- 6 new tests (52 total).
+
+
 ## 2026-10-21 — Phase 2: inventory, partners, period engine
 
 ### Added

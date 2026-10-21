@@ -2,17 +2,19 @@
 
 ## 2026-10-21 — Phase 2 delivered (inventory + partners + periods)
 
-- Migrations 0001–0017 on PostgreSQL 15; 43 tables.
+- Migrations 0001–0018 on PostgreSQL 15; 43 tables.
 - Phase 1 unchanged: auth/sessions/permissions/branches/audit/database admin/QA.
 - Phase 2: units, item categories, items (multi-unit + barcodes), customers/suppliers
   (company or branch scope), unified fiscal-period engine (branch/module/company closures,
   checks, immutable events), stock documents (receipt/issue/transfer/adjustment/opening/reversal)
   with atomic posting, moving weighted average, negative-stock guard, partial transfer receiving,
-  stocktakes with automatic adjustments, and stock balance/item-card reports.
+  stocktakes with automatic adjustments and a mandatory difference reason, pre-close checks
+  (drafts, unfinished transfers, unposted stocktakes, zero-cost balances), custom fields for
+  items/customers/suppliers, and stock balance/item-card reports.
 - Screens added: `/inventory/units`, `/inventory/item-categories`, `/inventory/items`,
   `/partners/customers`, `/partners/suppliers`, `/inventory/documents`, `/inventory/stocktake`,
   `/accounting/periods`, `/reports/stock`.
-- 46 automated tests pass on a real PostgreSQL instance; app boots and all screens return 200.
+- 52 automated tests pass on a real PostgreSQL instance; app boots and all screens return 200.
 
 ### Decisions
 - Single company per database (no `tenant_id`) — documented in `docs/PHASE2-AR.md` (D1).

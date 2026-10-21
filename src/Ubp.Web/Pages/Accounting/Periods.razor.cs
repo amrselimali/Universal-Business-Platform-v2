@@ -13,6 +13,8 @@ public partial class Periods
     [Inject] private IDialogService DialogService { get; set; } = default!;
 
     private MudTable<FiscalPeriod> _table = default!;
+    private string? _search;
+    private string? _status;
 
     protected override string ScreenCode => ScreenCodes.FinancialPeriods;
     protected override Task OnLoadAsync() => Task.CompletedTask;
@@ -24,10 +26,10 @@ public partial class Periods
     {
         var result = await PeriodsService.ListAsync(Actor!, new PageRequest
         {
-            Page = state.Page + 1, PageSize = 25,
+            Page = state.Page + 1, PageSize = 25, Search = _search,
             SortBy = state.SortLabel ?? "start_date",
             Descending = state.SortLabel is null || state.SortDirection == SortDirection.Descending
-        }, ct);
+        }, _status, ct);
         return new TableData<FiscalPeriod> { Items = result.Items, TotalItems = result.Total };
     }
 

@@ -34,6 +34,16 @@ public partial class CustomFields
         await _table.ReloadServerData();
     }
 
+    private string EntityLabel(string entity) => entity switch
+    {
+        "branches" => T.T("branches.title"),
+        "warehouses" => T.T("warehouses.title"),
+        "items" => T.T("screen.items"),
+        "customers" => T.T("screen.customers"),
+        "suppliers" => T.T("screen.suppliers"),
+        _ => entity
+    };
+
     private async Task AddAsync()
     {
         var dialog = await DialogService.ShowAsync<CustomFieldDialog>(T.T("custom_fields.add"), new DialogParameters());

@@ -29,6 +29,7 @@ public sealed partial class ItemRepository : IItemRepository
         i.base_unit_id AS BaseUnitId,
         (SELECT u.name_ar FROM units u WHERE u.id = i.base_unit_id) AS BaseUnitName,
         i.item_type AS ItemType, i.notes AS Notes, i.is_active AS IsActive,
+        i.custom_fields::text AS CustomFieldsJson,
         i.created_at AS CreatedAt, i.updated_at AS UpdatedAt, i.version AS Version
         """;
 
@@ -66,7 +67,7 @@ public sealed partial class ItemRepository : IItemRepository
             search = request.Search, categoryId, itemType,
             take = request.SafePageSize, offset = request.Offset
         }, cancellationToken: ct));
-        var items = (await multi.ReadAsync<Item>()).ToList();
+        var items = (await multi.ReadAsync<ItemRow>()).Select(Map).ToList();
         var total = await multi.ReadFirstAsync<int>();
         return new PagedResult<Item>
         {
@@ -98,8 +99,39 @@ public sealed partial class ItemRepository : IItemRepository
     public async Task<Item?> GetAsync(Guid id, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
-        return await connection.QuerySingleOrDefaultAsync<Item>(new CommandDefinition(
+        var row = await connection.QuerySingleOrDefaultAsync<ItemRow>(new CommandDefinition(
             $"SELECT {Columns} FROM items i WHERE i.id = @id", new { id }, cancellationToken: ct));
+        return row is null ? null : Map(row);
+    }
+
+    private static Item Map(ItemRow row) => new()
+    {
+        Id = row.Id, Code = row.Code, NameAr = row.NameAr, NameEn = row.NameEn,
+        CategoryId = row.CategoryId, CategoryName = row.CategoryName,
+        BaseUnitId = row.BaseUnitId, BaseUnitName = row.BaseUnitName,
+        ItemType = row.ItemType, Notes = row.Notes, IsActive = row.IsActive,
+        CustomFields = string.IsNullOrWhiteSpace(row.CustomFieldsJson)
+            ? new() : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(row.CustomFieldsJson) ?? new(),
+        CreatedAt = row.CreatedAt, UpdatedAt = row.UpdatedAt, Version = row.Version
+    };
+
+    private sealed class ItemRow
+    {
+        public Guid Id { get; set; }
+        public string Code { get; set; } = "";
+        public string NameAr { get; set; } = "";
+        public string? NameEn { get; set; }
+        public Guid? CategoryId { get; set; }
+        public string? CategoryName { get; set; }
+        public Guid BaseUnitId { get; set; }
+        public string BaseUnitName { get; set; } = "";
+        public string ItemType { get; set; } = "GOODS";
+        public string? Notes { get; set; }
+        public bool IsActive { get; set; }
+        public string? CustomFieldsJson { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset UpdatedAt { get; set; }
+        public int Version { get; set; }
     }
 
     public async Task<ItemDetail?> GetDetailAsync(Guid id, CancellationToken ct = default)

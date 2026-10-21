@@ -11,6 +11,9 @@
                            Variant="Variant.Outlined" Required="true" Disabled="@IsEdit">
                     <MudSelectItem Value="@("branches")">@T.T("branches.title")</MudSelectItem>
                     <MudSelectItem Value="@("warehouses")">@T.T("warehouses.title")</MudSelectItem>
+                    <MudSelectItem Value="@("items")">@T.T("screen.items")</MudSelectItem>
+                    <MudSelectItem Value="@("customers")">@T.T("screen.customers")</MudSelectItem>
+                    <MudSelectItem Value="@("suppliers")">@T.T("screen.suppliers")</MudSelectItem>
                 </MudSelect>
                 <MudTextField @bind-Value="_input.FieldKey" Label="@T.T("custom_fields.key")" Required="true"
                               Variant="Variant.Outlined" HelperText="@T.T("custom_fields.key_hint")" />

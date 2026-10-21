@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Dapper;
 using Npgsql;
 using Ubp.Core.Models;
@@ -9,8 +10,10 @@ public sealed partial class ItemRepository
     public async Task<Item> CreateAsync(ItemInput input, CancellationToken ct = default)
     {
         const string sql = """
-            INSERT INTO items (code, name_ar, name_en, category_id, base_unit_id, item_type, notes, is_active)
-            VALUES (@Code, @NameAr, @NameEn, @CategoryId, @BaseUnitId, @ItemType, @Notes, @IsActive)
+            INSERT INTO items (code, name_ar, name_en, category_id, base_unit_id, item_type, notes,
+                               is_active, custom_fields)
+            VALUES (@Code, @NameAr, @NameEn, @CategoryId, @BaseUnitId, @ItemType, @Notes,
+                    @IsActive, CAST(@CustomFields AS jsonb))
             RETURNING id
             """;
         await using var connection = await _factory.OpenAsync(ct);
@@ -18,7 +21,8 @@ public sealed partial class ItemRepository
         var id = await connection.ExecuteScalarAsync<Guid>(new CommandDefinition(sql, new
         {
             input.Code, input.NameAr, input.NameEn, input.CategoryId, input.BaseUnitId,
-            input.ItemType, input.Notes, input.IsActive
+            input.ItemType, input.Notes, input.IsActive,
+            CustomFields = JsonSerializer.Serialize(input.CustomFields)
         }, tx, cancellationToken: ct));
 
         await ReplaceUnitsAsync(connection, tx, id, input, ct);
@@ -32,7 +36,8 @@ public sealed partial class ItemRepository
         const string sql = """
             UPDATE items SET code = @Code, name_ar = @NameAr, name_en = @NameEn,
                              category_id = @CategoryId, base_unit_id = @BaseUnitId,
-                             item_type = @ItemType, notes = @Notes, is_active = @IsActive
+                             item_type = @ItemType, notes = @Notes, is_active = @IsActive,
+                             custom_fields = CAST(@CustomFields AS jsonb)
             WHERE id = @id AND version = @version
             RETURNING id
             """;
@@ -41,7 +46,8 @@ public sealed partial class ItemRepository
         var updated = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(sql, new
         {
             id, version, input.Code, input.NameAr, input.NameEn, input.CategoryId,
-            input.BaseUnitId, input.ItemType, input.Notes, input.IsActive
+            input.BaseUnitId, input.ItemType, input.Notes, input.IsActive,
+            CustomFields = JsonSerializer.Serialize(input.CustomFields)
         }, tx, cancellationToken: ct));
 
         if (updated is null)

@@ -54,6 +54,7 @@ public sealed partial class PartnerRepository : IPartnerRepository
             (SELECT b.name_ar FROM branches b WHERE b.id = p.branch_id) AS BranchName,
             p.phone AS Phone, p.email AS Email, p.address AS Address, p.tax_number AS TaxNumber,
             p.credit_limit AS CreditLimit, p.notes AS Notes, p.is_active AS IsActive,
+            p.custom_fields::text AS CustomFieldsJson,
             p.created_at AS CreatedAt, p.updated_at AS UpdatedAt, p.version AS Version
             """;
     }
@@ -82,7 +83,7 @@ public sealed partial class PartnerRepository : IPartnerRepository
             search = request.Search, categoryId, branchIds = branchIds.ToArray(),
             take = request.SafePageSize, offset = request.Offset
         }, cancellationToken: ct));
-        var items = (await multi.ReadAsync<Partner>()).ToList();
+        var items = (await multi.ReadAsync<PartnerRow>()).Select(Map).ToList();
         var total = await multi.ReadFirstAsync<int>();
         return new PagedResult<Partner>
         {
@@ -93,8 +94,45 @@ public sealed partial class PartnerRepository : IPartnerRepository
     public async Task<Partner?> GetAsync(PartnerKind kind, Guid id, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
-        return await connection.QuerySingleOrDefaultAsync<Partner>(new CommandDefinition(
+        var row = await connection.QuerySingleOrDefaultAsync<PartnerRow>(new CommandDefinition(
             $"SELECT {Columns(kind)} FROM {Table(kind)} p WHERE p.id = @id", new { id }, cancellationToken: ct));
+        return row is null ? null : Map(row);
+    }
+
+    private static Partner Map(PartnerRow row) => new()
+    {
+        Id = row.Id, Code = row.Code, NameAr = row.NameAr, NameEn = row.NameEn,
+        CategoryId = row.CategoryId, CategoryName = row.CategoryName,
+        ScopeType = row.ScopeType, BranchId = row.BranchId, BranchName = row.BranchName,
+        Phone = row.Phone, Email = row.Email, Address = row.Address, TaxNumber = row.TaxNumber,
+        CreditLimit = row.CreditLimit, Notes = row.Notes, IsActive = row.IsActive,
+        CustomFields = string.IsNullOrWhiteSpace(row.CustomFieldsJson)
+            ? new() : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(row.CustomFieldsJson) ?? new(),
+        CreatedAt = row.CreatedAt, UpdatedAt = row.UpdatedAt, Version = row.Version
+    };
+
+    private sealed class PartnerRow
+    {
+        public Guid Id { get; set; }
+        public string Code { get; set; } = "";
+        public string NameAr { get; set; } = "";
+        public string? NameEn { get; set; }
+        public Guid? CategoryId { get; set; }
+        public string? CategoryName { get; set; }
+        public string ScopeType { get; set; } = "COMPANY";
+        public Guid? BranchId { get; set; }
+        public string? BranchName { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string? Address { get; set; }
+        public string? TaxNumber { get; set; }
+        public decimal CreditLimit { get; set; }
+        public string? Notes { get; set; }
+        public bool IsActive { get; set; }
+        public string? CustomFieldsJson { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset UpdatedAt { get; set; }
+        public int Version { get; set; }
     }
 
     public async Task<IReadOnlyList<PartnerCategory>> ListCategoriesAsync(PartnerKind kind,

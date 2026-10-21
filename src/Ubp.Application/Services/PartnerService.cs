@@ -10,12 +10,15 @@ namespace Ubp.Application.Services;
 public sealed class PartnerService
 {
     private readonly IPartnerRepository _repository;
+    private readonly CustomFieldService _customFields;
     private readonly PermissionService _permissions;
     private readonly AuditService _audit;
 
-    public PartnerService(IPartnerRepository repository, PermissionService permissions, AuditService audit)
+    public PartnerService(IPartnerRepository repository, CustomFieldService customFields,
+        PermissionService permissions, AuditService audit)
     {
-        _repository = repository; _permissions = permissions; _audit = audit;
+        _repository = repository; _customFields = customFields;
+        _permissions = permissions; _audit = audit;
     }
 
     private static string Screen(PartnerKind kind) =>
@@ -187,6 +190,9 @@ public sealed class PartnerService
             if (!category.IsActive)
                 throw new ValidationAppException("validation.category_inactive");
         }
+
+        var entity = kind == PartnerKind.Customer ? "customers" : "suppliers";
+        input.CustomFields = await _customFields.ValidateValuesAsync(entity, input.CustomFields, ct);
     }
 
     private static void EnsureAccess(ActorContext actor, Partner partner)

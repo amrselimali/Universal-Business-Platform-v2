@@ -24,6 +24,7 @@ public sealed class Partner
     public decimal CreditLimit { get; set; }
     public string? Notes { get; set; }
     public bool IsActive { get; set; } = true;
+    public Dictionary<string, object?> CustomFields { get; set; } = new();
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public int Version { get; set; } = 1;
@@ -44,6 +45,7 @@ public sealed class PartnerInput
     public decimal CreditLimit { get; set; }
     public string? Notes { get; set; }
     public bool IsActive { get; set; } = true;
+    public Dictionary<string, object?> CustomFields { get; set; } = new();
 }
 
 public sealed class PartnerCategory

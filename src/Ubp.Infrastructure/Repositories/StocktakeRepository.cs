@@ -99,7 +99,7 @@ public sealed partial class StocktakeRepository : IStocktakeRepository
                    (SELECT i.code FROM items i WHERE i.id = l.item_id) AS ItemCode,
                    (SELECT i.name_ar FROM items i WHERE i.id = l.item_id) AS ItemName,
                    l.book_qty AS BookQty, l.counted_qty AS CountedQty, l.difference AS Difference,
-                   l.unit_cost AS UnitCost
+                   l.unit_cost AS UnitCost, l.reason AS Reason
             FROM stocktake_lines l WHERE l.stocktake_id = @id ORDER BY l.item_id
             """;
         await using var connection = await _factory.OpenAsync(ct);

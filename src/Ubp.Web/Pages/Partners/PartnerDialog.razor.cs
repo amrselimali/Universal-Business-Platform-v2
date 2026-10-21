@@ -14,6 +14,7 @@ public partial class PartnerDialog
     [Parameter] public Partner? Model { get; set; }
     [Inject] private PartnerService Partners { get; set; } = default!;
     [Inject] private BranchService Branches { get; set; } = default!;
+    [Inject] private CustomFieldService CustomFields { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
     [Inject] private UiCulture T { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
@@ -22,6 +23,8 @@ public partial class PartnerDialog
     private PartnerInput _input = new();
     private IReadOnlyList<PartnerCategory> _categories = Array.Empty<PartnerCategory>();
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private IReadOnlyList<CustomFieldDefinition> _fields = Array.Empty<CustomFieldDefinition>();
+    private readonly Dictionary<string, string?> _values = new(StringComparer.OrdinalIgnoreCase);
     private bool _busy;
     private bool IsEdit => Model is not null;
 
@@ -30,6 +33,8 @@ public partial class PartnerDialog
         var actor = await UserContext.RequireAsync();
         _categories = await Partners.ListCategoriesAsync(actor, Kind, false);
         _branches = await Branches.OptionsAsync(actor);
+        var entity = Kind == PartnerKind.Customer ? "customers" : "suppliers";
+        _fields = (await CustomFields.ListActiveAsync(entity)).ToList();
 
         if (Model is null)
         {
@@ -49,10 +54,20 @@ public partial class PartnerDialog
             TaxNumber = Model.TaxNumber, CreditLimit = Model.CreditLimit, Notes = Model.Notes,
             IsActive = Model.IsActive
         };
+        foreach (var pair in Model.CustomFields)
+            _values[pair.Key] = pair.Value?.ToString();
     }
 
     private string CategoryName(PartnerCategory category) =>
         T.Language == "en" && !string.IsNullOrWhiteSpace(category.NameEn) ? category.NameEn! : category.NameAr;
+
+    private string Label(CustomFieldDefinition field) =>
+        T.Language == "en" && !string.IsNullOrWhiteSpace(field.LabelEn) ? field.LabelEn! : field.LabelAr;
+
+    private string? Get(string key) => _values.TryGetValue(key, out var value) ? value : null;
+    private void Set(string key, string? value) => _values[key] = value;
+    private bool GetBool(string key) => bool.TryParse(Get(key), out var value) && value;
+    private void SetBool(string key, bool value) => _values[key] = value.ToString().ToLowerInvariant();
 
     private void Cancel() => MudDialog.Cancel();
 
@@ -64,6 +79,7 @@ public partial class PartnerDialog
         try
         {
             var actor = await UserContext.RequireAsync();
+            _input.CustomFields = _values.ToDictionary(p => p.Key, p => (object?)p.Value);
             var saved = Model is null
                 ? await Partners.CreateAsync(actor, Kind, _input)
                 : await Partners.UpdateAsync(actor, Kind, Model.Id, Model.Version, _input);
