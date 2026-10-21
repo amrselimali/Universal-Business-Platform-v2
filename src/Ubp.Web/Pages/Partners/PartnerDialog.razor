@@ -1,0 +1,44 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@(IsEdit ? T.T("common.edit") : T.T("common.add"))</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true" Variant="Variant.Outlined" MaxLength="50" />
+                <MudSelect T="Guid?" @bind-Value="_input.CategoryId" Label="@T.T("partners.category")" Variant="Variant.Outlined" Clearable="true">
+                    @foreach (var category in _categories)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)category.Id)">@CategoryName(category)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_input.NameEn" Label="@T.T("common.name_en")" Variant="Variant.Outlined" />
+                <MudSelect T="string" @bind-Value="_input.ScopeType" Label="@T.T("partners.scope")" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("COMPANY")">@T.T("partners.scope_company")</MudSelectItem>
+                    <MudSelectItem Value="@("BRANCH")">@T.T("partners.scope_branch")</MudSelectItem>
+                </MudSelect>
+                @if (_input.ScopeType == "BRANCH")
+                {
+                    <MudSelect T="Guid?" @bind-Value="_input.BranchId" Label="@T.T("common.branch")" Variant="Variant.Outlined" Required="true">
+                        @foreach (var branch in _branches)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                <MudTextField @bind-Value="_input.Phone" Label="@T.T("common.phone")" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_input.Email" Label="@T.T("partners.email")" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_input.TaxNumber" Label="@T.T("partners.tax_number")" Variant="Variant.Outlined" />
+                <MudNumericField T="decimal" @bind-Value="_input.CreditLimit" Label="@T.T("partners.credit_limit")" Variant="Variant.Outlined" Min="0m" />
+                <MudTextField @bind-Value="_input.Address" Label="@T.T("common.address")" Variant="Variant.Outlined" Class="ubp-span-2" />
+                <MudTextField @bind-Value="_input.Notes" Label="@T.T("common.notes")" Variant="Variant.Outlined" Lines="2" Class="ubp-span-2" />
+                <MudSwitch @bind-Value="_input.IsActive" Label="@T.T("common.active")" Color="Color.Success" />
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

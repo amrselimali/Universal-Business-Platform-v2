@@ -1,0 +1,104 @@
+@page "/reports/stock"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.stock_reports")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.stock_reports")" Subtitle="@T.T("reports.hint")" />
+
+    <MudTabs Elevation="0" Rounded="true" PanelClass="pt-4">
+        <MudTabPanel Text="@T.T("reports.balances")" Icon="@Icons.Material.Filled.Warehouse">
+            <MudPaper Elevation="0" Class="ubp-card">
+                <div class="ubp-toolbar">
+                    <MudSelect T="Guid?" @bind-Value="_balanceWarehouse" Label="@T.T("common.warehouse")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                               @bind-Value:after="ReloadBalancesAsync">
+                        @foreach (var warehouse in _warehouses)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)warehouse.Id)">@warehouse.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudSwitch T="bool" Value="_includeZero" Label="@T.T("reports.include_zero")" Color="Color.Primary"
+                               ValueChanged="OnZeroChanged" />
+                </div>
+                <MudTable @ref="_balancesTable" ServerData="LoadBalances" Dense="true" Hover="true" Striped="true"
+                          Elevation="0" RowsPerPage="25" Class="ubp-table">
+                    <HeaderContent>
+                        <MudTh><MudTableSortLabel T="StockBalance" SortLabel="code">@T.T("common.code")</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel T="StockBalance" SortLabel="item_name">@T.T("stock.item")</MudTableSortLabel></MudTh>
+                        <MudTh>@T.T("common.warehouse")</MudTh>
+                        <MudTh><MudTableSortLabel T="StockBalance" SortLabel="on_hand">@T.T("reports.on_hand")</MudTableSortLabel></MudTh>
+                        <MudTh>@T.T("reports.average_cost")</MudTh>
+                        <MudTh><MudTableSortLabel T="StockBalance" SortLabel="value">@T.T("reports.value")</MudTableSortLabel></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="@T.T("common.code")"><span class="ubp-code">@context.ItemCode</span></MudTd>
+                        <MudTd DataLabel="@T.T("stock.item")">@context.ItemName</MudTd>
+                        <MudTd DataLabel="@T.T("common.warehouse")">@context.WarehouseName</MudTd>
+                        <MudTd DataLabel="@T.T("reports.on_hand")">@context.OnHand</MudTd>
+                        <MudTd DataLabel="@T.T("reports.average_cost")">@context.AverageCost.ToString("N4")</MudTd>
+                        <MudTd DataLabel="@T.T("reports.value")">@context.InventoryValue.ToString("N2")</MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+                    </PagerContent>
+                </MudTable>
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@T.T("reports.item_card")" Icon="@Icons.Material.Filled.ReceiptLong">
+            <MudPaper Elevation="0" Class="ubp-card">
+                <div class="ubp-toolbar" style="flex-wrap:wrap;gap:8px">
+                    <MudAutocomplete T="ItemOption" @bind-Value="_item" SearchFunc="SearchItems" ToStringFunc="@ItemLabel"
+                                     Label="@T.T("stock.item")" Variant="Variant.Outlined" Dense="true"
+                                     ResetValueOnEmptyText="true" CoerceValue="true" Style="min-width:280px" />
+                    <MudSelect T="Guid?" @bind-Value="_cardWarehouse" Label="@T.T("common.warehouse")"
+                               Variant="Variant.Outlined" Dense="true" Clearable="true" Style="min-width:200px">
+                        @foreach (var warehouse in _warehouses)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)warehouse.Id)">@warehouse.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudDatePicker @bind-Date="_from" Label="@T.T("common.from")" Variant="Variant.Outlined" Dense="true" Clearable="true" />
+                    <MudDatePicker @bind-Date="_to" Label="@T.T("common.to")" Variant="Variant.Outlined" Dense="true" Clearable="true" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadCardAsync"
+                               Disabled="@(_item is null)">@T.T("common.apply")</MudButton>
+                </div>
+
+                @if (_card is null)
+                {
+                    <div class="ubp-empty">@T.T("reports.select_item")</div>
+                }
+                else
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mb-3">@_card.Item.Code — @_card.Item.NameAr</MudText>
+                    <MudTable Items="_card.Movements.Items" Dense="true" Hover="true" Striped="true" Elevation="0" Class="ubp-table">
+                        <HeaderContent>
+                            <MudTh>@T.T("reports.movement_date")</MudTh>
+                            <MudTh>@T.T("stock.doc_no")</MudTh>
+                            <MudTh>@T.T("stock.type")</MudTh>
+                            <MudTh>@T.T("common.warehouse")</MudTh>
+                            <MudTh>@T.T("stock.direction")</MudTh>
+                            <MudTh>@T.T("common.quantity")</MudTh>
+                            <MudTh>@T.T("stock.unit_cost")</MudTh>
+                            <MudTh>@T.T("stock.total_cost")</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="@T.T("reports.movement_date")">@context.MovementDate.ToString("yyyy-MM-dd")</MudTd>
+                            <MudTd DataLabel="@T.T("stock.doc_no")"><span class="ubp-code">@(context.DocNo ?? "—")</span></MudTd>
+                            <MudTd DataLabel="@T.T("stock.type")">@T.T("stock.type_" + (context.DocType ?? "").ToLowerInvariant())</MudTd>
+                            <MudTd DataLabel="@T.T("common.warehouse")">@context.WarehouseName</MudTd>
+                            <MudTd DataLabel="@T.T("stock.direction")">@T.T(context.Direction == "IN" ? "stock.in" : "stock.out")</MudTd>
+                            <MudTd DataLabel="@T.T("common.quantity")">@context.Quantity</MudTd>
+                            <MudTd DataLabel="@T.T("stock.unit_cost")">@context.UnitCost.ToString("N4")</MudTd>
+                            <MudTd DataLabel="@T.T("stock.total_cost")">@context.TotalCost.ToString("N2")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudPaper>
+        </MudTabPanel>
+    </MudTabs>
+}

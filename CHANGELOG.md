@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2026-10-21 — Phase 2: inventory, partners, period engine
+
+### Added
+- Migrations `0012`–`0017`: document-sequence v2, units/items/barcodes, customers/suppliers
+  with company-or-branch scope, unified period engine, stock documents/movements/balances,
+  transfer receipts, and stocktakes.
+- 21 tables, 9 screens (`/inventory/*`, `/partners/*`, `/accounting/periods`, `/reports/stock`).
+- Atomic stock posting with moving weighted average, negative-stock guard, reversal documents,
+  partial transfer receiving, stocktake adjustments and period-close checks/events.
+- Permission actions `POST` · `REVERSE` · `RECEIVE` · `CLOSE_PERIOD` · `REOPEN_PERIOD`.
+- 13 new automated tests (45 total) covering posting, costing, periods, transfers, stocktake.
+
+### Fixed
+- `0011` sequence prefix was `varchar(10)` while `STOCK_RECEIPT` needs 13 → 4 failing tests.
+  `0012` widens it and adds padding/central numbering (`branch_id` nullable).
+- Document numbers are unique per branch (`branch_id, doc_no`); stocktake codes per branch.
+- Deleting a draft document/stocktake with lines failed because the line guard saw a missing
+  parent during cascade; the guard now allows cascade deletes.
+
 ## 2026-10-21 — Phase 2a: settings + document numbering
 
 ### Added

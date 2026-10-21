@@ -1,0 +1,35 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("partners.categories")</MudText></TitleContent>
+    <DialogContent>
+        <div class="ubp-inline mb-3" style="gap:8px;flex-wrap:wrap">
+            <MudTextField @bind-Value="_code" Label="@T.T("common.code")" Variant="Variant.Outlined" Dense="true" Style="width:140px" />
+            <MudTextField @bind-Value="_nameAr" Label="@T.T("common.name_ar")" Variant="Variant.Outlined" Dense="true" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAsync" Disabled="_busy">@T.T("common.add")</MudButton>
+        </div>
+        <MudSimpleTable Dense="true" Hover="true">
+            <thead>
+                <tr><th>@T.T("common.code")</th><th>@T.T("common.name_ar")</th><th>@T.T("partners.usage")</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var category in _categories)
+                {
+                    <tr>
+                        <td><span class="ubp-code">@category.Code</span></td>
+                        <td>@Name(category)</td>
+                        <td>@category.PartnerCount</td>
+                        <td>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           Disabled="@(category.PartnerCount > 0)"
+                                           OnClick="@(() => DeleteAsync(category))" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@T.T("common.close")</MudButton>
+    </DialogActions>
+</MudDialog>

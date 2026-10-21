@@ -147,6 +147,11 @@ RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
     v_status varchar;
 BEGIN
+    -- السماح بالحذف المتسلسل عند حذف المستند نفسه (الأب لم يعد موجودًا)
+    IF TG_OP = 'DELETE' AND NOT EXISTS (SELECT 1 FROM stock_documents WHERE id = OLD.document_id) THEN
+        RETURN OLD;
+    END IF;
+
     SELECT status INTO v_status FROM stock_documents
     WHERE id = CASE WHEN TG_OP = 'DELETE' THEN OLD.document_id ELSE NEW.document_id END;
 

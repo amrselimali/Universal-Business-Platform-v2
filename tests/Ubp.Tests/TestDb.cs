@@ -140,6 +140,13 @@ public sealed class TestDb
         return detail.User.Id;
     }
 
+    public PeriodService PeriodService() =>
+        new(PeriodRepo, BranchRepo, Permissions(), new AuditService(AuditRepo));
+
+    public StockDocumentService StockDocumentService() => new(
+        StockDocRepo, StockPostingRepo, ItemRepo, WarehouseRepo, Settings(), Permissions(),
+        new AuditService(AuditRepo));
+
     public async Task<Item> CreateItemAsync(string code, string nameAr)
     {
         var unit = await UnitRepo.CreateAsync(new UnitInput

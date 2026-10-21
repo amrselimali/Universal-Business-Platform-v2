@@ -1,0 +1,46 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("stock.receive_title")</MudText></TitleContent>
+    <DialogContent>
+        @if (_detail is null)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else
+        {
+            <MudText Typo="Typo.caption" Class="ubp-muted mb-3">@(_detail.Document.DocNo ?? _detail.Document.DocType)</MudText>
+            <MudSimpleTable Dense="true" Hover="true">
+                <thead>
+                    <tr>
+                        <th>@T.T("stock.item")</th>
+                        <th>@T.T("common.quantity")</th>
+                        <th>@T.T("stock.received")</th>
+                        <th>@T.T("stock.remaining")</th>
+                        <th>@T.T("stock.receive_qty")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in _detail.Lines)
+                    {
+                        <tr>
+                            <td>@line.ItemName</td>
+                            <td>@line.BaseQuantity</td>
+                            <td>@line.ReceivedQuantity</td>
+                            <td>@line.RemainingQuantity</td>
+                            <td style="min-width:140px">
+                                <MudNumericField T="decimal" Value="@Qty(line.Id)" ValueChanged="@(v => SetQty(line.Id, v))"
+                                                 Dense="true" Variant="Variant.Outlined" Min="0m" Max="@line.RemainingQuantity" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+            <MudTextField @bind-Value="_notes" Label="@T.T("common.notes")" Variant="Variant.Outlined" Class="mt-3" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@(_busy || _detail is null)">@T.T("stock.receive")</MudButton>
+    </DialogActions>
+</MudDialog>

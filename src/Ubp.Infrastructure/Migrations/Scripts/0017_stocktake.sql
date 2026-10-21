@@ -67,6 +67,11 @@ RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
     v_status varchar;
 BEGIN
+    -- السماح بالحذف المتسلسل عند حذف جلسة الجرد نفسها
+    IF TG_OP = 'DELETE' AND NOT EXISTS (SELECT 1 FROM stocktakes WHERE id = OLD.stocktake_id) THEN
+        RETURN OLD;
+    END IF;
+
     SELECT status INTO v_status FROM stocktakes
     WHERE id = CASE WHEN TG_OP = 'DELETE' THEN OLD.stocktake_id ELSE NEW.stocktake_id END;
 

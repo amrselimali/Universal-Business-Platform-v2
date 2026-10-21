@@ -1,0 +1,98 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("periods.details") — @_detail?.Period.Code</MudText></TitleContent>
+    <DialogContent>
+        @if (_detail is null) { <MudProgressLinear Indeterminate="true" /> }
+        else
+        {
+            <MudTabs Elevation="0" Rounded="true" PanelClass="pt-4">
+                <MudTabPanel Text="@T.T("periods.closures")" Icon="@Icons.Material.Filled.Lock">
+                    <div class="ubp-inline mb-3" style="gap:8px;flex-wrap:wrap">
+                        <MudSelect T="string" @bind-Value="_module" Label="@T.T("periods.module")" Variant="Variant.Outlined" Dense="true" Style="min-width:170px">
+                            @foreach (var module in PeriodModules.All)
+                            {
+                                <MudSelectItem Value="@module">@T.T("periods.module_" + module.ToLowerInvariant())</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudSelect T="string" @bind-Value="_scope" Label="@T.T("periods.scope")" Variant="Variant.Outlined" Dense="true" Style="min-width:170px">
+                            <MudSelectItem Value="@PeriodScopes.Branch">@T.T("periods.scope_branch")</MudSelectItem>
+                            <MudSelectItem Value="@PeriodScopes.Company">@T.T("periods.scope_company")</MudSelectItem>
+                        </MudSelect>
+                        @if (_scope == PeriodScopes.Branch)
+                        {
+                            <MudSelect T="Guid?" @bind-Value="_branchId" Label="@T.T("common.branch")" Variant="Variant.Outlined" Dense="true" Style="min-width:180px">
+                                @foreach (var branch in _branches) { <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem> }
+                            </MudSelect>
+                        }
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CloseAsync" Disabled="@(!CanClose || _busy)">@T.T("periods.close")</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Warning" OnClick="ReopenAsync" Disabled="@(!CanReopen || _busy)">@T.T("periods.reopen")</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="FinalizeAsync" Disabled="@(!CanClose || _busy)">@T.T("periods.finalize")</MudButton>
+                    </div>
+                    @if (CanReopen)
+                    {
+                        <MudTextField @bind-Value="_reason" Label="@T.T("periods.reopen_reason")" Variant="Variant.Outlined" Class="mb-3" />
+                    }
+
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead><tr><th>@T.T("periods.module")</th>
+                        <th>@T.T("periods.scope")</th><th>@T.T("common.branch")</th><th>@T.T("common.status")</th><th>@T.T("periods.closed_by")</th><th>@T.T("periods.time")</th></tr></thead>
+                        <tbody>
+                            @foreach (var closure in _detail.Closures)
+                            {
+                                <tr>
+                                    <td>@T.T("periods.module_" + closure.ModuleCode.ToLowerInvariant())</td>
+                                    <td>@T.T(closure.ScopeType == PeriodScopes.Company ? "periods.scope_company" : "periods.scope_branch")</td>
+                                    <td>@(closure.BranchName ?? "—")</td>
+                                    <td>@T.T(closure.Status == "CLOSED" ? "periods.closed" : "periods.open")</td>
+                                    <td>@(closure.ClosedByName ?? "—")</td>
+                                    <td>@(closure.ClosedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudTabPanel>
+
+                <MudTabPanel Text="@T.T("periods.checks")" Icon="@Icons.Material.Filled.Rule">
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead><tr><th>@T.T("periods.check")</th>
+                        <th>@T.T("common.status")</th><th>@T.T("periods.message")</th><th>@T.T("periods.time")</th></tr></thead>
+                        <tbody>
+                            @foreach (var check in _detail.Checks)
+                            {
+                                <tr>
+                                    <td><span class="ubp-code">@check.CheckCode</span></td>
+                                    <td>@check.Status</td>
+                                    <td>@check.Message</td>
+                                    <td>@check.CheckedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudTabPanel>
+
+                <MudTabPanel Text="@T.T("periods.events")" Icon="@Icons.Material.Filled.History">
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead><tr><th>@T.T("periods.event")</th>
+                        <th>@T.T("periods.scope")</th><th>@T.T("periods.actor")</th><th>@T.T("periods.reason")</th><th>@T.T("periods.time")</th></tr></thead>
+                        <tbody>
+                            @foreach (var item in _detail.Events)
+                            {
+                                <tr>
+                                    <td><span class="ubp-code">@item.ActionCode</span></td>
+                                    <td>@T.T(item.ScopeType == PeriodScopes.Company ? "periods.scope_company" : "periods.scope_branch")</td>
+                                    <td>@(item.ActorName ?? "—")</td>
+                                    <td>@(item.Reason ?? "—")</td>
+                                    <td>@item.EventAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudTabPanel>
+            </MudTabs>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@T.T("common.close")</MudButton>
+    </DialogActions>
+</MudDialog>

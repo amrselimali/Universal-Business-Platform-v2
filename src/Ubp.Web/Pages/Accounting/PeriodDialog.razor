@@ -1,0 +1,20 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@(IsEdit ? T.T("common.edit") : T.T("periods.add"))</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudTextField @bind-Value="_input.Code" Label="@T.T("periods.code")" Required="true" Variant="Variant.Outlined" MaxLength="30" />
+                <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_input.NameEn" Label="@T.T("common.name_en")" Variant="Variant.Outlined" />
+                <MudDatePicker @bind-Date="_start" Label="@T.T("periods.start")" Variant="Variant.Outlined" Required="true" />
+                <MudDatePicker @bind-Date="_end" Label="@T.T("periods.end")" Variant="Variant.Outlined" Required="true" />
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

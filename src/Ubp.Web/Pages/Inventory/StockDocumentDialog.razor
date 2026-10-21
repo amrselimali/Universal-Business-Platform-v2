@@ -1,0 +1,109 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@(IsEdit ? T.T("stock.edit") : T.T("stock.add"))</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudSelect T="string" @bind-Value="_docType" Label="@T.T("stock.type")" Variant="Variant.Outlined" Disabled="IsEdit">
+                    @foreach (var type in new[] { StockDocumentTypes.Receipt, StockDocumentTypes.Issue, StockDocumentTypes.Transfer, StockDocumentTypes.Adjustment, StockDocumentTypes.Opening })
+                    {
+                        <MudSelectItem Value="@type">@T.T("stock.type_" + type.ToLowerInvariant())</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudDatePicker @bind-Date="_date" Label="@T.T("stock.doc_date")" Variant="Variant.Outlined" Required="true" />
+                <MudSelect T="Guid" @bind-Value="_branchId" Label="@T.T("common.branch")" Variant="Variant.Outlined" Required="true"
+                           @bind-Value:after="OnBranchChanged">
+                    @foreach (var branch in _branches)
+                    {
+                        <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid" @bind-Value="_warehouseId" Label="@T.T("stock.from_warehouse")" Variant="Variant.Outlined" Required="true">
+                    @foreach (var warehouse in WarehouseOptions)
+                    {
+                        <MudSelectItem T="Guid" Value="@warehouse.Id">@warehouse.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                @if (_docType == StockDocumentTypes.Transfer)
+                {
+                    <MudSelect T="Guid?" @bind-Value="_toBranchId" Label="@T.T("stock.to_branch")" Variant="Variant.Outlined" Required="true">
+                        @foreach (var branch in _branches.Where(b => b.Id != _branchId))
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudSelect T="Guid?" @bind-Value="_toWarehouseId" Label="@T.T("stock.to_warehouse")" Variant="Variant.Outlined" Required="true">
+                        @foreach (var warehouse in _warehouses.Where(w => _toBranchId.HasValue && w.BranchIds.Contains(_toBranchId.Value) && w.Id != _warehouseId))
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)warehouse.Id)">@warehouse.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                <MudTextField @bind-Value="_notes" Label="@T.T("common.notes")" Variant="Variant.Outlined" Class="ubp-span-2" />
+            </div>
+        </MudForm>
+
+        <MudDivider Class="my-4" />
+        <MudText Typo="Typo.subtitle2" Class="mb-2">@T.T("stock.lines")</MudText>
+        <div style="overflow-x:auto">
+            <table class="ubp-table" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>@T.T("stock.item")</th>
+                        <th>@T.T("common.unit")</th>
+                        @if (_docType == StockDocumentTypes.Adjustment) { <th>@T.T("stock.direction")</th> }
+                        <th>@T.T("common.quantity")</th>
+                        <th>@T.T("stock.unit_cost")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in _lines)
+                    {
+                        <tr>
+                            <td style="min-width:220px">
+                                <MudAutocomplete T="ItemOption" Value="line.Item" ValueChanged="@(v => OnItemChangedAsync(line, v))"
+                                                 SearchFunc="SearchItems" ToStringFunc="@ItemLabel" Variant="Variant.Outlined"
+                                                 Dense="true" ResetValueOnEmptyText="true" CoerceValue="true" />
+                            </td>
+                            <td style="min-width:130px">
+                                <MudSelect T="Guid" @bind-Value="line.UnitId" Dense="true" Variant="Variant.Outlined">
+                                    @foreach (var unit in line.Units)
+                                    {
+                                        <MudSelectItem T="Guid" Value="@unit.UnitId">@unit.UnitName</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </td>
+                            @if (_docType == StockDocumentTypes.Adjustment)
+                            {
+                                <td style="min-width:110px">
+                                    <MudSelect T="string" @bind-Value="line.Direction" Dense="true" Variant="Variant.Outlined">
+                                        <MudSelectItem Value="@("IN")">@T.T("stock.in")</MudSelectItem>
+                                        <MudSelectItem Value="@("OUT")">@T.T("stock.out")</MudSelectItem>
+                                    </MudSelect>
+                                </td>
+                            }
+                            <td style="min-width:120px">
+                                <MudNumericField T="decimal" @bind-Value="line.Quantity" Dense="true" Variant="Variant.Outlined" Min="0.0001m" />
+                            </td>
+                            <td style="min-width:130px">
+                                <MudNumericField T="decimal" @bind-Value="line.UnitCost" Dense="true" Variant="Variant.Outlined" Min="0m"
+                                                 Disabled="@(_docType is StockDocumentTypes.Issue or StockDocumentTypes.Transfer)" />
+                            </td>
+                            <td>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                               OnClick="@(() => _lines.Remove(line))" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" Class="mt-3" OnClick="AddLine">@T.T("stock.add_line")</MudButton>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

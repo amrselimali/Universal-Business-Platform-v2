@@ -1,0 +1,27 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@(IsEdit ? T.T("common.edit") : T.T("common.add"))</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true"
+                              Variant="Variant.Outlined" MaxLength="30" />
+                <MudSelect T="Guid?" @bind-Value="_input.ParentId" Label="@T.T("item_categories.parent")"
+                           Variant="Variant.Outlined" Clearable="true">
+                    @foreach (var option in _options.Where(o => o.Id != Model?.Id))
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)option.Id)">@Label(option)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_input.NameEn" Label="@T.T("common.name_en")" Variant="Variant.Outlined" />
+                <MudSwitch @bind-Value="_input.IsActive" Label="@T.T("common.active")" Color="Color.Success" />
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
