@@ -7,3 +7,10 @@ logs/
 .idea/
 TestResults/
 .env
+
+# local toolchain / sandbox artifacts
+.dotnet/
+.dev/
+.pg/
+.pgdata/
+.libs/

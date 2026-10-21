@@ -10,6 +10,8 @@ public static class DbErrorMapper
         if (ex.SqlState == PostgresErrorCodes.UniqueViolation)
         {
             var constraint = ex.ConstraintName ?? "";
+            if (constraint.Contains("barcode", StringComparison.OrdinalIgnoreCase))
+                return new ValidationAppException("validation.duplicate_barcode");
             if (constraint.Contains("username", StringComparison.OrdinalIgnoreCase))
                 return new ValidationAppException("validation.username_taken");
             if (constraint.Contains("code", StringComparison.OrdinalIgnoreCase))

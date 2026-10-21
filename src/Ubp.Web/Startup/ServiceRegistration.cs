@@ -110,6 +110,9 @@ public static class ServiceRegistration
         services.AddScoped<ISchemaAdminRepository, SchemaAdminRepository>();
         services.AddScoped<IQaRepository, QaRepository>();
         services.AddScoped<IDocumentSequenceRepository, DocumentSequenceRepository>();
+        services.AddScoped<IUnitRepository, UnitRepository>();
+        services.AddScoped<IItemCategoryRepository, ItemCategoryRepository>();
+        services.AddScoped<IItemRepository, ItemRepository>();
     }
 
     private static void AddApplicationServices(IServiceCollection services)
@@ -128,5 +131,8 @@ public static class ServiceRegistration
         services.AddScoped<AuditQueryService>();
         services.AddScoped<DatabaseAdminService>();
         services.AddScoped<QaService>();
+        services.AddScoped<UnitService>();
+        services.AddScoped<ItemCategoryService>();
+        services.AddScoped<ItemService>();
     }
 }
