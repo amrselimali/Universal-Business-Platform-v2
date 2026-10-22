@@ -3,6 +3,7 @@ using Dapper;
 using Npgsql;
 using Ubp.Core.Models;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Ubp.Tests;
 
@@ -13,8 +14,13 @@ namespace Ubp.Tests;
 public sealed class AccountingPerformanceTests : IClassFixture<TestDb>
 {
     private readonly TestDb _db;
+    private readonly ITestOutputHelper _output;
 
-    public AccountingPerformanceTests(TestDb db) => _db = db;
+    public AccountingPerformanceTests(TestDb db, ITestOutputHelper output)
+    {
+        _db = db;
+        _output = output;
+    }
 
     [Fact]
     public async Task Trial_balance_and_ledger_stay_under_half_a_second_on_bulk_data()
@@ -65,6 +71,7 @@ public sealed class AccountingPerformanceTests : IClassFixture<TestDb>
             new DateTime(2026, 12, 31), branch);
         stopwatch.Stop();
         Assert.True(trial.IsBalanced);
+        _output.WriteLine($"TrialBalance: {stopwatch.ElapsedMilliseconds}ms on {rows:N0} lines");
         Assert.True(stopwatch.ElapsedMilliseconds < 500,
             $"ميزان المراجعة استغرق {stopwatch.ElapsedMilliseconds}ms على {rows} سطر");
 
@@ -77,6 +84,7 @@ public sealed class AccountingPerformanceTests : IClassFixture<TestDb>
         });
         stopwatch.Stop();
         Assert.True(ledger.Rows.Count > 0);
+        _output.WriteLine($"Ledger: {stopwatch.ElapsedMilliseconds}ms on {rows:N0} lines");
         Assert.True(stopwatch.ElapsedMilliseconds < 500,
             $"كشف الأستاذ استغرق {stopwatch.ElapsedMilliseconds}ms على {rows} سطر");
     }
