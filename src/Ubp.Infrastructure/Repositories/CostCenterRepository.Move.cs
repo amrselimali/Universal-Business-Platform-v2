@@ -29,7 +29,7 @@ public sealed partial class CostCenterRepository
                 "SELECT id AS Id, code AS Code, path AS Path, level AS Level FROM cost_centers " +
                 "WHERE id = @pid", new { pid = newParentId.Value }, tx, cancellationToken: ct));
             if (parent is null || parent.Id == id ||
-                node.Path.StartsWith(parent.Path, StringComparison.Ordinal))
+                parent.Path.StartsWith(node.Path, StringComparison.Ordinal))
             {
                 await tx.RollbackAsync(ct);
                 return null;

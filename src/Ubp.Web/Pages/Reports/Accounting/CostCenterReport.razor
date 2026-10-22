@@ -1,0 +1,60 @@
+@page "/reports/accounting/cost-centers"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.cost_center_report")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.cost_center_report")" Subtitle="@T.T("accounting.cost_center_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Print))
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Print"
+                           OnClick="PrintAsync">@T.T("common.print")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudDatePicker @bind-Date="_from" Label="@T.T("common.from")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
+            <MudDatePicker @bind-Date="_to" Label="@T.T("common.to")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SearchAsync"
+                       Disabled="_busy">@T.T("common.search")</MudButton>
+        </div>
+
+        <MudTable Items="_rows" Dense="true" Hover="true" Striped="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("common.code")</MudTh>
+                <MudTh>@T.T("accounting.cost_center")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.debit")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.credit")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.net")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@(context.Code ?? "—")</span></MudTd>
+                <MudTd>@(context.Name ?? T.T("accounting.no_cost_center"))</MudTd>
+                <MudTd Align="Right">@context.Debit.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.Credit.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.Net.ToString("N2")</MudTd>
+            </RowTemplate>
+            <FooterContent>
+                <MudTd></MudTd>
+                <MudTd><b>@T.T("accounting.total")</b></MudTd>
+                <MudTd Align="Right"><b>@_rows.Sum(r => r.Debit).ToString("N2")</b></MudTd>
+                <MudTd Align="Right"><b>@_rows.Sum(r => r.Credit).ToString("N2")</b></MudTd>
+                <MudTd Align="Right"><b>@_rows.Sum(r => r.Net).ToString("N2")</b></MudTd>
+            </FooterContent>
+        </MudTable>
+    </MudPaper>
+}

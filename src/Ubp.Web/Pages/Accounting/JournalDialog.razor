@@ -1,0 +1,48 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(Model is null ? T.T("common.add") : T.T("common.edit"))</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true"
+                              Variant="Variant.Outlined" MaxLength="10"
+                              Disabled="@(Model?.IsSystem == true)" />
+                <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true"
+                              Variant="Variant.Outlined" MaxLength="150" />
+                <MudTextField @bind-Value="_input.NameEn" Label="@T.T("common.name_en")"
+                              Variant="Variant.Outlined" MaxLength="150" />
+                <MudSelect T="string" @bind-Value="_input.JournalType"
+                           Label="@T.T("accounting.journal_type")" Variant="Variant.Outlined">
+                    @foreach (var type in JournalTypes.All)
+                    {
+                        <MudSelectItem T="string" Value="@type">@T.T("accounting.jtype_" + type)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid?" @bind-Value="_input.DefaultAccountId"
+                           Label="@T.T("accounting.default_account")" Variant="Variant.Outlined"
+                           Clearable="true">
+                    @foreach (var account in _accounts)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)account.Id)">
+                            @account.Code — @account.DisplayName(_english)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudNumericField T="int" @bind-Value="_input.SortOrder"
+                                 Label="@T.T("accounting.sort_order")" Variant="Variant.Outlined" />
+                <MudSwitch @bind-Value="_input.AllowManual" Label="@T.T("accounting.allow_manual")"
+                           Color="Color.Primary" />
+                <MudSwitch @bind-Value="_input.IsActive" Label="@T.T("common.active")"
+                           Color="Color.Success" />
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

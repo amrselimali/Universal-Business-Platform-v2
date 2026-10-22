@@ -1,0 +1,100 @@
+@page "/accounting/stock-posting"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.stock_posting")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.stock_posting")" Subtitle="@T.T("accounting.stock_posting_hint")">
+        <Actions>
+            @if (Can(ActionCodes.GenerateAll))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="GenerateAllAsync"
+                           Disabled="_busy">
+                    @T.T("accounting.generate_all")
+                </MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" @bind-Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       @bind-Value:after="ReloadAsync">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker @bind-Date="_from" Label="@T.T("common.from")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true"
+                           />
+            <MudDatePicker @bind-Date="_to" Label="@T.T("common.to")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true"
+                           />
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="ReloadAsync">@T.T("common.refresh")</MudButton>
+        </div>
+
+        <MudTable Items="_candidates" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  Loading="_busy" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("accounting.entry_no")</MudTh>
+                <MudTh>@T.T("accounting.entry_date")</MudTh>
+                <MudTh>@T.T("stock.type")</MudTh>
+                <MudTh>@T.T("common.branch")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                <MudTh>@T.T("accounting.journal_entry")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@(context.DocNo ?? "—")</span></MudTd>
+                <MudTd>@context.DocDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd>@T.T("stock.type_" + context.DocType.ToLowerInvariant())</MudTd>
+                <MudTd>@context.BranchName</MudTd>
+                <MudTd Align="Right">@context.TotalCost.ToString("N2")</MudTd>
+                <MudTd>
+                    @if (context.EntryId is not null)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success">@context.EntryNo</MudChip>
+                    }
+                    else if (context.IsMissingAccounts)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error">@T.T("validation.stock_accounts_missing")</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning">@T.T("accounting.not_posted")</MudChip>
+                    }
+                </MudTd>
+                <MudTd Align="Right">
+                    @if (Can(ActionCodes.Preview))
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                       OnClick="@(() => PreviewAsync(context))" />
+                    }
+                    @if (context.EntryId is null && Can(ActionCodes.GenerateSingle))
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Small"
+                                       Color="Color.Primary" OnClick="@(() => GenerateAsync(context))" />
+                    }
+                    @if (context.EntryId is not null && Can(ActionCodes.OpenEntry))
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small"
+                                       OnClick="@(() => OpenEntry(context.EntryId!.Value))" />
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}

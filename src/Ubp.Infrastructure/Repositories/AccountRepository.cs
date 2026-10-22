@@ -15,7 +15,7 @@ public interface IAccountRepository
     Task<Account?> FindByTypeAsync(string accountType, CancellationToken ct = default);
     Task<int> CountUsageAsync(Guid id, CancellationToken ct = default);
     Task<Guid> CreateAsync(Guid id, AccountInput input, string path, short level, Guid userId,
-        CancellationToken ct = default);
+        bool isSystem = false, CancellationToken ct = default);
     Task<Account?> UpdateAsync(Guid id, int version, AccountInput input, Guid userId,
         CancellationToken ct = default);
     Task<Account?> SetActiveAsync(Guid id, bool isActive, Guid userId, CancellationToken ct = default);

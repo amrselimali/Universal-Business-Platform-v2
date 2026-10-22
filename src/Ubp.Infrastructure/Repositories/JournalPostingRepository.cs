@@ -40,7 +40,7 @@ public sealed class JournalPostingRepository : IJournalPostingRepository
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
         var newId = await connection.ExecuteScalarAsync<Guid>(new CommandDefinition(
-            "SELECT fn_gl_reverse_entry(@entryId, @userId, @reversalDate)",
+            "SELECT fn_gl_reverse_entry(@entryId, @userId, @reversalDate::date)",
             new { entryId, userId, reversalDate }, tx, cancellationToken: ct));
         await tx.CommitAsync(ct);
         return newId;
@@ -51,7 +51,7 @@ public sealed class JournalPostingRepository : IJournalPostingRepository
     {
         await using var connection = await _factory.OpenAsync(ct);
         return await connection.ExecuteScalarAsync<decimal>(new CommandDefinition(
-            "SELECT fn_gl_opening_balance(@accountId, @branchId, @before, @includeChildren)",
+            "SELECT fn_gl_opening_balance(@accountId, @branchId, @before::date, @includeChildren)",
             new { accountId, branchId, before, includeChildren }, cancellationToken: ct));
     }
 

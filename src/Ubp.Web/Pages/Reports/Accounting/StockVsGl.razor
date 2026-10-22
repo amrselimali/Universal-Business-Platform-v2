@@ -1,0 +1,63 @@
+@page "/reports/accounting/stock-vs-gl"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.stock_vs_gl")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.stock_vs_gl")" Subtitle="@T.T("accounting.stock_vs_gl_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Print))
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Print"
+                           OnClick="PrintAsync">@T.T("common.print")</MudButton>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ReloadAsync"
+                       Disabled="_busy">@T.T("common.refresh")</MudButton>
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <MudAlert Severity="@(_allMatched ? Severity.Success : Severity.Warning)" Dense="true" Class="mb-3">
+            @(_allMatched ? T.T("accounting.stock_matched") : T.T("accounting.stock_mismatch"))
+        </MudAlert>
+
+        <MudTable Items="_rows" Dense="true" Hover="true" Striped="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("accounting.category")</MudTh>
+                <MudTh>@T.T("accounting.inventory_account")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.stock_value")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.gl_balance")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.difference")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.CategoryName</MudTd>
+                <MudTd>@(context.AccountCode is null ? "—" : $"{context.AccountCode} — {context.AccountName}")</MudTd>
+                <MudTd Align="Right">@context.StockValue.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.GlBalance.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.Difference.ToString("N2")</MudTd>
+                <MudTd>
+                    <MudIcon Icon="@(context.IsMatched ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Warning)"
+                             Color="@(context.IsMatched ? Color.Success : Color.Warning)" Size="Size.Small" />
+                </MudTd>
+            </RowTemplate>
+            <FooterContent>
+                <MudTd><b>@T.T("accounting.total")</b></MudTd>
+                <MudTd></MudTd>
+                <MudTd Align="Right"><b>@_rows.Sum(r => r.StockValue).ToString("N2")</b></MudTd>
+                <MudTd Align="Right"><b>@_rows.Sum(r => r.GlBalance).ToString("N2")</b></MudTd>
+                <MudTd Align="Right"><b>@_rows.Sum(r => r.Difference).ToString("N2")</b></MudTd>
+                <MudTd></MudTd>
+            </FooterContent>
+        </MudTable>
+    </MudPaper>
+}

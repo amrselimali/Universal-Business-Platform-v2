@@ -28,26 +28,20 @@ public sealed partial class AccountingReportRepository
                   includeChildren = request.IncludeChildren }, cancellationToken: ct));
 
         var totals = await connection.QuerySingleAsync<LedgerTotals>(new CommandDefinition("""
-            SELECT coalesce(sum(l.debit), 0) AS Debit,
-                   coalesce(sum(l.credit), 0) AS Credit,
-                   coalesce(sum(l.debit) FILTER (
-                       WHERE (@cursorDate::date IS NOT NULL
-                              AND (l.entry_date, l.id) < (@cursorDate::date, @cursorId::uuid))), 0) AS BeforeDebit,
-                   coalesce(sum(l.credit) FILTER (
-                       WHERE (@cursorDate::date IS NOT NULL
-                              AND (l.entry_date, l.id) < (@cursorDate::date, @cursorId::uuid))), 0) AS BeforeCredit
-            FROM journal_entry_lines l
-            JOIN accounts a ON a.id = l.account_id
-            WHERE l.is_posted
-              AND l.entry_date BETWEEN @from::date AND @to::date
+            SELECT coalesce(sum(b.debit), 0) AS Debit,
+                   coalesce(sum(b.credit), 0) AS Credit
+            FROM gl_balances b
+            JOIN accounts a ON a.id = b.account_id
+            WHERE b.period_month BETWEEN date_trunc('month', @from::date)::date
+                                     AND date_trunc('month', @to::date)::date
               AND (CASE WHEN @includeChildren THEN a.path LIKE @path || '%'
-                        ELSE l.account_id = @accountId END)
-              AND (@branchId::uuid IS NULL OR l.branch_id = @branchId::uuid)
+                        ELSE b.account_id = @accountId END)
+              AND (@branchId::uuid IS NULL OR b.branch_id = @branchId::uuid)
             """, new
         {
             from = request.From, to = request.To, path = account.Path,
             accountId = request.AccountId, includeChildren = request.IncludeChildren,
-            branchId = request.BranchId, cursorDate = request.Cursor?.EntryDate, cursorId
+            branchId = request.BranchId
         }, cancellationToken: ct));
 
         var rows = (await connection.QueryAsync<LedgerRow>(new CommandDefinition("""
@@ -84,7 +78,7 @@ public sealed partial class AccountingReportRepository
         var hasMore = rows.Count > take;
         if (hasMore) rows.RemoveAt(rows.Count - 1);
 
-        var running = opening + totals.BeforeDebit - totals.BeforeCredit;
+        var running = request.Cursor?.Balance ?? opening;
         foreach (var row in rows)
         {
             running += row.Debit - row.Credit;
@@ -105,7 +99,11 @@ public sealed partial class AccountingReportRepository
             HasMore = hasMore,
             NextCursor = rows.Count == 0
                 ? null
-                : new LedgerCursor { EntryDate = rows[^1].EntryDate, LineId = rows[^1].LineId }.ToToken()
+                : new LedgerCursor
+                {
+                    EntryDate = rows[^1].EntryDate, LineId = rows[^1].LineId,
+                    Balance = rows[^1].RunningBalance
+                }.ToToken()
         };
     }
 
@@ -121,7 +119,5 @@ public sealed partial class AccountingReportRepository
     {
         public decimal Debit { get; set; }
         public decimal Credit { get; set; }
-        public decimal BeforeDebit { get; set; }
-        public decimal BeforeCredit { get; set; }
     }
 }

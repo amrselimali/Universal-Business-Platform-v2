@@ -8,8 +8,7 @@ public sealed partial class StockAccountingRepository
         IReadOnlyDictionary<string, Guid> defaults,
         Dictionary<Guid, (decimal Debit, decimal Credit)> amounts, BuildResult result)
     {
-        var inventory = line.InventoryAccountId
-                        ?? Counterparty(defaults, PostingKeys.StockInventory);
+        var inventory = line.InventoryAccountId;
         if (inventory is null)
         {
             result.MissingCategoryAccounts = true;

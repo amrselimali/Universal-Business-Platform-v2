@@ -7,20 +7,21 @@ namespace Ubp.Infrastructure.Repositories;
 public sealed partial class AccountRepository
 {
     public async Task<Guid> CreateAsync(Guid id, AccountInput input, string path, short level,
-        Guid userId, CancellationToken ct = default)
+        Guid userId, bool isSystem = false, CancellationToken ct = default)
     {
         const string sql = """
             INSERT INTO accounts (id, code, name_ar, name_en, parent_id, path, level, is_group,
-                                  account_type, cost_center_policy, notes, is_active, created_by)
+                                  account_type, cost_center_policy, is_system, notes, is_active,
+                                  created_by)
             VALUES (@id, @Code, @NameAr, @NameEn, @ParentId, @path, @level, @IsGroup,
-                    @AccountType, @CostCenterPolicy, @Notes, @IsActive, @userId)
+                    @AccountType, @CostCenterPolicy, @isSystem, @Notes, @IsActive, @userId)
             RETURNING id
             """;
         await using var connection = await _factory.OpenAsync(ct);
         return await connection.ExecuteScalarAsync<Guid>(new CommandDefinition(sql, new
         {
             id, input.Code, input.NameAr, input.NameEn, input.ParentId, path, level, input.IsGroup,
-            input.AccountType, input.CostCenterPolicy, input.Notes, input.IsActive, userId
+            input.AccountType, input.CostCenterPolicy, isSystem, input.Notes, input.IsActive, userId
         }, cancellationToken: ct));
     }
 

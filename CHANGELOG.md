@@ -1,5 +1,39 @@
 # CHANGELOG
 
+## 2026-10-22 — Phase 3: accounting core & general ledger
+
+### Added
+- Migrations `0020`–`0023`: `accounts` (materialized path tree), `cost_centers`,
+  `journals` (7 system journals), `posting_defaults`, `item_category_accounts`,
+  `journal_entries`, `journal_entry_lines`, `gl_balances`, `party_balances`,
+  plus `app_settings.auto_post_stock_journals` and `app_settings.accounting_start_date`.
+- Atomic posting in SQL: `fn_gl_post_entry` (numbering + balance/period/party/cost-center
+  checks + monthly & party balances in one transaction) and `fn_gl_reverse_entry`
+  (reversing entry + `is_reversed` flag, double reversal impossible).
+- Immutability enforced by triggers: posted entries and their lines cannot be edited or
+  deleted; only the reversal flag may change.
+- 13 screens: chart of accounts, cost centers, journals, accounting settings (defaults,
+  category accounts, completeness check), journal entries list, entry editor (party picker,
+  cost distribution, auto-balance, print), opening balances (CSV import + equity balancing),
+  stock posting center, and 5 reports (ledger, trial balance, party statement, cost-center
+  analysis, stock vs GL).
+- Permission catalog keys in the form `accounting.<screen>.<action>` via
+  `ScreenDefinition.PermissionGroup`, with a test that fails when a screen button is not
+  registered in `AppRegistry`.
+- Automatic stock journaling from `item_category_accounts` + `posting_defaults`, with
+  preview, single/bulk generation, idempotency, rounding handling, and auto post/reverse
+  hooks on stock document posting when `auto_post_stock_journals` is enabled.
+- 20 new tests (72 total): balance enforcement, immutability, double reversal, party and
+  cost-center policies, closed periods, tree move, registry coverage, keyset ledger
+  pagination, stock auto-posting, and an opt-in 1M-line performance test.
+
+### Changed
+- `StockDocumentService` accepts an optional `StockAccountingService` to auto-post journals
+  (warehouse posting never fails because of accounting setup).
+- Ledger index rebuilt with `INCLUDE (debit, credit, branch_id)` so period totals are
+  served index-only.
+
+
 ## 2026-10-21 — Phase 2 gap closure (0018)
 
 ### Added

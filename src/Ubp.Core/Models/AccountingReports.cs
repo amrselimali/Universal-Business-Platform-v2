@@ -40,18 +40,22 @@ public sealed class LedgerCursor
 {
     public DateTime EntryDate { get; set; }
     public Guid LineId { get; set; }
+    public decimal Balance { get; set; }
 
     public static LedgerCursor? From(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
         var parts = value.Split('|');
-        if (parts.Length != 2) return null;
+        if (parts.Length != 3) return null;
         if (!DateTime.TryParse(parts[0], out var date)) return null;
         if (!Guid.TryParse(parts[1], out var id)) return null;
-        return new LedgerCursor { EntryDate = date, LineId = id };
+        if (!decimal.TryParse(parts[2], System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture, out var balance)) return null;
+        return new LedgerCursor { EntryDate = date, LineId = id, Balance = balance };
     }
 
-    public string ToToken() => $"{EntryDate:yyyy-MM-dd}|{LineId}";
+    public string ToToken() =>
+        $"{EntryDate:yyyy-MM-dd}|{LineId}|{Balance.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 }
 
 public sealed class LedgerRequest

@@ -1,0 +1,40 @@
+@inherits ComponentBase
+@inject Ubp.Web.Services.UiCulture T
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("accounting.distribute")</MudText></TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.caption" Class="ubp-muted mb-2">@T.T("accounting.distribute_hint")</MudText>
+        @foreach (var row in _rows)
+        {
+            <div class="d-flex align-center gap-2 mb-2">
+                <MudSelect T="Guid" @bind-Value="row.CostCenterId" Label="@T.T("accounting.cost_center")"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1">
+                    @foreach (var costCenter in CostCenters)
+                    {
+                        <MudSelectItem T="Guid" Value="@costCenter.Id">
+                            @costCenter.Code — @costCenter.DisplayName(IsEnglish)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudNumericField T="decimal" @bind-Value="row.Percentage"
+                                 Label="@T.T("accounting.percentage")" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Format="N2" Min="0m" Max="100m" />
+                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                               OnClick="@(() => Remove(row))" />
+            </div>
+        }
+        <div class="d-flex align-center justify-space-between mt-2">
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="AddRow">@T.T("accounting.add_line")</MudButton>
+            <MudText Typo="Typo.body2" Color="@(IsValid ? Color.Success : Color.Error)">
+                @T.T("accounting.total"): @Total.ToString("N2")%
+            </MudText>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirm"
+                   Disabled="@(!IsValid)">@T.T("common.confirm")</MudButton>
+    </DialogActions>
+</MudDialog>

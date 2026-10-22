@@ -25,6 +25,8 @@ public sealed partial class AccountService
 
         new("2000", null, true, AccountTypes.LiabilityCurrent, "الالتزامات", "Liabilities"),
         new("2100", "2000", false, AccountTypes.LiabilityPayable, "الموردون", "Accounts Payable", true),
+        new("2150", "2000", false, AccountTypes.LiabilityCurrent,
+            "مخزون مستلم غير مفوتر", "Goods Received Not Invoiced", true),
         new("2200", "2000", false, AccountTypes.LiabilityCurrent, "مصروفات مستحقة", "Accrued Expenses"),
 
         new("3000", null, true, AccountTypes.Equity, "حقوق الملكية", "Equity"),
@@ -81,7 +83,7 @@ public sealed partial class AccountService
             {
                 var id = Guid.CreateVersion7();
                 await _repository.CreateAsync(id, input, parentPath + node.Code + "/", level,
-                    actor.UserId, ct);
+                    actor.UserId, node.IsSystem, ct);
                 var account = await _repository.GetAsync(id, ct);
                 if (account is null) continue;
                 existing[node.Code] = account;

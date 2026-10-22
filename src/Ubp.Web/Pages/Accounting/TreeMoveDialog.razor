@@ -1,0 +1,24 @@
+@inherits ComponentBase
+@inject Ubp.Web.Services.UiCulture T
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@Title</MudText></TitleContent>
+    <DialogContent>
+        <MudSelect T="Guid?" @bind-Value="_selected" Label="@T.T("accounting.new_parent")"
+                   Variant="Variant.Outlined" Clearable="true" Margin="Margin.Dense"
+                   HelperText="@T.T("accounting.move_hint")">
+            @foreach (var option in Options)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)option.Id)">
+                    <span style="padding-inline-start:@((option.Level - 1) * 14)px">@option.Label</span>
+                </MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirm">
+            @T.T("common.confirm")
+        </MudButton>
+    </DialogActions>
+</MudDialog>

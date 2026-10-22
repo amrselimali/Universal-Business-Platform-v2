@@ -1,0 +1,42 @@
+@inherits ComponentBase
+
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("accounting.import_csv")</MudText></TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.caption" Class="ubp-muted mb-2">@T.T("accounting.csv_format")</MudText>
+        <MudTextField @bind-Value="_csv" Variant="Variant.Outlined" Lines="10"
+                      Placeholder="code,debit,credit,description,party_code,cost_center_code" />
+        @if (_result is not null)
+        {
+            <MudAlert Severity="@(_result.Errors.Count == 0 ? Severity.Success : Severity.Warning)"
+                      Dense="true" Class="mt-3">
+                @T.T("accounting.rows_read"): @_result.Lines.Count — @T.T("accounting.errors"): @_result.Errors.Count
+            </MudAlert>
+            @if (_result.Errors.Count > 0)
+            {
+                <MudSimpleTable Dense="true" Class="mt-2">
+                    <tbody>
+                        @foreach (var error in _result.Errors.Take(20))
+                        {
+                            <tr>
+                                <td>@error.Row</td>
+                                <td>@T.T(error.Key)</td>
+                                <td class="ubp-muted">@error.Detail</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@T.T("common.cancel")</MudButton>
+        <MudButton OnClick="ParseAsync" Variant="Variant.Outlined" Color="Color.Info"
+                   Disabled="@_busy">@T.T("accounting.parse")</MudButton>
+        <MudButton OnClick="Confirm" Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(_busy || _result is null || _result.Lines.Count == 0)">
+            @T.T("accounting.apply")
+        </MudButton>
+    </DialogActions>
+</MudDialog>

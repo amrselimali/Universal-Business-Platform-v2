@@ -108,6 +108,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION fn_gl_post_entry(uuid, uuid) IS
+    'ترحيل قيد مسودة: ترقيم + فحص توازن + قيد الأرصدة الشهرية وأرصدة الأطراف ذرياً';
 
 -- عكس قيد: إنشاء قيد مقابل معكوس البنود وترحيله، وتعليم الأصل — يمنع العكس المزدوج
 CREATE OR REPLACE FUNCTION fn_gl_reverse_entry(p_entry uuid, p_user uuid, p_date date)
@@ -180,4 +181,3 @@ AS $$
                  ELSE b.account_id = p_account END)
 $$;
 
-    'ترحيل قيد مسودة: ترقيم + فحص توازن + قيد الأرصدة الشهرية وأرصدة الأطراف ذرياً';

@@ -29,7 +29,7 @@ public sealed partial class AccountRepository
             var parent = await connection.QuerySingleOrDefaultAsync<MoveRow>(new CommandDefinition(
                 "SELECT id AS Id, code AS Code, path AS Path, level AS Level, parent_id AS ParentId " +
                 "FROM accounts WHERE id = @pid", new { pid = newParentId.Value }, tx, cancellationToken: ct));
-            if (parent is null || parent.Id == id || node.Path.StartsWith(parent.Path, StringComparison.Ordinal))
+            if (parent is null || parent.Id == id || parent.Path.StartsWith(node.Path, StringComparison.Ordinal))
             {
                 await tx.RollbackAsync(ct);
                 return null;

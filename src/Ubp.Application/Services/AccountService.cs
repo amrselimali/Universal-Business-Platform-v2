@@ -39,7 +39,9 @@ public sealed partial class AccountService
     {
         var allowed = await _permissions.HasAsync(actor, ScreenCodes.Accounts, ActionCodes.View, ct)
                    || await _permissions.HasAsync(actor, ScreenCodes.JournalEntry, ActionCodes.View, ct)
-                   || await _permissions.HasAsync(actor, ScreenCodes.OpeningBalances, ActionCodes.View, ct);
+                   || await _permissions.HasAsync(actor, ScreenCodes.OpeningBalances, ActionCodes.View, ct)
+                   || await _permissions.HasAsync(actor, ScreenCodes.LedgerReport, ActionCodes.View, ct)
+                   || await _permissions.HasAsync(actor, ScreenCodes.TrialBalanceReport, ActionCodes.View, ct);
         if (!allowed) throw new ForbiddenException();
         return await _repository.ListPostableAsync(ct);
     }
@@ -83,7 +85,7 @@ public sealed partial class AccountService
         try
         {
             var id = Guid.CreateVersion7();
-            await _repository.CreateAsync(id, input, path, level, actor.UserId, ct);
+            await _repository.CreateAsync(id, input, path, level, actor.UserId, ct: ct);
             var created = await _repository.GetAsync(id, ct) ?? throw new NotFoundAppException();
             await _audit.WriteAsync(actor, "accounts", id.ToString(), "INSERT", null, created, ct);
             return created;

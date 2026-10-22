@@ -31,6 +31,12 @@ public sealed class AccountingReportService
         if (request.AccountId == Guid.Empty)
             throw new ValidationAppException("validation.account_required");
         if (request.To < request.From) throw new ValidationAppException("validation.date_range");
+
+        // الأستاذ شهري: الرصيد الافتتاحي وإجماليات الفترة من الأرصدة الشهرية المجمّعة،
+        // والحركات تُعرض داخل حدود الشهر نفسه حتى تتطابق الأرقام مع البنود.
+        request.From = new DateTime(request.From.Year, request.From.Month, 1);
+        request.To = new DateTime(request.To.Year, request.To.Month,
+            DateTime.DaysInMonth(request.To.Year, request.To.Month));
         return await _repository.LedgerAsync(request, ct);
     }
 

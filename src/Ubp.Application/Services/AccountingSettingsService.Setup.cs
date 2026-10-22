@@ -28,6 +28,13 @@ public sealed partial class AccountingSettingsService
             new { settingKey, accountId }, ct);
     }
 
+    public async Task<IReadOnlyList<PostingDefault>> ListDefaultsAsync(ActorContext actor,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.AccountingSettings, ActionCodes.View, ct: ct);
+        return await _settings.ListDefaultsAsync(ct);
+    }
+
     public async Task<IReadOnlyList<ItemCategoryAccount>> ListCategoryAccountsAsync(ActorContext actor,
         CancellationToken ct = default)
     {
@@ -81,7 +88,7 @@ public sealed partial class AccountingSettingsService
 
         var mapping = new Dictionary<string, string>
         {
-            [PostingKeys.StockInventory] = "1120",
+            [PostingKeys.StockInventory] = "2150",
             [PostingKeys.StockCogs] = "5100",
             [PostingKeys.OpeningEquity] = "3100",
             [PostingKeys.StockAdjustmentGain] = "5410",

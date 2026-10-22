@@ -76,6 +76,14 @@ public sealed class TestDb
     public StockPostingRepository StockPostingRepo => new(Factory);
     public StocktakeRepository StocktakeRepo => new(Factory);
     public StockReportRepository StockReportRepo => new(Factory);
+    public AccountRepository AccountRepo => new(Factory);
+    public CostCenterRepository CostCenterRepo => new(Factory);
+    public JournalRepository JournalRepo => new(Factory);
+    public JournalEntryRepository JournalEntryRepo => new(Factory);
+    public JournalPostingRepository JournalPostingRepo => new(Factory);
+    public AccountingSettingsRepository AccountingSettingsRepo => new(Factory);
+    public AccountingReportRepository AccountingReportRepo => new(Factory);
+    public StockAccountingRepository StockAccountingRepo => new(Factory);
 
     public PermissionService Permissions() => new(PermissionRepo, Cache);
 
@@ -157,7 +165,79 @@ public sealed class TestDb
 
     public StockDocumentService StockDocumentService() => new(
         StockDocRepo, StockPostingRepo, ItemRepo, WarehouseRepo, Settings(), Permissions(),
+        new AuditService(AuditRepo), StockAccountingService());
+
+    public AccountService AccountService() =>
+        new(AccountRepo, Permissions(), new AuditService(AuditRepo));
+
+    public CostCenterService CostCenterService() =>
+        new(CostCenterRepo, Permissions(), new AuditService(AuditRepo));
+
+    public JournalService JournalService() =>
+        new(JournalRepo, Permissions(), new AuditService(AuditRepo));
+
+    public JournalEntryService JournalEntryService() => new(
+        JournalEntryRepo, JournalPostingRepo, AccountRepo, JournalRepo, Permissions(),
         new AuditService(AuditRepo));
+
+    public AccountingSettingsService AccountingSettings() => new(
+        AccountingSettingsRepo, AccountRepo, JournalRepo, AccountService(), Permissions(),
+        new AuditService(AuditRepo));
+
+    public OpeningBalanceService OpeningBalanceService() => new(
+        JournalEntryRepo, JournalPostingRepo, JournalRepo, AccountRepo, CostCenterRepo,
+        PartnerRepo, JournalEntryService(), Permissions(), new AuditService(AuditRepo));
+
+    public StockAccountingService StockAccountingService() => new(
+        StockAccountingRepo, JournalEntryRepo, JournalPostingRepo, AccountingSettingsRepo,
+        Permissions(), new AuditService(AuditRepo));
+
+    public AccountingReportService AccountingReports() => new(AccountingReportRepo, Permissions());
+
+    /// <summary>يحمّل شجرة الحسابات القياسية وحسابات الترحيل ويعيد خريطة بالكود.</summary>
+    public async Task<Dictionary<string, Account>> SeedAccountingAsync()
+    {
+        var actor = await AdminActorAsync();
+        await AccountingSettings().LoadDefaultTreeAsync(actor);
+        var accounts = await AccountRepo.ListAllAsync(true);
+        return accounts.ToDictionary(a => a.Code, StringComparer.OrdinalIgnoreCase);
+    }
+
+    public async Task<Guid> JournalIdByCodeAsync(string code)
+    {
+        var journal = await JournalRepo.GetByCodeAsync(code)
+                      ?? throw new InvalidOperationException("Journal missing: " + code);
+        return journal.Id;
+    }
+
+    /// <summary>ينشئ قيداً متوازناً ويرحّله ويعيد رأسه.</summary>
+    public async Task<JournalEntry> PostBalancedEntryAsync(Guid branchId, DateTime date,
+        Guid debitAccount, Guid creditAccount, decimal amount, string journalCode = "GEN",
+        Guid? customerId = null, Guid? supplierId = null, Guid? costCenterId = null)
+    {
+        var actor = await AdminActorAsync();
+        var detail = await JournalEntryService().CreateAsync(actor, new JournalEntryInput
+        {
+            JournalId = await JournalIdByCodeAsync(journalCode),
+            BranchId = branchId,
+            EntryDate = date,
+            Description = "قيد اختبار",
+            Lines =
+            {
+                new JournalEntryLineInput
+                {
+                    AccountId = debitAccount, Debit = amount, CustomerId = customerId,
+                    SupplierId = supplierId, CostCenterId = costCenterId
+                },
+                new JournalEntryLineInput
+                {
+                    AccountId = creditAccount, Credit = amount, CustomerId = customerId,
+                    SupplierId = supplierId, CostCenterId = costCenterId
+                }
+            }
+        });
+        return await JournalEntryService().PostAsync(actor, detail.Header.Id);
+    }
 
     public async Task<Item> CreateItemAsync(string code, string nameAr)
     {

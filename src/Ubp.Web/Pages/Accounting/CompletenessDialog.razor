@@ -1,0 +1,39 @@
+@inherits ComponentBase
+@inject Ubp.Web.Services.UiCulture T
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("accounting.check_completeness")</MudText></TitleContent>
+    <DialogContent>
+        <MudAlert Severity="@(Report.IsComplete ? Severity.Success : Severity.Warning)" Dense="true"
+                  Class="mb-3">
+            @(Report.IsComplete ? T.T("accounting.complete") : T.T("accounting.incomplete"))
+        </MudAlert>
+        <MudSimpleTable Dense="true">
+            <thead>
+                <tr>
+                    <th>@T.T("accounting.check_item")</th>
+                    <th>@T.T("common.status")</th>
+                    <th>@T.T("accounting.detail")</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Report.Items)
+                {
+                    <tr>
+                        <td>@T.T(item.LabelKey)</td>
+                        <td>
+                            <MudIcon Icon="@(item.Ok ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error)"
+                                     Color="@(item.Ok ? Color.Success : item.Blocking ? Color.Error : Color.Warning)"
+                                     Size="Size.Small" />
+                        </td>
+                        <td class="ubp-muted">@item.Detail</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   OnClick="@(() => MudDialog.Close())">@T.T("common.close")</MudButton>
+    </DialogActions>
+</MudDialog>

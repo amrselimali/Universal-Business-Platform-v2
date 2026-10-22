@@ -205,13 +205,13 @@ BEGIN
             RAISE EXCEPTION 'PARTY_REQUIRED:%', v_bad.line_no USING ERRCODE = '23514';
         END IF;
         IF v_bad.account_type = 'liability_payable' AND v_bad.supplier_id IS NULL THEN
-            RAISE EXCEPTION 'PARTY_REQUIRED:%' USING ERRCODE = '23514';
+            RAISE EXCEPTION 'PARTY_REQUIRED:%', v_bad.line_no USING ERRCODE = '23514';
         END IF;
         IF v_bad.cost_center_policy = 2 AND v_bad.cost_center_id IS NULL THEN
             RAISE EXCEPTION 'COST_CENTER_REQUIRED:%', v_bad.line_no USING ERRCODE = '23514';
         END IF;
         IF v_bad.cost_center_policy = 0 AND v_bad.cost_center_id IS NOT NULL THEN
-            RAISE EXCEPTION 'COST_CENTER_NOT_ALLOWED:%' USING ERRCODE = '23514';
+            RAISE EXCEPTION 'COST_CENTER_NOT_ALLOWED:%', v_bad.line_no USING ERRCODE = '23514';
         END IF;
     END LOOP;
 

@@ -1,0 +1,88 @@
+@page "/reports/accounting/ledger"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.ledger")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.ledger")" Subtitle="@T.T("accounting.ledger_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Print))
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Print"
+                           OnClick="PrintAsync">@T.T("common.print")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card mb-4">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" @bind-Value="_accountId" Label="@T.T("accounting.account")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var account in _accounts)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)account.Id)">
+                        @account.Code — @account.DisplayName(IsEnglish)
+                    </MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker @bind-Date="_from" Label="@T.T("common.from")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
+            <MudDatePicker @bind-Date="_to" Label="@T.T("common.to")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
+            <MudSwitch T="bool" @bind-Value="_includeChildren" Label="@T.T("accounting.include_children")"
+                       Color="Color.Primary" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SearchAsync"
+                       Disabled="_busy">@T.T("common.search")</MudButton>
+        </div>
+
+        @if (_page is not null)
+        {
+            <div class="ubp-totals mb-3">
+                <span>@T.T("accounting.opening_balance"): <b>@_page.OpeningBalance.ToString("N2")</b></span>
+                <span>@T.T("accounting.period_debit"): <b>@_page.PeriodDebit.ToString("N2")</b></span>
+                <span>@T.T("accounting.period_credit"): <b>@_page.PeriodCredit.ToString("N2")</b></span>
+                <span>@T.T("accounting.closing_balance"): <b>@_page.ClosingBalance.ToString("N2")</b></span>
+            </div>
+
+            <MudTable Items="_rows" Dense="true" Hover="true" Striped="true" Elevation="0" Class="ubp-table">
+                <HeaderContent>
+                    <MudTh>@T.T("accounting.entry_no")</MudTh>
+                    <MudTh>@T.T("accounting.entry_date")</MudTh>
+                    <MudTh>@T.T("accounting.journal")</MudTh>
+                    <MudTh>@T.T("common.description")</MudTh>
+                    <MudTh>@T.T("accounting.party")</MudTh>
+                    <MudTh>@T.T("accounting.cost_center")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.debit")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.credit")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.balance")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><span class="ubp-code">@(context.EntryNo ?? "—")</span></MudTd>
+                    <MudTd>@context.EntryDate.ToString("yyyy-MM-dd")</MudTd>
+                    <MudTd>@context.JournalCode</MudTd>
+                    <MudTd>@context.Description</MudTd>
+                    <MudTd>@context.PartyName</MudTd>
+                    <MudTd>@context.CostCenterName</MudTd>
+                    <MudTd Align="Right">@context.Debit.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.Credit.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.RunningBalance.ToString("N2")</MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            @if (_page.HasMore)
+            {
+                <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="LoadMoreAsync"
+                           Disabled="_busy">@T.T("accounting.load_more")</MudButton>
+            }
+        }
+    </MudPaper>
+}
