@@ -119,6 +119,14 @@ public static class ServiceRegistration
         services.AddScoped<IStockPostingRepository, StockPostingRepository>();
         services.AddScoped<IStocktakeRepository, StocktakeRepository>();
         services.AddScoped<IStockReportRepository, StockReportRepository>();
+        services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<ICostCenterRepository, CostCenterRepository>();
+        services.AddScoped<IJournalRepository, JournalRepository>();
+        services.AddScoped<IJournalEntryRepository, JournalEntryRepository>();
+        services.AddScoped<IJournalPostingRepository, JournalPostingRepository>();
+        services.AddScoped<IAccountingSettingsRepository, AccountingSettingsRepository>();
+        services.AddScoped<IAccountingReportRepository, AccountingReportRepository>();
+        services.AddScoped<IStockAccountingRepository, StockAccountingRepository>();
     }
 
     private static void AddApplicationServices(IServiceCollection services)
@@ -145,5 +153,13 @@ public static class ServiceRegistration
         services.AddScoped<StockDocumentService>();
         services.AddScoped<StocktakeService>();
         services.AddScoped<StockReportService>();
+        services.AddScoped<AccountService>();
+        services.AddScoped<CostCenterService>();
+        services.AddScoped<JournalService>();
+        services.AddScoped<JournalEntryService>();
+        services.AddScoped<AccountingSettingsService>();
+        services.AddScoped<OpeningBalanceService>();
+        services.AddScoped<StockAccountingService>();
+        services.AddScoped<AccountingReportService>();
     }
 }

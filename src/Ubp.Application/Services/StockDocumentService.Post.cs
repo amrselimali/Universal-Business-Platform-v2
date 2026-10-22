@@ -25,6 +25,10 @@ public sealed partial class StockDocumentService
         await _audit.WriteAsync(actor, "stock_documents", id.ToString(), "UPDATE",
             new { status = StockStatuses.Draft },
             new { status = StockStatuses.Posted }, ct);
+
+        if (_accounting is not null)
+            await _accounting.TryAutoPostAsync(actor, id, ct);
+
         return await LoadAsync(actor, id, ct);
     }
 
@@ -44,6 +48,10 @@ public sealed partial class StockDocumentService
 
         await _audit.WriteAsync(actor, "stock_documents", reversal.Id.ToString(), "INSERT",
             new { reversalOf = id, originalType = document.DocType }, reversal, ct);
+
+        if (_accounting is not null)
+            await _accounting.TryAutoReverseAsync(actor, id, ct);
+
         return await LoadAsync(actor, reversal.Id, ct);
     }
 

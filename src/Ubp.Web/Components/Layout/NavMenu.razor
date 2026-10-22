@@ -35,12 +35,14 @@
                 new("group.main", new()),
                 new("group.inventory", new()),
                 new("group.partners", new()),
+                new("group.accounting", new()),
                 new("group.definitions", new()),
                 new("group.security", new()),
                 new("group.reports", new()),
                 new("group.system", new())
             };
-            foreach (var screen in AppRegistry.Screens.Where(s => visible.Contains(s.Code)))
+            foreach (var screen in AppRegistry.Screens.Where(s =>
+                         visible.Contains(s.Code) && !s.Route.Contains('{')))
             {
                 var group = groups.FirstOrDefault(g => g.TitleKey == screen.GroupKey);
                 group?.Screens.Add(screen);

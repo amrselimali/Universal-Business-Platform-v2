@@ -22,13 +22,14 @@ public sealed partial class StockDocumentService
     private readonly ISettingsService _settings;
     private readonly PermissionService _permissions;
     private readonly AuditService _audit;
+    private readonly StockAccountingService? _accounting;
 
     public StockDocumentService(IStockDocumentRepository docs, IStockPostingRepository posting,
         IItemRepository items, IWarehouseRepository warehouses, ISettingsService settings,
-        PermissionService permissions, AuditService audit)
+        PermissionService permissions, AuditService audit, StockAccountingService? accounting = null)
     {
         _docs = docs; _posting = posting; _items = items; _warehouses = warehouses;
-        _settings = settings; _permissions = permissions; _audit = audit;
+        _settings = settings; _permissions = permissions; _audit = audit; _accounting = accounting;
     }
 
     public async Task<PagedResult<StockDocument>> ListAsync(ActorContext actor, PageRequest request,

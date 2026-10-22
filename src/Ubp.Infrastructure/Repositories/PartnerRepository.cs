@@ -10,6 +10,7 @@ public interface IPartnerRepository
     Task<PagedResult<Partner>> ListAsync(PartnerKind kind, PageRequest request, Guid? categoryId,
         bool isAdmin, IReadOnlyCollection<Guid> branchIds, CancellationToken ct = default);
     Task<Partner?> GetAsync(PartnerKind kind, Guid id, CancellationToken ct = default);
+    Task<Partner?> GetByCodeAsync(PartnerKind kind, string code, CancellationToken ct = default);
     Task<Partner> CreateAsync(PartnerKind kind, PartnerInput input, CancellationToken ct = default);
     Task<Partner?> UpdateAsync(PartnerKind kind, Guid id, int version, PartnerInput input,
         CancellationToken ct = default);
@@ -96,6 +97,16 @@ public sealed partial class PartnerRepository : IPartnerRepository
         await using var connection = await _factory.OpenAsync(ct);
         var row = await connection.QuerySingleOrDefaultAsync<PartnerRow>(new CommandDefinition(
             $"SELECT {Columns(kind)} FROM {Table(kind)} p WHERE p.id = @id", new { id }, cancellationToken: ct));
+        return row is null ? null : Map(row);
+    }
+
+    public async Task<Partner?> GetByCodeAsync(PartnerKind kind, string code,
+        CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        var row = await connection.QuerySingleOrDefaultAsync<PartnerRow>(new CommandDefinition(
+            $"SELECT {Columns(kind)} FROM {Table(kind)} p WHERE p.code = @code",
+            new { code }, cancellationToken: ct));
         return row is null ? null : Map(row);
     }
 
