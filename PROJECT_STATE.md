@@ -10,7 +10,7 @@
   posting, monthly GL balances and party balances, opening balances (incl. CSV), stock
   auto-journaling, and 5 accounting reports (ledger, trial balance, party statement,
   cost-center analysis, stock vs GL).
-- 72 automated tests pass on a real PostgreSQL instance (20 for phase 3); the opt-in
+- 75 automated tests pass on a real PostgreSQL instance (23 for phase 3); the opt-in
   performance test verifies trial balance and ledger on 1,000,000 journal lines.
 
 ### Decisions

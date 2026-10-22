@@ -110,12 +110,22 @@ public partial class EntryEditor
 
     private void OnAccountChanged(JournalEntryLineInput line, Guid accountId)
     {
+        _ = ChangeAccountAsync(line, accountId);
+    }
+
+    private async Task ChangeAccountAsync(JournalEntryLineInput line, Guid accountId)
+    {
         line.AccountId = accountId;
         var account = AccountOf(line);
         if (account is null) return;
+
         if (!account.RequiresCustomer) line.CustomerId = null;
         if (!account.RequiresSupplier) line.SupplierId = null;
         if (account.CostCenterPolicy == CostCenterPolicies.NotAllowed) line.CostCenterId = null;
+
+        // الحساب الذي يتطلب طرفاً يفتح صندوق الاختيار تلقائياً (والإلغاء يتركه فارغاً).
+        if (account.RequiresParty && line.CustomerId is null && line.SupplierId is null)
+            await PickPartyAsync(line);
     }
 
     private string PartyLabel(JournalEntryLineInput line)

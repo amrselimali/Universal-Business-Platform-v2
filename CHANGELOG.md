@@ -23,7 +23,7 @@
 - Automatic stock journaling from `item_category_accounts` + `posting_defaults`, with
   preview, single/bulk generation, idempotency, rounding handling, and auto post/reverse
   hooks on stock document posting when `auto_post_stock_journals` is enabled.
-- 20 new tests (72 total): balance enforcement, immutability, double reversal, party and
+- 23 new tests (75 total): balance enforcement, immutability, double reversal, party and
   cost-center policies, closed periods, tree move, registry coverage, keyset ledger
   pagination, stock auto-posting, and an opt-in 1M-line performance test.
 
