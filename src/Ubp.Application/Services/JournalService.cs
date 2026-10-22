@@ -45,7 +45,7 @@ public sealed class JournalService
     public async Task<Journal> CreateAsync(ActorContext actor, JournalInput input,
         CancellationToken ct = default)
     {
-        await _permissions.RequireAsync(actor, ScreenCodes.Journals, ActionCodes.Add, ct: ct);
+        await _permissions.RequireAsync(actor, ScreenCodes.Journals, ActionCodes.Create, ct: ct);
         Normalize(input);
         Validate(input);
         if (await _repository.GetByCodeAsync(input.Code, ct) is not null)

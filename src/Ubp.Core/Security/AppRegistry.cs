@@ -51,6 +51,7 @@ public static class ActionCodes
 {
     public const string View = "VIEW";
     public const string Add = "ADD";
+    public const string Create = "CREATE";
     public const string Edit = "EDIT";
     public const string Delete = "DELETE";
     public const string ToggleActive = "TOGGLE_ACTIVE";
@@ -214,7 +215,7 @@ public static class AppRegistry
                     A(ActionCodes.Move) }, "accounting.cost_centers"),
 
         new(ScreenCodes.Journals, "/accounting/journals", "MenuBook", "screen.journals", GroupAccounting,
-            new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit),
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
                     A(ActionCodes.ToggleActive) }, "accounting.journals"),
 
         new(ScreenCodes.AccountingSettings, "/accounting/settings", "Tune", "screen.accounting_settings",
@@ -223,7 +224,7 @@ public static class AppRegistry
                     A(ActionCodes.EnableAutoPost) }, "accounting.settings"),
 
         new(ScreenCodes.JournalEntries, "/accounting/entries", "ReceiptLong", "screen.entries", GroupAccounting,
-            new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Open), A(ActionCodes.Copy),
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Open), A(ActionCodes.Copy),
                     A(ActionCodes.Reverse), A(ActionCodes.CancelEntry) }, "accounting.entries"),
 
         new(ScreenCodes.JournalEntry, "/accounting/entries/{id:guid}", "EditNote", "screen.entry",
@@ -235,7 +236,7 @@ public static class AppRegistry
 
         new(ScreenCodes.OpeningBalances, "/accounting/opening-balances", "PlaylistAdd",
             "screen.opening_balances", GroupAccounting,
-            new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.ImportCsv),
+            new[] { A(ActionCodes.View), A(ActionCodes.ImportCsv),
                     A(ActionCodes.AutoBalanceEquity), A(ActionCodes.SaveDraft), A(ActionCodes.Post),
                     A(ActionCodes.OpenEntry) }, "accounting.opening_balances"),
 

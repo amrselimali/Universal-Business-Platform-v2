@@ -165,6 +165,7 @@
   "action.check_completeness": "Check Completeness",
   "action.close_period": "Close period",
   "action.copy": "Copy",
+  "action.create": "Create",
   "action.create_child": "Create Child",
   "action.create_root": "Create Root",
   "action.delete": "Delete",

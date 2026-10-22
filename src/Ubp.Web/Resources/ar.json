@@ -165,6 +165,7 @@
   "action.check_completeness": "فحص الاكتمال",
   "action.close_period": "إغلاق الفترة",
   "action.copy": "نسخ",
+  "action.create": "إضافة",
   "action.create_child": "إضافة حساب فرعي",
   "action.create_root": "إضافة حساب رئيسي",
   "action.delete": "حذف",

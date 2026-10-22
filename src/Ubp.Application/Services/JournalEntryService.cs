@@ -44,7 +44,7 @@ public sealed partial class JournalEntryService
     public async Task<JournalEntryDetail> CreateAsync(ActorContext actor, JournalEntryInput input,
         CancellationToken ct = default)
     {
-        await _permissions.RequireAsync(actor, ScreenCodes.JournalEntries, ActionCodes.Add, ct: ct);
+        await _permissions.RequireAsync(actor, ScreenCodes.JournalEntries, ActionCodes.Create, ct: ct);
         await ValidateAsync(input, ct);
 
         try

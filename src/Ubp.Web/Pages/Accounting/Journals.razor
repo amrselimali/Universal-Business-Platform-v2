@@ -15,7 +15,7 @@ else
 {
     <PageHeader Title="@T.T("screen.journals")" Subtitle="@T.T("accounting.journals_hint")">
         <Actions>
-            @if (Can(ActionCodes.Add))
+            @if (Can(ActionCodes.Create))
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">
