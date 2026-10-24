@@ -50,6 +50,8 @@ public sealed class Booking
     public string? CustomerName { get; set; }
     public string Source { get; set; } = BookingSources.Manual;
     public DateTime? DueDate { get; set; }
+    public DateTimeOffset? StartsAt { get; set; }
+    public DateTimeOffset? EndsAt { get; set; }
     public DateTimeOffset? ExpiresAt { get; set; }
     public Guid? AssignedEmployeeId { get; set; }
     public string? EmployeeName { get; set; }
@@ -121,6 +123,8 @@ public sealed class BookingInput
     public DateTime BookingDate { get; set; } = DateTime.Today;
     public Guid CustomerId { get; set; }
     public DateTime? DueDate { get; set; }
+    public DateTimeOffset? StartsAt { get; set; }
+    public DateTimeOffset? EndsAt { get; set; }
     public DateTimeOffset? ExpiresAt { get; set; }
     public Guid? AssignedEmployeeId { get; set; }
     public Guid? RelatedBookingId { get; set; }

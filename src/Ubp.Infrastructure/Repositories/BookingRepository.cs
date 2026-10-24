@@ -38,6 +38,8 @@ public sealed partial class BookingRepository : IBookingRepository
         public string? CustomerName { get; set; }
         public string Source { get; set; } = BookingSources.Manual;
         public DateTime? DueDate { get; set; }
+        public DateTimeOffset? StartsAt { get; set; }
+        public DateTimeOffset? EndsAt { get; set; }
         public DateTimeOffset? ExpiresAt { get; set; }
         public Guid? AssignedEmployeeId { get; set; }
         public string? EmployeeName { get; set; }
@@ -76,7 +78,8 @@ public sealed partial class BookingRepository : IBookingRepository
     private const string HeadSelect = """
         SELECT b.id AS Id, b.branch_id AS BranchId, b.doc_no AS DocNo, b.booking_date AS BookingDate,
                b.status AS Status, b.customer_id AS CustomerId, c.name_ar AS CustomerName,
-               b.source AS Source, b.due_date AS DueDate, b.expires_at AS ExpiresAt,
+               b.source AS Source, b.due_date AS DueDate, b.starts_at AS StartsAt,
+               b.ends_at AS EndsAt, b.expires_at AS ExpiresAt,
                b.assigned_employee_id AS AssignedEmployeeId, e.name_ar AS EmployeeName,
                b.related_booking_id AS RelatedBookingId, b.total_amount AS TotalAmount,
                b.deposit_amount AS DepositAmount, b.notes AS Notes, b.version AS Version,
@@ -146,7 +149,8 @@ public sealed partial class BookingRepository : IBookingRepository
     {
         Id = row.Id, BranchId = row.BranchId, DocNo = row.DocNo, BookingDate = row.BookingDate,
         Status = row.Status, CustomerId = row.CustomerId, CustomerName = row.CustomerName,
-        Source = row.Source, DueDate = row.DueDate, ExpiresAt = row.ExpiresAt,
+        Source = row.Source, DueDate = row.DueDate, StartsAt = row.StartsAt,
+        EndsAt = row.EndsAt, ExpiresAt = row.ExpiresAt,
         AssignedEmployeeId = row.AssignedEmployeeId, EmployeeName = row.EmployeeName,
         RelatedBookingId = row.RelatedBookingId, TotalAmount = row.TotalAmount,
         DepositAmount = row.DepositAmount, Notes = row.Notes, Version = row.Version,

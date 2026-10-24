@@ -46,6 +46,7 @@ else
             <HeaderContent>
                 <MudTh>@T.T("sales.booking_no")</MudTh>
                 <MudTh>@T.T("sales.booking_date")</MudTh>
+                <MudTh>@T.T("sales.appointment_time")</MudTh>
                 <MudTh>@T.T("sales.customer")</MudTh>
                 <MudTh>@T.T("sales.assigned_employee")</MudTh>
                 <MudTh Align="Right">@T.T("accounting.total")</MudTh>
@@ -55,6 +56,15 @@ else
             <RowTemplate>
                 <MudTd><span class="ubp-code">@(context.DocNo ?? "—")</span></MudTd>
                 <MudTd>@context.BookingDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd>
+                    @if (context.StartsAt is not null && context.EndsAt is not null)
+                    {
+                        <span dir="ltr">
+                            @context.StartsAt.Value.ToLocalTime().ToString("HH:mm") – @context.EndsAt.Value.ToLocalTime().ToString("HH:mm")
+                        </span>
+                    }
+                    else { <text>—</text> }
+                </MudTd>
                 <MudTd>@context.CustomerName</MudTd>
                 <MudTd>@(context.EmployeeName ?? "—")</MudTd>
                 <MudTd Align="Right">@context.TotalAmount.ToString("N2")</MudTd>

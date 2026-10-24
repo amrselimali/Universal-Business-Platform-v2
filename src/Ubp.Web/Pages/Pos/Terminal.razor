@@ -16,6 +16,19 @@ else
 {
     <PageHeader Title="@T.T("screen.pos_terminal")" Subtitle="@T.T("pos.terminal_hint")" />
 
+    <MudButtonGroup Class="mb-3 ubp-print-hide">
+        <MudButton Variant="@(_appointmentMode ? Variant.Outlined : Variant.Filled)"
+                   Color="Color.Primary" OnClick="@(() => _appointmentMode = false)">
+            @T.T("pos.mode_sale")
+        </MudButton>
+        <MudButton Variant="@(_appointmentMode ? Variant.Filled : Variant.Outlined)"
+                   Color="Color.Primary" OnClick="@(() => _appointmentMode = true)">
+            @T.T("pos.mode_appointment")
+        </MudButton>
+    </MudButtonGroup>
+
+    @if (!_appointmentMode)
+    {
     <MudGrid Class="ubp-print-hide" Spacing="2">
         <MudItem xs="12" md="7">
             <MudPaper Elevation="0" Class="ubp-card">
@@ -164,6 +177,61 @@ else
             </MudPaper>
         </MudItem>
     </MudGrid>
+    }
+    else
+    {
+        <MudPaper Elevation="0" Class="ubp-card ubp-print-hide">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">@T.T("pos.mode_appointment")</MudText>
+            <div class="ubp-form-grid">
+                <MudSelect T="Guid" Value="_branchId" Label="@T.T("common.branch")"
+                           Variant="Variant.Outlined" ValueChanged="OnBranchChanged">
+                    @foreach (var branch in _branches)
+                    {
+                        <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid" Value="_customerId" Label="@T.T("sales.customer")"
+                           Variant="Variant.Outlined" ValueChanged="OnCustomerChanged">
+                    @foreach (var customer in _customers)
+                    {
+                        <MudSelectItem T="Guid" Value="@customer.Id">
+                            @customer.NameAr @(string.IsNullOrWhiteSpace(customer.Phone) ? "" : $" — {customer.Phone}")
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid" @bind-Value="_appointmentItemId" Label="@T.T("sales.item")"
+                           Variant="Variant.Outlined">
+                    @foreach (var service in Services)
+                    {
+                        <MudSelectItem T="Guid" Value="@service.Id">@service.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudDatePicker @bind-Date="_appointmentDate" Label="@T.T("common.date")"
+                               Variant="Variant.Outlined" />
+                <MudTimePicker @bind-Time="_startTime" Label="@T.T("sales.from")"
+                               Variant="Variant.Outlined" />
+                <MudTimePicker @bind-Time="_endTime" Label="@T.T("sales.to")"
+                               Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_appointmentNotes" Label="@T.T("common.notes")"
+                              Variant="Variant.Outlined" MaxLength="500" />
+            </div>
+            <div class="ubp-toolbar mt-2">
+                @if (Can(ActionCodes.Checkout))
+                {
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                               OnClick="BookAppointmentAsync" Disabled="_busy">
+                        @T.T("pos.book_appointment")
+                    </MudButton>
+                }
+                @if (_appointmentReceipt is not null)
+                {
+                    <MudAlert Severity="Severity.Success" Dense="true">
+                        @T.T("pos.appointment_created"): @_appointmentReceipt.BookingNo
+                    </MudAlert>
+                }
+            </div>
+        </MudPaper>
+    }
 
     @if (_receipt is not null)
     {

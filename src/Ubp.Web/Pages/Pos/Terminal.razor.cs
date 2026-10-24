@@ -194,5 +194,42 @@ public partial class Terminal : SecurePageBase
         finally { _busy = false; }
     });
 
+    private bool _appointmentMode;
+    private Guid _appointmentItemId;
+    private DateTime? _appointmentDate = DateTime.Today;
+    private TimeSpan? _startTime = new(10, 0, 0);
+    private TimeSpan? _endTime = new(10, 30, 0);
+    private string? _appointmentNotes;
+    private PosReceipt? _appointmentReceipt;
+
+    private IReadOnlyList<ItemOption> Services =>
+        _products.Where(p => p.ItemType == "SERVICE").ToList();
+
+    private async Task BookAppointmentAsync() => await RunAsync(async () =>
+    {
+        if (_customerId == Guid.Empty || _appointmentItemId == Guid.Empty ||
+            _appointmentDate is null || _startTime is null || _endTime is null)
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        var starts = new DateTimeOffset(_appointmentDate.Value.Date + _startTime.Value);
+        var ends = new DateTimeOffset(_appointmentDate.Value.Date + _endTime.Value);
+        _busy = true;
+        try
+        {
+            _appointmentReceipt = await Pos.BookAppointmentAsync(Actor!, new PosAppointmentInput
+            {
+                BranchId = _branchId, CustomerId = _customerId, WarehouseId = _warehouseId,
+                ItemId = _appointmentItemId, StartsAt = starts, EndsAt = ends,
+                Notes = _appointmentNotes
+            });
+            _appointmentItemId = Guid.Empty;
+            _appointmentNotes = null;
+        }
+        finally { _busy = false; }
+    });
+
     private async Task PrintAsync() => await JS.InvokeVoidAsync("ubpPrint");
 }
