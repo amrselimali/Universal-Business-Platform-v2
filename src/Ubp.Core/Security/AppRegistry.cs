@@ -194,7 +194,21 @@ public static class AppRegistry
             GroupInventory,
             new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
                     A(ActionCodes.ToggleActive), A(ActionCodes.Delete),
-                    A(ActionCodes.EditLines) }, "inventory.recipes")
+                    A(ActionCodes.EditLines) }, "inventory.recipes"),
+
+        new(ScreenCodes.PurchaseInvoices, "/purchasing/invoices", "Receipt", "screen.purchase_invoices",
+            GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.Delete), A(ActionCodes.Post) }, "purchasing.invoices"),
+
+        new(ScreenCodes.PurchaseReturns, "/purchasing/returns", "AssignmentReturn",
+            "screen.purchase_returns", GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.Delete), A(ActionCodes.Post) }, "purchasing.returns"),
+
+        new(ScreenCodes.PurchaseAging, "/purchasing/aging", "HourglassBottom",
+            "screen.purchase_aging", GroupReports,
+            new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "purchasing.aging")
     };
 
     public static readonly IReadOnlyDictionary<string, ScreenDefinition> ByCode =
