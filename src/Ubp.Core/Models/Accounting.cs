@@ -69,13 +69,14 @@ public static class PostingKeys
     public const string PaymentFees = "payment_fees";
     public const string CashOverShort = "cash_over_short";
     public const string InterBranchClearing = "inter_branch_clearing";
+    public const string BookingForfeitIncome = "booking_forfeit_income";
 
     public static readonly string[] All =
     {
         StockInventory, StockCogs, StockAdjustmentGain, StockAdjustmentLoss,
         OpeningEquity, Rounding, SalesRevenue, VatOutput, VatInput, CustomerReceivable,
         SupplierPayable, PurchaseVariance, RoundingDifference, CustomerAdvances,
-        SupplierAdvances, PaymentFees, CashOverShort, InterBranchClearing
+        SupplierAdvances, PaymentFees, CashOverShort, InterBranchClearing, BookingForfeitIncome
     };
 }
 

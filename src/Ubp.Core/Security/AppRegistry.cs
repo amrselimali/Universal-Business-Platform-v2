@@ -256,7 +256,25 @@ public static class AppRegistry
         new(ScreenCodes.SalesReturns, "/sales/returns", "AssignmentReturn",
             "screen.sales_returns", GroupSales,
             new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Post),
-                    A(ActionCodes.Print) }, "sales.returns")
+                    A(ActionCodes.Print) }, "sales.returns"),
+
+        new(ScreenCodes.SalesSettlements, "/sales/settlements", "SwapHoriz",
+            "screen.sales_settlements", GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Approve),
+                    A(ActionCodes.Post) }, "sales.settlements"),
+
+        new(ScreenCodes.SalesCommissions, "/sales/commissions", "Percent",
+            "screen.sales_commissions", GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Calculate) }, "sales.commissions"),
+
+        new(ScreenCodes.AgingReport, "/reports/aging", "HourglassBottom",
+            "screen.aging", GroupReports,
+            new[] { A(ActionCodes.View), A(ActionCodes.Export) }, "reports.aging"),
+
+        new(ScreenCodes.PostingCenter, "/accounting/posting-center", "FactCheck",
+            "screen.posting_center", GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.ViewUnposted), A(ActionCodes.Reconcile) },
+            "accounting.posting")
     };
 
     public static readonly IReadOnlyDictionary<string, ScreenDefinition> ByCode =

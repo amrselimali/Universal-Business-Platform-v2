@@ -1,0 +1,146 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("sales.new_settlement")</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudSelect T="Guid" Value="_branchId" Label="@T.T("common.branch")"
+                           Variant="Variant.Outlined" ValueChanged="OnBranchChanged">
+                    @foreach (var branch in Branches)
+                    {
+                        <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="string" @bind-Value="_input.SettlementType"
+                           Label="@T.T("sales.settlement_type")" Variant="Variant.Outlined">
+                    <MudSelectItem T="string" Value="@SettlementTypes.Refund">@T.T("sales.settlement_refund")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@SettlementTypes.CancelQty">@T.T("sales.settlement_cancel_qty")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@SettlementTypes.RefundAndCancel">@T.T("sales.settlement_refund_and_cancel")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@SettlementTypes.Transfer">@T.T("sales.settlement_transfer")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@SettlementTypes.Forfeit">@T.T("sales.settlement_forfeit")</MudSelectItem>
+                </MudSelect>
+                <MudSelect T="Guid" @bind-Value="_input.BookingId" Label="@T.T("sales.booking_no")"
+                           Variant="Variant.Outlined" Required="true">
+                    @foreach (var booking in _bookings)
+                    {
+                        <MudSelectItem T="Guid" Value="@booking.Id">
+                            @booking.DocNo — @booking.CustomerName
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudNumericField @bind-Value="_input.Amount" Label="@T.T("common.amount")"
+                                 Variant="Variant.Outlined" Min="0m" Format="N2" />
+
+                @if (SettlementTypes.HasRefund(_input.SettlementType))
+                {
+                    <MudSelect T="Guid?" @bind-Value="_input.TreasuryId" Label="@T.T("treasury.treasury")"
+                               Variant="Variant.Outlined" Required="true">
+                        @foreach (var treasury in _treasuries)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)treasury.Id)">
+                                @treasury.Code — @treasury.DisplayName(_english)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+
+                @if (_input.SettlementType == SettlementTypes.Transfer)
+                {
+                    <MudSelect T="Guid?" @bind-Value="_input.TargetBookingId"
+                               Label="@T.T("sales.target_booking")" Variant="Variant.Outlined">
+                        @foreach (var booking in _bookings.Where(b => b.Id != _input.BookingId))
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)booking.Id)">
+                                @booking.DocNo — @booking.CustomerName
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+
+                <MudTextField @bind-Value="_input.Reason" Label="@T.T("sales.settlement_reason")"
+                              Variant="Variant.Outlined" MaxLength="300" />
+                <MudTextField @bind-Value="_input.Notes" Label="@T.T("common.notes")"
+                              Variant="Variant.Outlined" MaxLength="500" />
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public IReadOnlyList<Branch> Branches { get; set; } = Array.Empty<Branch>();
+    [Parameter] public Guid? DefaultBranchId { get; set; }
+
+    [Inject] private SalesFinanceService Finance { get; set; } = default!;
+    [Inject] private BookingService Bookings { get; set; } = default!;
+    [Inject] private TreasuryService Treasury { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private SettlementInput _input = new();
+    private Guid _branchId;
+    private IReadOnlyList<Booking> _bookings = Array.Empty<Booking>();
+    private IReadOnlyList<Treasury> _treasuries = Array.Empty<Treasury>();
+    private bool _busy;
+    private bool _english;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _english = T.Language == "en";
+        _branchId = DefaultBranchId ?? Branches.FirstOrDefault()?.Id ?? Guid.Empty;
+        _input.BranchId = _branchId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var actor = await UserContext.RequireAsync();
+        var page = await Bookings.ListAsync(actor, new BookingFilter { BranchId = _branchId },
+            new PageRequest { Page = 1, PageSize = 25 });
+        _bookings = page.Items
+            .Where(b => b.Status is BookingStatuses.Confirmed or BookingStatuses.PartiallyDelivered
+                        or BookingStatuses.Draft)
+            .ToList();
+        _input.BookingId = _bookings.FirstOrDefault()?.Id ?? Guid.Empty;
+        _treasuries = await Treasury.ListTreasuriesAsync(actor, _branchId);
+        _input.TreasuryId = _treasuries.FirstOrDefault()?.Id;
+    }
+
+    private async Task OnBranchChanged(Guid value)
+    {
+        _branchId = value;
+        _input.BranchId = value;
+        await LoadAsync();
+        StateHasChanged();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid || _input.BookingId == Guid.Empty)
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var settlement = await Finance.CreateSettlementAsync(actor, _input);
+            MudDialog.Close(DialogResult.Ok(settlement));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

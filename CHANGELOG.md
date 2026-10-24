@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## 2026-10-24 — Phase 4F: settlements, commissions, aging and posting center
+
+### Added
+- Migration `0032`: `app_settings.commission_basis`, `booking_settlements` (five types +
+  approval + treasury link), `employee_commissions`, the `booking_forfeit_income` posting key,
+  and the `v_unposted_documents` view (commercial documents, vouchers, delivery notes).
+- Settlements: refund posts `Dr customer advances / Cr treasury`, forfeit posts
+  `Dr customer advances / Cr forfeit income`, quantity cancel releases reservations and cancels
+  the booking (or marks it partially delivered when something was delivered), transfer moves the
+  deposit to another booking of the same customer; approval is mandatory for any amount.
+- Commissions (`D20`): monthly statement per employee and invoice line with three bases
+  (1 = net, 2 = gross, 3 = collected) and idempotent recalculation.
+- Four aging reports: customers, customer advances, open bookings (reusing the 4B supplier aging).
+- Posting center: unposted documents from the new view plus three reconciliations
+  (stock vs GL, customers vs GL, suppliers vs GL).
+- `SalesFinanceService` with `sales.settlements.*`, `sales.commissions.*`, `reports.aging.*` and
+  `accounting.posting.*` permissions and audit entries.
+- Screens: `/sales/settlements` (+ dialog with approval/posting), `/sales/commissions`,
+  `/reports/aging`, `/accounting/posting-center`, with translations.
+- 6 tests (116 total): forfeit entry, refund entry, cancel releasing reservations + cancelling,
+  approval requirement, the three commission bases, and aging/unposted/reconciliation reads.
+
+### Known limitations (4F)
+- Settlement documents carry no stock movement; quantity cancellation uses the booking’s current
+  reserved quantities (not a per-line quantity selector yet).
+- Commission “collected” basis uses the invoice-level allocated amount repeated per line.
+
 ## 2026-10-24 — Phase 4E: sales invoices and returns
 
 ### Added

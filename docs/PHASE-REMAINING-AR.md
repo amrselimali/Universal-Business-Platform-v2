@@ -186,7 +186,7 @@ Dr customer_receivable [الطرف]   / Cr sales_revenue + Cr vat_output
 
 ---
 
-## 5) 4F — التسويات والعمولات والأعمار ومركز الترحيل (`0032`) — التالي
+## 5) 4F — التسويات والعمولات والأعمار ومركز الترحيل (`0032`) ✅ (مُنجَز)
 
 ### 5.1 الجداول/التغييرات
 
@@ -231,7 +231,7 @@ Dr customer_receivable [الطرف]   / Cr sales_revenue + Cr vat_output
 
 ---
 
-## 6) 4G — نقطة البيع (`0033`)
+## 6) 4G — نقطة البيع (`0033`) — التالي
 
 لا جداول جديدة: `bookings(source='pos')` + `commercial_documents(source_type='pos')` + `vouchers`.
 

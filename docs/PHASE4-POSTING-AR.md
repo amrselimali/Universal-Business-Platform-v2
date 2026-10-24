@@ -186,10 +186,10 @@ cancel(booking)  → reserved_qty -= المتبقي
 ### 4F
 | المسار | الشاشة | الأزرار |
 |---|---|---|
-| `/sales/settlements` | التسويات | `sales.settlements.view/create/approve` |
-| `/sales/commissions` | عمولات الموظفين | `sales.commissions.view/calculate` |
-| `/reports/aging` | الأعمار الأربعة | `reports.aging.view/export` |
-| `/accounting/posting-center` | سجل الترحيل والمطابقات | `accounting.posting.view/view_unposted/reconcile` |
+| `/sales/settlements` | التسويات | `sales.settlements.view/create/approve/post` ✅ |
+| `/sales/commissions` | عمولات الموظفين | `sales.commissions.view/calculate` ✅ |
+| `/reports/aging` | الأعمار الأربعة | `reports.aging.view/export` ✅ |
+| `/accounting/posting-center` | سجل الترحيل والمطابقات | `accounting.posting.view/view_unposted/reconcile` ✅ |
 
 ### 4G / 4H
 | المسار | الشاشة | الأزرار |

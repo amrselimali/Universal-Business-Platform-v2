@@ -38,8 +38,13 @@
   consumption; sales returns with credit note and restock at the original cost; auto-invoice on
   delivery inside the delivery transaction; D3 and N24 guards; 2 screens; 5 tests (110 total).
 
+### Phase 4F (completed 2026-10-24)
+- Booking settlements (refund/forfeit posting, cancel releasing reservations, transfer), monthly
+  commissions on three bases, four aging reports, and a posting center with three reconciliations;
+  4 screens; 6 tests (116 total).
+
 ### Next
-4F (settlements/commissions/aging/posting center) → 4G/4H → 6 → 7.
+4G (POS) → 4H (follow-ups) → 6 (reports/notifications) → 7 (operations).
 الخطة التفصيلية للباقي (جداول/شاشات/أزرار/دورات عمل/اختبارات/جهد): `docs/PHASE-REMAINING-AR.md`.
 
 ### Phase 4D (completed 2026-10-24)

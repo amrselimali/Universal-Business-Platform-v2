@@ -1,0 +1,80 @@
+@page "/sales/commissions"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject SalesFinanceService Finance
+<PageTitle>@T.T("screen.sales_commissions")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.sales_commissions")" Subtitle="@T.T("sales.commissions_hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudDatePicker Date="_month" Label="@T.T("sales.month")"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           DateChanged="OnMonthChanged" />
+            <MudNumericField @bind-Value="_rate" Label="@T.T("sales.commission_rate")"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" Min="0m" Max="100m"
+                             Format="N2" />
+            @if (Can(ActionCodes.Calculate))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CalculateAsync"
+                           Disabled="_busy">@T.T("sales.calculate")</MudButton>
+            }
+        </div>
+
+        <MudTable Items="_rows" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("sales.employee")</MudTh>
+                <MudTh>@T.T("sales.invoice_no")</MudTh>
+                <MudTh Align="Right">@T.T("sales.commission_base")</MudTh>
+                <MudTh Align="Right">@T.T("sales.commission_rate")</MudTh>
+                <MudTh Align="Right">@T.T("sales.commission_amount")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.EmployeeName</MudTd>
+                <MudTd><span class="ubp-code">@context.DocNo</span></MudTd>
+                <MudTd Align="Right">@context.BaseAmount.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.Rate.ToString("N2")</MudTd>
+                <MudTd Align="Right"><b>@context.Amount.ToString("N2")</b></MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <div class="ubp-toolbar">
+            <MudText>@T.T("accounting.total"): <b>@_rows.Sum(r => r.Amount).ToString("N2")</b></MudText>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<CommissionRow> _rows = Array.Empty<CommissionRow>();
+    private DateTime? _month = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private decimal _rate = 5m;
+    private bool _busy;
+
+    protected override string ScreenCode => ScreenCodes.SalesCommissions;
+
+    protected override async Task OnLoadAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync() =>
+        _rows = await Finance.ListCommissionsAsync(Actor!, _month ?? DateTime.Today, null);
+
+    private Task OnMonthChanged(DateTime? value) { _month = value; return RunAsync(ReloadAsync); }
+
+    private async Task CalculateAsync() => await RunAsync(async () =>
+    {
+        _busy = true;
+        try
+        {
+            var count = await Finance.CalculateCommissionsAsync(Actor!, new CommissionInput
+            { Month = _month ?? DateTime.Today, Rate = _rate });
+            await ReloadAsync();
+            ShowSuccess("sales.commissions_calculated");
+            _ = count;
+        }
+        finally { _busy = false; }
+    });
+}

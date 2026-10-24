@@ -51,6 +51,7 @@ public sealed partial class TestDb
     public AppointmentRepository AppointmentRepo => new(Factory);
     public DeliveryRepository DeliveryRepo => new(Factory);
     public SalesInvoiceRepository SalesRepo => new(Factory);
+    public SalesFinanceRepository SalesFinanceRepo => new(Factory);
 
     public TreasuryService TreasuryService() => new(
         TreasuryRepo, AccountRepo, PartnerRepo, Permissions(), new AuditService(AuditRepo));
@@ -63,6 +64,9 @@ public sealed partial class TestDb
 
     public SalesInvoiceService SalesInvoices() => new(
         SalesRepo, CommercialRepo, Permissions(), new AuditService(AuditRepo));
+
+    public SalesFinanceService SalesFinance() => new(
+        SalesFinanceRepo, CommercialRepo, Permissions(), new AuditService(AuditRepo));
 
     public PermissionService Permissions() => new(PermissionRepo, Cache);
 
