@@ -6,6 +6,7 @@ public sealed class Warehouse
     public string Code { get; set; } = "";
     public string NameAr { get; set; } = "";
     public string? NameEn { get; set; }
+    public string WarehouseType { get; set; } = WarehouseTypes.Main;
     public bool IsActive { get; set; } = true;
     public Dictionary<string, object?> CustomFields { get; set; } = new();
     public List<Guid> BranchIds { get; set; } = new();
@@ -19,6 +20,7 @@ public sealed class WarehouseInput
     public string Code { get; set; } = "";
     public string NameAr { get; set; } = "";
     public string? NameEn { get; set; }
+    public string WarehouseType { get; set; } = WarehouseTypes.Main;
     public bool IsActive { get; set; } = true;
     public Dictionary<string, object?> CustomFields { get; set; } = new();
     public List<Guid> BranchIds { get; set; } = new();

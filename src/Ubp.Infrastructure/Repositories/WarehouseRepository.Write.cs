@@ -22,8 +22,8 @@ public sealed partial class WarehouseRepository
     public async Task<Warehouse> CreateAsync(WarehouseInput input, CancellationToken ct = default)
     {
         const string insert = """
-            INSERT INTO warehouses (code, name_ar, name_en, is_active, custom_fields)
-            VALUES (@Code, @NameAr, @NameEn, @IsActive, CAST(@CustomFields AS jsonb))
+            INSERT INTO warehouses (code, name_ar, name_en, warehouse_type, is_active, custom_fields)
+            VALUES (@Code, @NameAr, @NameEn, @WarehouseType, @IsActive, CAST(@CustomFields AS jsonb))
             RETURNING id
             """;
         const string link = """
@@ -35,7 +35,7 @@ public sealed partial class WarehouseRepository
         await using var tx = await connection.BeginTransactionAsync(ct);
         var id = await connection.ExecuteScalarAsync<Guid>(insert, new
         {
-            input.Code, input.NameAr, input.NameEn, input.IsActive,
+            input.Code, input.NameAr, input.NameEn, input.WarehouseType, input.IsActive,
             CustomFields = JsonSerializer.Serialize(input.CustomFields)
         }, tx);
         foreach (var branchId in input.BranchIds.Distinct())
@@ -49,6 +49,7 @@ public sealed partial class WarehouseRepository
         const string update = """
             UPDATE warehouses SET
                 code = @Code, name_ar = @NameAr, name_en = @NameEn,
+                warehouse_type = @WarehouseType,
                 is_active = @IsActive, custom_fields = CAST(@CustomFields AS jsonb)
             WHERE id = @id AND version = @version
             RETURNING id
@@ -58,7 +59,7 @@ public sealed partial class WarehouseRepository
         await using var tx = await connection.BeginTransactionAsync(ct);
         var updated = await connection.ExecuteScalarAsync<Guid?>(update, new
         {
-            id, version, input.Code, input.NameAr, input.NameEn, input.IsActive,
+            id, version, input.Code, input.NameAr, input.NameEn, input.WarehouseType, input.IsActive,
             CustomFields = JsonSerializer.Serialize(input.CustomFields)
         }, tx);
         if (updated is null)
@@ -112,6 +113,7 @@ public sealed partial class WarehouseRepository
     private static Warehouse Map(WarehouseRow row) => new()
     {
         Id = row.Id, Code = row.Code, NameAr = row.NameAr, NameEn = row.NameEn,
+        WarehouseType = row.WarehouseType,
         IsActive = row.IsActive,
         CustomFields = string.IsNullOrWhiteSpace(row.CustomFieldsJson)
             ? new() : JsonSerializer.Deserialize<Dictionary<string, object?>>(row.CustomFieldsJson) ?? new(),
@@ -125,6 +127,7 @@ public sealed partial class WarehouseRepository
         public string Code { get; set; } = "";
         public string NameAr { get; set; } = "";
         public string? NameEn { get; set; }
+        public string WarehouseType { get; set; } = WarehouseTypes.Main;
         public bool IsActive { get; set; }
         public string? CustomFieldsJson { get; set; }
         public Guid[]? BranchIds { get; set; }

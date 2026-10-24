@@ -16,6 +16,7 @@ public interface IAccountingSettingsRepository
         CancellationToken ct = default);
     Task<bool> DeleteCategoryAccountAsync(Guid categoryId, CancellationToken ct = default);
     Task<int> CountCategoriesWithoutAccountsAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<PostingDefaultType>> ListTypesAsync(CancellationToken ct = default);
 }
 
 public sealed partial class AccountingSettingsRepository : IAccountingSettingsRepository

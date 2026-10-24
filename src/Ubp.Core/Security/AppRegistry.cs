@@ -45,6 +45,11 @@ public static class ScreenCodes
     public const string PartyStatementReport = "PARTY_STATEMENT_REPORT";
     public const string CostCenterReport = "COST_CENTER_REPORT";
     public const string StockVsGlReport = "STOCK_VS_GL_REPORT";
+    public const string Employees = "EMPLOYEES";
+    public const string Taxes = "TAXES";
+    public const string PaymentTerms = "PAYMENT_TERMS";
+    public const string PriceLists = "PRICE_LISTS";
+    public const string ServiceRecipes = "SERVICE_RECIPES";
 }
 
 public static class ActionCodes
@@ -93,6 +98,9 @@ public static class ActionCodes
     public const string CheckCompleteness = "CHECK_COMPLETENESS";
     public const string EnableAutoPost = "ENABLE_AUTO_POST";
     public const string Save = "SAVE";
+    public const string ManageItems = "MANAGE_ITEMS";
+    public const string EditLines = "EDIT_LINES";
+    public const string ManageDefaults = "MANAGE_DEFAULTS";
 }
 
 public sealed record ScreenAction(string Code, string TitleKey);
@@ -139,7 +147,8 @@ public static class AppRegistry
 
         new(ScreenCodes.Branches, "/settings/branches", "AccountTree", "screen.branches", GroupDefinitions,
             new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit),
-                    A(ActionCodes.Delete), A(ActionCodes.ToggleActive) }),
+                    A(ActionCodes.Delete), A(ActionCodes.ToggleActive),
+                    A(ActionCodes.ManageDefaults) }),
 
         new(ScreenCodes.Warehouses, "/settings/warehouses", "Warehouse", "screen.warehouses", GroupDefinitions,
             new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit), A(ActionCodes.Delete),
@@ -263,7 +272,32 @@ public static class AppRegistry
 
         new(ScreenCodes.StockVsGlReport, "/reports/accounting/stock-vs-gl", "CompareArrows",
             "screen.stock_vs_gl", GroupReports,
-            new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "accounting.stock_vs_gl")
+            new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "accounting.stock_vs_gl"),
+
+        new(ScreenCodes.Employees, "/settings/employees", "Badge", "screen.employees", GroupDefinitions,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.ToggleActive), A(ActionCodes.Delete) }, "settings.employees"),
+
+        new(ScreenCodes.Taxes, "/settings/taxes", "Percent", "screen.taxes", GroupDefinitions,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.ToggleActive), A(ActionCodes.Delete) }, "settings.taxes"),
+
+        new(ScreenCodes.PaymentTerms, "/settings/payment-terms", "Schedule", "screen.payment_terms",
+            GroupDefinitions,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.ToggleActive), A(ActionCodes.Delete) }, "settings.payment_terms"),
+
+        new(ScreenCodes.PriceLists, "/settings/price-lists", "Sell", "screen.price_lists",
+            GroupDefinitions,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.ToggleActive), A(ActionCodes.Delete),
+                    A(ActionCodes.ManageItems) }, "settings.price_lists"),
+
+        new(ScreenCodes.ServiceRecipes, "/inventory/recipes", "Blender", "screen.service_recipes",
+            GroupInventory,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.ToggleActive), A(ActionCodes.Delete),
+                    A(ActionCodes.EditLines) }, "inventory.recipes")
     };
 
     public static readonly IReadOnlyDictionary<string, ScreenDefinition> ByCode =

@@ -14,6 +14,15 @@ public sealed class AppSettings
     public short MaxFailedAttempts { get; set; } = 5;
     public short LockoutMinutes { get; set; } = 15;
     public bool AllowNegativeStock { get; set; }
+    public short BookingDefaultDueDays { get; set; } = 30;
+    public bool BlockExpiredIssue { get; set; } = true;
+    public short DeliveryRequiresCollection { get; set; }
+    public bool ReserveStockOnBooking { get; set; } = true;
+    public bool AutoInvoiceOnDelivery { get; set; } = true;
+    public short InvoiceGroupingMode { get; set; }
+    public short AppointmentSlotMinutes { get; set; } = 15;
+    public string? PosReceiptFooter { get; set; }
+    public bool AutoFollowUpOverdue { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public int Version { get; set; } = 1;

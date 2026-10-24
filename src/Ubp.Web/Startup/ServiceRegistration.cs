@@ -127,6 +127,12 @@ public static class ServiceRegistration
         services.AddScoped<IAccountingSettingsRepository, AccountingSettingsRepository>();
         services.AddScoped<IAccountingReportRepository, AccountingReportRepository>();
         services.AddScoped<IStockAccountingRepository, StockAccountingRepository>();
+        services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<ITaxRepository, TaxRepository>();
+        services.AddScoped<IPaymentTermRepository, PaymentTermRepository>();
+        services.AddScoped<IPriceListRepository, PriceListRepository>();
+        services.AddScoped<IServiceRecipeRepository, ServiceRecipeRepository>();
+        services.AddScoped<IBranchSettingsRepository, BranchSettingsRepository>();
     }
 
     private static void AddApplicationServices(IServiceCollection services)
@@ -161,5 +167,8 @@ public static class ServiceRegistration
         services.AddScoped<OpeningBalanceService>();
         services.AddScoped<StockAccountingService>();
         services.AddScoped<AccountingReportService>();
+        services.AddScoped<MasterDataService>();
+        services.AddScoped<RecipeService>();
+        services.AddScoped<PostingReadinessService>();
     }
 }

@@ -12,7 +12,8 @@ public sealed partial class AccountingSettingsService
         CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.AccountingSettings, ActionCodes.Save, ct: ct);
-        if (!PostingKeys.All.Contains(settingKey))
+        var types = await _settings.ListTypesAsync(ct);
+        if (!types.Any(t => string.Equals(t.Key, settingKey, StringComparison.OrdinalIgnoreCase)))
             throw new ValidationAppException("validation.posting_key");
 
         if (accountId.HasValue)
@@ -24,6 +25,7 @@ public sealed partial class AccountingSettingsService
         }
 
         await _settings.SetDefaultAsync(settingKey, accountId, actor.UserId, ct);
+        PostingReadinessService.InvalidateAll();
         await _audit.WriteAsync(actor, "posting_defaults", settingKey, "UPDATE", null,
             new { settingKey, accountId }, ct);
     }

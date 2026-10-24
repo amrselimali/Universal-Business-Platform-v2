@@ -84,6 +84,12 @@ public sealed class TestDb
     public AccountingSettingsRepository AccountingSettingsRepo => new(Factory);
     public AccountingReportRepository AccountingReportRepo => new(Factory);
     public StockAccountingRepository StockAccountingRepo => new(Factory);
+    public EmployeeRepository EmployeeRepo => new(Factory);
+    public TaxRepository TaxRepo => new(Factory);
+    public PaymentTermRepository PaymentTermRepo => new(Factory);
+    public PriceListRepository PriceListRepo => new(Factory);
+    public ServiceRecipeRepository RecipeRepo => new(Factory);
+    public BranchSettingsRepository BranchSettingsRepo => new(Factory);
 
     public PermissionService Permissions() => new(PermissionRepo, Cache);
 
@@ -193,6 +199,15 @@ public sealed class TestDb
         Permissions(), new AuditService(AuditRepo));
 
     public AccountingReportService AccountingReports() => new(AccountingReportRepo, Permissions());
+
+    public MasterDataService MasterData() => new(EmployeeRepo, TaxRepo, PaymentTermRepo,
+        PriceListRepo, Permissions(), new AuditService(AuditRepo));
+
+    public RecipeService RecipeService() => new(RecipeRepo, ItemRepo, BranchSettingsRepo,
+        WarehouseRepo, Permissions(), new AuditService(AuditRepo));
+
+    public PostingReadinessService Readiness() =>
+        new(AccountingSettingsRepo, AccountRepo, Cache);
 
     /// <summary>يحمّل شجرة الحسابات القياسية وحسابات الترحيل ويعيد خريطة بالكود.</summary>
     public async Task<Dictionary<string, Account>> SeedAccountingAsync()

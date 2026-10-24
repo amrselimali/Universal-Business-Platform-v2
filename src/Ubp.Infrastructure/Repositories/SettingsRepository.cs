@@ -27,6 +27,15 @@ public sealed class SettingsRepository : ISettingsRepository
                max_failed_attempts AS MaxFailedAttempts,
                lockout_minutes AS LockoutMinutes,
                allow_negative_stock AS AllowNegativeStock,
+               booking_default_due_days AS BookingDefaultDueDays,
+               block_expired_issue AS BlockExpiredIssue,
+               delivery_requires_collection AS DeliveryRequiresCollection,
+               reserve_stock_on_booking AS ReserveStockOnBooking,
+               auto_invoice_on_delivery AS AutoInvoiceOnDelivery,
+               invoice_grouping_mode AS InvoiceGroupingMode,
+               appointment_slot_minutes AS AppointmentSlotMinutes,
+               pos_receipt_footer AS PosReceiptFooter,
+               auto_follow_up_overdue AS AutoFollowUpOverdue,
                created_at AS CreatedAt, updated_at AS UpdatedAt, version AS Version
         FROM app_settings LIMIT 1
         """;
@@ -59,7 +68,16 @@ public sealed class SettingsRepository : ISettingsRepository
                 password_min_length = @PasswordMinLength,
                 max_failed_attempts = @MaxFailedAttempts,
                 lockout_minutes = @LockoutMinutes,
-                allow_negative_stock = @AllowNegativeStock
+                allow_negative_stock = @AllowNegativeStock,
+                booking_default_due_days = @BookingDefaultDueDays,
+                block_expired_issue = @BlockExpiredIssue,
+                delivery_requires_collection = @DeliveryRequiresCollection,
+                reserve_stock_on_booking = @ReserveStockOnBooking,
+                auto_invoice_on_delivery = @AutoInvoiceOnDelivery,
+                invoice_grouping_mode = @InvoiceGroupingMode,
+                appointment_slot_minutes = @AppointmentSlotMinutes,
+                pos_receipt_footer = @PosReceiptFooter,
+                auto_follow_up_overdue = @AutoFollowUpOverdue
             WHERE id = @Id AND version = @Version
             RETURNING id AS Id, company_name AS CompanyName, logo_url AS LogoUrl,
                       default_language AS DefaultLanguage, date_format AS DateFormat,
@@ -69,6 +87,15 @@ public sealed class SettingsRepository : ISettingsRepository
                       max_failed_attempts AS MaxFailedAttempts,
                       lockout_minutes AS LockoutMinutes,
                       allow_negative_stock AS AllowNegativeStock,
+                      booking_default_due_days AS BookingDefaultDueDays,
+                      block_expired_issue AS BlockExpiredIssue,
+                      delivery_requires_collection AS DeliveryRequiresCollection,
+                      reserve_stock_on_booking AS ReserveStockOnBooking,
+                      auto_invoice_on_delivery AS AutoInvoiceOnDelivery,
+                      invoice_grouping_mode AS InvoiceGroupingMode,
+                      appointment_slot_minutes AS AppointmentSlotMinutes,
+                      pos_receipt_footer AS PosReceiptFooter,
+                      auto_follow_up_overdue AS AutoFollowUpOverdue,
                       created_at AS CreatedAt, updated_at AS UpdatedAt, version AS Version
             """;
 
