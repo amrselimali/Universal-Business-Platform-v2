@@ -143,10 +143,25 @@ cancel(booking)  → reserved_qty -= المتبقي
 ### 4C
 | المسار | الشاشة | الأزرار |
 |---|---|---|
-| `/treasury/management` | الخزائن وطرق الدفع | `treasury.management.view/create/edit/toggle_active` |
-| `/treasury/vouchers` | سندات القبض/الصرف/التحويل | `treasury.vouchers.view/create/post/cancel/print` |
-| `/treasury/shifts` | ورديات الكاشير | `treasury.shifts.view/open/close/reopen` |
-| `/treasury/reconciliation` | تسوية الحسابات الوسيطة | `treasury.reconciliation.view/post` |
+| `/treasury/management` | الخزائن وطرق الدفع | `treasury.management.view/create/manage_methods` ✅ |
+| `/treasury/vouchers` | سندات القبض/الصرف/التحويل | `treasury.vouchers.view/create/edit/delete/post/print` ✅ (print لاحقاً) |
+| `/treasury/shifts` | ورديات الكاشير | `treasury.shifts.view/open/close` ✅ (reopen لاحقاً) |
+| `/treasury/reconciliation` | تسوية الحسابات الوسيطة | `treasury.reconciliation.view/post` — لم يبدأ |
+
+**القيود المطبَّقة فعلياً (0027/0028 + `TreasuryRepository`):**
+```
+قبض  → Dr خزينة/وسيط (المبلغ - المصروف) + Dr payment_fees / Cr customer_advances [الطرف]
+صرف  → Dr supplier_advances [الطرف] + Dr payment_fees / Cr خزينة/وسيط (المبلغ - المصروف)
+تحويل (نفس الفرع)   → Dr خزينة الوجهة / Cr خزينة المصدر (+ المصاريف على payment_fees)
+تحويل (بين الفروع)  → قيد المصدر: Dr inter_branch_clearing / Cr الخزينة
+                      قيد الوجهة: Dr خزينة الوجهة / Cr inter_branch_clearing
+تخصيص دفعة على فاتورة → Dr advances / Cr receivable (أو Dr payable / Cr advances للمورد)
+إغلاق وردية → الفرق: زيادة Dr الخزينة / Cr cash_over_short، عجز Dr cash_over_short / Cr الخزينة
+```
+
+> ملاحظات تنفيذ: تُحسب المصاريف تلقائياً من طريقة الدفع (نسبة + مبلغ ثابت) ما لم يتجاوزها السند،
+> والترقيم عند الترحيل فقط، وتُرحَّل كل العمليات أعلاه داخل معاملة واحدة مع فحص الفترة المالية.
+> أسعار التخصيص تُقفل المستند: `allocated_total` وحده قابل للتحديث على مستند مرحّل، وبقية الحقول محمية.
 
 ### 4D
 | المسار | الشاشة | الأزرار |

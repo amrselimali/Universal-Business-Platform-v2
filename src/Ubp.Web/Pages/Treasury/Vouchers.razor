@@ -1,0 +1,142 @@
+@page "/treasury/vouchers"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject TreasuryService Treasury
+@inject BranchService Branches
+@inject IDialogService Dialogs
+<PageTitle>@T.T("screen.treasury_vouchers")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.treasury_vouchers")" Subtitle="@T.T("treasury.vouchers_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Create))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">@T.T("common.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string?" Value="_type" Label="@T.T("treasury.voucher_type")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnTypeChanged">
+                <MudSelectItem T="string?" Value="@VoucherTypes.Receipt">@T.T("treasury.voucher_receipt")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@VoucherTypes.Payment">@T.T("treasury.voucher_payment")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@VoucherTypes.Transfer">@T.T("treasury.voucher_transfer")</MudSelectItem>
+            </MudSelect>
+            <MudSelect T="string?" Value="_status" Label="@T.T("common.status")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnStatusChanged">
+                <MudSelectItem T="string?" Value="@VoucherStatuses.Draft">@T.T("accounting.status_draft")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@VoucherStatuses.Posted">@T.T("accounting.status_posted")</MudSelectItem>
+            </MudSelect>
+        </div>
+
+        <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("treasury.doc_no")</MudTh>
+                <MudTh>@T.T("common.date")</MudTh>
+                <MudTh>@T.T("treasury.voucher_type")</MudTh>
+                <MudTh>@T.T("treasury.treasury")</MudTh>
+                <MudTh>@T.T("treasury.party")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.fees")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@(context.DocNo ?? "—")</span></MudTd>
+                <MudTd>@context.DocDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd>@T.T("treasury.voucher_" + context.VoucherType)</MudTd>
+                <MudTd>@context.TreasuryName</MudTd>
+                <MudTd>@(context.VoucherType == VoucherTypes.Transfer ? context.ToTreasuryName : context.PartyName)</MudTd>
+                <MudTd Align="Right">@context.TotalAmount.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.FeeTotal.ToString("N2")</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@(context.IsPosted ? Color.Success : Color.Warning)">
+                        @T.T("accounting.status_" + context.Status)
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true"
+                             AnchorOrigin="Origin.BottomRight">
+                        @if (context.IsDraft && Can(ActionCodes.Post))
+                        {
+                            <MudMenuItem OnClick="@(() => PostAsync(context))"
+                                         Icon="@Icons.Material.Filled.CheckCircle">@T.T("accounting.post")</MudMenuItem>
+                        }
+                        @if (context.IsDraft && Can(ActionCodes.Delete))
+                        {
+                            <MudMenuItem OnClick="@(() => DeleteAsync(context))"
+                                         Icon="@Icons.Material.Filled.Delete">@T.T("common.delete")</MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+
+@code {
+    private IReadOnlyList<Voucher> _items = Array.Empty<Voucher>();
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private Guid? _branchId;
+    private string? _type;
+    private string? _status;
+
+    protected override string ScreenCode => ScreenCodes.TreasuryVouchers;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync() =>
+        _items = await Treasury.ListVouchersAsync(Actor!, _branchId, _type, _status, 200);
+
+    private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+    private Task OnTypeChanged(string? value) { _type = value; return RunAsync(ReloadAsync); }
+    private Task OnStatusChanged(string? value) { _status = value; return RunAsync(ReloadAsync); }
+
+    private async Task AddAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<VoucherDialog>(T.T("treasury.add_voucher"),
+            new DialogParameters { ["Branches"] = _branches, ["DefaultBranchId"] = _branchId });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task PostAsync(Voucher voucher) => await RunAsync(async () =>
+    {
+        await Treasury.PostVoucherAsync(Actor!, voucher.Id);
+        await ReloadAsync();
+        ShowSuccess("accounting.posted");
+    });
+
+    private async Task DeleteAsync(Voucher voucher) => await RunAsync(async () =>
+    {
+        await Treasury.DeleteVoucherAsync(Actor!, voucher.Id);
+        await ReloadAsync();
+        ShowSuccess("common.deleted");
+    });
+}
+
+}

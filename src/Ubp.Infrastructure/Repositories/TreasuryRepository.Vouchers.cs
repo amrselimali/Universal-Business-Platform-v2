@@ -156,7 +156,9 @@ public sealed partial class TreasuryRepository
 
         var voucher = await connection.QuerySingleOrDefaultAsync<Voucher>(new CommandDefinition(
             "SELECT id AS Id, status AS Status, voucher_type AS VoucherType, " +
-            "total_amount AS TotalAmount FROM vouchers WHERE id = @voucherId FOR UPDATE",
+            "total_amount AS TotalAmount, doc_no AS DocNo, branch_id AS BranchId, " +
+            "party_type::text AS PartyType, party_id AS PartyId " +
+            "FROM vouchers WHERE id = @voucherId FOR UPDATE",
             new { voucherId }, tx, cancellationToken: ct)) ?? throw new NotFoundAppException();
 
         if (voucher.Status != VoucherStatuses.Posted)
@@ -166,7 +168,8 @@ public sealed partial class TreasuryRepository
 
         var document = await connection.QuerySingleOrDefaultAsync<AllocationTarget>(
             new CommandDefinition("""
-            SELECT id AS Id, status AS Status, total AS Total, allocated_total AS AllocatedTotal
+            SELECT id AS Id, status AS Status, doc_no AS DocNo, total AS Total,
+                   allocated_total AS AllocatedTotal
             FROM commercial_documents WHERE id = @documentId FOR UPDATE
             """, new { documentId }, tx, cancellationToken: ct));
         if (document is null || document.Status != CommercialStatuses.Posted)
@@ -198,6 +201,8 @@ public sealed partial class TreasuryRepository
         await connection.ExecuteAsync(new CommandDefinition(
             "UPDATE commercial_documents SET allocated_total = allocated_total + @amount " +
             "WHERE id = @documentId", new { amount, documentId }, tx, cancellationToken: ct));
+
+        await CreateSettlementEntryAsync(connection, tx, voucher, document, amount, userId, ct);
 
         await tx.CommitAsync(ct);
         return id;

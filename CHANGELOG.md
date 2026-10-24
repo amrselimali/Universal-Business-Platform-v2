@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## 2026-10-24 — Phase 4C: treasuries, payment methods, vouchers & cashier shifts
+
+### Added
+- Migration `0027`: `treasuries` (cash/bank/wallet linked to a GL account), `treasury_methods`
+  (cash/card/wallet/cheque/transfer with clearing account and percent/fixed fees), `vouchers` +
+  `voucher_lines` (multi-method receipt/payment/transfer), `document_allocations`,
+  `cashier_shifts` + `shift_denominations`, immutability triggers after posting, and five new
+  `posting_default_types` keys (`customer_advances`, `supplier_advances`, `payment_fees`,
+  `cash_over_short`, `inter_branch_clearing`).
+- Migration `0028`: `voucher`/`cash_shift` journal source types, treasury reporting indexes,
+  `allocated_total <= total` check, and a narrow guard exception that lets a posted invoice
+  update only `allocated_total` when a payment is allocated.
+- `TreasuryRepository` (partial files): voucher drafting with automatic fee calculation and
+  reference enforcement, atomic posting to the cash/bank journal, allocation with voucher and
+  document limits, shift open/close with expected-cash computation, denomination grid.
+- Posting rules: receipt = Dr treasury/clearing + Dr payment fees / Cr customer advances;
+  payment = Dr supplier advances + Dr fees / Cr treasury/clearing; transfer = Dr destination /
+  Cr source, with `inter_branch_clearing` plus a second entry when the branches differ;
+  allocation = Dr advances / Cr receivable (reverse for suppliers); shift variance goes to
+  `cash_over_short`.
+- `TreasuryService` with `treasury.management.*`, `treasury.vouchers.*` and `treasury.shifts.*`
+  permissions and audit entries.
+- Screens: `/treasury/management` (+ treasury and payment-method dialogs), `/treasury/vouchers`
+  (multi-line editor with live totals), `/treasury/shifts` (open/close + denomination counting).
+- 6 tests (96 total): multi-method receipt with a 2% card fee, allocation limits and party-balance
+  reconciliation, inter-branch transfer clearing, voucher immutability, one open shift per
+  treasury, and shift variance posting.
+
+### Changed
+- Posting readiness covers the treasury module (5 keys, 2 required).
+- Journal `source_type` check accepts `voucher` and `cash_shift`.
+
 ## 2026-10-22 — Phase 3: accounting core & general ledger
 
 ### Added

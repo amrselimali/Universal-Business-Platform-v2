@@ -1,0 +1,82 @@
+@inherits ComponentBase
+
+@if (Methods.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Dense="true" Class="my-2">
+        @T.T("treasury.select_treasury_first")
+    </MudAlert>
+}
+else
+{
+    <MudTable Items="Lines" Dense="true" Elevation="0" Class="ubp-table my-2">
+        <HeaderContent>
+            <MudTh>@T.T("treasury.method")</MudTh>
+            <MudTh Align="Right">@T.T("common.amount")</MudTh>
+            <MudTh Align="Right">@T.T("treasury.fee_amount")</MudTh>
+            <MudTh>@T.T("treasury.reference")</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudSelect T="Guid" Value="context.TreasuryMethodId" Dense="true"
+                           ValueChanged="@(v => { context.TreasuryMethodId = v; TouchAsync(); })">
+                    @foreach (var method in Methods)
+                    {
+                        <MudSelectItem T="Guid" Value="@method.Id">@method.Code — @method.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudTd>
+            <MudTd Align="Right">
+                <MudNumericField T="decimal" Value="context.Amount" Min="0m" Format="N2" Dense="true"
+                                 ValueChanged="@(v => { context.Amount = v; TouchAsync(); })" />
+            </MudTd>
+            <MudTd Align="Right">
+                <MudNumericField T="decimal?" Value="context.FeeAmount" Min="0m" Format="N2"
+                                 Clearable="true" Dense="true"
+                                 ValueChanged="@(v => { context.FeeAmount = v; TouchAsync(); })" />
+            </MudTd>
+            <MudTd>
+                <MudTextField T="string" Value="context.Reference" Dense="true" MaxLength="100"
+                              ValueChanged="@(v => { context.Reference = v; })" />
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                               OnClick="@(() => RemoveLine(context))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Outlined"
+               Size="Size.Small" OnClick="AddLine">@T.T("treasury.add_line")</MudButton>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<TreasuryMethod> Methods { get; set; } =
+        Array.Empty<TreasuryMethod>();
+
+    [Parameter] public List<VoucherLineInput> Lines { get; set; } = new();
+
+    [Parameter] public EventCallback Changed { get; set; }
+
+    [Inject] private UiCulture T { get; set; } = default!;
+
+    private void AddLine()
+    {
+        var method = Methods.FirstOrDefault();
+        if (method is null) return;
+        Lines.Add(new VoucherLineInput { TreasuryMethodId = method.Id, Amount = 0 });
+        TouchAsync();
+    }
+
+    private void RemoveLine(VoucherLineInput line)
+    {
+        Lines.Remove(line);
+        TouchAsync();
+    }
+
+    private void TouchAsync()
+    {
+        StateHasChanged();
+        _ = Changed.InvokeAsync();
+    }
+}

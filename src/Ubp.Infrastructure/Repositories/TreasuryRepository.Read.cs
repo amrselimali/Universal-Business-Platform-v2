@@ -44,6 +44,7 @@ public sealed partial class TreasuryRepository
     {
         public Guid Id { get; set; }
         public string Status { get; set; } = "";
+        public string? DocNo { get; set; }
         public decimal Total { get; set; }
         public decimal AllocatedTotal { get; set; }
     }

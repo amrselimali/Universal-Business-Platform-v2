@@ -190,14 +190,16 @@ public sealed partial class TreasuryRepository
     private static async Task CreateVoucherEntryAsync(NpgsqlConnection connection,
         NpgsqlTransaction tx, Guid entryId, string treasuryType, Guid branchId, DateTime docDate,
         string docNo, string description, IReadOnlyList<JournalLine> gl, Guid userId,
-        Guid? sourceId, CancellationToken ct, string sourceType = "voucher")
+        Guid? sourceId, CancellationToken ct, string sourceType = "voucher",
+        string? journalTypeOverride = null)
     {
         var debit = gl.Sum(x => x.Debit);
         var credit = gl.Sum(x => x.Credit);
         if (Math.Round(debit - credit, 2, MidpointRounding.AwayFromZero) != 0)
             throw new ValidationAppException("validation.entry_not_balanced");
 
-        var journalType = treasuryType == TreasuryTypes.Cash ? "cash" : "bank";
+        var journalType = journalTypeOverride ??
+                          (treasuryType == TreasuryTypes.Cash ? "cash" : "bank");
         var journalId = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
             "SELECT id FROM journals WHERE journal_type = @journalType AND is_active " +
             "ORDER BY sort_order LIMIT 1", new { journalType }, tx, cancellationToken: ct))
@@ -234,6 +236,50 @@ public sealed partial class TreasuryRepository
         await connection.ExecuteAsync(new CommandDefinition(
             "SELECT fn_gl_post_entry(@entryId, @userId)", new { entryId, userId }, tx,
             cancellationToken: ct));
+    }
+
+    /// <summary>
+    /// قيد التسوية عند تخصيص دفعة على فاتورة (D5/N12):
+    /// قبض: Dr دفعات العملاء / Cr ذمم العملاء، وصرف: Dr ذمم الموردين / Cr دفعات الموردين.
+    /// </summary>
+    private static async Task CreateSettlementEntryAsync(NpgsqlConnection connection,
+        NpgsqlTransaction tx, Voucher voucher, AllocationTarget target, decimal amount,
+        Guid userId, CancellationToken ct)
+    {
+        var defaults = (await connection.QueryAsync<(string Key, Guid? AccountId)>(
+            new CommandDefinition("SELECT setting_key, account_id FROM posting_defaults",
+                transaction: tx, cancellationToken: ct)))
+            .Where(r => r.AccountId.HasValue)
+            .ToDictionary(r => r.Key, r => r.AccountId!.Value, StringComparer.OrdinalIgnoreCase);
+
+        Guid Need(string key) => defaults.TryGetValue(key, out var account) ? account
+            : throw new ValidationAppException("validation.posting_account_missing",
+                new Dictionary<string, string> { ["key"] = key, ["module"] = "treasury" });
+
+        await connection.ExecuteAsync(new CommandDefinition(
+            "SELECT fn_assert_period_open(@docDate::date, @branchId, 'ACCOUNTING')",
+            new { docDate = DateTime.Today, branchId = voucher.BranchId }, tx,
+            cancellationToken: ct));
+
+        var isReceipt = voucher.VoucherType == VoucherTypes.Receipt;
+        var customerId = isReceipt ? voucher.PartyId : null;
+        var supplierId = isReceipt ? null : voucher.PartyId;
+        var gl = isReceipt
+            ? new List<JournalLine>
+            {
+                new(Need(PostingKeys.CustomerAdvances), amount, 0, customerId),
+                new(Need(PostingKeys.CustomerReceivable), 0, amount, customerId)
+            }
+            : new List<JournalLine>
+            {
+                new(Need(PostingKeys.SupplierPayable), amount, 0, null, supplierId),
+                new(Need(PostingKeys.SupplierAdvances), 0, amount, null, supplierId)
+            };
+
+        await CreateVoucherEntryAsync(connection, tx, Guid.CreateVersion7(), TreasuryTypes.Cash,
+            voucher.BranchId, DateTime.Today, voucher.DocNo ?? "",
+            $"تخصيص {voucher.DocNo} على {target.DocNo}", gl, userId, null, ct, "voucher",
+            "general");
     }
 
 }

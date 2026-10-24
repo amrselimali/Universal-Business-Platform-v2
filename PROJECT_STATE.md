@@ -1,5 +1,38 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-24 — Phase 4C delivered (treasuries, vouchers, cashier shifts)
+
+- Migrations `0001`–`0028`; phases 1, 2, 3, 4A-1, 4A-2, 4B and 4C are implemented on
+  `cline/cdqzn9xp` (merged to `main` through PRs up to 4B).
+- Phase 4C: treasuries + payment methods (clearing accounts, percent/fixed fees); multi-method
+  receipts, payments and transfers with atomic GL posting; allocations against purchase invoices
+  (advances → receivable/payable reclass); cashier shifts with one open shift per treasury,
+  expected cash and over/short posting; three screens (`/treasury/management`,
+  `/treasury/vouchers`, `/treasury/shifts`); 6 new tests.
+- 96 automated tests pass on a real PostgreSQL instance; every source file ≤ 300 lines; zero
+  NuGet packages added.
+
+### Decisions
+- Fees are computed from the payment method (percent + fixed) unless a voucher line overrides them.
+- Vouchers are numbered at posting (`RCV/PAY/TRF-YYYY-NNNNNN`), shifts at opening (`SHIFT-…`).
+- In-branch transfers post one entry; cross-branch transfers post a source entry, a destination
+  entry and clear through `inter_branch_clearing`.
+- Posted vouchers and invoices stay immutable; the single allowed exception is `allocated_total`
+  on a posted invoice, guarded by a column-level comparison inside the trigger.
+- Allocation posts a settlement entry (advances ↔ receivable/payable) so the party balance always
+  equals the open invoice balance.
+- Shift cash movements are derived from posted vouchers with cash methods between `opened_at`
+  and closing time.
+
+### Known limitations
+- 4C remaining: intermediary-account reconciliation screen (`/treasury/reconciliation`), voucher
+  cancel/reprint, shift reopen; allocation has an API and tests but no screen action yet.
+- Vouchers are not linked to a specific shift row; movements are time-window based.
+- No cheque clearing dates, no multi-currency treasury, no bank statement import.
+
+### Next
+4D (bookings/deliveries) → 4E (sales invoices/returns) → 4F (reports) → 4G/4H → 6 → 7.
+
 ## 2026-10-22 — Phase 3 delivered (accounting core + general ledger)
 
 - Migrations 0001–0023 on PostgreSQL 15; 52 tables.
