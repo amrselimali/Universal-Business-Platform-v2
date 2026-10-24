@@ -1,0 +1,167 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("sales.new_invoice")</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudSelect T="Guid" Value="_branchId" Label="@T.T("common.branch")"
+                           Variant="Variant.Outlined" ValueChanged="OnBranchChanged">
+                    @foreach (var branch in Branches)
+                    {
+                        <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid" Value="_bookingId" Label="@T.T("sales.booking_no")"
+                           Variant="Variant.Outlined" ValueChanged="OnBookingChanged">
+                    @foreach (var booking in _bookings)
+                    {
+                        <MudSelectItem T="Guid" Value="@booking.Id">
+                            @booking.DocNo — @booking.CustomerName
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudDatePicker @bind-Date="_date" Label="@T.T("common.date")"
+                               Variant="Variant.Outlined" />
+            </div>
+        </MudForm>
+
+        @if (_lines.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="my-2">
+                @T.T("sales.no_invoiceable_lines")
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable Items="_lines" Dense="true" Elevation="0" Class="ubp-table my-2">
+                <HeaderContent>
+                    <MudTh>@T.T("sales.item")</MudTh>
+                    <MudTh Align="Right">@T.T("sales.invoiceable_qty")</MudTh>
+                    <MudTh Align="Right">@T.T("sales.quantity")</MudTh>
+                    <MudTh Align="Right">@T.T("sales.price")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.ItemName</MudTd>
+                    <MudTd Align="Right">@context.Invoiceable.ToString("N4")</MudTd>
+                    <MudTd Align="Right">
+                        <MudNumericField T="decimal" @bind-Value="context.Quantity" Min="0m"
+                                         Max="@context.Invoiceable" Format="N4" Dense="true" />
+                    </MudTd>
+                    <MudTd Align="Right">@context.UnitPrice.ToString("N4")</MudTd>
+                    <MudTd Align="Right">@((context.Quantity * context.UnitPrice).ToString("N2"))</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="@(_busy || _lines.Count == 0)">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private sealed class LineModel
+    {
+        public Guid BookingLineId { get; set; }
+        public Guid ItemId { get; set; }
+        public Guid UnitId { get; set; }
+        public Guid? TaxId { get; set; }
+        public string ItemName { get; set; } = "";
+        public decimal Invoiceable { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+    }
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public IReadOnlyList<Branch> Branches { get; set; } = Array.Empty<Branch>();
+    [Parameter] public Guid? DefaultBranchId { get; set; }
+
+    [Inject] private BookingService Bookings { get; set; } = default!;
+    [Inject] private SalesInvoiceService Sales { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private Guid _branchId;
+    private Guid _bookingId;
+    private Guid _customerId;
+    private DateTime? _date = DateTime.Today;
+    private IReadOnlyList<Booking> _bookings = Array.Empty<Booking>();
+    private List<LineModel> _lines = new();
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _branchId = DefaultBranchId ?? Branches.FirstOrDefault()?.Id ?? Guid.Empty;
+        await LoadBookingsAsync();
+    }
+
+    private async Task LoadBookingsAsync()
+    {
+        var actor = await UserContext.RequireAsync();
+        var page = await Bookings.ListAsync(actor, new BookingFilter { BranchId = _branchId },
+            new PageRequest { Page = 1, PageSize = 25 });
+        _bookings = page.Items
+            .Where(b => b.Status is BookingStatuses.Confirmed or BookingStatuses.PartiallyDelivered
+                        or BookingStatuses.Completed)
+            .ToList();
+        _bookingId = _bookings.FirstOrDefault()?.Id ?? Guid.Empty;
+        await LoadLinesAsync();
+    }
+
+    private async Task LoadLinesAsync()
+    {
+        _lines = new List<LineModel>();
+        if (_bookingId == Guid.Empty) return;
+
+        var actor = await UserContext.RequireAsync();
+        var booking = await Bookings.GetAsync(actor, _bookingId);
+        _customerId = booking.CustomerId;
+        _lines = booking.Lines
+            .Where(l => l.DeliveredQty - l.InvoicedQty > 0)
+            .Select(l => new LineModel
+            {
+                BookingLineId = l.Id, ItemId = l.ItemId, UnitId = l.UnitId, TaxId = l.TaxId,
+                ItemName = l.ItemName ?? "", Invoiceable = l.DeliveredQty - l.InvoicedQty,
+                Quantity = l.DeliveredQty - l.InvoicedQty, UnitPrice = l.UnitPrice
+            }).ToList();
+    }
+
+    private async Task OnBranchChanged(Guid value) { _branchId = value; await LoadBookingsAsync(); StateHasChanged(); }
+    private async Task OnBookingChanged(Guid value) { _bookingId = value; await LoadLinesAsync(); StateHasChanged(); }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var lines = _lines.Where(l => l.Quantity > 0).ToList();
+        if (lines.Count == 0 || _customerId == Guid.Empty)
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var detail = await Sales.CreateAsync(actor, new CommercialDocumentInput
+            {
+                DocType = CommercialDocTypes.SalesInvoice, BranchId = _branchId,
+                CustomerId = _customerId, BookingId = _bookingId, DocDate = _date ?? DateTime.Today,
+                Lines = lines.Select(l => new CommercialDocumentLineInput
+                {
+                    ItemId = l.ItemId, UnitId = l.UnitId, Quantity = l.Quantity,
+                    UnitPrice = l.UnitPrice, TaxId = l.TaxId, BookingLineId = l.BookingLineId
+                }).ToList()
+            });
+            MudDialog.Close(DialogResult.Ok(detail));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

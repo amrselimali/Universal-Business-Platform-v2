@@ -91,10 +91,10 @@ public sealed partial class StockDocumentRepository
         const string sql = """
             INSERT INTO stock_document_lines
                 (document_id, line_no, direction, item_id, unit_id, conversion_factor,
-                 quantity, base_quantity, unit_cost, notes)
+                 quantity, base_quantity, unit_cost, lot_number, expiry_date, notes)
             VALUES
                 (@documentId, @LineNo, @Direction, @ItemId, @UnitId, @ConversionFactor,
-                 @Quantity, @BaseQuantity, @UnitCost, @Notes)
+                 @Quantity, @BaseQuantity, @UnitCost, @LotNumber, @ExpiryDate, @Notes)
             """;
 
         short lineNo = 1;
@@ -107,7 +107,7 @@ public sealed partial class StockDocumentRepository
                 Direction = DirectionFor(input.DocType, line.Direction),
                 line.ItemId, line.UnitId, ConversionFactor = factor,
                 line.Quantity, BaseQuantity = Math.Round(line.Quantity * factor, 4),
-                line.UnitCost, line.Notes
+                line.UnitCost, line.LotNumber, line.ExpiryDate, line.Notes
             }, tx, cancellationToken: ct));
         }
     }

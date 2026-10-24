@@ -112,7 +112,8 @@ public sealed partial class StockDocumentRepository : IStockDocumentRepository
                    (SELECT u.name_ar FROM units u WHERE u.id = l.unit_id) AS UnitName,
                    l.conversion_factor AS ConversionFactor, l.quantity AS Quantity,
                    l.base_quantity AS BaseQuantity, l.unit_cost AS UnitCost,
-                   l.total_cost AS TotalCost, l.notes AS Notes,
+                   l.total_cost AS TotalCost, l.lot_number AS LotNumber, l.expiry_date AS ExpiryDate,
+                   l.notes AS Notes,
                    COALESCE((SELECT sum(rl.quantity) FROM stock_transfer_receipt_lines rl
                              WHERE rl.document_line_id = l.id), 0) AS ReceivedQuantity
             FROM stock_document_lines l

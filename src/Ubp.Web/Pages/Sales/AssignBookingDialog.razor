@@ -1,0 +1,76 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("sales.assign") — @Booking.DocNo</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudSelect T="Guid" @bind-Value="_employeeId" Label="@T.T("sales.employee")"
+                           Variant="Variant.Outlined" Required="true">
+                    @foreach (var employee in _employees)
+                    {
+                        <MudSelectItem T="Guid" Value="@employee.Id">
+                            @employee.Code — @employee.NameAr
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="string" @bind-Value="_role" Label="@T.T("sales.role")"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem T="string" Value="@("owner")">@T.T("sales.role_owner")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("executor")">@T.T("sales.role_executor")</MudSelectItem>
+                </MudSelect>
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Booking Booking { get; set; } = default!;
+
+    [Inject] private BookingService Bookings { get; set; } = default!;
+    [Inject] private MasterDataService MasterData { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private IReadOnlyList<Employee> _employees = Array.Empty<Employee>();
+    private Guid _employeeId;
+    private string _role = "owner";
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = await UserContext.GetAsync();
+        if (actor is null) return;
+        _employees = await MasterData.EmployeeOptionsAsync(actor);
+        _employeeId = Booking.AssignedEmployeeId ?? _employees.FirstOrDefault()?.Id ?? Guid.Empty;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        if (_employeeId == Guid.Empty)
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var booking = await Bookings.AssignAsync(actor, Booking.Id, _employeeId, _role);
+            MudDialog.Close(DialogResult.Ok(booking));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

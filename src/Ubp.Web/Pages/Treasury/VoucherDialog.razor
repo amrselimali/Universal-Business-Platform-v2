@@ -1,0 +1,193 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("treasury.add_voucher")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudSelect T="string" Value="_input.VoucherType"
+                           Label="@T.T("treasury.voucher_type")" Variant="Variant.Outlined"
+                           ValueChanged="OnTypeChanged">
+                    <MudSelectItem T="string" Value="@VoucherTypes.Receipt">@T.T("treasury.voucher_receipt")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@VoucherTypes.Payment">@T.T("treasury.voucher_payment")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@VoucherTypes.Transfer">@T.T("treasury.voucher_transfer")</MudSelectItem>
+                </MudSelect>
+                <MudDatePicker @bind-Date="_date" Label="@T.T("common.date")"
+                               Variant="Variant.Outlined" Required="true" />
+                <MudSelect T="Guid" Value="_input.BranchId" Label="@T.T("common.branch")"
+                           Variant="Variant.Outlined" ValueChanged="OnBranchChanged">
+                    @foreach (var branch in Branches)
+                    {
+                        <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid" Value="_input.TreasuryId" Label="@T.T("treasury.treasury")"
+                           Variant="Variant.Outlined" ValueChanged="OnTreasuryChanged">
+                    @foreach (var treasury in _treasuries)
+                    {
+                        <MudSelectItem T="Guid" Value="@treasury.Id">
+                            @treasury.Code — @treasury.DisplayName(_english)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (_input.VoucherType == VoucherTypes.Transfer)
+                {
+                    <MudSelect T="Guid?" @bind-Value="_input.ToTreasuryId"
+                               Label="@T.T("treasury.to_treasury")" Variant="Variant.Outlined">
+                        @foreach (var treasury in _treasuries.Where(t => t.Id != _input.TreasuryId))
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)treasury.Id)">
+                                @treasury.Code — @treasury.DisplayName(_english)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else
+                {
+                    <MudSelect T="Guid?" @bind-Value="_input.PartyId" Label="@T.T("treasury.party")"
+                               Variant="Variant.Outlined">
+                        @foreach (var party in _parties)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)party.Id)">
+                                @party.Code — @party.NameAr
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+
+                <MudTextField @bind-Value="_input.Notes" Label="@T.T("common.notes")"
+                              Variant="Variant.Outlined" MaxLength="500" />
+            </div>
+        </MudForm>
+
+        <VoucherLinesEditor Methods="_methods" Lines="_input.Lines" Changed="OnLinesChanged" />
+
+        <MudPaper Elevation="0" Class="ubp-card mt-2">
+            <div class="ubp-toolbar">
+                <MudText>@T.T("accounting.total"): <b>@Total.ToString("N2")</b></MudText>
+                <MudText>@T.T("treasury.fees"): <b>@Fees.ToString("N2")</b></MudText>
+                <MudText>@T.T("treasury.net"): <b>@Net.ToString("N2")</b></MudText>
+            </div>
+        </MudPaper>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public IReadOnlyList<Branch> Branches { get; set; } = Array.Empty<Branch>();
+    [Parameter] public Guid? DefaultBranchId { get; set; }
+
+    [Inject] private TreasuryService Treasury { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private VoucherInput _input = new();
+    private DateTime? _date = DateTime.Today;
+    private IReadOnlyList<Treasury> _treasuries = Array.Empty<Treasury>();
+    private IReadOnlyList<TreasuryMethod> _methods = Array.Empty<TreasuryMethod>();
+    private IReadOnlyList<Partner> _parties = Array.Empty<Partner>();
+    private bool _busy;
+    private bool _english;
+
+    private decimal Total => _input.Lines.Sum(l => l.Amount);
+    private decimal Fees => _input.Lines.Sum(l => l.FeeAmount ?? 0m);
+    private decimal Net => Total - Fees;
+
+    private string PartyType => _input.VoucherType == VoucherTypes.Payment ? "S" : "C";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _english = T.Language == "en";
+        _input.BranchId = DefaultBranchId ?? Branches.FirstOrDefault()?.Id ?? Guid.Empty;
+        _input.VoucherType = VoucherTypes.Receipt;
+
+        var actor = await UserContext.GetAsync();
+        if (actor is null) return;
+        await ReloadTreasuriesAsync(actor);
+        await ReloadPartiesAsync(actor);
+    }
+
+    private async Task ReloadTreasuriesAsync(ActorContext actor)
+    {
+        _treasuries = await Treasury.ListTreasuriesAsync(actor, _input.BranchId);
+        if (!_treasuries.Any(t => t.Id == _input.TreasuryId))
+            _input.TreasuryId = _treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
+        _input.Lines.Clear();
+        await ReloadMethodsAsync(actor);
+    }
+
+    private async Task ReloadMethodsAsync(ActorContext actor)
+    {
+        _methods = _input.TreasuryId == Guid.Empty
+            ? Array.Empty<TreasuryMethod>()
+            : await Treasury.ListMethodsAsync(actor, _input.TreasuryId);
+        if (_methods.Count > 0 && _input.Lines.Count == 0)
+            _input.Lines.Add(new VoucherLineInput { TreasuryMethodId = _methods[0].Id });
+    }
+
+    private async Task ReloadPartiesAsync(ActorContext actor)
+    {
+        _parties = _input.VoucherType == VoucherTypes.Transfer
+            ? Array.Empty<Partner>()
+            : await Treasury.ListPartiesAsync(actor, PartyType);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task OnTypeChanged(string value)
+    {
+        _input.PartyId = null;
+        _input.PartyName = null;
+        _input.ToTreasuryId = null;
+        await RunAsync(async () => await ReloadPartiesAsync(await UserContext.RequireAsync()));
+    }
+
+    private async Task OnBranchChanged(Guid value) =>
+        await RunAsync(async () => await ReloadTreasuriesAsync(await UserContext.RequireAsync()));
+
+    private async Task OnTreasuryChanged(Guid value) =>
+        await RunAsync(async () => await ReloadMethodsAsync(await UserContext.RequireAsync()));
+
+    private void OnLinesChanged() => StateHasChanged();
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        try { await action(); }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { StateHasChanged(); }
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        _input.DocDate = _date ?? DateTime.Today;
+        _input.PartyName = _parties.FirstOrDefault(p => p.Id == _input.PartyId)?.NameAr;
+        if (!_form.IsValid || _input.BranchId == Guid.Empty || _input.TreasuryId == Guid.Empty ||
+            _input.Lines.Count == 0 || _input.Lines.Any(l => l.Amount <= 0))
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var saved = await Treasury.CreateVoucherAsync(actor, _input);
+            MudDialog.Close(DialogResult.Ok(saved));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}
+
+</MudDialog>

@@ -1,0 +1,120 @@
+@page "/sales/settlements"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject SalesFinanceService Finance
+@inject BranchService Branches
+@inject IDialogService Dialogs
+<PageTitle>@T.T("screen.sales_settlements")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.sales_settlements")" Subtitle="@T.T("sales.settlements_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Create))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">@T.T("common.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("treasury.doc_no")</MudTh>
+                <MudTh>@T.T("common.date")</MudTh>
+                <MudTh>@T.T("sales.booking_no")</MudTh>
+                <MudTh>@T.T("sales.settlement_type")</MudTh>
+                <MudTh Align="Right">@T.T("common.amount")</MudTh>
+                <MudTh>@T.T("sales.approved")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@(context.DocNo ?? "—")</span></MudTd>
+                <MudTd>@context.DocDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd>@context.BookingNo</MudTd>
+                <MudTd>@T.T("sales.settlement_" + context.SettlementType)</MudTd>
+                <MudTd Align="Right">@context.Amount.ToString("N2")</MudTd>
+                <MudTd>@(context.IsApproved ? "✓" : "—")</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@(context.IsDraft ? Color.Warning : Color.Success)">
+                        @T.T("accounting.status_" + context.Status)
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true"
+                             AnchorOrigin="Origin.BottomRight">
+                        @if (context.IsDraft && !context.IsApproved && Can(ActionCodes.Approve))
+                        {
+                            <MudMenuItem OnClick="@(() => ApproveAsync(context))">@T.T("sales.approve")</MudMenuItem>
+                        }
+                        @if (context.IsDraft && Can(ActionCodes.Post))
+                        {
+                            <MudMenuItem OnClick="@(() => PostAsync(context))">@T.T("accounting.post")</MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<Settlement> _items = Array.Empty<Settlement>();
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private Guid? _branchId;
+
+    protected override string ScreenCode => ScreenCodes.SalesSettlements;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync() =>
+        _items = await Finance.ListSettlementsAsync(Actor!, _branchId, null, 200);
+
+    private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+
+    private async Task AddAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<SettlementDialog>(T.T("sales.new_settlement"),
+            new DialogParameters { ["Branches"] = _branches, ["DefaultBranchId"] = _branchId });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task ApproveAsync(Settlement settlement) => await RunAsync(async () =>
+    {
+        await Finance.ApproveSettlementAsync(Actor!, settlement.Id);
+        await ReloadAsync();
+        ShowSuccess("sales.approved");
+    });
+
+    private async Task PostAsync(Settlement settlement) => await RunAsync(async () =>
+    {
+        await Finance.PostSettlementAsync(Actor!, settlement.Id);
+        await ReloadAsync();
+        ShowSuccess("accounting.posted");
+    });
+}

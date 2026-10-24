@@ -1,0 +1,207 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("sales.new_booking")</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudSelect T="Guid" Value="_input.BranchId" Label="@T.T("common.branch")"
+                           Variant="Variant.Outlined" ValueChanged="OnBranchChanged">
+                    @foreach (var branch in Branches)
+                    {
+                        <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudDatePicker @bind-Date="_date" Label="@T.T("sales.booking_date")"
+                               Variant="Variant.Outlined" Required="true" />
+                <MudSelect T="Guid" @bind-Value="_input.CustomerId" Label="@T.T("sales.customer")"
+                           Variant="Variant.Outlined" Required="true">
+                    @foreach (var customer in _customers)
+                    {
+                        <MudSelectItem T="Guid" Value="@customer.Id">
+                            @customer.Code — @customer.NameAr
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid?" @bind-Value="_input.AssignedEmployeeId"
+                           Label="@T.T("sales.assigned_employee")" Variant="Variant.Outlined"
+                           Clearable="true">
+                    @foreach (var employee in _employees)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)employee.Id)">
+                            @employee.Code — @employee.NameAr
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="_input.Notes" Label="@T.T("common.notes")"
+                              Variant="Variant.Outlined" MaxLength="500" />
+            </div>
+        </MudForm>
+
+        <MudTable Items="_lines" Dense="true" Elevation="0" Class="ubp-table my-2">
+            <HeaderContent>
+                <MudTh>@T.T("sales.item")</MudTh>
+                <MudTh>@T.T("sales.warehouse")</MudTh>
+                <MudTh Align="Right">@T.T("sales.quantity")</MudTh>
+                <MudTh Align="Right">@T.T("sales.price")</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <MudSelect T="Guid" Value="context.ItemId" Dense="true"
+                               ValueChanged="@(v => PickItem(context, v))">
+                        @foreach (var item in _items)
+                        {
+                            <MudSelectItem T="Guid" Value="@item.Id">@item.Code — @item.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudTd>
+                <MudTd>
+                    <MudSelect T="Guid" Value="context.WarehouseId" Dense="true"
+                               ValueChanged="@(v => context.WarehouseId = v)">
+                        @foreach (var warehouse in _warehouses)
+                        {
+                            <MudSelectItem T="Guid" Value="@warehouse.Id">@warehouse.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudNumericField T="decimal" @bind-Value="context.Quantity" Min="0.0001m"
+                                     Format="N4" Dense="true" />
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudNumericField T="decimal" @bind-Value="context.UnitPrice" Min="0m"
+                                     Format="N4" Dense="true" />
+                </MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                   OnClick="@(() => RemoveLine(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <div class="ubp-toolbar">
+            <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="AddLine">@T.T("sales.add_line")</MudButton>
+            <MudText>@T.T("accounting.total"): <b>@Total.ToString("N2")</b></MudText>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private sealed class LineModel
+    {
+        public Guid ItemId { get; set; }
+        public Guid BaseUnitId { get; set; }
+        public Guid WarehouseId { get; set; }
+        public decimal Quantity { get; set; } = 1;
+        public decimal UnitPrice { get; set; }
+    }
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public IReadOnlyList<Branch> Branches { get; set; } = Array.Empty<Branch>();
+    [Parameter] public Guid? DefaultBranchId { get; set; }
+
+    [Inject] private BookingService Bookings { get; set; } = default!;
+    [Inject] private ItemService Items { get; set; } = default!;
+    [Inject] private WarehouseService Warehouses { get; set; } = default!;
+    [Inject] private PartnerService Partners { get; set; } = default!;
+    [Inject] private MasterDataService MasterData { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private BookingInput _input = new();
+    private DateTime? _date = DateTime.Today;
+    private List<LineModel> _lines = new();
+    private IReadOnlyList<Partner> _customers = Array.Empty<Partner>();
+    private IReadOnlyList<Employee> _employees = Array.Empty<Employee>();
+    private IReadOnlyList<ItemOption> _items = Array.Empty<ItemOption>();
+    private IReadOnlyList<Warehouse> _warehouses = Array.Empty<Warehouse>();
+    private bool _busy;
+
+    private decimal Total => _lines.Sum(l => l.Quantity * l.UnitPrice);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _input.BranchId = DefaultBranchId ?? Branches.FirstOrDefault()?.Id ?? Guid.Empty;
+        var actor = await UserContext.GetAsync();
+        if (actor is null) return;
+
+        _items = await Items.OptionsAsync(actor, null);
+        _warehouses = await Warehouses.OptionsAsync(actor);
+        _employees = await MasterData.EmployeeOptionsAsync(actor);
+        var customers = await Partners.ListAsync(actor, PartnerKind.Customer,
+            new PageRequest { Page = 1, PageSize = 25 }, null);
+        _customers = customers.Items;
+        AddLine();
+    }
+
+    private async Task OnBranchChanged(Guid value)
+    {
+        _input.BranchId = value;
+        var actor = await UserContext.RequireAsync();
+        _warehouses = await Warehouses.OptionsAsync(actor);
+        foreach (var line in _lines) line.WarehouseId = _warehouses.FirstOrDefault()?.Id ?? Guid.Empty;
+        StateHasChanged();
+    }
+
+    private void AddLine()
+    {
+        var item = _items.FirstOrDefault();
+        _lines.Add(new LineModel
+        {
+            ItemId = item?.Id ?? Guid.Empty, BaseUnitId = item?.BaseUnitId ?? Guid.Empty,
+            WarehouseId = _warehouses.FirstOrDefault()?.Id ?? Guid.Empty, Quantity = 1
+        });
+        StateHasChanged();
+    }
+
+    private void PickItem(LineModel line, Guid itemId)
+    {
+        line.ItemId = itemId;
+        line.BaseUnitId = _items.FirstOrDefault(i => i.Id == itemId)?.BaseUnitId ?? Guid.Empty;
+    }
+
+    private void RemoveLine(LineModel line)
+    {
+        _lines.Remove(line);
+        StateHasChanged();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid || _input.CustomerId == Guid.Empty || _lines.Count == 0 ||
+            _lines.Any(l => l.ItemId == Guid.Empty || l.WarehouseId == Guid.Empty || l.Quantity <= 0))
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            _input.BookingDate = _date ?? DateTime.Today;
+            _input.Lines = _lines.Select(l => new BookingLineInput
+            {
+                ItemId = l.ItemId, UnitId = l.BaseUnitId, WarehouseId = l.WarehouseId,
+                Quantity = l.Quantity, UnitPrice = l.UnitPrice
+            }).ToList();
+
+            var booking = await Bookings.CreateAsync(actor, _input);
+            MudDialog.Close(DialogResult.Ok(booking));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

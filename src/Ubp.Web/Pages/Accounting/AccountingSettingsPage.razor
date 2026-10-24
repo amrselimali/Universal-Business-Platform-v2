@@ -56,12 +56,19 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var key in PostingKeys.All)
+                @foreach (var type in _types)
                 {
                     <tr>
-                        <td>@T.T("accounting.check." + key)</td>
                         <td>
-                            <MudSelect T="Guid?" Value="@DefaultOf(key)" ValueChanged="@(v => SaveDefaultAsync(key, v))"
+                            @(IsEnglish ? (type.LabelEn ?? type.Key) : type.LabelAr)
+                            <span class="ubp-small ubp-muted">(@type.Module)</span>
+                            @if (type.IsRequired)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Error">*</MudChip>
+                            }
+                        </td>
+                        <td>
+                            <MudSelect T="Guid?" Value="@DefaultOf(type.Key)" ValueChanged="@(v => SaveDefaultAsync(type.Key, v))"
                                        Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
                                        Disabled="@(!Can(ActionCodes.Save))">
                                 @foreach (var account in _accounts)

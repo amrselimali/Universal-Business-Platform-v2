@@ -57,6 +57,12 @@ public sealed class Item
     public Guid BaseUnitId { get; set; }
     public string BaseUnitName { get; set; } = "";
     public string ItemType { get; set; } = "GOODS";
+    public Guid? TaxId { get; set; }
+    public string? TaxName { get; set; }
+    public bool PriceIncludesTax { get; set; }
+    public bool TrackExpiry { get; set; }
+    public bool IsConsumable { get; set; }
+    public decimal? DefaultPrice { get; set; }
     public string? Notes { get; set; }
     public bool IsActive { get; set; } = true;
     public Dictionary<string, object?> CustomFields { get; set; } = new();
@@ -73,6 +79,11 @@ public sealed class ItemInput
     public Guid? CategoryId { get; set; }
     public Guid BaseUnitId { get; set; }
     public string ItemType { get; set; } = "GOODS";
+    public Guid? TaxId { get; set; }
+    public bool PriceIncludesTax { get; set; }
+    public bool TrackExpiry { get; set; }
+    public bool IsConsumable { get; set; }
+    public decimal? DefaultPrice { get; set; }
     public string? Notes { get; set; }
     public bool IsActive { get; set; } = true;
     public Dictionary<string, object?> CustomFields { get; set; } = new();

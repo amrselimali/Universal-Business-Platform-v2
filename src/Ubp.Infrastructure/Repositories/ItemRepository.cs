@@ -29,6 +29,9 @@ public sealed partial class ItemRepository : IItemRepository
         i.base_unit_id AS BaseUnitId,
         (SELECT u.name_ar FROM units u WHERE u.id = i.base_unit_id) AS BaseUnitName,
         i.item_type AS ItemType, i.notes AS Notes, i.is_active AS IsActive,
+        i.tax_id AS TaxId, (SELECT t.name_ar FROM taxes t WHERE t.id = i.tax_id) AS TaxName,
+        i.price_includes_tax AS PriceIncludesTax, i.track_expiry AS TrackExpiry,
+        i.is_consumable AS IsConsumable, i.default_price AS DefaultPrice,
         i.custom_fields::text AS CustomFieldsJson,
         i.created_at AS CreatedAt, i.updated_at AS UpdatedAt, i.version AS Version
         """;

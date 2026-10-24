@@ -1,0 +1,84 @@
+@page "/reports/aging"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject SalesFinanceService Finance
+@inject BranchService Branches
+<PageTitle>@T.T("screen.aging")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.aging")" Subtitle="@T.T("reports.aging_hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="string" Value="_kind" Label="@T.T("reports.aging_kind")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" ValueChanged="OnKindChanged">
+                <MudSelectItem T="string" Value="@("customers")">@T.T("reports.aging_customers")</MudSelectItem>
+                <MudSelectItem T="string" Value="@("advances")">@T.T("reports.aging_advances")</MudSelectItem>
+                <MudSelectItem T="string" Value="@("bookings")">@T.T("reports.aging_bookings")</MudSelectItem>
+                <MudSelectItem T="string" Value="@("suppliers")">@T.T("reports.aging_suppliers")</MudSelectItem>
+            </MudSelect>
+            <MudDatePicker Date="_asOf" Label="@T.T("reports.as_of")"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           DateChanged="OnDateChanged" />
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <MudTable Items="_rows" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("sales.party")</MudTh>
+                <MudTh Align="Right">@T.T("receipts.current")</MudTh>
+                <MudTh Align="Right">@T.T("receipts.days30")</MudTh>
+                <MudTh Align="Right">@T.T("receipts.days60")</MudTh>
+                <MudTh Align="Right">@T.T("receipts.days90")</MudTh>
+                <MudTh Align="Right">@T.T("receipts.over90")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    @context.PartyName
+                    @if (context.Reference is not null) { <text> — @context.Reference</text> }
+                </MudTd>
+                <MudTd Align="Right">@context.Current.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.Days30.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.Days60.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.Days90.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.Over90.ToString("N2")</MudTd>
+                <MudTd Align="Right"><b>@context.Total.ToString("N2")</b></MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<AgingBucketRow> _rows = Array.Empty<AgingBucketRow>();
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private string _kind = "customers";
+    private DateTime? _asOf = DateTime.Today;
+    private Guid? _branchId;
+
+    protected override string ScreenCode => ScreenCodes.AgingReport;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync() =>
+        _rows = await Finance.AgingAsync(Actor!, _kind, _branchId, _asOf ?? DateTime.Today);
+
+    private Task OnKindChanged(string value) { _kind = value; return RunAsync(ReloadAsync); }
+    private Task OnDateChanged(DateTime? value) { _asOf = value; return RunAsync(ReloadAsync); }
+    private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+}

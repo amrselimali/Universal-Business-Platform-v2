@@ -1,0 +1,87 @@
+@page "/accounting/posting-center"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject SalesFinanceService Finance
+@inject BranchService Branches
+<PageTitle>@T.T("screen.posting_center")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.posting_center")" Subtitle="@T.T("posting.center_hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card mb-4">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <MudTable Items="_checks" Dense="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("posting.check")</MudTh>
+                <MudTh Align="Right">@T.T("posting.documents")</MudTh>
+                <MudTh Align="Right">@T.T("posting.gl")</MudTh>
+                <MudTh Align="Right">@T.T("posting.difference")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@T.T("posting.check_" + context.Key)</MudTd>
+                <MudTd Align="Right">@context.DocumentValue.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.GlValue.ToString("N2")</MudTd>
+                <MudTd Align="Right">
+                    <MudText Color="@(context.Difference == 0 ? Color.Success : Color.Error)">
+                        @context.Difference.ToString("N2")
+                    </MudText>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <MudText Typo="Typo.subtitle1" Class="pa-3">@T.T("posting.unposted")</MudText>
+        <MudTable Items="_unposted" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("posting.kind")</MudTh>
+                <MudTh>@T.T("treasury.doc_no")</MudTh>
+                <MudTh>@T.T("common.date")</MudTh>
+                <MudTh Align="Right">@T.T("common.amount")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@T.T("posting.kind_" + context.Kind)</MudTd>
+                <MudTd><span class="ubp-code">@(context.DocNo ?? "—")</span></MudTd>
+                <MudTd>@context.DocDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd Align="Right">@context.Amount.ToString("N2")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<ReconciliationCheck> _checks = Array.Empty<ReconciliationCheck>();
+    private IReadOnlyList<UnpostedDocument> _unposted = Array.Empty<UnpostedDocument>();
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private Guid? _branchId;
+
+    protected override string ScreenCode => ScreenCodes.PostingCenter;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _checks = await Finance.ReconcileAsync(Actor!, _branchId);
+        _unposted = await Finance.ListUnpostedAsync(Actor!, _branchId);
+    }
+
+    private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+}

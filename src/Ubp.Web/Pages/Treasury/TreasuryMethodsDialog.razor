@@ -1,0 +1,125 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("treasury.methods") — @Treasury.DisplayName(_english)</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTable Items="_methods" Dense="true" Hover="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("common.code")</MudTh>
+                <MudTh>@T.T("common.name_ar")</MudTh>
+                <MudTh>@T.T("treasury.method_type")</MudTh>
+                <MudTh>@T.T("treasury.clearing_account")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.fee_percent")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.fee_fixed")</MudTh>
+                <MudTh>@T.T("treasury.requires_reference")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@context.Code</span></MudTd>
+                <MudTd>@context.NameAr</MudTd>
+                <MudTd>@T.T("treasury.method_" + context.MethodType)</MudTd>
+                <MudTd>@AccountLabel(context.ClearingAccountId)</MudTd>
+                <MudTd Align="Right">@context.FeePercent.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.FeeFixed.ToString("N2")</MudTd>
+                <MudTd>@(context.RequiresReference ? "✓" : "—")</MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <MudDivider Class="my-4" />
+        <MudText Typo="Typo.subtitle2" Class="mb-2">@T.T("treasury.add_method")</MudText>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true"
+                              Variant="Variant.Outlined" MaxLength="30" />
+                <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")"
+                              Required="true" Variant="Variant.Outlined" MaxLength="150" />
+                <MudSelect T="string" @bind-Value="_input.MethodType" Label="@T.T("treasury.method_type")"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem T="string" Value="@PaymentMethodTypes.Cash">@T.T("treasury.method_cash")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@PaymentMethodTypes.Card">@T.T("treasury.method_card")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@PaymentMethodTypes.Wallet">@T.T("treasury.method_wallet")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@PaymentMethodTypes.Cheque">@T.T("treasury.method_cheque")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@PaymentMethodTypes.Transfer">@T.T("treasury.method_transfer")</MudSelectItem>
+                </MudSelect>
+                <MudSelect T="Guid?" @bind-Value="_input.ClearingAccountId"
+                           Label="@T.T("treasury.clearing_account")" Variant="Variant.Outlined"
+                           Clearable="true">
+                    @foreach (var account in _accounts)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)account.Id)">
+                            @account.Code — @account.DisplayName(_english)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudNumericField @bind-Value="_input.FeePercent" Label="@T.T("treasury.fee_percent")"
+                                 Variant="Variant.Outlined" Min="0m" Max="100m" Format="N2" />
+                <MudNumericField @bind-Value="_input.FeeFixed" Label="@T.T("treasury.fee_fixed")"
+                                 Variant="Variant.Outlined" Min="0m" Format="N2" />
+                <MudSwitch @bind-Value="_input.RequiresReference" Color="Color.Primary"
+                           Label="@T.T("treasury.requires_reference")" />
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@T.T("common.close")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AddAsync"
+                   Disabled="_busy">@T.T("treasury.add_method")</MudButton>
+    </DialogActions>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Treasury Treasury { get; set; } = default!;
+
+    [Inject] private TreasuryService Service { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private TreasuryMethodInput _input = new();
+    private IReadOnlyList<TreasuryMethod> _methods = Array.Empty<TreasuryMethod>();
+    private IReadOnlyList<Account> _accounts = Array.Empty<Account>();
+    private bool _busy;
+    private bool _english;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _english = T.Language == "en";
+        _input.TreasuryId = Treasury.Id;
+
+        var actor = await UserContext.GetAsync();
+        if (actor is null) return;
+        _accounts = await Service.PostableAccountsAsync(actor);
+        _methods = await Service.ListMethodsAsync(actor, Treasury.Id);
+    }
+
+    private string AccountLabel(Guid? accountId)
+    {
+        if (accountId is null) return "—";
+        var account = _accounts.FirstOrDefault(a => a.Id == accountId);
+        return account is null ? "—" : account.Code + " — " + account.DisplayName(_english);
+    }
+
+    private async Task AddAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            await Service.CreateMethodAsync(actor, _input);
+            _input = new TreasuryMethodInput { TreasuryId = Treasury.Id };
+            _methods = await Service.ListMethodsAsync(actor, Treasury.Id);
+            Snackbar.Add(T.T("common.saved"), Severity.Success);
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+}
+
+</MudDialog>

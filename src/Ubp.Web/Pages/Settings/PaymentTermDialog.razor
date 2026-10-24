@@ -1,0 +1,86 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(Model is null ? T.T("common.add") : T.T("common.edit"))</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true"
+                              Variant="Variant.Outlined" MaxLength="20" />
+                <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true"
+                              Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_input.NameEn" Label="@T.T("common.name_en")"
+                              Variant="Variant.Outlined" />
+                <MudNumericField @bind-Value="_netDays" Label="@T.T("settings.net_days")" Min="0" Max="365"
+                                 Variant="Variant.Outlined" />
+                <MudNumericField @bind-Value="_discountPercent" Label="@T.T("settings.discount_percent")"
+                                 Min="0m" Max="100m" Variant="Variant.Outlined" Format="N2" />
+                <MudNumericField @bind-Value="_discountDays" Label="@T.T("settings.discount_days")"
+                                 Min="0" Max="365" Variant="Variant.Outlined" />
+                <div style="grid-column: 1 / -1;">
+                    <MudSwitch @bind-Value="_input.IsActive" Color="Color.Success" Label="@T.T("common.active")" />
+                </div>
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public PaymentTerm? Model { get; set; }
+
+    [Inject] private MasterDataService MasterData { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private PaymentTermInput _input = new();
+    private int _netDays;
+    private decimal _discountPercent;
+    private int _discountDays;
+    private bool _busy;
+
+    protected override void OnInitialized()
+    {
+        if (Model is null) return;
+        _input = new PaymentTermInput
+        {
+            Code = Model.Code, NameAr = Model.NameAr, NameEn = Model.NameEn,
+            NetDays = Model.NetDays, DiscountPercent = Model.DiscountPercent,
+            DiscountDays = Model.DiscountDays, Notes = Model.Notes, IsActive = Model.IsActive
+        };
+        _netDays = Model.NetDays;
+        _discountPercent = Model.DiscountPercent;
+        _discountDays = Model.DiscountDays;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            _input.NetDays = (short)_netDays;
+            _input.DiscountPercent = _discountPercent;
+            _input.DiscountDays = (short)_discountDays;
+            var saved = await MasterData.SavePaymentTermAsync(actor, Model?.Id,
+                Model?.Version ?? 0, _input);
+            MudDialog.Close(DialogResult.Ok(saved));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

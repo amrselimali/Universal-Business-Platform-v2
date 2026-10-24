@@ -1,0 +1,128 @@
+@page "/sales/appointments"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject SalesFulfillmentService Fulfillment
+@inject BranchService Branches
+@inject IDialogService Dialogs
+<PageTitle>@T.T("screen.sales_appointments")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.sales_appointments")" Subtitle="@T.T("sales.appointments_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Manage))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">@T.T("common.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudDatePicker Date="_date" Label="@T.T("common.date")"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           DateChanged="OnDateChanged" />
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("sales.start")
+                </MudTh>
+                <MudTh>@T.T("sales.end")</MudTh>
+                <MudTh>@T.T("sales.employee")</MudTh>
+                <MudTh>@T.T("sales.customer")</MudTh>
+                <MudTh>@T.T("sales.booking_no")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.StartsAt.ToLocalTime().ToString("HH:mm")</MudTd>
+                <MudTd>@context.EndsAt.ToLocalTime().ToString("HH:mm")</MudTd>
+                <MudTd>@context.EmployeeName</MudTd>
+                <MudTd>@(context.CustomerName ?? "—")</MudTd>
+                <MudTd>@(context.BookingNo ?? "—")</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@(context.IsCancelled ? Color.Error : Color.Info)">
+                        @T.T("sales.appointment_" + context.Status)
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Right">
+                    @if (!context.IsCancelled && Can(ActionCodes.Manage))
+                    {
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true"
+                                 AnchorOrigin="Origin.BottomRight">
+                            <MudMenuItem OnClick="@(() => SetStatusAsync(context, AppointmentStatuses.Confirmed))">
+                                @T.T("sales.appointment_confirm")
+                            </MudMenuItem>
+                            <MudMenuItem OnClick="@(() => SetStatusAsync(context, AppointmentStatuses.Done))">
+                                @T.T("sales.appointment_done")
+                            </MudMenuItem>
+                            <MudMenuItem OnClick="@(() => SetStatusAsync(context, AppointmentStatuses.Cancelled))">
+                                @T.T("sales.appointment_cancel")
+                            </MudMenuItem>
+                        </MudMenu>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<Appointment> _items = Array.Empty<Appointment>();
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private DateTime? _date = DateTime.Today;
+    private Guid? _branchId;
+
+    protected override string ScreenCode => ScreenCodes.SalesAppointments;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync() =>
+        _items = await Fulfillment.ListAppointmentsAsync(Actor!, _branchId,
+            _date ?? DateTime.Today);
+
+    private Task OnDateChanged(DateTime? value) { _date = value; return RunAsync(ReloadAsync); }
+    private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+
+    private async Task AddAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<AppointmentDialog>(T.T("sales.new_appointment"),
+            new DialogParameters
+            {
+                ["Branches"] = _branches, ["DefaultBranchId"] = _branchId,
+                ["DefaultDate"] = _date ?? DateTime.Today
+            });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task SetStatusAsync(Appointment appointment, string status) =>
+        await RunAsync(async () =>
+        {
+            await Fulfillment.SetAppointmentStatusAsync(Actor!, appointment.Id,
+                appointment.Version, status);
+            await ReloadAsync();
+            ShowSuccess("common.saved");
+        });
+}

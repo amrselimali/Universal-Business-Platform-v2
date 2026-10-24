@@ -1,0 +1,143 @@
+@page "/sales/follow-ups"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject FollowUpService FollowUpApi
+@inject PartnerService Partners
+<PageTitle>@T.T("screen.follow_ups")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.follow_ups")" Subtitle="@T.T("sales.followups_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Create))
+            {
+                <MudButton Variant="Variant.Outlined" OnClick="AutoAsync" Disabled="_busy">
+                    @T.T("sales.followups_generate")
+                </MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card mb-4">
+        <div class="ubp-form-grid">
+            <MudSelect T="Guid" @bind-Value="_input.CustomerId" Label="@T.T("sales.customer")"
+                       Variant="Variant.Outlined">
+                @foreach (var customer in _customers)
+                {
+                    <MudSelectItem T="Guid" Value="@customer.Id">@customer.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string" @bind-Value="_input.Channel" Label="@T.T("sales.channel")"
+                       Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@FollowUpChannels.Call">@T.T("sales.channel_call")</MudSelectItem>
+                <MudSelectItem T="string" Value="@FollowUpChannels.WhatsApp">WhatsApp</MudSelectItem>
+                <MudSelectItem T="string" Value="@FollowUpChannels.Sms">SMS</MudSelectItem>
+                <MudSelectItem T="string" Value="@FollowUpChannels.Visit">@T.T("sales.channel_visit")</MudSelectItem>
+            </MudSelect>
+            <MudDatePicker @bind-Date="_dueDate" Label="@T.T("sales.followup_due")"
+                           Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_input.Note" Label="@T.T("common.notes")"
+                          Variant="Variant.Outlined" MaxLength="500" />
+        </div>
+        <div class="ubp-toolbar mt-2">
+            @if (Can(ActionCodes.Create))
+            {
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AddAsync"
+                           Disabled="_busy">@T.T("common.add")</MudButton>
+            }
+        </div>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("sales.customer")</MudTh>
+                <MudTh>@T.T("sales.booking_no")</MudTh>
+                <MudTh>@T.T("sales.channel")</MudTh>
+                <MudTh>@T.T("sales.followup_due")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.CustomerName</MudTd>
+                <MudTd>@(context.BookingNo ?? "—")</MudTd>
+                <MudTd>@T.T("sales.channel_" + context.Channel)</MudTd>
+                <MudTd>@context.DueAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@(context.IsPending ? (context.IsOverdue ? Color.Error : Color.Warning) : Color.Success)">
+                        @T.T("sales.followup_" + context.Status)
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Right">
+                    @if (context.IsPending && Can(ActionCodes.Complete))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                                   OnClick="@(() => CompleteAsync(context))">@T.T("sales.followup_complete")</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<FollowUp> _items = Array.Empty<FollowUp>();
+    private IReadOnlyList<Partner> _customers = Array.Empty<Partner>();
+    private FollowUpInput _input = new();
+    private DateTime? _dueDate = DateTime.Today.AddDays(1);
+    private bool _busy;
+
+    protected override string ScreenCode => ScreenCodes.FollowUps;
+
+    protected override async Task OnLoadAsync()
+    {
+        _customers = (await Partners.ListAsync(Actor!, PartnerKind.Customer,
+            new PageRequest { Page = 1, PageSize = 25 }, null)).Items;
+        _input.CustomerId = _customers.FirstOrDefault()?.Id ?? Guid.Empty;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync() => _items = await FollowUpApi.ListAsync(Actor!, null, 200);
+
+    private async Task AddAsync() => await RunAsync(async () =>
+    {
+        if (_input.CustomerId == Guid.Empty)
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+        _busy = true;
+        try
+        {
+            _input.DueAt = new DateTimeOffset((_dueDate ?? DateTime.Today).Date.AddHours(10));
+            await FollowUpApi.CreateAsync(Actor!, _input);
+            _input = new FollowUpInput { CustomerId = _input.CustomerId };
+            await ReloadAsync();
+            ShowSuccess("common.saved");
+        }
+        finally { _busy = false; }
+    });
+
+    private async Task AutoAsync() => await RunAsync(async () =>
+    {
+        _busy = true;
+        try
+        {
+            await FollowUpApi.CreateOverdueAsync(Actor!);
+            await ReloadAsync();
+            ShowSuccess("common.saved");
+        }
+        finally { _busy = false; }
+    });
+
+    private async Task CompleteAsync(FollowUp followUp) => await RunAsync(async () =>
+    {
+        await FollowUpApi.CompleteAsync(Actor!, followUp.Id, followUp.Version);
+        await ReloadAsync();
+        ShowSuccess("common.saved");
+    });
+}

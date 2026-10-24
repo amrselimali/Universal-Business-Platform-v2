@@ -1,100 +1,5 @@
 namespace Ubp.Core.Security;
 
-public static class PermissionScope
-{
-    public const short Own = 0;
-    public const short Branches = 1;
-    public const short All = 2;
-
-    public static short Normalize(short value) => value is >= 0 and <= 2 ? value : Branches;
-    public static short Max(short a, short b) => Normalize(a) >= Normalize(b) ? Normalize(a) : Normalize(b);
-}
-
-public static class ScreenCodes
-{
-    public const string Dashboard = "DASHBOARD";
-    public const string SettingsGeneral = "SETTINGS_GENERAL";
-    public const string Branches = "BRANCHES";
-    public const string Warehouses = "WAREHOUSES";
-    public const string Currencies = "CURRENCIES";
-    public const string CustomFields = "CUSTOM_FIELDS";
-    public const string Users = "USERS";
-    public const string Roles = "ROLES";
-    public const string AuditLog = "AUDIT_LOG";
-    public const string DatabaseAdmin = "DATABASE_ADMIN";
-    public const string QaCenter = "QA_CENTER";
-    public const string Units = "UNITS";
-    public const string ItemCategories = "ITEM_CATEGORIES";
-    public const string Items = "ITEMS";
-    public const string Customers = "CUSTOMERS";
-    public const string Suppliers = "SUPPLIERS";
-    public const string StockDocuments = "STOCK_DOCUMENTS";
-    public const string Stocktake = "STOCKTAKE";
-    public const string FinancialPeriods = "FINANCIAL_PERIODS";
-    public const string StockReports = "STOCK_REPORTS";
-    public const string Accounts = "ACCOUNTS";
-    public const string CostCenters = "COST_CENTERS";
-    public const string Journals = "JOURNALS";
-    public const string AccountingSettings = "ACCOUNTING_SETTINGS";
-    public const string JournalEntries = "JOURNAL_ENTRIES";
-    public const string JournalEntry = "JOURNAL_ENTRY";
-    public const string OpeningBalances = "OPENING_BALANCES";
-    public const string StockPostingCenter = "STOCK_POSTING";
-    public const string LedgerReport = "LEDGER_REPORT";
-    public const string TrialBalanceReport = "TRIAL_BALANCE_REPORT";
-    public const string PartyStatementReport = "PARTY_STATEMENT_REPORT";
-    public const string CostCenterReport = "COST_CENTER_REPORT";
-    public const string StockVsGlReport = "STOCK_VS_GL_REPORT";
-}
-
-public static class ActionCodes
-{
-    public const string View = "VIEW";
-    public const string Add = "ADD";
-    public const string Create = "CREATE";
-    public const string Edit = "EDIT";
-    public const string Delete = "DELETE";
-    public const string ToggleActive = "TOGGLE_ACTIVE";
-    public const string LinkBranches = "LINK_BRANCHES";
-    public const string ManageBranches = "MANAGE_BRANCHES";
-    public const string ManageWarehouses = "MANAGE_WAREHOUSES";
-    public const string ManageRoles = "MANAGE_ROLES";
-    public const string ManagePermissions = "MANAGE_PERMISSIONS";
-    public const string ResetPassword = "RESET_PASSWORD";
-    public const string Unlock = "UNLOCK";
-    public const string RunMigrations = "RUN_MIGRATIONS";
-    public const string EditRows = "EDIT_ROWS";
-    public const string RunTests = "RUN_TESTS";
-    public const string Post = "POST";
-    public const string Reverse = "REVERSE";
-    public const string Receive = "RECEIVE";
-    public const string ClosePeriod = "CLOSE_PERIOD";
-    public const string ReopenPeriod = "REOPEN_PERIOD";
-    public const string CreateRoot = "CREATE_ROOT";
-    public const string CreateChild = "CREATE_CHILD";
-    public const string Move = "MOVE";
-    public const string LoadDefaultTree = "LOAD_DEFAULT_TREE";
-    public const string Open = "OPEN";
-    public const string Copy = "COPY";
-    public const string CancelEntry = "CANCEL";
-    public const string SaveDraft = "SAVE_DRAFT";
-    public const string AddLine = "ADD_LINE";
-    public const string DeleteLine = "DELETE_LINE";
-    public const string AutoBalance = "AUTO_BALANCE";
-    public const string SelectParty = "SELECT_PARTY";
-    public const string DistributeCost = "DISTRIBUTE_COST";
-    public const string Print = "PRINT";
-    public const string ImportCsv = "IMPORT_CSV";
-    public const string AutoBalanceEquity = "AUTO_BALANCE_EQUITY";
-    public const string Preview = "PREVIEW";
-    public const string GenerateSingle = "GENERATE_SINGLE";
-    public const string GenerateAll = "GENERATE_ALL";
-    public const string OpenEntry = "OPEN_ENTRY";
-    public const string CheckCompleteness = "CHECK_COMPLETENESS";
-    public const string EnableAutoPost = "ENABLE_AUTO_POST";
-    public const string Save = "SAVE";
-}
-
 public sealed record ScreenAction(string Code, string TitleKey);
 
 public sealed record ScreenDefinition(
@@ -126,6 +31,7 @@ public static class AppRegistry
     public const string GroupPartners = "group.partners";
     public const string GroupReports = "group.reports";
     public const string GroupAccounting = "group.accounting";
+    public const string GroupSales = "group.sales";
 
     private static ScreenAction A(string code) => new(code, $"action.{code.ToLowerInvariant()}");
 
@@ -139,7 +45,8 @@ public static class AppRegistry
 
         new(ScreenCodes.Branches, "/settings/branches", "AccountTree", "screen.branches", GroupDefinitions,
             new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit),
-                    A(ActionCodes.Delete), A(ActionCodes.ToggleActive) }),
+                    A(ActionCodes.Delete), A(ActionCodes.ToggleActive),
+                    A(ActionCodes.ManageDefaults) }),
 
         new(ScreenCodes.Warehouses, "/settings/warehouses", "Warehouse", "screen.warehouses", GroupDefinitions,
             new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit), A(ActionCodes.Delete),
@@ -263,7 +170,124 @@ public static class AppRegistry
 
         new(ScreenCodes.StockVsGlReport, "/reports/accounting/stock-vs-gl", "CompareArrows",
             "screen.stock_vs_gl", GroupReports,
-            new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "accounting.stock_vs_gl")
+            new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "accounting.stock_vs_gl"),
+
+        new(ScreenCodes.Employees, "/settings/employees", "Badge", "screen.employees", GroupDefinitions,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.ToggleActive), A(ActionCodes.Delete) }, "settings.employees"),
+
+        new(ScreenCodes.Taxes, "/settings/taxes", "Percent", "screen.taxes", GroupDefinitions,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.ToggleActive), A(ActionCodes.Delete) }, "settings.taxes"),
+
+        new(ScreenCodes.PaymentTerms, "/settings/payment-terms", "Schedule", "screen.payment_terms",
+            GroupDefinitions,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.ToggleActive), A(ActionCodes.Delete) }, "settings.payment_terms"),
+
+        new(ScreenCodes.PriceLists, "/settings/price-lists", "Sell", "screen.price_lists",
+            GroupDefinitions,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.ToggleActive), A(ActionCodes.Delete),
+                    A(ActionCodes.ManageItems) }, "settings.price_lists"),
+
+        new(ScreenCodes.ServiceRecipes, "/inventory/recipes", "Blender", "screen.service_recipes",
+            GroupInventory,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.ToggleActive), A(ActionCodes.Delete),
+                    A(ActionCodes.EditLines) }, "inventory.recipes"),
+
+        new(ScreenCodes.PurchaseInvoices, "/purchasing/invoices", "Receipt", "screen.purchase_invoices",
+            GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.Delete), A(ActionCodes.Post) }, "purchasing.invoices"),
+
+        new(ScreenCodes.PurchaseReturns, "/purchasing/returns", "AssignmentReturn",
+            "screen.purchase_returns", GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.Delete), A(ActionCodes.Post) }, "purchasing.returns"),
+
+        new(ScreenCodes.PurchaseAging, "/purchasing/aging", "HourglassBottom",
+            "screen.purchase_aging", GroupReports,
+            new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "purchasing.aging"),
+
+        new(ScreenCodes.Treasuries, "/treasury/management", "AccountBalanceWallet",
+            "screen.treasuries", GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.ManageMethods) },
+            "treasury.management"),
+
+        new(ScreenCodes.TreasuryVouchers, "/treasury/vouchers", "ReceiptLong",
+            "screen.treasury_vouchers", GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.Delete), A(ActionCodes.Post), A(ActionCodes.Print),
+                    A(ActionCodes.CancelEntry) },
+            "treasury.vouchers"),
+
+        new(ScreenCodes.TreasuryShifts, "/treasury/shifts", "PointOfSale",
+            "screen.treasury_shifts", GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.Open), A(ActionCodes.Close),
+                    A(ActionCodes.Reopen) },
+            "treasury.shifts"),
+
+        new(ScreenCodes.TreasuryReconciliation, "/treasury/reconciliation", "SwapHoriz",
+            "screen.treasury_reconciliation", GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.Post) }, "treasury.reconciliation"),
+
+        new(ScreenCodes.SalesBookings, "/sales/bookings", "EventAvailable", "screen.sales_bookings",
+            GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.Confirm), A(ActionCodes.CancelEntry), A(ActionCodes.AssignOthers) },
+            "sales.bookings"),
+
+        new(ScreenCodes.SalesAppointments, "/sales/appointments", "CalendarMonth",
+            "screen.sales_appointments", GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Manage) }, "sales.appointments"),
+
+        new(ScreenCodes.SalesDeliveries, "/sales/deliveries", "LocalShipping",
+            "screen.sales_deliveries", GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Execute), A(ActionCodes.Post) },
+            "sales.deliveries"),
+
+        new(ScreenCodes.SalesInvoices, "/sales/invoices", "Receipt", "screen.sales_invoices",
+            GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.Post), A(ActionCodes.Print) }, "sales.invoices"),
+
+        new(ScreenCodes.SalesReturns, "/sales/returns", "AssignmentReturn",
+            "screen.sales_returns", GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Post),
+                    A(ActionCodes.Print) }, "sales.returns"),
+
+        new(ScreenCodes.SalesSettlements, "/sales/settlements", "SwapHoriz",
+            "screen.sales_settlements", GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Approve),
+                    A(ActionCodes.Post) }, "sales.settlements"),
+
+        new(ScreenCodes.SalesCommissions, "/sales/commissions", "Percent",
+            "screen.sales_commissions", GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Calculate) }, "sales.commissions"),
+
+        new(ScreenCodes.AgingReport, "/reports/aging", "HourglassBottom",
+            "screen.aging", GroupReports,
+            new[] { A(ActionCodes.View), A(ActionCodes.Export) }, "reports.aging"),
+
+        new(ScreenCodes.PostingCenter, "/accounting/posting-center", "FactCheck",
+            "screen.posting_center", GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.ViewUnposted), A(ActionCodes.Reconcile) },
+            "accounting.posting"),
+
+        new(ScreenCodes.PosTerminal, "/pos/terminal", "PointOfSale", "screen.pos_terminal",
+            GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Checkout) }, "pos.terminal"),
+
+        new(ScreenCodes.PosReceipts, "/pos/receipts", "ReceiptLong", "screen.pos_receipts",
+            GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "pos.receipts"),
+
+        new(ScreenCodes.FollowUps, "/sales/follow-ups", "NotificationsActive",
+            "screen.follow_ups", GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Complete) },
+            "sales.followups")
     };
 
     public static readonly IReadOnlyDictionary<string, ScreenDefinition> ByCode =

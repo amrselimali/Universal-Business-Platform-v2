@@ -1,0 +1,127 @@
+@page "/settings/price-lists"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject MasterDataService MasterData
+@inject IDialogService Dialogs
+<PageTitle>@T.T("screen.price_lists")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.price_lists")" Subtitle="@T.T("settings.price_lists_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Create))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">@T.T("common.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("common.code")</MudTh>
+                <MudTh>@T.T("common.name_ar")</MudTh>
+                <MudTh>@T.T("settings.is_default")</MudTh>
+                <MudTh>@T.T("settings.price_items_count")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@context.Code</span></MudTd>
+                <MudTd>@context.DisplayName(IsEnglish)</MudTd>
+                <MudTd>
+                    @if (context.IsDefault)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
+                    }
+                </MudTd>
+                <MudTd>@context.ItemsCount</MudTd>
+                <MudTd>
+                    <MudSwitch T="bool" Value="@context.IsActive" Color="Color.Success"
+                               Disabled="@(!Can(ActionCodes.ToggleActive))"
+                               ValueChanged="@(v => ToggleAsync(context, v))" />
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true" AnchorOrigin="Origin.BottomRight">
+                        @if (Can(ActionCodes.ManageItems))
+                        {
+                            <MudMenuItem OnClick="@(() => ManageItemsAsync(context))"
+                                         Icon="@Icons.Material.Filled.List">@T.T("settings.manage_prices")</MudMenuItem>
+                        }
+                        @if (Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => EditAsync(context))" Icon="@Icons.Material.Filled.Edit">
+                                @T.T("common.edit")
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private MudTable<PriceList> _table = default!;
+    private bool IsEnglish => T.Language == "en";
+
+    protected override string ScreenCode => ScreenCodes.PriceLists;
+    protected override Task OnLoadAsync() => Task.CompletedTask;
+
+    private async Task<TableData<PriceList>> LoadServerData(TableState state, CancellationToken ct)
+    {
+        var result = await MasterData.ListPriceListsAsync(Actor!, new PageRequest
+        { Page = state.Page + 1, PageSize = 25, SortBy = "code" }, true, ct);
+        return new TableData<PriceList> { Items = result.Items, TotalItems = result.Total };
+    }
+
+    private async Task AddAsync() => await OpenDialogAsync(null);
+    private async Task EditAsync(PriceList list) => await OpenDialogAsync(list);
+
+    private async Task OpenDialogAsync(PriceList? model)
+    {
+        var dialog = await Dialogs.ShowAsync<PriceListDialog>(T.T("screen.price_lists"),
+            new DialogParameters { ["Model"] = model });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await _table.ReloadServerData();
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task ManageItemsAsync(PriceList list)
+    {
+        var dialog = await Dialogs.ShowAsync<PriceListItemsDialog>(list.DisplayName(IsEnglish),
+            new DialogParameters { ["PriceListId"] = list.Id, ["PriceListName"] = list.DisplayName(IsEnglish) });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await _table.ReloadServerData();
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task ToggleAsync(PriceList list, bool value) => await RunAsync(async () =>
+    {
+        await MasterData.SavePriceListAsync(Actor!, list.Id, list.Version,
+            new PriceListInput
+            {
+                Code = list.Code, NameAr = list.NameAr, NameEn = list.NameEn, IsDefault = list.IsDefault,
+                ValidFrom = list.ValidFrom, ValidTo = list.ValidTo, Notes = list.Notes, IsActive = value
+            });
+        await _table.ReloadServerData();
+        ShowSuccess("common.saved");
+    });
+}

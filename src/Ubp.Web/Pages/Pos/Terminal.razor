@@ -1,0 +1,178 @@
+@page "/pos/terminal"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject PosService Pos
+@inject BranchService Branches
+@inject ItemService Items
+@inject WarehouseService Warehouses
+@inject PartnerService Partners
+@inject TreasuryService Treasury
+<PageTitle>@T.T("screen.pos_terminal")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.pos_terminal")" Subtitle="@T.T("pos.terminal_hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-form-grid">
+            <MudSelect T="Guid" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="Guid" @bind-Value="_customerId" Label="@T.T("sales.customer")"
+                       Variant="Variant.Outlined">
+                @foreach (var customer in _customers)
+                {
+                    <MudSelectItem T="Guid" Value="@customer.Id">@customer.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="Guid" @bind-Value="_warehouseId" Label="@T.T("sales.warehouse")"
+                       Variant="Variant.Outlined">
+                @foreach (var warehouse in _warehouses)
+                {
+                    <MudSelectItem T="Guid" Value="@warehouse.Id">@warehouse.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="Guid" @bind-Value="_itemId" Label="@T.T("sales.item")"
+                       Variant="Variant.Outlined">
+                @foreach (var item in _items)
+                {
+                    <MudSelectItem T="Guid" Value="@item.Id">@item.Code — @item.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudNumericField @bind-Value="_quantity" Label="@T.T("sales.quantity")"
+                             Variant="Variant.Outlined" Min="0.0001m" Format="N4" />
+            <MudNumericField @bind-Value="_price" Label="@T.T("sales.price")"
+                             Variant="Variant.Outlined" Min="0m" Format="N4" />
+            <MudSelect T="Guid" Value="_treasuryId" Label="@T.T("treasury.treasury")"
+                       Variant="Variant.Outlined" ValueChanged="OnTreasuryChanged">
+                @foreach (var treasury in _treasuries)
+                {
+                    <MudSelectItem T="Guid" Value="@treasury.Id">@treasury.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="Guid" @bind-Value="_methodId" Label="@T.T("treasury.method")"
+                       Variant="Variant.Outlined">
+                @foreach (var method in _methods)
+                {
+                    <MudSelectItem T="Guid" Value="@method.Id">@method.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <div class="ubp-toolbar mt-2">
+            <MudText>@T.T("accounting.total"): <b>@Total.ToString("N2")</b></MudText>
+            @if (Can(ActionCodes.Checkout))
+            {
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CheckoutAsync"
+                           Disabled="_busy">@T.T("pos.checkout")</MudButton>
+            }
+        </div>
+    </MudPaper>
+
+    @if (_receipt is not null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mt-4">
+            @T.T("pos.receipt_created"): @_receipt.BookingNo · @_receipt.InvoiceNo ·
+            @_receipt.VoucherNo · @_receipt.Total.ToString("N2")
+        </MudAlert>
+    }
+}
+
+@code {
+    private Guid _branchId;
+    private Guid _customerId;
+    private Guid _warehouseId;
+    private Guid _itemId;
+    private Guid _treasuryId;
+    private Guid _methodId;
+    private decimal _quantity = 1;
+    private decimal _price = 100;
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private IReadOnlyList<Partner> _customers = Array.Empty<Partner>();
+    private IReadOnlyList<Warehouse> _warehouses = Array.Empty<Warehouse>();
+    private IReadOnlyList<Treasury> _treasuries = Array.Empty<Treasury>();
+    private IReadOnlyList<TreasuryMethod> _methods = Array.Empty<TreasuryMethod>();
+    private IReadOnlyList<ItemOption> _items = Array.Empty<ItemOption>();
+    private PosReceipt? _receipt;
+    private bool _busy;
+
+    private decimal Total => _quantity * _price;
+
+    protected override string ScreenCode => ScreenCodes.PosTerminal;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        _branchId = _branches.FirstOrDefault()?.Id ?? Guid.Empty;
+        _customers = (await Partners.ListAsync(Actor!, PartnerKind.Customer,
+            new PageRequest { Page = 1, PageSize = 25 }, null)).Items;
+        _customerId = _customers.FirstOrDefault()?.Id ?? Guid.Empty;
+        _warehouses = await Warehouses.OptionsAsync(Actor!);
+        _warehouseId = _warehouses.FirstOrDefault()?.Id ?? Guid.Empty;
+        _items = await Items.OptionsAsync(Actor!, null);
+        _itemId = _items.FirstOrDefault()?.Id ?? Guid.Empty;
+        _treasuries = await Treasury.ListTreasuriesAsync(Actor!, _branchId);
+        _treasuryId = _treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
+        await LoadMethodsAsync();
+    }
+
+    private async Task LoadMethodsAsync()
+    {
+        _methods = _treasuryId == Guid.Empty ? Array.Empty<TreasuryMethod>()
+            : await Treasury.ListMethodsAsync(Actor!, _treasuryId);
+        _methodId = _methods.FirstOrDefault()?.Id ?? Guid.Empty;
+    }
+
+    private async Task OnBranchChanged(Guid value)
+    {
+        _branchId = value;
+        _treasuries = await Treasury.ListTreasuriesAsync(Actor!, _branchId);
+        _treasuryId = _treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
+        await LoadMethodsAsync();
+        StateHasChanged();
+    }
+
+    private async Task OnTreasuryChanged(Guid value)
+    {
+        _treasuryId = value;
+        await LoadMethodsAsync();
+        StateHasChanged();
+    }
+
+    private async Task CheckoutAsync() => await RunAsync(async () =>
+    {
+        if (_customerId == Guid.Empty || _warehouseId == Guid.Empty || _itemId == Guid.Empty ||
+            _treasuryId == Guid.Empty || _methodId == Guid.Empty || _quantity <= 0)
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            _receipt = await Pos.CheckoutAsync(Actor!, new PosCheckoutInput
+            {
+                BranchId = _branchId, CustomerId = _customerId, WarehouseId = _warehouseId,
+                TreasuryId = _treasuryId, TreasuryMethodId = _methodId, DocDate = DateTime.Today,
+                Lines =
+                {
+                    new PosLineInput
+                    {
+                        ItemId = _itemId,
+                        UnitId = _items.FirstOrDefault(i => i.Id == _itemId)?.BaseUnitId
+                                 ?? Guid.Empty,
+                        Quantity = _quantity, UnitPrice = _price
+                    }
+                }
+            });
+        }
+        finally { _busy = false; }
+    });
+}

@@ -31,7 +31,28 @@ public sealed class AccountingRegistryTests : IClassFixture<TestDb>
             ["TrialBalance.razor"] = ScreenCodes.TrialBalanceReport,
             ["PartyStatement.razor"] = ScreenCodes.PartyStatementReport,
             ["CostCenterReport.razor"] = ScreenCodes.CostCenterReport,
-            ["StockVsGl.razor"] = ScreenCodes.StockVsGlReport
+            ["StockVsGl.razor"] = ScreenCodes.StockVsGlReport,
+            ["Employees.razor"] = ScreenCodes.Employees,
+            ["Taxes.razor"] = ScreenCodes.Taxes,
+            ["PaymentTerms.razor"] = ScreenCodes.PaymentTerms,
+            ["PriceLists.razor"] = ScreenCodes.PriceLists,
+            ["Invoices.razor"] = ScreenCodes.PurchaseInvoices,
+            ["Management.razor"] = ScreenCodes.Treasuries,
+            ["Vouchers.razor"] = ScreenCodes.TreasuryVouchers,
+            ["Shifts.razor"] = ScreenCodes.TreasuryShifts,
+            ["Reconciliation.razor"] = ScreenCodes.TreasuryReconciliation,
+            ["Bookings.razor"] = ScreenCodes.SalesBookings,
+            ["Appointments.razor"] = ScreenCodes.SalesAppointments,
+            ["Deliveries.razor"] = ScreenCodes.SalesDeliveries,
+            ["SalesInvoices.razor"] = ScreenCodes.SalesInvoices,
+            ["SalesReturns.razor"] = ScreenCodes.SalesReturns,
+            ["Settlements.razor"] = ScreenCodes.SalesSettlements,
+            ["Commissions.razor"] = ScreenCodes.SalesCommissions,
+            ["Aging.razor"] = ScreenCodes.AgingReport,
+            ["PostingCenter.razor"] = ScreenCodes.PostingCenter,
+            ["Terminal.razor"] = ScreenCodes.PosTerminal,
+            ["Receipts.razor"] = ScreenCodes.PosReceipts,
+            ["FollowUps.razor"] = ScreenCodes.FollowUps
         };
 
         var pattern = new Regex(@"Can\(ActionCodes\.(\w+)\)", RegexOptions.Compiled);

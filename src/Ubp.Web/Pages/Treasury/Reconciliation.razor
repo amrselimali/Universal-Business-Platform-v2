@@ -1,0 +1,87 @@
+@page "/treasury/reconciliation"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject TreasuryService Treasury
+@inject BranchService Branches
+@inject IDialogService Dialogs
+<PageTitle>@T.T("screen.treasury_reconciliation")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.treasury_reconciliation")"
+                Subtitle="@T.T("treasury.reconciliation_hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <MudTable Items="_balances" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("common.code")</MudTh>
+                <MudTh>@T.T("common.name_ar")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.debit")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.credit")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.balance")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@context.AccountCode</span></MudTd>
+                <MudTd>@context.AccountName</MudTd>
+                <MudTd Align="Right">@context.Debit.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.Credit.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.Balance.ToString("N2")</MudTd>
+                <MudTd Align="Right">
+                    @if (Can(ActionCodes.Post) && context.Balance != 0)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                                   OnClick="@(() => SettleAsync(context))">@T.T("treasury.settle")</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<ClearingBalance> _balances = Array.Empty<ClearingBalance>();
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private Guid? _branchId;
+
+    protected override string ScreenCode => ScreenCodes.TreasuryReconciliation;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync() =>
+        _balances = await Treasury.ListClearingBalancesAsync(Actor!, _branchId);
+
+    private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+
+    private async Task SettleAsync(ClearingBalance balance)
+    {
+        var dialog = await Dialogs.ShowAsync<SettlementDialog>(T.T("treasury.settle"),
+            new DialogParameters
+            {
+                ["Balance"] = balance, ["Branches"] = _branches, ["BranchId"] = _branchId
+            });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("accounting.posted");
+        }
+    }
+}

@@ -1,0 +1,131 @@
+@page "/settings/employees"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject MasterDataService MasterData
+@inject IDialogService Dialogs
+<PageTitle>@T.T("screen.employees")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.employees")" Subtitle="@T.T("settings.employees_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Create))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">
+                    @T.T("common.add")
+                </MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudTextField @bind-Value="_search" Placeholder="@T.T("common.search")" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search"
+                          DebounceInterval="300" OnDebounceIntervalElapsed="ReloadAsync" />
+            <MudSwitch T="bool" Value="_includeInactive" Label="@T.T("common.include_inactive")"
+                       Color="Color.Primary" ValueChanged="OnFilterChanged" />
+        </div>
+
+        <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="Employee" SortLabel="code">@T.T("common.code")</MudTableSortLabel></MudTh>
+                <MudTh>@T.T("common.name_ar")</MudTh>
+                <MudTh>@T.T("common.phone")</MudTh>
+                <MudTh>@T.T("settings.employee_roles")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@T.T("common.code")"><span class="ubp-code">@context.Code</span></MudTd>
+                <MudTd DataLabel="@T.T("common.name_ar")">@context.DisplayName(IsEnglish)</MudTd>
+                <MudTd DataLabel="@T.T("common.phone")">@context.Phone</MudTd>
+                <MudTd DataLabel="@T.T("settings.employee_roles")">
+                    @if (context.IsBookingReceiver) { <MudChip T="string" Size="Size.Small">@T.T("settings.role_receiver")</MudChip> }
+                    @if (context.IsSeller) { <MudChip T="string" Size="Size.Small">@T.T("settings.role_seller")</MudChip> }
+                    @if (context.IsServiceExecutor) { <MudChip T="string" Size="Size.Small">@T.T("settings.role_executor")</MudChip> }
+                </MudTd>
+                <MudTd DataLabel="@T.T("common.status")">
+                    <MudSwitch T="bool" Value="@context.IsActive" Color="Color.Success"
+                               Disabled="@(!Can(ActionCodes.ToggleActive))"
+                               ValueChanged="@(v => ToggleAsync(context, v))" />
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true" AnchorOrigin="Origin.BottomRight">
+                        @if (Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => EditAsync(context))" Icon="@Icons.Material.Filled.Edit">
+                                @T.T("common.edit")
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private MudTable<Employee> _table = default!;
+    private string? _search;
+    private bool _includeInactive;
+    private bool IsEnglish => T.Language == "en";
+
+    protected override string ScreenCode => ScreenCodes.Employees;
+    protected override Task OnLoadAsync() => Task.CompletedTask;
+
+    private async Task<TableData<Employee>> LoadServerData(TableState state, CancellationToken ct)
+    {
+        var result = await MasterData.ListEmployeesAsync(Actor!, new PageRequest
+        {
+            Page = state.Page + 1, PageSize = 25, Search = _search,
+            SortBy = state.SortLabel ?? "code",
+            Descending = state.SortDirection == SortDirection.Descending
+        }, _includeInactive, ct);
+        return new TableData<Employee> { Items = result.Items, TotalItems = result.Total };
+    }
+
+    private async Task ReloadAsync() => await _table.ReloadServerData();
+
+    private async Task OnFilterChanged(bool value)
+    {
+        _includeInactive = value;
+        await ReloadAsync();
+    }
+
+    private async Task AddAsync() => await OpenDialogAsync(null);
+
+    private async Task EditAsync(Employee employee) => await OpenDialogAsync(employee);
+
+    private async Task OpenDialogAsync(Employee? model)
+    {
+        var dialog = await Dialogs.ShowAsync<EmployeeDialog>(T.T("screen.employees"),
+            new DialogParameters { ["Model"] = model });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await ReloadAsync();
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task ToggleAsync(Employee employee, bool value) => await RunAsync(async () =>
+    {
+        await MasterData.SetEmployeeActiveAsync(Actor!, employee.Id, value);
+        await ReloadAsync();
+        ShowSuccess("common.saved");
+    });
+}

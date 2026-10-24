@@ -12,7 +12,8 @@ public sealed partial class AccountingSettingsService
         CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.AccountingSettings, ActionCodes.Save, ct: ct);
-        if (!PostingKeys.All.Contains(settingKey))
+        var types = await _settings.ListTypesAsync(ct);
+        if (!types.Any(t => string.Equals(t.Key, settingKey, StringComparison.OrdinalIgnoreCase)))
             throw new ValidationAppException("validation.posting_key");
 
         if (accountId.HasValue)
@@ -24,8 +25,16 @@ public sealed partial class AccountingSettingsService
         }
 
         await _settings.SetDefaultAsync(settingKey, accountId, actor.UserId, ct);
+        PostingReadinessService.InvalidateAll();
         await _audit.WriteAsync(actor, "posting_defaults", settingKey, "UPDATE", null,
             new { settingKey, accountId }, ct);
+    }
+
+    public async Task<IReadOnlyList<PostingDefaultType>> ListTypesAsync(ActorContext actor,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.AccountingSettings, ActionCodes.View, ct: ct);
+        return await _settings.ListTypesAsync(ct);
     }
 
     public async Task<IReadOnlyList<PostingDefault>> ListDefaultsAsync(ActorContext actor,
@@ -93,7 +102,14 @@ public sealed partial class AccountingSettingsService
             [PostingKeys.OpeningEquity] = "3100",
             [PostingKeys.StockAdjustmentGain] = "5410",
             [PostingKeys.StockAdjustmentLoss] = "5420",
-            [PostingKeys.Rounding] = "5490"
+            [PostingKeys.Rounding] = "5490",
+            [PostingKeys.SalesRevenue] = "4100",
+            [PostingKeys.CustomerReceivable] = "1110",
+            [PostingKeys.VatOutput] = "2210",
+            [PostingKeys.SupplierPayable] = "2100",
+            [PostingKeys.VatInput] = "1140",
+            [PostingKeys.PurchaseVariance] = "5430",
+            [PostingKeys.RoundingDifference] = "5490"
         };
 
         var existing = (await _settings.ListDefaultsAsync(ct))

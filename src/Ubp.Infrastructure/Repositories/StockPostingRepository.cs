@@ -45,7 +45,7 @@ public sealed partial class StockPostingRepository : IStockPostingRepository
             sql, new { documentId }, tx, cancellationToken: ct)) ?? throw new NotFoundAppException();
     }
 
-    private static async Task<Guid> PostCoreAsync(NpgsqlConnection connection, NpgsqlTransaction tx,
+    internal static async Task<Guid> PostCoreAsync(NpgsqlConnection connection, NpgsqlTransaction tx,
         Guid documentId, Guid userId, bool allowNegative, CancellationToken ct)
     {
         var header = await LockHeaderAsync(connection, tx, documentId, ct);
@@ -58,7 +58,8 @@ public sealed partial class StockPostingRepository : IStockPostingRepository
         var lines = (await connection.QueryAsync<PostLine>(new CommandDefinition("""
                 SELECT id AS Id, line_no AS LineNo, direction AS Direction, item_id AS ItemId,
                        unit_id AS UnitId, quantity AS Quantity, base_quantity AS BaseQuantity,
-                       unit_cost AS UnitCost, conversion_factor AS ConversionFactor
+                       unit_cost AS UnitCost, conversion_factor AS ConversionFactor,
+                       lot_number AS LotNumber, expiry_date AS ExpiryDate
                 FROM stock_document_lines WHERE document_id = @documentId ORDER BY line_no
                 """, new { documentId }, tx, cancellationToken: ct))).ToList();
         if (lines.Count == 0)
@@ -120,18 +121,25 @@ public sealed partial class StockPostingRepository : IStockPostingRepository
         try
         {
             moveCost = await connection.ExecuteScalarAsync<decimal>(new CommandDefinition("""
-                SELECT fn_stock_apply(@itemId, @warehouseId, @direction, @quantity, @unitCost,
-                                      @allowNegative, @preferGiven)
+                SELECT fn_stock_apply_lot(@itemId, @warehouseId, @direction, @quantity, @unitCost,
+                                          @allowNegative, @lotNumber, @expiryDate::date, @documentId,
+                                          @lineId, @preferGiven)
                 """,
                 new
                 {
                     line.ItemId, header.WarehouseId, line.Direction, quantity, unitCost,
-                    allowNegative, preferGiven = header.DocType == StockDocumentTypes.Reversal
+                    allowNegative, lotNumber = line.LotNumber, expiryDate = line.ExpiryDate,
+                    documentId = header.Id, lineId = line.Id,
+                    preferGiven = header.DocType == StockDocumentTypes.Reversal
                 }, tx, cancellationToken: ct));
         }
         catch (PostgresException ex) when (ex.MessageText.StartsWith("NEGATIVE_STOCK", StringComparison.Ordinal))
         {
             throw new ValidationAppException("validation.negative_stock");
+        }
+        catch (PostgresException ex) when (ex.MessageText.StartsWith("EXPIRED_LOT", StringComparison.Ordinal))
+        {
+            throw new ValidationAppException("validation.expired_lot");
         }
 
         var actualUnitCost = quantity > 0 ? Math.Round(moveCost / quantity, 6) : unitCost;
@@ -206,6 +214,8 @@ public sealed partial class StockPostingRepository : IStockPostingRepository
         public decimal BaseQuantity { get; set; }
         public decimal UnitCost { get; set; }
         public decimal ConversionFactor { get; set; }
+        public string? LotNumber { get; set; }
+        public DateTime? ExpiryDate { get; set; }
     }
 
     private sealed class ItemRow

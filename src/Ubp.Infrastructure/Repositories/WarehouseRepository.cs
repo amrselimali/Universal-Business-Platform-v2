@@ -32,7 +32,8 @@ public sealed partial class WarehouseRepository : IWarehouseRepository
 
     private const string SelectColumns = """
         w.id AS Id, w.code AS Code, w.name_ar AS NameAr, w.name_en AS NameEn,
-        w.is_active AS IsActive, w.custom_fields::text AS CustomFieldsJson,
+        w.is_active AS IsActive, w.warehouse_type AS WarehouseType,
+        w.custom_fields::text AS CustomFieldsJson,
         coalesce(array_agg(wb.branch_id) FILTER (WHERE wb.branch_id IS NOT NULL), '{}') AS BranchIds,
         w.created_at AS CreatedAt, w.updated_at AS UpdatedAt, w.version AS Version
         """;

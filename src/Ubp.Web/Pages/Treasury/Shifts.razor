@@ -1,0 +1,135 @@
+@page "/treasury/shifts"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject TreasuryService Treasury
+@inject BranchService Branches
+@inject IDialogService Dialogs
+<PageTitle>@T.T("screen.treasury_shifts")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.treasury_shifts")" Subtitle="@T.T("treasury.shifts_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Open))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.LockOpen" OnClick="OpenAsync">@T.T("treasury.open_shift")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("treasury.shift_code")</MudTh>
+                <MudTh>@T.T("treasury.treasury")</MudTh>
+                <MudTh>@T.T("treasury.cashier")</MudTh>
+                <MudTh>@T.T("treasury.opened_at")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.opening_cash")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.expected_cash")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.counted_cash")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.variance")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@context.Code</span></MudTd>
+                <MudTd>@context.TreasuryName</MudTd>
+                <MudTd>@context.Username</MudTd>
+                <MudTd>@context.OpenedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</MudTd>
+                <MudTd Align="Right">@context.OpeningCash.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.ExpectedCash.ToString("N2")</MudTd>
+                <MudTd Align="Right">@(context.CountedCash?.ToString("N2") ?? "—")</MudTd>
+                <MudTd Align="Right">
+                    <MudText Color="@(context.Variance is < 0 ? Color.Error : Color.Default)">
+                        @(context.Variance?.ToString("N2") ?? "—")
+                    </MudText>
+                </MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@(context.IsOpen ? Color.Warning : Color.Success)">
+                        @T.T(context.IsOpen ? "treasury.shift_open" : "treasury.shift_closed")
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Right">
+                    @if (context.IsOpen && Can(ActionCodes.Close))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                                   OnClick="@(() => CloseAsync(context))">@T.T("treasury.close_shift")</MudButton>
+                    }
+                    else if (!context.IsOpen && Can(ActionCodes.Reopen))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning"
+                                   OnClick="@(() => ReopenAsync(context))">@T.T("treasury.reopen_shift")</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<Shift> _items = Array.Empty<Shift>();
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private Guid? _branchId;
+
+    protected override string ScreenCode => ScreenCodes.TreasuryShifts;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync() =>
+        _items = await Treasury.ListShiftsAsync(Actor!, _branchId, 200);
+
+    private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+
+    private async Task OpenAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<OpenShiftDialog>(T.T("treasury.open_shift"),
+            new DialogParameters { ["Branches"] = _branches, ["DefaultBranchId"] = _branchId });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task CloseAsync(Shift shift)
+    {
+        var dialog = await Dialogs.ShowAsync<CloseShiftDialog>(T.T("treasury.close_shift"),
+            new DialogParameters { ["Shift"] = shift });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("treasury.shift_closed");
+        }
+    }
+
+    private async Task ReopenAsync(Shift shift)
+    {
+        var dialog = await Dialogs.ShowAsync<ReopenShiftDialog>(T.T("treasury.reopen_shift"),
+            new DialogParameters { ["Shift"] = shift });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("treasury.shift_open");
+        }
+    }
+}

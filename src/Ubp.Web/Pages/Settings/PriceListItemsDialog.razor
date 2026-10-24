@@ -1,0 +1,93 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@PriceListName</MudText></TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.caption" Class="ubp-muted mb-2">@T.T("settings.price_items_hint")</MudText>
+        @foreach (var row in _rows)
+        {
+            <div class="d-flex align-center gap-2 mb-2">
+                <MudSelect T="Guid" Value="row.ItemId" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Class="flex-grow-1" ValueChanged="@(v => row.ItemId = v)">
+                    @foreach (var item in _items)
+                    {
+                        <MudSelectItem T="Guid" Value="@item.Id">@item.Code — @item.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudNumericField T="decimal" @bind-Value="row.Price" Label="@T.T("settings.price")"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Format="N4" Min="0m" />
+                <MudNumericField T="decimal" @bind-Value="row.MinQty" Label="@T.T("settings.min_qty")"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Format="N4" Min="0m" />
+                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                               OnClick="@(() => Remove(row))" />
+            </div>
+        }
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="AddRow">@T.T("common.add")</MudButton>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="@(_busy || _rows.Count == 0)">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid PriceListId { get; set; }
+    [Parameter] public string PriceListName { get; set; } = "";
+
+    [Inject] private MasterDataService MasterData { get; set; } = default!;
+    [Inject] private Ubp.Infrastructure.Repositories.IItemRepository Items { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private readonly List<Row> _rows = new();
+    private IReadOnlyList<ItemOption> _items = Array.Empty<ItemOption>();
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _items = await Items.ListOptionsAsync(null, 100);
+        var actor = await UserContext.GetAsync();
+        if (actor is null) return;
+
+        var existing = await MasterData.PriceListItemsAsync(actor, PriceListId);
+        foreach (var item in existing)
+            _rows.Add(new Row { ItemId = item.ItemId, Price = item.Price, MinQty = item.MinQty });
+    }
+
+    private void AddRow() => _rows.Add(new Row
+    { ItemId = _items.FirstOrDefault()?.Id ?? Guid.Empty });
+
+    private void Remove(Row row) => _rows.Remove(row);
+
+    private async Task SaveAsync()
+    {
+        if (_rows.Any(r => r.ItemId == Guid.Empty))
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            await MasterData.ReplacePriceListItemsAsync(actor, PriceListId, _rows
+                .Select(r => new PriceListItemInput
+                { ItemId = r.ItemId, Price = r.Price, MinQty = r.MinQty }).ToList());
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private sealed class Row
+    {
+        public Guid ItemId { get; set; }
+        public decimal Price { get; set; }
+        public decimal MinQty { get; set; }
+    }
+}

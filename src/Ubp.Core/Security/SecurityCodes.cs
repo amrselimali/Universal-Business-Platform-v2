@@ -1,0 +1,137 @@
+namespace Ubp.Core.Security;
+
+public static class PermissionScope
+{
+    public const short Own = 0;
+    public const short Branches = 1;
+    public const short All = 2;
+
+    public static short Normalize(short value) => value is >= 0 and <= 2 ? value : Branches;
+    public static short Max(short a, short b) => Normalize(a) >= Normalize(b) ? Normalize(a) : Normalize(b);
+}
+
+public static class ScreenCodes
+{
+    public const string Dashboard = "DASHBOARD";
+    public const string SettingsGeneral = "SETTINGS_GENERAL";
+    public const string Branches = "BRANCHES";
+    public const string Warehouses = "WAREHOUSES";
+    public const string Currencies = "CURRENCIES";
+    public const string CustomFields = "CUSTOM_FIELDS";
+    public const string Users = "USERS";
+    public const string Roles = "ROLES";
+    public const string AuditLog = "AUDIT_LOG";
+    public const string DatabaseAdmin = "DATABASE_ADMIN";
+    public const string QaCenter = "QA_CENTER";
+    public const string Units = "UNITS";
+    public const string ItemCategories = "ITEM_CATEGORIES";
+    public const string Items = "ITEMS";
+    public const string Customers = "CUSTOMERS";
+    public const string Suppliers = "SUPPLIERS";
+    public const string StockDocuments = "STOCK_DOCUMENTS";
+    public const string Stocktake = "STOCKTAKE";
+    public const string FinancialPeriods = "FINANCIAL_PERIODS";
+    public const string StockReports = "STOCK_REPORTS";
+    public const string Accounts = "ACCOUNTS";
+    public const string CostCenters = "COST_CENTERS";
+    public const string Journals = "JOURNALS";
+    public const string AccountingSettings = "ACCOUNTING_SETTINGS";
+    public const string JournalEntries = "JOURNAL_ENTRIES";
+    public const string JournalEntry = "JOURNAL_ENTRY";
+    public const string OpeningBalances = "OPENING_BALANCES";
+    public const string StockPostingCenter = "STOCK_POSTING";
+    public const string LedgerReport = "LEDGER_REPORT";
+    public const string TrialBalanceReport = "TRIAL_BALANCE_REPORT";
+    public const string PartyStatementReport = "PARTY_STATEMENT_REPORT";
+    public const string CostCenterReport = "COST_CENTER_REPORT";
+    public const string StockVsGlReport = "STOCK_VS_GL_REPORT";
+    public const string Employees = "EMPLOYEES";
+    public const string Taxes = "TAXES";
+    public const string PaymentTerms = "PAYMENT_TERMS";
+    public const string PriceLists = "PRICE_LISTS";
+    public const string ServiceRecipes = "SERVICE_RECIPES";
+    public const string PurchaseInvoices = "PURCHASE_INVOICES";
+    public const string PurchaseReturns = "PURCHASE_RETURNS";
+    public const string PurchaseAging = "PURCHASE_AGING";
+    public const string Treasuries = "TREASURIES";
+    public const string TreasuryVouchers = "TREASURY_VOUCHERS";
+    public const string TreasuryShifts = "TREASURY_SHIFTS";
+    public const string TreasuryReconciliation = "TREASURY_RECONCILIATION";
+    public const string SalesBookings = "SALES_BOOKINGS";
+    public const string SalesAppointments = "SALES_APPOINTMENTS";
+    public const string SalesDeliveries = "SALES_DELIVERIES";
+    public const string SalesInvoices = "SALES_INVOICES";
+    public const string SalesReturns = "SALES_RETURNS";
+    public const string SalesSettlements = "SALES_SETTLEMENTS";
+    public const string SalesCommissions = "SALES_COMMISSIONS";
+    public const string AgingReport = "AGING_REPORT";
+    public const string PostingCenter = "POSTING_CENTER";
+    public const string PosTerminal = "POS_TERMINAL";
+    public const string PosReceipts = "POS_RECEIPTS";
+    public const string FollowUps = "FOLLOW_UPS";
+}
+
+public static class ActionCodes
+{
+    public const string View = "VIEW";
+    public const string Add = "ADD";
+    public const string Create = "CREATE";
+    public const string Edit = "EDIT";
+    public const string Delete = "DELETE";
+    public const string ToggleActive = "TOGGLE_ACTIVE";
+    public const string LinkBranches = "LINK_BRANCHES";
+    public const string ManageBranches = "MANAGE_BRANCHES";
+    public const string ManageWarehouses = "MANAGE_WAREHOUSES";
+    public const string ManageRoles = "MANAGE_ROLES";
+    public const string ManagePermissions = "MANAGE_PERMISSIONS";
+    public const string ResetPassword = "RESET_PASSWORD";
+    public const string Unlock = "UNLOCK";
+    public const string RunMigrations = "RUN_MIGRATIONS";
+    public const string EditRows = "EDIT_ROWS";
+    public const string RunTests = "RUN_TESTS";
+    public const string Post = "POST";
+    public const string Reverse = "REVERSE";
+    public const string Receive = "RECEIVE";
+    public const string ClosePeriod = "CLOSE_PERIOD";
+    public const string ReopenPeriod = "REOPEN_PERIOD";
+    public const string CreateRoot = "CREATE_ROOT";
+    public const string CreateChild = "CREATE_CHILD";
+    public const string Move = "MOVE";
+    public const string LoadDefaultTree = "LOAD_DEFAULT_TREE";
+    public const string Open = "OPEN";
+    public const string Copy = "COPY";
+    public const string CancelEntry = "CANCEL";
+    public const string SaveDraft = "SAVE_DRAFT";
+    public const string AddLine = "ADD_LINE";
+    public const string DeleteLine = "DELETE_LINE";
+    public const string AutoBalance = "AUTO_BALANCE";
+    public const string SelectParty = "SELECT_PARTY";
+    public const string DistributeCost = "DISTRIBUTE_COST";
+    public const string Print = "PRINT";
+    public const string ImportCsv = "IMPORT_CSV";
+    public const string AutoBalanceEquity = "AUTO_BALANCE_EQUITY";
+    public const string Preview = "PREVIEW";
+    public const string GenerateSingle = "GENERATE_SINGLE";
+    public const string GenerateAll = "GENERATE_ALL";
+    public const string OpenEntry = "OPEN_ENTRY";
+    public const string CheckCompleteness = "CHECK_COMPLETENESS";
+    public const string EnableAutoPost = "ENABLE_AUTO_POST";
+    public const string Save = "SAVE";
+    public const string ManageItems = "MANAGE_ITEMS";
+    public const string EditLines = "EDIT_LINES";
+    public const string ManageDefaults = "MANAGE_DEFAULTS";
+    public const string ManageMethods = "MANAGE_METHODS";
+    public const string Close = "CLOSE";
+    public const string Reopen = "REOPEN";
+    public const string Confirm = "CONFIRM";
+    public const string AssignOthers = "ASSIGN_OTHERS";
+    public const string Execute = "EXECUTE";
+    public const string Manage = "MANAGE";
+    public const string Approve = "APPROVE";
+    public const string Calculate = "CALCULATE";
+    public const string Export = "EXPORT";
+    public const string ViewUnposted = "VIEW_UNPOSTED";
+    public const string Reconcile = "RECONCILE";
+    public const string Checkout = "CHECKOUT";
+    public const string Complete = "COMPLETE";
+}

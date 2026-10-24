@@ -1,0 +1,170 @@
+@using Ubp.Infrastructure.Repositories
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@Title</MudText></TitleContent>
+    <DialogContent>
+        <div class="ubp-form-grid">
+            <MudSelect T="Guid?" Value="_supplierId" Label="@T.T("common.supplier")"
+                       Variant="Variant.Outlined" ValueChanged="@(v => _supplierId = v)">
+                @foreach (var supplier in _suppliers)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)supplier.Id)">
+                        @supplier.Code — @supplier.NameAr
+                    </MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="Guid?" Value="_warehouseId" Label="@T.T("common.warehouse")"
+                       Variant="Variant.Outlined" ValueChanged="@(v => _warehouseId = v)">
+                @foreach (var warehouse in _warehouses)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)warehouse.Id)">@warehouse.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker @bind-Date="_docDate" Label="@T.T("accounting.entry_date")"
+                           Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" Editable="true" />
+            @if (IsReturn)
+            {
+                <MudSelect T="Guid?" Value="_originalId" Label="@T.T("purchasing.original_invoice")"
+                           Variant="Variant.Outlined" ValueChanged="@(v => _originalId = v)">
+                    @foreach (var invoice in _originals)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)invoice.Id)">
+                            @invoice.DocNo — @invoice.Total.ToString("N2")
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            }
+        </div>
+
+        <PurchaseInvoiceLines Lines="_lines" Items="_items" Taxes="_taxes" IsReturn="IsReturn" />
+
+        <div class="d-flex align-center justify-space-between mt-2">
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="AddLine">@T.T("accounting.add_line")</MudButton>
+            <MudText Typo="Typo.body2">@T.T("accounting.total"): <b>@Total.ToString("N2")</b></MudText>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="@(_busy || _lines.Count == 0)">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CommercialDocumentDetail? Detail { get; set; }
+    [Parameter] public string DocType { get; set; } = CommercialDocTypes.PurchaseInvoice;
+
+    [Inject] private PurchaseInvoiceService Purchases { get; set; } = default!;
+    [Inject] private IItemRepository ItemsRepo { get; set; } = default!;
+    [Inject] private IPartnerRepository Partners { get; set; } = default!;
+    [Inject] private IWarehouseRepository Warehouses { get; set; } = default!;
+    [Inject] private MasterDataService MasterData { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private readonly List<PurchaseLineModel> _lines = new();
+    private IReadOnlyList<ItemOption> _items = Array.Empty<ItemOption>();
+    private IReadOnlyList<Partner> _suppliers = Array.Empty<Partner>();
+    private IReadOnlyList<Warehouse> _warehouses = Array.Empty<Warehouse>();
+    private IReadOnlyList<Tax> _taxes = Array.Empty<Tax>();
+    private IReadOnlyList<CommercialDocument> _originals = Array.Empty<CommercialDocument>();
+    private Guid? _supplierId;
+    private Guid? _warehouseId;
+    private Guid? _originalId;
+    private DateTime? _docDate = DateTime.Today;
+    private bool _busy;
+
+    private bool IsReturn => CommercialDocTypes.IsReturn(DocType);
+    private string Title => T.T(IsReturn ? "screen.purchase_returns" : "screen.purchase_invoices");
+
+    private decimal Total => _lines.Sum(l =>
+    {
+        var gross = Math.Round(l.Quantity * l.Price, 2);
+        var net = gross - Math.Round(gross * l.Discount / 100m, 2);
+        var rate = _taxes.FirstOrDefault(t => t.Id == l.TaxId)?.Rate ?? 0m;
+        return net + Math.Round(net * rate / 100m, 2);
+    });
+
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = await UserContext.GetAsync();
+        if (actor is null) return;
+
+        _items = await ItemsRepo.ListOptionsAsync(null, 100);
+        _taxes = await MasterData.TaxOptionsAsync(actor);
+        _suppliers = (await Partners.ListAsync(PartnerKind.Supplier,
+            new PageRequest { Page = 1, PageSize = 25 }, null, false, Array.Empty<Guid>())).Items;
+        _warehouses = await Warehouses.ListOptionsAsync(PermissionScope.All, actor.UserId,
+            actor.AllowedBranchIds, actor.IsAdmin);
+
+        if (IsReturn)
+        {
+            _originals = (await Purchases.ListAsync(actor, new CommercialDocFilter
+            {
+                DocType = CommercialDocTypes.PurchaseInvoice, Status = CommercialStatuses.Posted
+            }, new PageRequest { Page = 1, PageSize = 25 })).Items;
+        }
+
+        if (Detail is null)
+        {
+            _warehouseId = _warehouses.FirstOrDefault()?.Id;
+            AddLine();
+            return;
+        }
+
+        _supplierId = Detail.Header.SupplierId;
+        _warehouseId = Detail.Header.WarehouseId;
+        _originalId = Detail.Header.OriginalDocumentId;
+        _docDate = Detail.Header.DocDate;
+        foreach (var line in Detail.Lines)
+        {
+            _lines.Add(new PurchaseLineModel
+            {
+                ItemId = line.ItemId, UnitId = line.UnitId, Quantity = line.Quantity,
+                Price = line.UnitPrice, Discount = line.DiscountPercent, TaxId = line.TaxId,
+                LotNumber = line.LotNumber, Expiry = line.ExpiryDate
+            });
+        }
+    }
+
+    private void AddLine() => _lines.Add(new PurchaseLineModel
+    {
+        ItemId = _items.FirstOrDefault()?.Id ?? Guid.Empty,
+        UnitId = _items.FirstOrDefault()?.BaseUnitId ?? Guid.Empty
+    });
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var detail = await Purchases.SaveAsync(actor, Detail?.Header.Id,
+                Detail?.Header.Version ?? 0, new CommercialDocumentInput
+                {
+                    DocType = DocType,
+                    BranchId = Detail?.Header.BranchId ?? actor.CurrentBranchId ?? Guid.Empty,
+                    WarehouseId = _warehouseId,
+                    DocDate = _docDate ?? DateTime.Today,
+                    SupplierId = _supplierId,
+                    OriginalDocumentId = IsReturn ? _originalId : null,
+                    Lines = _lines.Select(l => new CommercialDocumentLineInput
+                    {
+                        ItemId = l.ItemId, UnitId = l.UnitId, ConversionFactor = 1,
+                        Quantity = l.Quantity, UnitPrice = l.Price, DiscountPercent = l.Discount,
+                        TaxId = l.TaxId, LotNumber = l.LotNumber, ExpiryDate = l.Expiry
+                    }).ToList()
+                });
+            MudDialog.Close(DialogResult.Ok(detail.Header));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}
+

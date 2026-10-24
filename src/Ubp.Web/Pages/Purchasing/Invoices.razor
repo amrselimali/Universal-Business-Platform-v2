@@ -1,0 +1,155 @@
+@page "/purchasing/invoices"
+@page "/purchasing/returns"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject PurchaseInvoiceService Purchases
+@inject IDialogService Dialogs
+<PageTitle>@T.T(IsReturn ? "screen.purchase_returns" : "screen.purchase_invoices")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T(IsReturn ? "screen.purchase_returns" : "screen.purchase_invoices")"
+                Subtitle="@T.T("purchasing.invoices_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Create))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">@T.T("common.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudTextField @bind-Value="_search" Placeholder="@T.T("common.search")" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search"
+                          DebounceInterval="300" OnDebounceIntervalElapsed="ReloadAsync" />
+            <MudSelect T="string?" @bind-Value="_status" Label="@T.T("common.status")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       @bind-Value:after="ReloadAsync">
+                <MudSelectItem T="string?" Value="@CommercialStatuses.Draft">@T.T("accounting.status_draft")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@CommercialStatuses.Posted">@T.T("accounting.status_posted")</MudSelectItem>
+            </MudSelect>
+        </div>
+
+        <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("accounting.entry_no")</MudTh>
+                <MudTh>@T.T("accounting.entry_date")</MudTh>
+                <MudTh>@T.T("common.supplier")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@(context.DocNo ?? "—")</span></MudTd>
+                <MudTd>@context.DocDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd>@context.PartyName</MudTd>
+                <MudTd Align="Right">@context.Total.ToString("N2")</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@(context.IsPosted ? Color.Success : Color.Warning)">
+                        @T.T("accounting.status_" + context.Status)
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true" AnchorOrigin="Origin.BottomRight">
+                        @if (context.IsDraft && Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => EditAsync(context))" Icon="@Icons.Material.Filled.Edit">
+                                @T.T("common.edit")
+                            </MudMenuItem>
+                        }
+                        @if (context.IsDraft && Can(ActionCodes.Post))
+                        {
+                            <MudMenuItem OnClick="@(() => PostAsync(context))" Icon="@Icons.Material.Filled.CheckCircle">
+                                @T.T("accounting.post")
+                            </MudMenuItem>
+                        }
+                        @if (context.IsDraft && Can(ActionCodes.Delete))
+                        {
+                            <MudMenuItem OnClick="@(() => DeleteAsync(context))" Icon="@Icons.Material.Filled.Delete">
+                                @T.T("common.delete")
+                            </MudMenuItem>
+                        }
+
+@code {
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private MudTable<CommercialDocument> _table = default!;
+    private string? _search;
+    private string? _status;
+
+    private bool IsReturn => Nav.Uri.Contains("/purchasing/returns", StringComparison.OrdinalIgnoreCase);
+    private string DocType => IsReturn ? CommercialDocTypes.PurchaseReturn : CommercialDocTypes.PurchaseInvoice;
+
+    protected override string ScreenCode =>
+        IsReturn ? ScreenCodes.PurchaseReturns : ScreenCodes.PurchaseInvoices;
+
+    protected override Task OnLoadAsync() => Task.CompletedTask;
+
+    private async Task<TableData<CommercialDocument>> LoadServerData(TableState state, CancellationToken ct)
+    {
+        var result = await Purchases.ListAsync(Actor!, new CommercialDocFilter
+        {
+            DocType = DocType, Search = _search, Status = _status
+        }, new PageRequest
+        {
+            Page = state.Page + 1, PageSize = 25, SortBy = "doc_date", Descending = true
+        }, ct);
+        return new TableData<CommercialDocument> { Items = result.Items, TotalItems = result.Total };
+    }
+
+    private async Task ReloadAsync() => await _table.ReloadServerData();
+
+    private async Task AddAsync() => await OpenDialogAsync(null);
+
+    private async Task EditAsync(CommercialDocument doc) =>
+        await OpenDialogAsync(await Purchases.GetAsync(Actor!, doc.Id));
+
+    private async Task OpenDialogAsync(CommercialDocumentDetail? detail)
+    {
+        var dialog = await Dialogs.ShowAsync<PurchaseInvoiceDialog>(
+            T.T(IsReturn ? "screen.purchase_returns" : "screen.purchase_invoices"),
+            new DialogParameters { ["Detail"] = detail, ["DocType"] = DocType });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await ReloadAsync();
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task PostAsync(CommercialDocument doc) => await RunAsync(async () =>
+    {
+        await Purchases.PostAsync(Actor!, doc.Id);
+        await ReloadAsync();
+        ShowSuccess("accounting.posted");
+    });
+
+    private async Task DeleteAsync(CommercialDocument doc) => await RunAsync(async () =>
+    {
+        await Purchases.DeleteAsync(Actor!, doc.Id);
+        await ReloadAsync();
+        ShowSuccess("common.deleted");
+    });
+}
+
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}

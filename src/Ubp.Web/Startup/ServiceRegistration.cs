@@ -127,6 +127,21 @@ public static class ServiceRegistration
         services.AddScoped<IAccountingSettingsRepository, AccountingSettingsRepository>();
         services.AddScoped<IAccountingReportRepository, AccountingReportRepository>();
         services.AddScoped<IStockAccountingRepository, StockAccountingRepository>();
+        services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<ITaxRepository, TaxRepository>();
+        services.AddScoped<IPaymentTermRepository, PaymentTermRepository>();
+        services.AddScoped<IPriceListRepository, PriceListRepository>();
+        services.AddScoped<IServiceRecipeRepository, ServiceRecipeRepository>();
+        services.AddScoped<IBranchSettingsRepository, BranchSettingsRepository>();
+        services.AddScoped<ICommercialDocumentRepository, CommercialDocumentRepository>();
+        services.AddScoped<ITreasuryRepository, TreasuryRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+        services.AddScoped<IDeliveryRepository, DeliveryRepository>();
+        services.AddScoped<ISalesInvoiceRepository, SalesInvoiceRepository>();
+        services.AddScoped<ISalesFinanceRepository, SalesFinanceRepository>();
+        services.AddScoped<IPosRepository, PosRepository>();
+        services.AddScoped<IFollowUpRepository, FollowUpRepository>();
     }
 
     private static void AddApplicationServices(IServiceCollection services)
@@ -161,5 +176,16 @@ public static class ServiceRegistration
         services.AddScoped<OpeningBalanceService>();
         services.AddScoped<StockAccountingService>();
         services.AddScoped<AccountingReportService>();
+        services.AddScoped<MasterDataService>();
+        services.AddScoped<RecipeService>();
+        services.AddScoped<PostingReadinessService>();
+        services.AddScoped<PurchaseInvoiceService>();
+        services.AddScoped<TreasuryService>();
+        services.AddScoped<BookingService>();
+        services.AddScoped<SalesFulfillmentService>();
+        services.AddScoped<SalesInvoiceService>();
+        services.AddScoped<SalesFinanceService>();
+        services.AddScoped<PosService>();
+        services.AddScoped<FollowUpService>();
     }
 }

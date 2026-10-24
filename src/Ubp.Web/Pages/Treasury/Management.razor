@@ -1,0 +1,114 @@
+@page "/treasury/management"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject TreasuryService Treasury
+@inject BranchService Branches
+@inject IDialogService Dialogs
+<PageTitle>@T.T("screen.treasuries")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.treasuries")" Subtitle="@T.T("treasury.management_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Create))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">@T.T("common.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("common.code")</MudTh>
+                <MudTh>@T.T("common.name_ar")</MudTh>
+                <MudTh>@T.T("treasury.type")</MudTh>
+                <MudTh>@T.T("treasury.account")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.opening_balance")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@context.Code</span></MudTd>
+                <MudTd>@context.DisplayName(IsEnglish)</MudTd>
+                <MudTd>@T.T("treasury.type_" + context.TreasuryType)</MudTd>
+                <MudTd>@context.AccountCode — @context.AccountName</MudTd>
+                <MudTd Align="Right">@context.OpeningBalance.ToString("N2")</MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true"
+                             AnchorOrigin="Origin.BottomRight">
+                        @if (Can(ActionCodes.ManageMethods))
+                        {
+                            <MudMenuItem OnClick="@(() => MethodsAsync(context))"
+                                         Icon="@Icons.Material.Filled.CreditCard">
+                                @T.T("treasury.methods")
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<Treasury> _items = Array.Empty<Treasury>();
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private Guid? _branchId;
+
+    private bool IsEnglish => T.Language == "en";
+
+    protected override string ScreenCode => ScreenCodes.Treasuries;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _items = await Treasury.ListTreasuriesAsync(Actor!, _branchId);
+    }
+
+    private async Task OnBranchChanged(Guid? value)
+    {
+        _branchId = value;
+        await RunAsync(ReloadAsync);
+    }
+
+    private async Task AddAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<TreasuryDialog>(T.T("screen.treasuries"),
+            new DialogParameters
+            {
+                ["Branches"] = _branches, ["DefaultBranchId"] = _branchId
+            });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task MethodsAsync(Treasury treasury)
+    {
+        var dialog = await Dialogs.ShowAsync<TreasuryMethodsDialog>(treasury.DisplayName(IsEnglish),
+            new DialogParameters { ["Treasury"] = treasury });
+        if ((await dialog.Result) is { Canceled: false }) ShowSuccess("common.saved");
+    }
+}

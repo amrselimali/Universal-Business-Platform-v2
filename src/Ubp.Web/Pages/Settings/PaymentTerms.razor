@@ -1,0 +1,101 @@
+@page "/settings/payment-terms"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject MasterDataService MasterData
+@inject IDialogService Dialogs
+<PageTitle>@T.T("screen.payment_terms")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.payment_terms")" Subtitle="@T.T("settings.payment_terms_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Create))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">@T.T("common.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("common.code")</MudTh>
+                <MudTh>@T.T("common.name_ar")</MudTh>
+                <MudTh>@T.T("settings.net_days")</MudTh>
+                <MudTh>@T.T("settings.discount_percent")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@context.Code</span></MudTd>
+                <MudTd>@context.DisplayName(IsEnglish)</MudTd>
+                <MudTd>@context.NetDays</MudTd>
+                <MudTd>@context.DiscountPercent.ToString("N2")</MudTd>
+                <MudTd>
+                    <MudSwitch T="bool" Value="@context.IsActive" Color="Color.Success"
+                               Disabled="@(!Can(ActionCodes.ToggleActive))"
+                               ValueChanged="@(v => ToggleAsync(context, v))" />
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true" AnchorOrigin="Origin.BottomRight">
+                        @if (Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => EditAsync(context))" Icon="@Icons.Material.Filled.Edit">
+                                @T.T("common.edit")
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private MudTable<PaymentTerm> _table = default!;
+    private bool IsEnglish => T.Language == "en";
+
+    protected override string ScreenCode => ScreenCodes.PaymentTerms;
+    protected override Task OnLoadAsync() => Task.CompletedTask;
+
+    private async Task<TableData<PaymentTerm>> LoadServerData(TableState state, CancellationToken ct)
+    {
+        var result = await MasterData.ListPaymentTermsAsync(Actor!, new PageRequest
+        { Page = state.Page + 1, PageSize = 25, SortBy = "code" }, true, ct);
+        return new TableData<PaymentTerm> { Items = result.Items, TotalItems = result.Total };
+    }
+
+    private async Task AddAsync() => await OpenDialogAsync(null);
+    private async Task EditAsync(PaymentTerm term) => await OpenDialogAsync(term);
+
+    private async Task OpenDialogAsync(PaymentTerm? model)
+    {
+        var dialog = await Dialogs.ShowAsync<PaymentTermDialog>(T.T("screen.payment_terms"),
+            new DialogParameters { ["Model"] = model });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await _table.ReloadServerData();
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task ToggleAsync(PaymentTerm term, bool value) => await RunAsync(async () =>
+    {
+        await MasterData.SetPaymentTermActiveAsync(Actor!, term.Id, value);
+        await _table.ReloadServerData();
+        ShowSuccess("common.saved");
+    });
+}
