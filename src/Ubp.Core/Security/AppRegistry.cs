@@ -218,13 +218,19 @@ public static class AppRegistry
         new(ScreenCodes.TreasuryVouchers, "/treasury/vouchers", "ReceiptLong",
             "screen.treasury_vouchers", GroupAccounting,
             new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
-                    A(ActionCodes.Delete), A(ActionCodes.Post), A(ActionCodes.Print) },
+                    A(ActionCodes.Delete), A(ActionCodes.Post), A(ActionCodes.Print),
+                    A(ActionCodes.CancelEntry) },
             "treasury.vouchers"),
 
         new(ScreenCodes.TreasuryShifts, "/treasury/shifts", "PointOfSale",
             "screen.treasury_shifts", GroupAccounting,
-            new[] { A(ActionCodes.View), A(ActionCodes.Open), A(ActionCodes.Close) },
-            "treasury.shifts")
+            new[] { A(ActionCodes.View), A(ActionCodes.Open), A(ActionCodes.Close),
+                    A(ActionCodes.Reopen) },
+            "treasury.shifts"),
+
+        new(ScreenCodes.TreasuryReconciliation, "/treasury/reconciliation", "SwapHoriz",
+            "screen.treasury_reconciliation", GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.Post) }, "treasury.reconciliation")
     };
 
     public static readonly IReadOnlyDictionary<string, ScreenDefinition> ByCode =

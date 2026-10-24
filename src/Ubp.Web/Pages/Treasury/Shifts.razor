@@ -71,6 +71,11 @@ else
                         <MudButton Size="Size.Small" Variant="Variant.Outlined"
                                    OnClick="@(() => CloseAsync(context))">@T.T("treasury.close_shift")</MudButton>
                     }
+                    else if (!context.IsOpen && Can(ActionCodes.Reopen))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning"
+                                   OnClick="@(() => ReopenAsync(context))">@T.T("treasury.reopen_shift")</MudButton>
+                    }
                 </MudTd>
             </RowTemplate>
         </MudTable>
@@ -114,6 +119,17 @@ else
         {
             await RunAsync(ReloadAsync);
             ShowSuccess("treasury.shift_closed");
+        }
+    }
+
+    private async Task ReopenAsync(Shift shift)
+    {
+        var dialog = await Dialogs.ShowAsync<ReopenShiftDialog>(T.T("treasury.reopen_shift"),
+            new DialogParameters { ["Shift"] = shift });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("treasury.shift_open");
         }
     }
 }

@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 2026-10-24 — Phase 4C-ب: clearing reconciliation, voucher cancel, shift reopen, allocation UI
+
+### Added
+- Migration `0029`: clearing-account index for `treasury_methods`, plus `reopened_at` and
+  `reopen_reason` on `cashier_shifts`.
+- `/treasury/reconciliation`: clearing balances (cards/wallets/cheques) aggregated from
+  `gl_balances`, with a settlement dialog that posts one balanced entry between the clearing
+  account and the selected treasury (`treasury.reconciliation.view/post`).
+- Voucher cancel for drafts (`treasury.vouchers.cancel`) — posted vouchers stay immutable.
+- Allocation dialog on posted receipts/payments: lists only open invoices of the party,
+  shows the remaining voucher amount, and calls the existing allocation engine.
+- Shift reopen with a mandatory reason (`treasury.shifts.reopen`): reverses the variance entry
+  through `fn_gl_reverse_entry`, returns the shift to `open` and keeps the single-open-shift
+  invariant; the reason is audited.
+- 4 tests (100 total): clearing settlement zeroes the account, cancel rules, reopen/reclose with
+  reversal, and allocation listing limits.
+
+### Changed
+- `TreasuryService` split into partial files (core, vouchers, shifts, reconciliation) to keep the
+  300-line limit; `TreasuryRepository` gained `Reconcile.cs` and `Reopen.cs`.
+
 ## 2026-10-24 — Phase 4C: treasuries, payment methods, vouchers & cashier shifts
 
 ### Added

@@ -19,6 +19,9 @@ public interface ITreasuryRepository
         int limit, CancellationToken ct = default);
     Task<Guid> PostVoucherAsync(Guid id, Guid userId, CancellationToken ct = default);
     Task<bool> DeleteVoucherAsync(Guid id, CancellationToken ct = default);
+    Task<bool> CancelVoucherAsync(Guid id, CancellationToken ct = default);
+    Task<IReadOnlyList<OpenDocument>> ListOpenDocumentsAsync(string partyType, Guid partyId,
+        int limit, CancellationToken ct = default);
     Task<Guid> AllocateAsync(Guid voucherId, Guid documentId, decimal amount, Guid userId,
         CancellationToken ct = default);
     Task<IReadOnlyList<VoucherAllocation>> ListAllocationsAsync(Guid voucherId,
@@ -35,6 +38,13 @@ public interface ITreasuryRepository
         CancellationToken ct = default);
     Task<IReadOnlyList<ShiftDenomination>> ListDenominationsAsync(Guid shiftId,
         CancellationToken ct = default);
+    Task<Shift> ReopenShiftAsync(Guid shiftId, string reason, Guid userId,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<ClearingBalance>> ListClearingBalancesAsync(Guid? branchId,
+        CancellationToken ct = default);
+    Task<Guid> SettleClearingAsync(Guid treasuryId, Guid clearingAccountId, decimal amount,
+        DateTime docDate, string? reference, Guid userId, CancellationToken ct = default);
 }
 
 public sealed partial class TreasuryRepository : ITreasuryRepository

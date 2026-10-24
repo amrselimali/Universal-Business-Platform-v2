@@ -1,0 +1,112 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("treasury.settle") — @Balance.AccountCode</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudSelect T="Guid" Value="_branchId" Label="@T.T("common.branch")"
+                           Variant="Variant.Outlined" ValueChanged="OnBranchChanged">
+                    @foreach (var branch in Branches)
+                    {
+                        <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid" @bind-Value="_treasuryId" Label="@T.T("treasury.treasury")"
+                           Variant="Variant.Outlined" Required="true">
+                    @foreach (var treasury in _treasuries)
+                    {
+                        <MudSelectItem T="Guid" Value="@treasury.Id">
+                            @treasury.Code — @treasury.DisplayName(_english)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudNumericField @bind-Value="_amount" Label="@T.T("treasury.settlement_amount")"
+                                 Variant="Variant.Outlined" Format="N2" />
+                <MudDatePicker @bind-Date="_date" Label="@T.T("treasury.settlement_date")"
+                               Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_reference" Label="@T.T("treasury.reference")"
+                              Variant="Variant.Outlined" MaxLength="100" />
+            </div>
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                @T.T("treasury.balance"): @Balance.Balance.ToString("N2")
+            </MudAlert>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("treasury.settle")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ClearingBalance Balance { get; set; } = default!;
+    [Parameter] public IReadOnlyList<Branch> Branches { get; set; } = Array.Empty<Branch>();
+    [Parameter] public Guid? BranchId { get; set; }
+
+    [Inject] private TreasuryService Treasury { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private IReadOnlyList<Treasury> _treasuries = Array.Empty<Treasury>();
+    private Guid _branchId;
+    private Guid _treasuryId;
+    private decimal _amount;
+    private DateTime? _date = DateTime.Today;
+    private string? _reference;
+    private bool _busy;
+    private bool _english;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _english = T.Language == "en";
+        _branchId = BranchId ?? Branches.FirstOrDefault()?.Id ?? Guid.Empty;
+        _amount = Balance.Balance;
+
+        var actor = await UserContext.GetAsync();
+        if (actor is not null) await ReloadTreasuriesAsync(actor);
+    }
+
+    private async Task ReloadTreasuriesAsync(ActorContext actor)
+    {
+        _treasuries = await Treasury.ListTreasuriesAsync(actor, _branchId);
+        _treasuryId = _treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
+    }
+
+    private async Task OnBranchChanged(Guid value)
+    {
+        _branchId = value;
+        try { await ReloadTreasuriesAsync(await UserContext.RequireAsync()); }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { StateHasChanged(); }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid || _treasuryId == Guid.Empty || _amount == 0)
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var entryId = await Treasury.SettleClearingAsync(actor, _treasuryId, Balance.AccountId,
+                _amount, _date ?? DateTime.Today, _reference);
+            MudDialog.Close(DialogResult.Ok(entryId));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

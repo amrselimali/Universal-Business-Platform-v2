@@ -25,6 +25,8 @@ public sealed partial class TreasuryRepository
         public decimal? Variance { get; set; }
         public string Status { get; set; } = ShiftStatuses.Open;
         public string? Notes { get; set; }
+        public DateTimeOffset? ReopenedAt { get; set; }
+        public string? ReopenReason { get; set; }
     }
 
     private const string ShiftSelect = """
@@ -33,7 +35,8 @@ public sealed partial class TreasuryRepository
                u.username AS Username, s.code AS Code, s.opened_at AS OpenedAt,
                s.closed_at AS ClosedAt, s.opening_cash AS OpeningCash,
                s.expected_cash AS ExpectedCash, s.counted_cash AS CountedCash,
-               s.variance AS Variance, s.status AS Status, s.notes AS Notes
+               s.variance AS Variance, s.status AS Status, s.notes AS Notes,
+               s.reopened_at AS ReopenedAt, s.reopen_reason AS ReopenReason
         FROM cashier_shifts s
         JOIN treasuries t ON t.id = s.treasury_id
         LEFT JOIN users u ON u.id = s.user_id
@@ -114,7 +117,8 @@ public sealed partial class TreasuryRepository
             Username = row.Username, Code = row.Code, OpenedAt = row.OpenedAt,
             ClosedAt = row.ClosedAt, OpeningCash = row.OpeningCash,
             ExpectedCash = row.ExpectedCash, CountedCash = row.CountedCash, Variance = row.Variance,
-            Status = row.Status, Notes = row.Notes
+            Status = row.Status, Notes = row.Notes, ReopenedAt = row.ReopenedAt,
+            ReopenReason = row.ReopenReason
         };
         shift.Denominations = (await ListDenominationsAsync(connection, shift.Id, ct)).ToList();
         return shift;
@@ -228,7 +232,8 @@ public sealed partial class TreasuryRepository
             Username = row.Username, Code = row.Code, OpenedAt = row.OpenedAt,
             ClosedAt = row.ClosedAt, OpeningCash = row.OpeningCash,
             ExpectedCash = row.ExpectedCash, CountedCash = row.CountedCash, Variance = row.Variance,
-            Status = row.Status, Notes = row.Notes
+            Status = row.Status, Notes = row.Notes, ReopenedAt = row.ReopenedAt,
+            ReopenReason = row.ReopenReason
         }).ToList();
     }
 

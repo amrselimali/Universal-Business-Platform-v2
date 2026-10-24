@@ -205,6 +205,8 @@ public sealed class Shift
     public decimal? Variance { get; set; }
     public string Status { get; set; } = ShiftStatuses.Open;
     public string? Notes { get; set; }
+    public DateTimeOffset? ReopenedAt { get; set; }
+    public string? ReopenReason { get; set; }
     public List<ShiftDenomination> Denominations { get; set; } = new();
 
     public bool IsOpen => Status == ShiftStatuses.Open;
@@ -230,4 +232,29 @@ public sealed class ShiftDenomination
     public decimal Denomination { get; set; }
     public int Count { get; set; }
     public decimal Total => Math.Round(Denomination * Count, 2, MidpointRounding.AwayFromZero);
+}
+
+/// <summary>رصيد حساب وسيط (بطاقات/محافظ/شيكات) قبل تسويته إلى البنك أو الخزينة.</summary>
+public sealed class ClearingBalance
+{
+    public Guid AccountId { get; set; }
+    public string AccountCode { get; set; } = "";
+    public string AccountName { get; set; } = "";
+    public decimal Debit { get; set; }
+    public decimal Credit { get; set; }
+
+    public decimal Balance => Math.Round(Debit - Credit, 2, MidpointRounding.AwayFromZero);
+}
+
+/// <summary>مستند تجاري مفتوح (له رصيد غير مخصص) لقائمة التخصيص.</summary>
+public sealed class OpenDocument
+{
+    public Guid Id { get; set; }
+    public string DocType { get; set; } = "";
+    public string? DocNo { get; set; }
+    public DateTime DocDate { get; set; }
+    public decimal Total { get; set; }
+    public decimal AllocatedTotal { get; set; }
+
+    public decimal Balance => Math.Round(Total - AllocatedTotal, 2, MidpointRounding.AwayFromZero);
 }

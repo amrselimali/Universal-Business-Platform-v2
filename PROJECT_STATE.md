@@ -25,10 +25,13 @@
   and closing time.
 
 ### Known limitations
-- 4C remaining: intermediary-account reconciliation screen (`/treasury/reconciliation`), voucher
-  cancel/reprint, shift reopen; allocation has an API and tests but no screen action yet.
+- 4D onward not started; see `docs/PHASE-REMAINING-AR.md` for the full breakdown.
 - Vouchers are not linked to a specific shift row; movements are time-window based.
 - No cheque clearing dates, no multi-currency treasury, no bank statement import.
+
+### Phase 4C-ب (completed 2026-10-24)
+- `/treasury/reconciliation` + settlement entry, voucher cancel for drafts, shift reopen with
+  reversal of the variance entry, and an allocation dialog on posted vouchers — 100 tests total.
 
 ### Next
 4D (bookings/deliveries) → 4E (sales invoices/returns) → 4F (reports) → 4G/4H → 6 → 7.

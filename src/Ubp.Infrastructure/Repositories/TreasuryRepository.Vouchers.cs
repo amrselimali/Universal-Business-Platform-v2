@@ -222,4 +222,14 @@ public sealed partial class TreasuryRepository
             ORDER BY d.doc_date, d.id
             """, new { voucherId }, cancellationToken: ct))).ToList();
     }
+
+    /// <summary>إلغاء مسودة سند فقط؛ السند المرحّل لا يُلغى ولا يُحذف (G8).</summary>
+    public async Task<bool> CancelVoucherAsync(Guid id, CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE vouchers SET status = 'cancelled' WHERE id = @id AND status = 'draft'",
+            new { id }, cancellationToken: ct)) > 0;
+    }
+
 }

@@ -80,6 +80,17 @@ else
                             <MudMenuItem OnClick="@(() => PostAsync(context))"
                                          Icon="@Icons.Material.Filled.CheckCircle">@T.T("accounting.post")</MudMenuItem>
                         }
+                        @if (context.IsDraft && Can(ActionCodes.CancelEntry))
+                        {
+                            <MudMenuItem OnClick="@(() => CancelAsync(context))"
+                                         Icon="@Icons.Material.Filled.Block">@T.T("treasury.cancel_voucher")</MudMenuItem>
+                        }
+                        @if (context.IsPosted && context.VoucherType != VoucherTypes.Transfer &&
+                             Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => AllocateAsync(context))"
+                                         Icon="@Icons.Material.Filled.CallSplit">@T.T("treasury.allocation")</MudMenuItem>
+                        }
                         @if (context.IsDraft && Can(ActionCodes.Delete))
                         {
                             <MudMenuItem OnClick="@(() => DeleteAsync(context))"
@@ -137,6 +148,24 @@ else
         await ReloadAsync();
         ShowSuccess("common.deleted");
     });
+
+    private async Task CancelAsync(Voucher voucher) => await RunAsync(async () =>
+    {
+        await Treasury.CancelVoucherAsync(Actor!, voucher.Id);
+        await ReloadAsync();
+        ShowSuccess("treasury.voucher_cancelled");
+    });
+
+    private async Task AllocateAsync(Voucher voucher)
+    {
+        var dialog = await Dialogs.ShowAsync<AllocationDialog>(T.T("treasury.allocation"),
+            new DialogParameters { ["Voucher"] = voucher });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("common.saved");
+        }
+    }
 }
 
 }

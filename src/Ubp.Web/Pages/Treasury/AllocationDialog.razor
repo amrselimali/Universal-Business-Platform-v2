@@ -1,0 +1,111 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("treasury.allocation") — @Voucher.DocNo</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_open.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">@T.T("treasury.no_open_invoices")</MudAlert>
+        }
+        else
+        {
+            <MudTable Items="_open" Dense="true" Elevation="0" Class="ubp-table my-2">
+                <HeaderContent>
+                    <MudTh>@T.T("treasury.invoice")</MudTh>
+                    <MudTh>@T.T("common.date")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                    <MudTh Align="Right">@T.T("treasury.allocated_total")</MudTh>
+                    <MudTh Align="Right">@T.T("treasury.balance")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><span class="ubp-code">@(context.DocNo ?? "—")</span></MudTd>
+                    <MudTd>@context.DocDate.ToString("yyyy-MM-dd")</MudTd>
+                    <MudTd Align="Right">@context.Total.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.AllocatedTotal.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.Balance.ToString("N2")</MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <div class="ubp-form-grid mt-2">
+                <MudSelect T="Guid?" Value="_documentId" Label="@T.T("treasury.invoice")"
+                           Variant="Variant.Outlined" ValueChanged="OnDocumentChanged">
+                    @foreach (var document in _open)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)document.Id)">
+                            @document.DocNo — @document.Balance.ToString("N2")
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudNumericField @bind-Value="_amount" Label="@T.T("common.amount")"
+                                 Variant="Variant.Outlined" Min="0m" Format="N2" />
+            </div>
+            <MudText Typo="Typo.caption" Class="mt-2">
+                @T.T("treasury.voucher_remaining"): @Remaining.ToString("N2")
+            </MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="@(_busy || _open.Count == 0)">@T.T("treasury.allocation")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Voucher Voucher { get; set; } = default!;
+
+    [Inject] private TreasuryService Treasury { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private IReadOnlyList<OpenDocument> _open = Array.Empty<OpenDocument>();
+    private Guid? _documentId;
+    private decimal _amount;
+    private decimal _allocated;
+    private bool _busy;
+
+    private decimal Remaining => Math.Round(Voucher.TotalAmount - _allocated, 2,
+        MidpointRounding.AwayFromZero);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = await UserContext.GetAsync();
+        if (actor is null) return;
+        _open = await Treasury.ListOpenDocumentsAsync(actor, Voucher.Id);
+        var allocations = await Treasury.ListAllocationsAsync(actor, Voucher.Id);
+        _allocated = allocations.Sum(a => a.Amount);
+    }
+
+    private void OnDocumentChanged(Guid? value)
+    {
+        _documentId = value;
+        var document = _open.FirstOrDefault(d => d.Id == value);
+        if (document is not null) _amount = Math.Min(document.Balance, Remaining);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        if (_documentId is null || _amount <= 0)
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var allocationId = await Treasury.AllocateAsync(actor, Voucher.Id, _documentId.Value,
+                _amount);
+            MudDialog.Close(DialogResult.Ok(allocationId));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

@@ -1,0 +1,58 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("treasury.reopen_shift") — @Shift.Code</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+            @T.T("treasury.reopen_hint")
+        </MudAlert>
+        <div class="ubp-toolbar">
+            <MudText>@T.T("treasury.expected_cash"): <b>@Shift.ExpectedCash.ToString("N2")</b></MudText>
+            <MudText>@T.T("treasury.counted_cash"): <b>@(Shift.CountedCash?.ToString("N2") ?? "—")</b></MudText>
+            <MudText>@T.T("treasury.variance"): <b>@(Shift.Variance?.ToString("N2") ?? "—")</b></MudText>
+        </div>
+        <MudTextField @bind-Value="_reason" Label="@T.T("treasury.reopen_reason")" Required="true"
+                      Variant="Variant.Outlined" Lines="3" MaxLength="300" Class="mt-2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Warning" Variant="Variant.Filled" OnClick="ConfirmAsync"
+                   Disabled="_busy">@T.T("treasury.reopen_shift")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Shift Shift { get; set; } = default!;
+
+    [Inject] private TreasuryService Treasury { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private string? _reason;
+    private bool _busy;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task ConfirmAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_reason))
+        {
+            Snackbar.Add(T.T("validation.shift_reason_required"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var shift = await Treasury.ReopenShiftAsync(actor, Shift.Id, _reason);
+            MudDialog.Close(DialogResult.Ok(shift));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

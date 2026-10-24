@@ -56,6 +56,7 @@ public static class ScreenCodes
     public const string Treasuries = "TREASURIES";
     public const string TreasuryVouchers = "TREASURY_VOUCHERS";
     public const string TreasuryShifts = "TREASURY_SHIFTS";
+    public const string TreasuryReconciliation = "TREASURY_RECONCILIATION";
 }
 
 public static class ActionCodes
@@ -109,4 +110,5 @@ public static class ActionCodes
     public const string ManageDefaults = "MANAGE_DEFAULTS";
     public const string ManageMethods = "MANAGE_METHODS";
     public const string Close = "CLOSE";
+    public const string Reopen = "REOPEN";
 }

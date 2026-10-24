@@ -144,9 +144,9 @@ cancel(booking)  → reserved_qty -= المتبقي
 | المسار | الشاشة | الأزرار |
 |---|---|---|
 | `/treasury/management` | الخزائن وطرق الدفع | `treasury.management.view/create/manage_methods` ✅ |
-| `/treasury/vouchers` | سندات القبض/الصرف/التحويل | `treasury.vouchers.view/create/edit/delete/post/print` ✅ (print لاحقاً) |
-| `/treasury/shifts` | ورديات الكاشير | `treasury.shifts.view/open/close` ✅ (reopen لاحقاً) |
-| `/treasury/reconciliation` | تسوية الحسابات الوسيطة | `treasury.reconciliation.view/post` — لم يبدأ |
+| `/treasury/vouchers` | سندات القبض/الصرف/التحويل | `treasury.vouchers.view/create/edit/delete/post/cancel/print` ✅ (print لاحقاً) |
+| `/treasury/shifts` | ورديات الكاشير | `treasury.shifts.view/open/close/reopen` ✅ |
+| `/treasury/reconciliation` | تسوية الحسابات الوسيطة | `treasury.reconciliation.view/post` ✅ |
 
 **القيود المطبَّقة فعلياً (0027/0028 + `TreasuryRepository`):**
 ```
