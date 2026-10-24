@@ -460,6 +460,7 @@
   "permissions.override": "استثناء فردي",
   "permissions.saved": "تم حفظ الصلاحيات",
   "purchasing.invoices_hint": "فواتير الشراء: الترحيل ينشئ دفعات المخزون وقيد الأستاذ",
+  "purchasing.original_invoice": "الفاتورة الأصلية",
   "purchasing.returns_hint": "مرتجعات الشراء: تُصرَف بالمتوسط والفرق على حساب فروق الأسعار",
   "qa.category": "التصنيف",
   "qa.code": "كود الاختبار",

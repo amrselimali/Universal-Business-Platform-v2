@@ -460,6 +460,7 @@
   "permissions.override": "Override",
   "permissions.saved": "Permissions saved",
   "purchasing.invoices_hint": "Purchase invoices: posting creates stock lots and the GL entry",
+  "purchasing.original_invoice": "Original Invoice",
   "purchasing.returns_hint": "Purchase returns: issued at average cost with the difference on price variance",
   "qa.category": "Category",
   "qa.code": "Test code",

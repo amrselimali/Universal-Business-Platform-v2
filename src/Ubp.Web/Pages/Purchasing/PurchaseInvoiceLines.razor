@@ -1,0 +1,89 @@
+@inherits ComponentBase
+
+<MudSimpleTable Dense="true" Class="mt-3">
+    <thead>
+        <tr>
+            <th>@T.T("accounting.account")</th>
+            <th>@T.T("common.quantity")</th>
+            <th>@T.T("settings.price")</th>
+            <th>@T.T("settings.discount_percent")</th>
+            <th>@T.T("settings.tax_rate")</th>
+            @if (!IsReturn)
+            {
+                <th>@T.T("stock.lot_number")</th>
+                <th>@T.T("stock.expiry_date")</th>
+            }
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var line in Lines)
+        {
+            <tr>
+                <td style="min-width:190px">
+                    <MudSelect T="Guid" Value="line.ItemId" Dense="true" Variant="Variant.Outlined"
+                               ValueChanged="@(v => OnItemChanged(line, v))">
+                        @foreach (var item in Items)
+                        {
+                            <MudSelectItem T="Guid" Value="@item.Id">@item.Code — @item.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                </td>
+                <td style="min-width:100px">
+                    <MudNumericField T="decimal" @bind-Value="line.Quantity" Dense="true"
+                                     Variant="Variant.Outlined" Min="0.0001m" />
+                </td>
+                <td style="min-width:110px">
+                    <MudNumericField T="decimal" @bind-Value="line.Price" Dense="true"
+                                     Variant="Variant.Outlined" Min="0m" Format="N4" />
+                </td>
+                <td style="min-width:90px">
+                    <MudNumericField T="decimal" @bind-Value="line.Discount" Dense="true"
+                                     Variant="Variant.Outlined" Min="0m" Max="100m" Format="N2" />
+                </td>
+                <td style="min-width:110px">
+                    <MudSelect T="Guid?" Value="line.TaxId" Dense="true" Variant="Variant.Outlined"
+                               Clearable="true" ValueChanged="@(v => line.TaxId = v)">
+                        @foreach (var tax in Taxes)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)tax.Id)">
+                                @tax.Code @tax.Rate.ToString("N0")%
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </td>
+                @if (!IsReturn)
+                {
+                    <td style="min-width:110px">
+                        <MudTextField @bind-Value="line.LotNumber" Dense="true"
+                                      Variant="Variant.Outlined" MaxLength="60" />
+                    </td>
+                    <td style="min-width:140px">
+                        <MudDatePicker @bind-Date="line.Expiry" Dense="true" Editable="true"
+                                       DateFormat="yyyy-MM-dd" Variant="Variant.Outlined" />
+                    </td>
+                }
+                <td>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="@(() => Lines.Remove(line))" />
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    [Inject] private UiCulture T { get; set; } = default!;
+
+    [Parameter] public List<PurchaseLineModel> Lines { get; set; } = new();
+    [Parameter] public IReadOnlyList<ItemOption> Items { get; set; } = Array.Empty<ItemOption>();
+    [Parameter] public IReadOnlyList<Tax> Taxes { get; set; } = Array.Empty<Tax>();
+    [Parameter] public bool IsReturn { get; set; }
+
+    private void OnItemChanged(PurchaseLineModel line, Guid itemId)
+    {
+        line.ItemId = itemId;
+        var item = Items.FirstOrDefault(i => i.Id == itemId);
+        if (item is not null) line.UnitId = item.BaseUnitId;
+    }
+}
