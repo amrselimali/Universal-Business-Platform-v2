@@ -135,6 +135,9 @@ public static class ServiceRegistration
         services.AddScoped<IBranchSettingsRepository, BranchSettingsRepository>();
         services.AddScoped<ICommercialDocumentRepository, CommercialDocumentRepository>();
         services.AddScoped<ITreasuryRepository, TreasuryRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+        services.AddScoped<IDeliveryRepository, DeliveryRepository>();
     }
 
     private static void AddApplicationServices(IServiceCollection services)
@@ -174,5 +177,7 @@ public static class ServiceRegistration
         services.AddScoped<PostingReadinessService>();
         services.AddScoped<PurchaseInvoiceService>();
         services.AddScoped<TreasuryService>();
+        services.AddScoped<BookingService>();
+        services.AddScoped<SalesFulfillmentService>();
     }
 }

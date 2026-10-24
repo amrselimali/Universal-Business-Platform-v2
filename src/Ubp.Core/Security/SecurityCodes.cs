@@ -57,6 +57,9 @@ public static class ScreenCodes
     public const string TreasuryVouchers = "TREASURY_VOUCHERS";
     public const string TreasuryShifts = "TREASURY_SHIFTS";
     public const string TreasuryReconciliation = "TREASURY_RECONCILIATION";
+    public const string SalesBookings = "SALES_BOOKINGS";
+    public const string SalesAppointments = "SALES_APPOINTMENTS";
+    public const string SalesDeliveries = "SALES_DELIVERIES";
 }
 
 public static class ActionCodes
@@ -111,4 +114,8 @@ public static class ActionCodes
     public const string ManageMethods = "MANAGE_METHODS";
     public const string Close = "CLOSE";
     public const string Reopen = "REOPEN";
+    public const string Confirm = "CONFIRM";
+    public const string AssignOthers = "ASSIGN_OTHERS";
+    public const string Execute = "EXECUTE";
+    public const string Manage = "MANAGE";
 }

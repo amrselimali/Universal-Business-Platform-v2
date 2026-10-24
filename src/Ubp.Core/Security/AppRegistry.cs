@@ -31,6 +31,7 @@ public static class AppRegistry
     public const string GroupPartners = "group.partners";
     public const string GroupReports = "group.reports";
     public const string GroupAccounting = "group.accounting";
+    public const string GroupSales = "group.sales";
 
     private static ScreenAction A(string code) => new(code, $"action.{code.ToLowerInvariant()}");
 
@@ -230,7 +231,22 @@ public static class AppRegistry
 
         new(ScreenCodes.TreasuryReconciliation, "/treasury/reconciliation", "SwapHoriz",
             "screen.treasury_reconciliation", GroupAccounting,
-            new[] { A(ActionCodes.View), A(ActionCodes.Post) }, "treasury.reconciliation")
+            new[] { A(ActionCodes.View), A(ActionCodes.Post) }, "treasury.reconciliation"),
+
+        new(ScreenCodes.SalesBookings, "/sales/bookings", "EventAvailable", "screen.sales_bookings",
+            GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.Confirm), A(ActionCodes.CancelEntry), A(ActionCodes.AssignOthers) },
+            "sales.bookings"),
+
+        new(ScreenCodes.SalesAppointments, "/sales/appointments", "CalendarMonth",
+            "screen.sales_appointments", GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Manage) }, "sales.appointments"),
+
+        new(ScreenCodes.SalesDeliveries, "/sales/deliveries", "LocalShipping",
+            "screen.sales_deliveries", GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Execute), A(ActionCodes.Post) },
+            "sales.deliveries")
     };
 
     public static readonly IReadOnlyDictionary<string, ScreenDefinition> ByCode =
