@@ -32,6 +32,7 @@
 
 ### Next
 4D (bookings/deliveries) → 4E (sales invoices/returns) → 4F (reports) → 4G/4H → 6 → 7.
+الخطة التفصيلية للباقي (جداول/شاشات/أزرار/دورات عمل/اختبارات/جهد): `docs/PHASE-REMAINING-AR.md`.
 
 ## 2026-10-22 — Phase 3 delivered (accounting core + general ledger)
 

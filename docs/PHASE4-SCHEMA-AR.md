@@ -356,7 +356,7 @@ CREATE TABLE shift_denominations (
 
 ---
 
-## 6) 4D — `0028_phase4d_bookings.sql`
+## 6) 4D — `0030_phase4d_bookings.sql`
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS btree_gist;   -- D10
@@ -434,7 +434,7 @@ CREATE TABLE service_consumptions (           -- D14/D15
 
 ---
 
-## 7) 4E — `0029_phase4e_sales.sql`
+## 7) 4E — `0031_phase4e_sales.sql`
 
 ```sql
 ALTER TABLE commercial_documents ADD COLUMN booking_id uuid NULL REFERENCES bookings;
@@ -459,7 +459,7 @@ CREATE TRIGGER trg_sales_line_booking_guard BEFORE INSERT OR UPDATE ON commercia
 
 ---
 
-## 8) 4F — `0030_phase4f_settlements.sql`
+## 8) 4F — `0032_phase4f_settlements.sql`
 
 ```sql
 ALTER TABLE app_settings ADD COLUMN commission_basis smallint NN d=1 CHECK BETWEEN 1 AND 3;
@@ -488,7 +488,7 @@ CREATE INDEX ix_commissions_period ON employee_commissions (period_month, employ
 
 ---
 
-## 9) 4G/4H — `0031_phase4g_pos.sql` و`0032_phase4h_followups.sql`
+## 9) 4G/4H — `0033_phase4g_pos.sql` و`0034_phase4h_followups.sql`
 
 ```sql
 -- 4G: لا جداول جديدة. POS = bookings(source='pos') + commercial_documents(source_type='pos') + vouchers
@@ -508,7 +508,7 @@ CREATE INDEX ix_followups_due ON follow_ups (status, due_at) WHERE status='pendi
 
 ---
 
-## 10) المرحلة 6 — `0033_phase6_reports_notifications.sql`
+## 10) المرحلة 6 — `0035_phase6_reports_notifications.sql`
 
 ```sql
 CREATE TABLE saved_report_filters (         -- N23
@@ -559,7 +559,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA bi GRANT SELECT ON TABLES TO bi_reader;   -- 
 
 ---
 
-## 11) المرحلة 7 — `0034_phase7_operations.sql`
+## 11) المرحلة 7 — `0036_phase7_operations.sql`
 
 ```sql
 CREATE TABLE backup_log (

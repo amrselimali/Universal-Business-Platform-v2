@@ -290,7 +290,7 @@ cancel(booking)  → reserved_qty -= المتبقي
 
 | # | الملاحظة | مكانها |
 |---|---|---|
-| 1 | كل مرحلة تضيف مفاتيح `posting_default_types` الخاصة بها في migration مستقل | 0027 / 0030 |
+| 1 | كل مرحلة تضيف مفاتيح `posting_default_types` الخاصة بها في migration مستقل | 0027 / 0032 |
 | 2 | أسماء المستندات في `document_sequences` تُسجَّل مع أول مستند (لا seed مسبق) | `next_document_number` |
 | 3 | الواجهة تحوّل `status` القديم (uppercase للمخزون) إلى الجديد (lowercase) في طبقة العرض فقط | `N18` |
 | 4 | `customer_advances` تُستخدم للحجز أيضاً؛ التخصيص على الفاتورة لاحقاً | `N12` |
