@@ -123,6 +123,22 @@ public sealed class SalesFinanceService
         };
     }
 
+    /// <summary>أعمار بالفاتورة: تفصيل كل فاتورة مفتوحة بعمرها.</summary>
+    public async Task<IReadOnlyList<AgingInvoiceRow>> AgingInvoicesAsync(ActorContext actor,
+        Guid? branchId, DateTime asOf, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.AgingReport, ActionCodes.View, ct: ct);
+        return await _finance.CustomerInvoiceAgingAsync(branchId, asOf, ct);
+    }
+
+    /// <summary>أعمار بالكمية: كميات الحجوزات غير المنفذة وعمرها.</summary>
+    public async Task<IReadOnlyList<AgingQuantityRow>> AgingQuantitiesAsync(ActorContext actor,
+        Guid? branchId, DateTime asOf, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.AgingReport, ActionCodes.View, ct: ct);
+        return await _finance.BookingQuantityAgingAsync(branchId, asOf, ct);
+    }
+
     public async Task<IReadOnlyList<UnpostedDocument>> ListUnpostedAsync(ActorContext actor,
         Guid? branchId, CancellationToken ct = default)
     {

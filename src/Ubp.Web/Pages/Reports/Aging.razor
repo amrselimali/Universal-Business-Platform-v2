@@ -16,6 +16,8 @@ else
             <MudSelect T="string" Value="_kind" Label="@T.T("reports.aging_kind")"
                        Variant="Variant.Outlined" Margin="Margin.Dense" ValueChanged="OnKindChanged">
                 <MudSelectItem T="string" Value="@("customers")">@T.T("reports.aging_customers")</MudSelectItem>
+                <MudSelectItem T="string" Value="@("customer_invoices")">@T.T("reports.aging_by_invoice")</MudSelectItem>
+                <MudSelectItem T="string" Value="@("booking_quantities")">@T.T("reports.aging_by_quantity")</MudSelectItem>
                 <MudSelectItem T="string" Value="@("advances")">@T.T("reports.aging_advances")</MudSelectItem>
                 <MudSelectItem T="string" Value="@("bookings")">@T.T("reports.aging_bookings")</MudSelectItem>
                 <MudSelectItem T="string" Value="@("suppliers")">@T.T("reports.aging_suppliers")</MudSelectItem>
@@ -33,35 +35,86 @@ else
             </MudSelect>
         </div>
 
-        <MudTable Items="_rows" Dense="true" Hover="true" Striped="true" Elevation="0"
-                  RowsPerPage="25" Class="ubp-table">
-            <HeaderContent>
-                <MudTh>@T.T("sales.party")</MudTh>
-                <MudTh Align="Right">@T.T("receipts.current")</MudTh>
-                <MudTh Align="Right">@T.T("receipts.days30")</MudTh>
-                <MudTh Align="Right">@T.T("receipts.days60")</MudTh>
-                <MudTh Align="Right">@T.T("receipts.days90")</MudTh>
-                <MudTh Align="Right">@T.T("receipts.over90")</MudTh>
-                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>
-                    @context.PartyName
-                    @if (context.Reference is not null) { <text> — @context.Reference</text> }
-                </MudTd>
-                <MudTd Align="Right">@context.Current.ToString("N2")</MudTd>
-                <MudTd Align="Right">@context.Days30.ToString("N2")</MudTd>
-                <MudTd Align="Right">@context.Days60.ToString("N2")</MudTd>
-                <MudTd Align="Right">@context.Days90.ToString("N2")</MudTd>
-                <MudTd Align="Right">@context.Over90.ToString("N2")</MudTd>
-                <MudTd Align="Right"><b>@context.Total.ToString("N2")</b></MudTd>
-            </RowTemplate>
-        </MudTable>
+        @if (_kind == "customer_invoices")
+        {
+            <MudTable Items="_invoices" Dense="true" Hover="true" Striped="true" Elevation="0"
+                      RowsPerPage="25" Class="ubp-table">
+                <HeaderContent>
+                    <MudTh>@T.T("sales.invoice_no")</MudTh>
+                    <MudTh>@T.T("sales.customer")</MudTh>
+                    <MudTh>@T.T("common.date")</MudTh>
+                    <MudTh>@T.T("sales.due_date")</MudTh>
+                    <MudTh Align="Right">@T.T("reports.age_days")</MudTh>
+                    <MudTh Align="Right">@T.T("treasury.balance")</MudTh>
+                    <MudTh>@T.T("reports.bucket")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><span class="ubp-code">@context.DocNo</span></MudTd>
+                    <MudTd>@context.PartyName</MudTd>
+                    <MudTd>@context.DocDate.ToString("yyyy-MM-dd")</MudTd>
+                    <MudTd>@context.DueDate.ToString("yyyy-MM-dd")</MudTd>
+                    <MudTd Align="Right">@context.AgeDays</MudTd>
+                    <MudTd Align="Right">@context.Balance.ToString("N2")</MudTd>
+                    <MudTd>@T.T("receipts." + context.Bucket)</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else if (_kind == "booking_quantities")
+        {
+            <MudTable Items="_quantities" Dense="true" Hover="true" Striped="true" Elevation="0"
+                      RowsPerPage="25" Class="ubp-table">
+                <HeaderContent>
+                    <MudTh>@T.T("sales.booking_no")</MudTh>
+                    <MudTh>@T.T("sales.customer")</MudTh>
+                    <MudTh>@T.T("sales.item")</MudTh>
+                    <MudTh Align="Right">@T.T("sales.remaining_qty")</MudTh>
+                    <MudTh Align="Right">@T.T("reports.age_days")</MudTh>
+                    <MudTh>@T.T("reports.bucket")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><span class="ubp-code">@context.BookingNo</span></MudTd>
+                    <MudTd>@context.CustomerName</MudTd>
+                    <MudTd>@context.ItemCode — @context.ItemName</MudTd>
+                    <MudTd Align="Right">@context.RemainingQty.ToString("N4")</MudTd>
+                    <MudTd Align="Right">@context.AgeDays</MudTd>
+                    <MudTd>@T.T("receipts." + context.Bucket)</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            <MudTable Items="_rows" Dense="true" Hover="true" Striped="true" Elevation="0"
+                      RowsPerPage="25" Class="ubp-table">
+                <HeaderContent>
+                    <MudTh>@T.T("sales.party")</MudTh>
+                    <MudTh Align="Right">@T.T("receipts.current")</MudTh>
+                    <MudTh Align="Right">@T.T("receipts.days30")</MudTh>
+                    <MudTh Align="Right">@T.T("receipts.days60")</MudTh>
+                    <MudTh Align="Right">@T.T("receipts.days90")</MudTh>
+                    <MudTh Align="Right">@T.T("receipts.over90")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        @context.PartyName
+                        @if (context.Reference is not null) { <text> — @context.Reference</text> }
+                    </MudTd>
+                    <MudTd Align="Right">@context.Current.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.Days30.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.Days60.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.Days90.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.Over90.ToString("N2")</MudTd>
+                    <MudTd Align="Right"><b>@context.Total.ToString("N2")</b></MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
     </MudPaper>
 }
 
 @code {
     private IReadOnlyList<AgingBucketRow> _rows = Array.Empty<AgingBucketRow>();
+    private IReadOnlyList<AgingInvoiceRow> _invoices = Array.Empty<AgingInvoiceRow>();
+    private IReadOnlyList<AgingQuantityRow> _quantities = Array.Empty<AgingQuantityRow>();
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private string _kind = "customers";
     private DateTime? _asOf = DateTime.Today;
@@ -75,8 +128,20 @@ else
         await ReloadAsync();
     }
 
-    private async Task ReloadAsync() =>
-        _rows = await Finance.AgingAsync(Actor!, _kind, _branchId, _asOf ?? DateTime.Today);
+    private async Task ReloadAsync()
+    {
+        var asOf = _asOf ?? DateTime.Today;
+        _rows = Array.Empty<AgingBucketRow>();
+        _invoices = Array.Empty<AgingInvoiceRow>();
+        _quantities = Array.Empty<AgingQuantityRow>();
+
+        if (_kind == "customer_invoices")
+            _invoices = await Finance.AgingInvoicesAsync(Actor!, _branchId, asOf);
+        else if (_kind == "booking_quantities")
+            _quantities = await Finance.AgingQuantitiesAsync(Actor!, _branchId, asOf);
+        else
+            _rows = await Finance.AgingAsync(Actor!, _kind, _branchId, asOf);
+    }
 
     private Task OnKindChanged(string value) { _kind = value; return RunAsync(ReloadAsync); }
     private Task OnDateChanged(DateTime? value) { _asOf = value; return RunAsync(ReloadAsync); }

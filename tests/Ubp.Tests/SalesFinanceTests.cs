@@ -229,6 +229,34 @@ public sealed class SalesFinanceTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Aging_by_invoice_and_by_quantity_list_details()
+    {
+        var actor = await _db.AdminActorAsync();
+        var f = await SetupAsync("7");
+        var invoice = await InvoiceAsync(f, 0, 0);
+
+        var invoices = await _db.SalesFinance().AgingInvoicesAsync(actor, f.Branch, DateTime.Today);
+        var invoiceRow = invoices.Single(x => x.DocumentId == invoice.Id);
+        Assert.Equal(invoice.Total, invoiceRow.Balance);
+        Assert.Equal(invoice.DocNo, invoiceRow.DocNo);
+
+        var booking = await _db.BookingService().CreateAsync(actor, new BookingInput
+        {
+            BranchId = f.Branch, CustomerId = f.Customer.Id, BookingDate = DateTime.Today.AddDays(-20),
+            Lines = { new BookingLineInput { ItemId = f.Item.Id, UnitId = f.Item.BaseUnitId,
+                WarehouseId = f.Warehouse, Quantity = 3, UnitPrice = 100 } }
+        });
+        await _db.BookingService().ConfirmAsync(actor, booking.Id);
+
+        var quantities = await _db.SalesFinance().AgingQuantitiesAsync(actor, f.Branch,
+            DateTime.Today);
+        var qtyRow = quantities.Single(x => x.BookingId == booking.Id);
+        Assert.Equal(3m, qtyRow.RemainingQty);
+        Assert.Equal(20, qtyRow.AgeDays);
+        Assert.Equal("days30", qtyRow.Bucket);
+    }
+
+    [Fact]
     public async Task Aging_unposted_and_reconciliation_read_the_new_views()
     {
         var actor = await _db.AdminActorAsync();

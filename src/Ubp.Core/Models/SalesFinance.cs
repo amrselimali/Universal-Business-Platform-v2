@@ -113,3 +113,29 @@ public sealed class ReconciliationCheck
     public decimal Difference => Math.Round(DocumentValue - GlValue, 2,
         MidpointRounding.AwayFromZero);
 }
+
+/// <summary>سطر أعمار على مستوى الفاتورة (تفصيل بالفواتير المفتوحة).</summary>
+public sealed class AgingInvoiceRow
+{
+    public Guid DocumentId { get; set; }
+    public string? DocNo { get; set; }
+    public string PartyName { get; set; } = "";
+    public DateTime DocDate { get; set; }
+    public DateTime DueDate { get; set; }
+    public int AgeDays { get; set; }
+    public decimal Balance { get; set; }
+    public string Bucket { get; set; } = "current";
+}
+
+/// <summary>سطر أعمار بالكمية: كميات الحجوزات غير المنفذة وعمرها.</summary>
+public sealed class AgingQuantityRow
+{
+    public Guid BookingId { get; set; }
+    public string? BookingNo { get; set; }
+    public string CustomerName { get; set; } = "";
+    public string? ItemCode { get; set; }
+    public string ItemName { get; set; } = "";
+    public decimal RemainingQty { get; set; }
+    public int AgeDays { get; set; }
+    public string Bucket { get; set; } = "current";
+}

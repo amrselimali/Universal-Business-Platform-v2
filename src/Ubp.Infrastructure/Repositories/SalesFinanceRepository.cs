@@ -27,6 +27,10 @@ public interface ISalesFinanceRepository
         CancellationToken ct = default);
     Task<IReadOnlyList<AgingBucketRow>> BookingAgingAsync(Guid? branchId, DateTime asOf,
         CancellationToken ct = default);
+    Task<IReadOnlyList<AgingInvoiceRow>> CustomerInvoiceAgingAsync(Guid? branchId, DateTime asOf,
+        CancellationToken ct = default);
+    Task<IReadOnlyList<AgingQuantityRow>> BookingQuantityAgingAsync(Guid? branchId, DateTime asOf,
+        CancellationToken ct = default);
 
     Task<IReadOnlyList<UnpostedDocument>> ListUnpostedAsync(Guid? branchId,
         CancellationToken ct = default);
