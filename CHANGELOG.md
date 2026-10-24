@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-10-24 — Fix: DateTimeOffset offsets when writing timestamptz
+
+### Fixed
+- Npgsql 6+ rejects non-zero offsets for `timestamp with time zone`; booking/appointment/follow-up
+  times coming from the UI (e.g. +03:00) failed with `Cannot write DateTimeOffset with Offset=03:00`.
+- Added `DbTime.Utc(...)` and normalized all user-supplied times in `BookingRepository`,
+  `PosRepository` (appointment), `AppointmentRepository` and `FollowUpRepository` before saving;
+  display still converts to localime.
+- 1 regression test (131 total) writes a +03:00 offset and asserts the stored value is UTC.
+
 ## 2026-10-24 — Booking screen: time-only lines, day filter, hidden unauthorized branches
 
 ### Changed

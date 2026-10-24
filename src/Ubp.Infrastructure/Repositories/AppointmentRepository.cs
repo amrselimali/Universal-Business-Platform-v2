@@ -70,7 +70,10 @@ public sealed class AppointmentRepository : IAppointmentRepository
                 VALUES (@id, @BranchId, @EmployeeId, @BookingId, @CustomerId, @StartsAt, @EndsAt,
                         'scheduled', @Notes, @userId)
                 """, new { id, input.BranchId, input.EmployeeId, input.BookingId, input.CustomerId,
-                    input.StartsAt, input.EndsAt, input.Notes, userId }, cancellationToken: ct));
+                    StartsAt = Ubp.Infrastructure.Data.DbTime.Utc(input.StartsAt),
+                    EndsAt = Ubp.Infrastructure.Data.DbTime.Utc(input.EndsAt), input.Notes,
+                    userId },
+                cancellationToken: ct));
         }
         catch (PostgresException ex) when (ex.SqlState == "23P01")
         {

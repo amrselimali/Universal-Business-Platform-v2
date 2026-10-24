@@ -39,7 +39,9 @@ public sealed partial class PosRepository
             VALUES (@bookingId, @BranchId, @bookingNo, @bookingDate, 'confirmed', @CustomerId, 'pos',
                     @bookingDate, @StartsAt, @EndsAt, 0, @Notes, @userId)
             """, new { bookingId, input.BranchId, bookingNo,
-                bookingDate = input.StartsAt.Date, input.CustomerId, input.StartsAt, input.EndsAt,
+                bookingDate = input.StartsAt.Date, input.CustomerId,
+                startsAt = Ubp.Infrastructure.Data.DbTime.Utc(input.StartsAt),
+                endsAt = Ubp.Infrastructure.Data.DbTime.Utc(input.EndsAt),
                 input.Notes, userId }, tx, cancellationToken: ct));
 
         await connection.ExecuteAsync(new CommandDefinition("""

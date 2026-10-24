@@ -145,8 +145,8 @@ public sealed class PosTests : IClassFixture<TestDb>
         var booking = await connection.QuerySingleAsync<(DateTime Starts, DateTime Ends,
             decimal Total)>( "SELECT starts_at, ends_at, total_amount FROM bookings WHERE id = @id",
             new { id = receipt.BookingId });
-        Assert.Equal(start.DateTime, booking.Starts);
-        Assert.Equal(start.AddMinutes(30).DateTime, booking.Ends);
+        Assert.Equal(start.ToUniversalTime().DateTime, booking.Starts);
+        Assert.Equal(start.AddMinutes(30).ToUniversalTime().DateTime, booking.Ends);
         Assert.Equal(0m, booking.Total);
 
         var line = await connection.QuerySingleAsync<(decimal Quantity, decimal Price) >(

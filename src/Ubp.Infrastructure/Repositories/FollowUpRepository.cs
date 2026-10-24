@@ -54,7 +54,9 @@ public sealed class FollowUpRepository : IFollowUpRepository
                 VALUES (@id, @CustomerId, @BookingId, @AppointmentId, @AssignedUserId, @DueAt,
                         @Channel, @Note, 'pending', @userId)
                 """, new { id, input.CustomerId, input.BookingId, input.AppointmentId,
-                    input.AssignedUserId, input.DueAt, input.Channel, input.Note, userId },
+                    input.AssignedUserId,
+                    DueAt = Ubp.Infrastructure.Data.DbTime.Utc(input.DueAt), input.Channel,
+                    input.Note, userId },
                 cancellationToken: ct));
         }
         catch (PostgresException ex) when (ex.ConstraintName == "ux_followups_pending_booking")
