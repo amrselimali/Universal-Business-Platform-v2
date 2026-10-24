@@ -28,6 +28,7 @@ public sealed partial class TreasuryService
         CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.Open, ct: ct);
+        BranchScope.Ensure(actor, input.BranchId);
         var id = Guid.CreateVersion7();
         try
         {

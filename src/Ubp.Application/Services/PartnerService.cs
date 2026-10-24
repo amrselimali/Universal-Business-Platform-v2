@@ -30,7 +30,7 @@ public sealed class PartnerService
         PageRequest request, Guid? categoryId, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, Screen(kind), ActionCodes.View, ct: ct);
-        return await _repository.ListAsync(kind, request, categoryId, actor.IsAdmin,
+        return await _repository.ListAsync(kind, request, categoryId, actor.IsSuperAdmin,
             actor.AllowedBranchIds, ct);
     }
 

@@ -26,6 +26,7 @@ public sealed class PosService
         await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.Checkout,
             ct: ct);
         var settings = await _settings.GetAsync(ct);
+        BranchScope.Ensure(actor, input.BranchId);
         PosReceipt receipt;
         try
         {
@@ -50,6 +51,7 @@ public sealed class PosService
         await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.Checkout,
             ct: ct);
         PosReceipt receipt;
+        BranchScope.Ensure(actor, input.BranchId);
         try { receipt = await _pos.BookAppointmentAsync(input, actor.UserId, ct); }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
 

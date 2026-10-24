@@ -28,7 +28,7 @@ public sealed partial class WarehouseService
         var scope = await _permissions.GetScopeAsync(actor, ScreenCodes.Warehouses, ActionCodes.View, ct);
         if (scope < 0) throw new ForbiddenException();
         return await _repository.ListAsync(request, scope, actor.UserId,
-            actor.AllowedBranchIds, actor.IsAdmin, ct);
+            actor.AllowedBranchIds, actor.IsSuperAdmin, ct);
     }
 
     public async Task<IReadOnlyList<Warehouse>> OptionsAsync(ActorContext actor,
@@ -37,7 +37,7 @@ public sealed partial class WarehouseService
         var scope = await _permissions.GetScopeAsync(actor, ScreenCodes.Warehouses, ActionCodes.View, ct);
         if (scope < 0) return Array.Empty<Warehouse>();
         return await _repository.ListOptionsAsync(scope, actor.UserId, actor.AllowedBranchIds,
-            actor.IsAdmin, ct);
+            actor.IsSuperAdmin, ct);
     }
 
     public async Task<Warehouse?> GetAsync(ActorContext actor, Guid id, CancellationToken ct = default)
@@ -107,7 +107,7 @@ public sealed partial class WarehouseService
     private async Task ValidateBranchesAsync(ActorContext actor, IReadOnlyList<Guid> branchIds,
         CancellationToken ct)
     {
-        if (!actor.IsAdmin && branchIds.Any(id => !actor.CanAccessBranch(id)))
+        if (!actor.IsSuperAdmin && branchIds.Any(id => !actor.CanAccessBranch(id)))
             throw new ForbiddenException("error.branch_not_allowed");
         foreach (var branchId in branchIds)
         {
@@ -118,7 +118,7 @@ public sealed partial class WarehouseService
 
     private static void EnsureAccess(ActorContext actor, Warehouse warehouse)
     {
-        if (actor.IsAdmin) return;
+        if (actor.IsSuperAdmin) return;
         if (!warehouse.BranchIds.Any(actor.CanAccessBranch))
             throw new ForbiddenException("error.branch_not_allowed");
     }

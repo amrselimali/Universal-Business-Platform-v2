@@ -47,6 +47,7 @@ public sealed class SalesInvoiceService
         CommercialDocumentInput input, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenOf(input.DocType), ActionCodes.Create, ct: ct);
+        BranchScope.Ensure(actor, input.BranchId);
         var id = Guid.CreateVersion7();
         try { await _sales.CreateDraftAsync(id, input, actor.UserId, ct); }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }

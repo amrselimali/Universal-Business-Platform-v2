@@ -41,6 +41,7 @@ public sealed class SalesFinanceService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesSettlements, ActionCodes.Create,
             ct: ct);
+        BranchScope.Ensure(actor, input.BranchId);
         var id = Guid.CreateVersion7();
         try { await _finance.CreateSettlementAsync(id, input, actor.UserId, ct); }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }

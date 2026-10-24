@@ -29,6 +29,7 @@ public sealed partial class TreasuryService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.TreasuryVouchers, ActionCodes.Create,
             ct: ct);
+        BranchScope.Ensure(actor, input.BranchId);
         var id = Guid.CreateVersion7();
         try
         {

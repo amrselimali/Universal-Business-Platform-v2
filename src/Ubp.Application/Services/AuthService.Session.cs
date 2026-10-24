@@ -43,9 +43,9 @@ public sealed partial class AuthService
         var settings = await _settings.GetAsync(ct);
         var branchIds = await _users.GetBranchIdsAsync(user.Id, ct);
         var branchId = session.BranchId;
-        if (branchId.HasValue && !user.IsAdmin && !branchIds.Contains(branchId.Value))
+        if (branchId.HasValue && !user.IsSuperAdmin && !branchIds.Contains(branchId.Value))
             branchId = await _users.GetDefaultBranchIdAsync(user.Id, ct);
-        if (!branchId.HasValue && !user.IsAdmin && branchIds.Count > 0)
+        if (!branchId.HasValue && !user.IsSuperAdmin && branchIds.Count > 0)
             branchId = await _users.GetDefaultBranchIdAsync(user.Id, ct);
 
         var timeout = TimeSpan.FromMinutes(settings.SessionTimeoutMinutes);
@@ -81,7 +81,7 @@ public sealed partial class AuthService
 
         if (branchId.HasValue)
         {
-            if (!user.IsAdmin)
+            if (!user.IsSuperAdmin)
             {
                 var allowed = await _users.GetBranchIdsAsync(userId, ct);
                 if (!allowed.Contains(branchId.Value)) return false;
@@ -89,7 +89,7 @@ public sealed partial class AuthService
             else if (await _branches.GetAsync(branchId.Value, ct) is null)
                 return false;
         }
-        else if (!user.IsAdmin)
+        else if (!user.IsSuperAdmin)
             return false;
 
         var settings = await _settings.GetAsync(ct);

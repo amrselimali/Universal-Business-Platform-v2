@@ -41,6 +41,7 @@ public sealed class BookingService
         CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings, ActionCodes.Create, ct: ct);
+        BranchScope.Ensure(actor, input.BranchId);
         var id = Guid.CreateVersion7();
         try { await _bookings.CreateDraftAsync(id, input, actor.UserId, ct); }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
@@ -54,6 +55,7 @@ public sealed class BookingService
         BookingInput input, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings, ActionCodes.Edit, ct: ct);
+        BranchScope.Ensure(actor, input.BranchId);
         Booking booking;
         try { booking = await _bookings.UpdateDraftAsync(id, version, input, actor.UserId, ct); }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
