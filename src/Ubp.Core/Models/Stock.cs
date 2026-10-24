@@ -66,6 +66,8 @@ public sealed class StockDocumentLine
     public decimal BaseQuantity { get; set; }
     public decimal UnitCost { get; set; }
     public decimal TotalCost { get; set; }
+    public string? LotNumber { get; set; }
+    public DateTime? ExpiryDate { get; set; }
     public decimal ReceivedQuantity { get; set; }
     public decimal RemainingQuantity => Math.Max(BaseQuantity - ReceivedQuantity, 0);
     public string? Notes { get; set; }
@@ -90,6 +92,8 @@ public sealed class StockDocumentLineInput
     public decimal ConversionFactor { get; set; } = 1;
     public decimal Quantity { get; set; }
     public decimal UnitCost { get; set; }
+    public string? LotNumber { get; set; }
+    public DateTime? ExpiryDate { get; set; }
     public string? Notes { get; set; }
     public string? Direction { get; set; }
 }

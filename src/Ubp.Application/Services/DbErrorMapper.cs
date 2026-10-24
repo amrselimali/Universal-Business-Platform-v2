@@ -86,6 +86,7 @@ public static class DbErrorMapper
             "ENTRY_NOT_POSTED" => new ValidationAppException("validation.entry_not_posted"),
             "ENTRY_ALREADY_REVERSED" => new ValidationAppException("validation.entry_already_reversed"),
             "ENTRY_IS_REVERSAL" => new ValidationAppException("validation.entry_is_reversal"),
+            "EXPIRED_LOT" => new ValidationAppException("validation.expired_lot"),
             _ => null
         };
     }

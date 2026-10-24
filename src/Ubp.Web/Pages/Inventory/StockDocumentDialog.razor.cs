@@ -134,6 +134,8 @@ public partial class StockDocumentDialog
                     ConversionFactor = l.Units.FirstOrDefault(u => u.UnitId == l.UnitId)?.ConversionFactor ?? 1,
                     Quantity = l.Quantity,
                     UnitCost = l.UnitCost,
+                    LotNumber = l.LotNumber,
+                    ExpiryDate = l.ExpiryDate,
                     Direction = l.Direction,
                     Notes = l.Notes
                 }).ToList()
@@ -145,6 +147,10 @@ public partial class StockDocumentDialog
         finally { _busy = false; }
     }
 
+    /// <summary>حقول الدفعة والصلاحية تظهر للمستندات الداخلة فقط (D16).</summary>
+    private bool ShowsLotFields => _docType is StockDocumentTypes.Receipt
+        or StockDocumentTypes.Opening;
+
     public sealed class LineModel
     {
         public ItemOption? Item { get; set; }
@@ -152,6 +158,8 @@ public partial class StockDocumentDialog
         public IReadOnlyList<ItemUnit> Units { get; set; } = Array.Empty<ItemUnit>();
         public decimal Quantity { get; set; } = 1;
         public decimal UnitCost { get; set; }
+        public string? LotNumber { get; set; }
+        public DateTime? ExpiryDate { get; set; }
         public string Direction { get; set; } = "IN";
         public string? Notes { get; set; }
     }

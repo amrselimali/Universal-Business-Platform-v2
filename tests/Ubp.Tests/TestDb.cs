@@ -233,6 +233,28 @@ public sealed partial class TestDb
         return await StockPostingRepo.PostAsync(draft.Id, actor.UserId, allowNegative);
     }
 
+    public async Task<StockDocument> PostReceiptWithLotAsync(Item item, Guid branchId,
+        Guid warehouseId, decimal quantity, decimal cost, string? lotNumber, DateTime? expiry)
+    {
+        var actor = await AdminActorAsync();
+        var draft = await StockDocRepo.CreateDraftAsync(new StockDocumentInput
+        {
+            DocType = StockDocumentTypes.Receipt,
+            DocDate = DateTime.UtcNow.Date,
+            BranchId = branchId,
+            WarehouseId = warehouseId,
+            Lines =
+            {
+                new StockDocumentLineInput
+                {
+                    ItemId = item.Id, UnitId = item.BaseUnitId, ConversionFactor = 1,
+                    Quantity = quantity, UnitCost = cost, LotNumber = lotNumber, ExpiryDate = expiry
+                }
+            }
+        }, actor.UserId);
+        return await StockPostingRepo.PostAsync(draft.Id, actor.UserId, false);
+    }
+
     public async Task<decimal> OnHandAsync(Guid itemId, Guid warehouseId) =>
         await StockReportRepo.GetOnHandAsync(itemId, warehouseId);
 
