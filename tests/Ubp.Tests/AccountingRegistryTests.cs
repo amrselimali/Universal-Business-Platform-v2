@@ -51,7 +51,8 @@ public sealed class AccountingRegistryTests : IClassFixture<TestDb>
             ["Aging.razor"] = ScreenCodes.AgingReport,
             ["PostingCenter.razor"] = ScreenCodes.PostingCenter,
             ["Terminal.razor"] = ScreenCodes.PosTerminal,
-            ["Receipts.razor"] = ScreenCodes.PosReceipts
+            ["Receipts.razor"] = ScreenCodes.PosReceipts,
+            ["FollowUps.razor"] = ScreenCodes.FollowUps
         };
 
         var pattern = new Regex(@"Can\(ActionCodes\.(\w+)\)", RegexOptions.Compiled);

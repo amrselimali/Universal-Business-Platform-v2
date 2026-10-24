@@ -282,7 +282,12 @@ public static class AppRegistry
 
         new(ScreenCodes.PosReceipts, "/pos/receipts", "ReceiptLong", "screen.pos_receipts",
             GroupSales,
-            new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "pos.receipts")
+            new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "pos.receipts"),
+
+        new(ScreenCodes.FollowUps, "/sales/follow-ups", "NotificationsActive",
+            "screen.follow_ups", GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Complete) },
+            "sales.followups")
     };
 
     public static readonly IReadOnlyDictionary<string, ScreenDefinition> ByCode =

@@ -141,6 +141,7 @@ public static class ServiceRegistration
         services.AddScoped<ISalesInvoiceRepository, SalesInvoiceRepository>();
         services.AddScoped<ISalesFinanceRepository, SalesFinanceRepository>();
         services.AddScoped<IPosRepository, PosRepository>();
+        services.AddScoped<IFollowUpRepository, FollowUpRepository>();
     }
 
     private static void AddApplicationServices(IServiceCollection services)
@@ -185,5 +186,6 @@ public static class ServiceRegistration
         services.AddScoped<SalesInvoiceService>();
         services.AddScoped<SalesFinanceService>();
         services.AddScoped<PosService>();
+        services.AddScoped<FollowUpService>();
     }
 }

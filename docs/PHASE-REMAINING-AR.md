@@ -231,7 +231,7 @@ Dr customer_receivable [الطرف]   / Cr sales_revenue + Cr vat_output
 
 ---
 
-## 6) 4G — نقطة البيع (`0033`) — التالي
+## 6) 4G — نقطة البيع (`0033`) ✅ (مُنجَز)
 
 لا جداول جديدة: `bookings(source='pos')` + `commercial_documents(source_type='pos')` + `vouchers`.
 
@@ -248,7 +248,7 @@ Dr customer_receivable [الطرف]   / Cr sales_revenue + Cr vat_output
 
 ---
 
-## 7) 4H — المتابعات (`0034`)
+## 7) 4H — المتابعات (`0034`) ✅ (مُنجَز)
 
 | المسار | الشاشة | الأزرار/الصلاحيات |
 |---|---|---|

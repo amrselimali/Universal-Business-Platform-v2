@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-10-24 — Phase 4H: customer follow-ups
+
+### Added
+- Migration `0034`: `follow_ups` (customer/booking/appointment link, channel, due date, status)
+  with a partial unique index preventing two pending follow-ups for the same booking.
+- `FollowUpRepository` + `FollowUpService` (create, complete with version check, and idempotent
+  generation for overdue confirmed bookings) and `sales.followups.*` permissions.
+- Screen `/sales/follow-ups` (add, complete, generate overdue) with translations.
+- 2 tests (120 total): create/complete and one-time overdue generation.
+
 ## 2026-10-24 — Phase 4G: point of sale
 
 ### Added

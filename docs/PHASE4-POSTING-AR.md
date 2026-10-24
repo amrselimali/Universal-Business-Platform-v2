@@ -194,9 +194,9 @@ cancel(booking)  → reserved_qty -= المتبقي
 ### 4G / 4H
 | المسار | الشاشة | الأزرار |
 |---|---|---|
-| `/pos/terminal` | نقطة البيع | `pos.terminal.view/checkout` |
-| `/pos/receipts` | إيصالات POS | `pos.receipts.view/print` |
-| `/sales/follow-ups` | المتابعات | `sales.followups.view/create/complete` |
+| `/pos/terminal` | نقطة البيع | `pos.terminal.view/checkout` ✅ |
+| `/pos/receipts` | إيصالات POS | `pos.receipts.view/print` ✅ |
+| `/sales/follow-ups` | المتابعات | `sales.followups.view/create/complete` ✅ |
 
 ### 6
 | المسار | الشاشة | الأزرار |
