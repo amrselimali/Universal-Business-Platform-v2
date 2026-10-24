@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-10-24 — Appointment bookings without prices or quantities
+
+### Added
+- Migration `0035`: `bookings.starts_at`/`ends_at` with a positive-range check and an index.
+- POS appointment mode: choose customer + service + date + from/to time; the booking is saved with
+  quantity 1 and price 0 (no price, quantity, tax or collection), and no voucher/invoice is created.
+- Booking list shows the appointment time; booking create/update persists the time range.
+- 2 tests (126 total): appointment saved with time and zero amounts without vouchers, and rejection
+  of non-service items or an invalid time range.
+
 ## 2026-10-24 — Fix: sales group in navigation + POS redefined as booking with optional collection
 
 ### Fixed

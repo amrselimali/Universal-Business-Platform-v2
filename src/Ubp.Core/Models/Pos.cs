@@ -50,3 +50,15 @@ public sealed class PosReceipt
     public decimal FeeTotal { get; set; }
     public List<PosPaymentResult> Vouchers { get; set; } = new();
 }
+
+/// <summary>حجز موعد: خدمة + وقت من/إلى فقط، بلا أسعار أو كميات.</summary>
+public sealed class PosAppointmentInput
+{
+    public Guid BranchId { get; set; }
+    public Guid CustomerId { get; set; }
+    public Guid WarehouseId { get; set; }
+    public Guid ItemId { get; set; }
+    public DateTimeOffset StartsAt { get; set; }
+    public DateTimeOffset EndsAt { get; set; }
+    public string? Notes { get; set; }
+}

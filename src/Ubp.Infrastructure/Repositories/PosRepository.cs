@@ -12,6 +12,8 @@ public interface IPosRepository
         CancellationToken ct = default);
     Task<IReadOnlyList<CommercialDocument>> ListReceiptsAsync(Guid? branchId, int limit,
         CancellationToken ct = default);
+    Task<PosReceipt> BookAppointmentAsync(PosAppointmentInput input, Guid userId,
+        CancellationToken ct = default);
 }
 
 /// <summary>

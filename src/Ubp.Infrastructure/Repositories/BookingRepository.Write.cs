@@ -10,20 +10,29 @@ public sealed partial class BookingRepository
     public async Task<Guid> CreateDraftAsync(Guid id, BookingInput input, Guid userId,
         CancellationToken ct = default)
     {
+        if (input.StartsAt is not null && input.EndsAt is not null &&
+            input.EndsAt <= input.StartsAt)
+            throw new ValidationAppException("validation.booking_time_range");
+        if ((input.StartsAt is null) != (input.EndsAt is null))
+            throw new ValidationAppException("validation.booking_time_range");
+
         var lines = await BuildLinesAsync(input, ct);
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
 
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO bookings (id, branch_id, booking_date, status, customer_id, source, due_date,
-                expires_at, assigned_employee_id, related_booking_id, total_amount, notes, created_by)
+                starts_at, ends_at, expires_at, assigned_employee_id, related_booking_id,
+                total_amount, notes, created_by)
             VALUES (@id, @BranchId, @BookingDate, 'draft', @CustomerId, 'manual', @DueDate,
-                    @ExpiresAt, @AssignedEmployeeId, @RelatedBookingId, @total, @Notes, @userId)
+                    @StartsAt, @EndsAt, @ExpiresAt, @AssignedEmployeeId, @RelatedBookingId,
+                    @total, @Notes, @userId)
             """, new
         {
             id, input.BranchId, bookingDate = input.BookingDate.Date, input.CustomerId,
-            input.DueDate, input.ExpiresAt, input.AssignedEmployeeId, input.RelatedBookingId,
-            total = lines.Sum(l => l.TotalAmount), input.Notes, userId
+            input.DueDate, input.StartsAt, input.EndsAt, input.ExpiresAt,
+            input.AssignedEmployeeId, input.RelatedBookingId, total = lines.Sum(l => l.TotalAmount),
+            input.Notes, userId
         }, tx, cancellationToken: ct));
 
         await InsertLinesAsync(connection, tx, id, lines, ct);
@@ -48,14 +57,15 @@ public sealed partial class BookingRepository
 
         var updated = await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE bookings SET booking_date = @BookingDate, customer_id = @CustomerId,
-                due_date = @DueDate, expires_at = @ExpiresAt, notes = @Notes,
+                due_date = @DueDate, starts_at = @StartsAt, ends_at = @EndsAt,
+                expires_at = @ExpiresAt, notes = @Notes,
                 related_booking_id = @RelatedBookingId, total_amount = @total, updated_by = @userId
             WHERE id = @id AND version = @version AND status = 'draft'
             """, new
         {
             id, version, bookingDate = input.BookingDate.Date, input.CustomerId, input.DueDate,
-            input.ExpiresAt, input.Notes, input.RelatedBookingId, total = lines.Sum(l => l.TotalAmount),
-            userId
+            input.StartsAt, input.EndsAt, input.ExpiresAt, input.Notes, input.RelatedBookingId,
+            total = lines.Sum(l => l.TotalAmount), userId
         }, tx, cancellationToken: ct));
 
         if (updated == 0) throw new ConflictException();
