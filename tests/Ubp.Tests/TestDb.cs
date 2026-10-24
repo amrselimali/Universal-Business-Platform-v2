@@ -13,7 +13,7 @@ using Ubp.Infrastructure.Security;
 
 namespace Ubp.Tests;
 
-public sealed class TestDb
+public sealed partial class TestDb
 {
     public static readonly string AdminConnection =
         Environment.GetEnvironmentVariable("UBP_TEST_CONNECTION")
@@ -54,65 +54,6 @@ public sealed class TestDb
             new PasswordHasher(), new BootstrapOptions(), NullLogger<DataSeeder>.Instance);
         await seeder.SeedAsync();
     }
-
-    public SettingsRepository SettingsRepo => new(Factory);
-    public UserRepository UserRepo => new(Factory);
-    public BranchRepository BranchRepo => new(Factory);
-    public WarehouseRepository WarehouseRepo => new(Factory);
-    public RoleRepository RoleRepo => new(Factory);
-    public PermissionRepository PermissionRepo => new(Factory);
-    public AuditRepository AuditRepo => new(Factory);
-    public SessionRepository SessionRepo => new(Factory);
-    public RefreshTokenRepository RefreshRepo => new(Factory);
-    public CurrencyRepository CurrencyRepo => new(Factory);
-    public CustomFieldRepository CustomFieldRepo => new(Factory);
-    public QaRepository QaRepo => new(Factory);
-    public UnitRepository UnitRepo => new(Factory);
-    public ItemRepository ItemRepo => new(Factory);
-    public ItemCategoryRepository ItemCategoryRepo => new(Factory);
-    public PartnerRepository PartnerRepo => new(Factory);
-    public PeriodRepository PeriodRepo => new(Factory);
-    public StockDocumentRepository StockDocRepo => new(Factory);
-    public StockPostingRepository StockPostingRepo => new(Factory);
-    public StocktakeRepository StocktakeRepo => new(Factory);
-    public StockReportRepository StockReportRepo => new(Factory);
-    public AccountRepository AccountRepo => new(Factory);
-    public CostCenterRepository CostCenterRepo => new(Factory);
-    public JournalRepository JournalRepo => new(Factory);
-    public JournalEntryRepository JournalEntryRepo => new(Factory);
-    public JournalPostingRepository JournalPostingRepo => new(Factory);
-    public AccountingSettingsRepository AccountingSettingsRepo => new(Factory);
-    public AccountingReportRepository AccountingReportRepo => new(Factory);
-    public StockAccountingRepository StockAccountingRepo => new(Factory);
-    public EmployeeRepository EmployeeRepo => new(Factory);
-    public TaxRepository TaxRepo => new(Factory);
-    public PaymentTermRepository PaymentTermRepo => new(Factory);
-    public PriceListRepository PriceListRepo => new(Factory);
-    public ServiceRecipeRepository RecipeRepo => new(Factory);
-    public BranchSettingsRepository BranchSettingsRepo => new(Factory);
-
-    public PermissionService Permissions() => new(PermissionRepo, Cache);
-
-    public SettingsService Settings() =>
-        new(SettingsRepo, AuditRepo, Permissions(), Cache);
-
-    public AuthService Auth(IAccessTokenIssuer? issuer = null) => new(
-        UserRepo, SessionRepo, RefreshRepo, BranchRepo, Settings(), AuditRepo,
-        issuer ?? new FakeTokenIssuer(), new PasswordHasher(),
-        NullLogger<AuthService>.Instance);
-
-    public BranchService BranchService() =>
-        new(BranchRepo, Permissions(), new CustomFieldService(CustomFieldRepo, Permissions(),
-            new AuditService(AuditRepo)), new AuditService(AuditRepo));
-
-    public WarehouseService WarehouseService() =>
-        new(WarehouseRepo, BranchRepo, Permissions(),
-            new CustomFieldService(CustomFieldRepo, Permissions(), new AuditService(AuditRepo)),
-            new AuditService(AuditRepo));
-
-    public UserService UserService() => new(
-        UserRepo, BranchRepo, WarehouseRepo, RoleRepo, PermissionRepo, SessionRepo, RefreshRepo,
-        Permissions(), Settings(), new PasswordHasher(), new AuditService(AuditRepo));
 
     public async Task<ActorContext> AdminActorAsync()
     {
