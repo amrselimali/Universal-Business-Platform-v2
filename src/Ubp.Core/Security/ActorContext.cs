@@ -13,8 +13,8 @@ public sealed class ActorContext
     public string? IpAddress { get; init; }
     public string TraceId { get; init; } = "";
 
-    public bool CanAccessBranch(Guid branchId) => IsAdmin || AllowedBranchIds.Contains(branchId);
+    public bool CanAccessBranch(Guid branchId) => IsSuperAdmin || AllowedBranchIds.Contains(branchId);
     public bool HasAnyBranchAccess(IEnumerable<Guid> branchIds) =>
-        IsAdmin || branchIds.Any(CanAccessBranch);
+        IsSuperAdmin || branchIds.Any(CanAccessBranch);
     public string DisplayName => string.IsNullOrWhiteSpace(Name) ? Username : Name;
 }

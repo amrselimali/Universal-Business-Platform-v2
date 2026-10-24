@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-10-24 — Security fix: branch scope enforced server-side
+
+### Fixed
+- `IsAdmin` (permission admin) was also bypassing branch scoping everywhere: branch lists, branch
+  switching and data queries. Branch bypass is now reserved for `IsSuperAdmin` only.
+- Branch options/list are filtered by the user's assigned branches; warehouse and partner scope
+  filters use the same rule.
+- Added `BranchScope.Ensure` guards on 11 write paths (bookings, POS checkout/appointment, treasury
+  and vouchers, shifts, sales invoices, deliveries, appointments, settlements) so posting to a
+  foreign branch returns 403 even if the UI is bypassed.
+- 3 tests (129 total): branch options limited for a non-super-admin, super admin still sees all,
+  and creating a document in a foreign branch is forbidden.
+
 ## 2026-10-24 — Appointment bookings without prices or quantities
 
 ### Added

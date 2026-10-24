@@ -27,12 +27,12 @@ public sealed partial class BranchService
         var scope = await _permissions.GetScopeAsync(actor, ScreenCodes.Branches, ActionCodes.View, ct);
         if (scope < 0) throw new ForbiddenException();
         return await _repository.ListAsync(request, scope, actor.UserId,
-            actor.AllowedBranchIds, actor.IsAdmin, ct);
+            actor.AllowedBranchIds, actor.IsSuperAdmin, ct);
     }
 
     public async Task<IReadOnlyList<Branch>> OptionsAsync(ActorContext actor,
         CancellationToken ct = default) =>
-        await _repository.ListOptionsAsync(actor.AllowedBranchIds, actor.IsAdmin, ct);
+        await _repository.ListOptionsAsync(actor.AllowedBranchIds, actor.IsSuperAdmin, ct);
 
     public async Task<Branch?> GetAsync(ActorContext actor, Guid id, CancellationToken ct = default)
     {

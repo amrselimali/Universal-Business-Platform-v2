@@ -42,6 +42,7 @@ public sealed partial class TreasuryService
         CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.Treasuries, ActionCodes.Create, ct: ct);
+        BranchScope.Ensure(actor, input.BranchId);
         if (string.IsNullOrWhiteSpace(input.Code) || string.IsNullOrWhiteSpace(input.NameAr) ||
             input.AccountId == Guid.Empty)
             throw new ValidationAppException("validation.required_fields");

@@ -45,6 +45,7 @@ public sealed class SalesFulfillmentService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesDeliveries, ActionCodes.Execute,
             ct: ct);
+        BranchScope.Ensure(actor, input.BranchId);
         var id = Guid.CreateVersion7();
         try { await _deliveries.CreateDraftAsync(id, input, actor.UserId, ct); }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
@@ -101,6 +102,7 @@ public sealed class SalesFulfillmentService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesAppointments, ActionCodes.Manage,
             ct: ct);
+        BranchScope.Ensure(actor, input.BranchId);
         var id = Guid.CreateVersion7();
         await _appointments.CreateAsync(id, input, actor.UserId, ct);
         await _audit.WriteAsync(actor, "appointments", id.ToString(), "INSERT", null, input, ct);
