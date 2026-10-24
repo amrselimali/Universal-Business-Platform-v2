@@ -140,4 +140,10 @@ public sealed class ItemOption
     public Guid BaseUnitId { get; set; }
     public string BaseUnitName { get; set; } = "";
     public decimal OnHand { get; set; }
+    public string ItemType { get; set; } = "GOODS";
+    public Guid? TaxId { get; set; }
+    public decimal TaxRate { get; set; }
+    public decimal DefaultPrice { get; set; }
+    public bool PriceIncludesTax { get; set; }
+    public bool IsConsumable { get; set; }
 }

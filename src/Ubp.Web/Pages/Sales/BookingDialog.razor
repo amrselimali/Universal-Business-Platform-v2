@@ -134,7 +134,7 @@
         var actor = await UserContext.GetAsync();
         if (actor is null) return;
 
-        _items = await Items.OptionsAsync(actor, null);
+        _items = await Items.OptionsAsync(actor, null, true);
         _warehouses = await Warehouses.OptionsAsync(actor);
         _employees = await MasterData.EmployeeOptionsAsync(actor);
         var customers = await Partners.ListAsync(actor, PartnerKind.Customer,

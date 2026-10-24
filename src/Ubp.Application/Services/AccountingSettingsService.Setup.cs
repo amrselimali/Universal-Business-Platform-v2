@@ -109,7 +109,12 @@ public sealed partial class AccountingSettingsService
             [PostingKeys.SupplierPayable] = "2100",
             [PostingKeys.VatInput] = "1140",
             [PostingKeys.PurchaseVariance] = "5430",
-            [PostingKeys.RoundingDifference] = "5490"
+            [PostingKeys.RoundingDifference] = "5490",
+            [PostingKeys.CustomerAdvances] = "1110",
+            [PostingKeys.SupplierAdvances] = "2100",
+            [PostingKeys.PaymentFees] = "5200",
+            [PostingKeys.CashOverShort] = "5490",
+            [PostingKeys.InterBranchClearing] = "1130"
         };
 
         var existing = (await _settings.ListDefaultsAsync(ct))

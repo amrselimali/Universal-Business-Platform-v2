@@ -36,6 +36,7 @@ public sealed class PosPaymentResult
     public string? VoucherNo { get; set; }
     public Guid TreasuryId { get; set; }
     public decimal Amount { get; set; }
+    public decimal Fee { get; set; }
     public int Lines { get; set; }
 }
 
@@ -44,6 +45,8 @@ public sealed class PosReceipt
     public Guid BookingId { get; set; }
     public string? BookingNo { get; set; }
     public decimal Total { get; set; }
+    public decimal TaxTotal { get; set; }
     public decimal Paid { get; set; }
+    public decimal FeeTotal { get; set; }
     public List<PosPaymentResult> Vouchers { get; set; } = new();
 }
