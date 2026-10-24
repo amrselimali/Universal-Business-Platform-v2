@@ -49,28 +49,58 @@ else
                              Variant="Variant.Outlined" Min="0.0001m" Format="N4" />
             <MudNumericField @bind-Value="_price" Label="@T.T("sales.price")"
                              Variant="Variant.Outlined" Min="0m" Format="N4" />
-            <MudSelect T="Guid" Value="_treasuryId" Label="@T.T("treasury.treasury")"
-                       Variant="Variant.Outlined" ValueChanged="OnTreasuryChanged">
-                @foreach (var treasury in _treasuries)
-                {
-                    <MudSelectItem T="Guid" Value="@treasury.Id">@treasury.NameAr</MudSelectItem>
-                }
-            </MudSelect>
-            <MudSelect T="Guid" @bind-Value="_methodId" Label="@T.T("treasury.method")"
-                       Variant="Variant.Outlined">
-                @foreach (var method in _methods)
-                {
-                    <MudSelectItem T="Guid" Value="@method.Id">@method.NameAr</MudSelectItem>
-                }
-            </MudSelect>
         </div>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="ubp-card mt-4">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">@T.T("pos.payments_optional")</MudText>
+        <MudTable Items="_payments" Dense="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("treasury.treasury")</MudTh>
+                <MudTh>@T.T("treasury.method")</MudTh>
+                <MudTh Align="Right">@T.T("common.amount")</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <MudSelect T="Guid" Value="context.TreasuryId" Dense="true"
+                               ValueChanged="@(v => PickTreasury(context, v))">
+                        @foreach (var treasury in _treasuries)
+                        {
+                            <MudSelectItem T="Guid" Value="@treasury.Id">@treasury.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudTd>
+                <MudTd>
+                    <MudSelect T="Guid" Value="context.TreasuryMethodId" Dense="true"
+                               ValueChanged="@(v => context.TreasuryMethodId = v)">
+                        @foreach (var method in MethodsFor(context.TreasuryId))
+                        {
+                            <MudSelectItem T="Guid" Value="@method.Id">@method.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudNumericField T="decimal" @bind-Value="context.Amount" Min="0m"
+                                     Format="N2" Dense="true" />
+                </MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                   OnClick="@(() => _payments.Remove(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
 
         <div class="ubp-toolbar mt-2">
+            <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="AddPayment">@T.T("pos.add_payment")</MudButton>
             <MudText>@T.T("accounting.total"): <b>@Total.ToString("N2")</b></MudText>
+            <MudText>@T.T("pos.paid"): <b>@Paid.ToString("N2")</b></MudText>
             @if (Can(ActionCodes.Checkout))
             {
                 <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CheckoutAsync"
-                           Disabled="_busy">@T.T("pos.checkout")</MudButton>
+                           Disabled="_busy">@T.T("pos.checkout")
+                </MudButton>
             }
         </div>
     </MudPaper>
@@ -78,31 +108,42 @@ else
     @if (_receipt is not null)
     {
         <MudAlert Severity="Severity.Success" Class="mt-4">
-            @T.T("pos.receipt_created"): @_receipt.BookingNo · @_receipt.InvoiceNo ·
-            @_receipt.VoucherNo · @_receipt.Total.ToString("N2")
+            @T.T("pos.booking_created"): @_receipt.BookingNo ·
+            @T.T("pos.paid"): @_receipt.Paid.ToString("N2")
+            @if (_receipt.Vouchers.Count > 0)
+            {
+                <text> · @string.Join(" · ", _receipt.Vouchers.Select(v => v.VoucherNo))</text>
+            }
         </MudAlert>
     }
 }
 
 @code {
+    private sealed class PaymentModel
+    {
+        public Guid TreasuryId { get; set; }
+        public Guid TreasuryMethodId { get; set; }
+        public decimal Amount { get; set; }
+    }
+
     private Guid _branchId;
     private Guid _customerId;
     private Guid _warehouseId;
     private Guid _itemId;
-    private Guid _treasuryId;
-    private Guid _methodId;
     private decimal _quantity = 1;
     private decimal _price = 100;
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private IReadOnlyList<Partner> _customers = Array.Empty<Partner>();
     private IReadOnlyList<Warehouse> _warehouses = Array.Empty<Warehouse>();
     private IReadOnlyList<Treasury> _treasuries = Array.Empty<Treasury>();
-    private IReadOnlyList<TreasuryMethod> _methods = Array.Empty<TreasuryMethod>();
+    private readonly Dictionary<Guid, IReadOnlyList<TreasuryMethod>> _methodsByTreasury = new();
     private IReadOnlyList<ItemOption> _items = Array.Empty<ItemOption>();
+    private List<PaymentModel> _payments = new();
     private PosReceipt? _receipt;
     private bool _busy;
 
     private decimal Total => _quantity * _price;
+    private decimal Paid => _payments.Sum(p => p.Amount);
 
     protected override string ScreenCode => ScreenCodes.PosTerminal;
 
@@ -117,38 +158,52 @@ else
         _warehouseId = _warehouses.FirstOrDefault()?.Id ?? Guid.Empty;
         _items = await Items.OptionsAsync(Actor!, null);
         _itemId = _items.FirstOrDefault()?.Id ?? Guid.Empty;
-        _treasuries = await Treasury.ListTreasuriesAsync(Actor!, _branchId);
-        _treasuryId = _treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
-        await LoadMethodsAsync();
+        await LoadTreasuriesAsync();
     }
 
-    private async Task LoadMethodsAsync()
+    private async Task LoadTreasuriesAsync()
     {
-        _methods = _treasuryId == Guid.Empty ? Array.Empty<TreasuryMethod>()
-            : await Treasury.ListMethodsAsync(Actor!, _treasuryId);
-        _methodId = _methods.FirstOrDefault()?.Id ?? Guid.Empty;
+        _treasuries = await Treasury.ListTreasuriesAsync(Actor!, _branchId);
+        _methodsByTreasury.Clear();
+        foreach (var treasury in _treasuries)
+            _methodsByTreasury[treasury.Id] = await Treasury.ListMethodsAsync(Actor!, treasury.Id);
     }
+
+    private IReadOnlyList<TreasuryMethod> MethodsFor(Guid treasuryId) =>
+        _methodsByTreasury.TryGetValue(treasuryId, out var methods)
+            ? methods : Array.Empty<TreasuryMethod>();
 
     private async Task OnBranchChanged(Guid value)
     {
         _branchId = value;
-        _treasuries = await Treasury.ListTreasuriesAsync(Actor!, _branchId);
-        _treasuryId = _treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
-        await LoadMethodsAsync();
+        await LoadTreasuriesAsync();
+        _payments.Clear();
         StateHasChanged();
     }
 
-    private async Task OnTreasuryChanged(Guid value)
+    private void PickTreasury(PaymentModel payment, Guid treasuryId)
     {
-        _treasuryId = value;
-        await LoadMethodsAsync();
+        payment.TreasuryId = treasuryId;
+        payment.TreasuryMethodId = MethodsFor(treasuryId).FirstOrDefault()?.Id ?? Guid.Empty;
+    }
+
+    private void AddPayment()
+    {
+        var treasury = _treasuries.FirstOrDefault();
+        _payments.Add(new PaymentModel
+        {
+            TreasuryId = treasury?.Id ?? Guid.Empty,
+            TreasuryMethodId = treasury is null ? Guid.Empty
+                : MethodsFor(treasury.Id).FirstOrDefault()?.Id ?? Guid.Empty,
+            Amount = Total - Paid > 0 ? Total - Paid : 0
+        });
         StateHasChanged();
     }
 
     private async Task CheckoutAsync() => await RunAsync(async () =>
     {
         if (_customerId == Guid.Empty || _warehouseId == Guid.Empty || _itemId == Guid.Empty ||
-            _treasuryId == Guid.Empty || _methodId == Guid.Empty || _quantity <= 0)
+            _quantity <= 0)
         {
             Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
             return;
@@ -160,7 +215,7 @@ else
             _receipt = await Pos.CheckoutAsync(Actor!, new PosCheckoutInput
             {
                 BranchId = _branchId, CustomerId = _customerId, WarehouseId = _warehouseId,
-                TreasuryId = _treasuryId, TreasuryMethodId = _methodId, DocDate = DateTime.Today,
+                DocDate = DateTime.Today,
                 Lines =
                 {
                     new PosLineInput
@@ -170,8 +225,15 @@ else
                                  ?? Guid.Empty,
                         Quantity = _quantity, UnitPrice = _price
                     }
-                }
+                },
+                Payments = _payments.Where(p => p.Amount > 0)
+                    .Select(p => new PosPaymentInput
+                    {
+                        TreasuryId = p.TreasuryId, TreasuryMethodId = p.TreasuryMethodId,
+                        Amount = p.Amount
+                    }).ToList()
             });
+            _payments.Clear();
         }
         finally { _busy = false; }
     });

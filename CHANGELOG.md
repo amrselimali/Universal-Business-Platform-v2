@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-10-24 — Fix: sales group in navigation + POS redefined as booking with optional collection
+
+### Fixed
+- `NavMenu` was missing the `group.sales` group, so every sales/POS screen was registered but
+  invisible in the sidebar. The group is now rendered.
+
+### Changed
+- POS quick sale now creates **only a booking** (`source = 'pos'`, confirmed, reserves stock when
+  the setting is on). It no longer creates a delivery note or an invoice.
+- Collection is optional: zero or more payment lines, each with its own treasury and payment
+  method, grouped per treasury into one receipt voucher with multiple lines; over-collection above
+  the sale total is rejected. The old forced single-method receipt was removed.
+- 3 POS tests updated (121 total): booking-only without payment, multi-method collection in one
+  voucher, and rejection + rollback when the collected total exceeds the sale.
+
 ## 2026-10-24 — Phase 4H: customer follow-ups
 
 ### Added

@@ -50,6 +50,12 @@
 ### Phase 4H (completed 2026-10-24)
 - Customer follow-ups with one-time overdue generation; 1 screen; 2 tests (120 total).
 
+### Fixes after review (2026-10-24)
+- Added the missing `group.sales` group to the sidebar, so bookings/POS/invoices/returns/
+  settlements/commissions/follow-ups are visible (employees were already under «التعريفات»).
+- POS redefined per requirement: creates a booking only; collection is optional and can use
+  multiple payment methods per operation.
+
 ### Next
 6 (reports/notifications) → 7 (operations).
 الخطة التفصيلية للباقي (جداول/شاشات/أزرار/دورات عمل/اختبارات/جهد): `docs/PHASE-REMAINING-AR.md`.

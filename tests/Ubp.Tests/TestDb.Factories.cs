@@ -70,7 +70,8 @@ public sealed partial class TestDb
     public SalesFinanceService SalesFinance() => new(
         SalesFinanceRepo, CommercialRepo, Permissions(), new AuditService(AuditRepo));
 
-    public PosService Pos() => new(PosRepo, Permissions(), new AuditService(AuditRepo));
+    public PosService Pos() => new(
+        PosRepo, Settings(), Permissions(), new AuditService(AuditRepo));
 
     public FollowUpService FollowUps() => new(
         FollowUpRepo, Permissions(), new AuditService(AuditRepo));

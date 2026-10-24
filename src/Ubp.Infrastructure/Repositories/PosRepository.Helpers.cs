@@ -50,33 +50,6 @@ public sealed partial class PosRepository
         return result;
     }
 
-    private static async Task<Guid> CreateStockDocAsync(NpgsqlConnection connection,
-        NpgsqlTransaction tx, Guid deliveryId, PosCheckoutInput input,
-        IReadOnlyList<(Guid Id, BuiltLine Line)> bookingLines, Guid userId, CancellationToken ct)
-    {
-        var stockDocId = Guid.CreateVersion7();
-        await connection.ExecuteAsync(new CommandDefinition("""
-            INSERT INTO stock_documents (id, doc_type, doc_date, branch_id, warehouse_id, status,
-                notes, created_by)
-            VALUES (@stockDocId, @docType, @docDate, @BranchId, @WarehouseId, 'DRAFT', @notes, @userId)
-            """, new { stockDocId, docType = StockDocumentTypes.Issue,
-                docDate = input.DocDate.Date, input.BranchId, input.WarehouseId,
-                notes = $"POS {deliveryId:N}", userId }, tx, cancellationToken: ct));
-
-        foreach (var (_, line) in bookingLines)
-        {
-            await connection.ExecuteAsync(new CommandDefinition("""
-                INSERT INTO stock_document_lines (document_id, line_no, direction, item_id, unit_id,
-                    conversion_factor, quantity, base_quantity, unit_cost)
-                VALUES (@stockDocId, @LineNo, 'OUT', @ItemId, @UnitId, 1, @Quantity, @Quantity, 0)
-                """, new { stockDocId, line.LineNo, line.ItemId, line.UnitId, line.Quantity }, tx,
-                cancellationToken: ct));
-        }
-
-        await StockPostingRepository.PostCoreAsync(connection, tx, stockDocId, userId, false, ct);
-        return stockDocId;
-    }
-
     private static Task<string> NextNumberAsync(NpgsqlConnection connection, NpgsqlTransaction tx,
         string docType, Guid branchId, DateTime docDate, string prefix, CancellationToken ct) =>
         connection.ExecuteScalarAsync<string>(new CommandDefinition("""

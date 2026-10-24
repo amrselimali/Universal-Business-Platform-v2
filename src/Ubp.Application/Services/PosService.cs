@@ -10,12 +10,14 @@ namespace Ubp.Application.Services;
 public sealed class PosService
 {
     private readonly IPosRepository _pos;
+    private readonly ISettingsService _settings;
     private readonly PermissionService _permissions;
     private readonly AuditService _audit;
 
-    public PosService(IPosRepository pos, PermissionService permissions, AuditService audit)
+    public PosService(IPosRepository pos, ISettingsService settings, PermissionService permissions,
+        AuditService audit)
     {
-        _pos = pos; _permissions = permissions; _audit = audit;
+        _pos = pos; _settings = settings; _permissions = permissions; _audit = audit;
     }
 
     public async Task<PosReceipt> CheckoutAsync(ActorContext actor, PosCheckoutInput input,
@@ -23,12 +25,21 @@ public sealed class PosService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.Checkout,
             ct: ct);
+        var settings = await _settings.GetAsync(ct);
         PosReceipt receipt;
-        try { receipt = await _pos.CheckoutAsync(input, actor.UserId, ct); }
+        try
+        {
+            receipt = await _pos.CheckoutAsync(input, actor.UserId, settings.ReserveStockOnBooking,
+                ct);
+        }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
 
         await _audit.WriteAsync(actor, "bookings", receipt.BookingId.ToString(), "INSERT", null,
-            new { receipt.BookingNo, receipt.InvoiceNo, receipt.VoucherNo, receipt.Total }, ct);
+            new
+            {
+                receipt.BookingNo, receipt.Total, receipt.Paid,
+                Vouchers = receipt.Vouchers.Select(v => v.VoucherNo).ToArray()
+            }, ct);
         return receipt;
     }
 

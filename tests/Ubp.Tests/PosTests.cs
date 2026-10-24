@@ -13,7 +13,7 @@ public sealed class PosTests : IClassFixture<TestDb>
     public PosTests(TestDb db) => _db = db;
 
     private sealed record Fixture(Guid Branch, Guid Warehouse, Item Item, Partner Customer,
-        Guid TreasuryId, Guid MethodId);
+        Guid TreasuryId, Guid CashMethod, Guid CardMethod);
 
     private async Task<Fixture> SetupAsync(string suffix)
     {
@@ -35,88 +35,105 @@ public sealed class PosTests : IClassFixture<TestDb>
             BranchId = branch, Code = "POS-T-" + suffix, NameAr = "خزينة " + suffix,
             TreasuryType = TreasuryTypes.Cash, AccountId = chart["1101"].Id
         }, actor.UserId);
-        var methodId = Guid.CreateVersion7();
-        await _db.TreasuryRepo.CreateMethodAsync(methodId, new TreasuryMethodInput
+        var cash = Guid.CreateVersion7();
+        await _db.TreasuryRepo.CreateMethodAsync(cash, new TreasuryMethodInput
         { TreasuryId = treasuryId, Code = "CASH", NameAr = "نقدي" }, actor.UserId);
+        var card = Guid.CreateVersion7();
+        await _db.TreasuryRepo.CreateMethodAsync(card, new TreasuryMethodInput
+        {
+            TreasuryId = treasuryId, Code = "CARD", NameAr = "بطاقة",
+            MethodType = PaymentMethodTypes.Card, ClearingAccountId = chart["1130"].Id
+        }, actor.UserId);
 
-        return new Fixture(branch, warehouse, item, customer, treasuryId, methodId);
+        return new Fixture(branch, warehouse, item, customer, treasuryId, cash, card);
     }
 
-    private async Task<PosReceipt> CheckoutAsync(Fixture f, Guid itemId, decimal quantity)
+    private async Task<PosReceipt> CheckoutAsync(Fixture f, decimal quantity,
+        params PosPaymentInput[] payments)
     {
         var actor = await _db.AdminActorAsync();
         return await _db.Pos().CheckoutAsync(actor, new PosCheckoutInput
         {
             BranchId = f.Branch, CustomerId = f.Customer.Id, WarehouseId = f.Warehouse,
-            TreasuryId = f.TreasuryId, TreasuryMethodId = f.MethodId, DocDate = DateTime.Today,
-            Lines = { new PosLineInput { ItemId = itemId, UnitId = f.Item.BaseUnitId,
-                Quantity = quantity, UnitPrice = 100 } }
+            DocDate = DateTime.Today,
+            Lines = { new PosLineInput { ItemId = f.Item.Id, UnitId = f.Item.BaseUnitId,
+                Quantity = quantity, UnitPrice = 100 } },
+            Payments = payments.ToList()
         });
     }
 
     [Fact]
-    public async Task Pos_checkout_creates_booking_invoice_and_payment_in_one_tx()
+    public async Task Pos_checkout_creates_booking_only_when_no_payment()
     {
         var f = await SetupAsync("1");
-        var receipt = await CheckoutAsync(f, f.Item.Id, 2);
+        var receipt = await CheckoutAsync(f, 2);
 
         Assert.Equal(200m, receipt.Total);
+        Assert.Equal(0m, receipt.Paid);
+        Assert.Empty(receipt.Vouchers);
         Assert.StartsWith("BK-", receipt.BookingNo);
-        Assert.StartsWith("DN-", receipt.DeliveryNo);
-        Assert.StartsWith("SI-", receipt.InvoiceNo);
-        Assert.StartsWith("RCV-", receipt.VoucherNo);
-        Assert.Equal(8m, await _db.OnHandAsync(f.Item.Id, f.Warehouse));
 
         await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
         await connection.OpenAsync();
-
         var booking = await connection.QuerySingleAsync<(string Status, string Source)>(
             "SELECT status, source FROM bookings WHERE id = @id", new { id = receipt.BookingId });
-        Assert.Equal(BookingStatuses.Completed, booking.Status);
+        Assert.Equal(BookingStatuses.Confirmed, booking.Status);
         Assert.Equal(BookingSources.Pos, booking.Source);
 
-        var invoice = await connection.QuerySingleAsync<(string Status, decimal Total,
-            decimal Allocated, Guid? Entry)>(
-            "SELECT status, total, allocated_total, journal_entry_id FROM commercial_documents " +
-            "WHERE id = @id", new { id = receipt.InvoiceId });
-        Assert.Equal(CommercialStatuses.Posted, invoice.Status);
-        Assert.Equal(200m, invoice.Total);
-        Assert.Equal(200m, invoice.Allocated);
-        Assert.NotNull(invoice.Entry);
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
+            "SELECT count(*) FROM vouchers WHERE branch_id = @b", new { b = f.Branch }));
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
+            "SELECT count(*) FROM commercial_documents WHERE branch_id = @b", new { b = f.Branch }));
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
+            "SELECT count(*) FROM delivery_notes WHERE branch_id = @b", new { b = f.Branch }));
 
-        var voucher = await connection.QuerySingleAsync<(string Status, Guid? Entry)>(
-            "SELECT status, journal_entry_id FROM vouchers WHERE id = @id",
-            new { id = receipt.VoucherId });
-        Assert.Equal(VoucherStatuses.Posted, voucher.Status);
-        Assert.NotNull(voucher.Entry);
-
-        var entry = await connection.QuerySingleAsync<(decimal Debit, decimal Credit)>(
-            "SELECT total_debit, total_credit FROM journal_entries WHERE id = @id",
-            new { id = voucher.Entry });
-        Assert.Equal(200m, entry.Debit);
-        Assert.Equal(entry.Debit, entry.Credit);
+        Assert.Equal(8m, await _db.BookingService().AvailableAsync(await _db.AdminActorAsync(),
+            f.Item.Id, f.Warehouse));
     }
 
     [Fact]
-    public async Task Pos_failure_rolls_back_everything()
+    public async Task Pos_checkout_accepts_multiple_methods_in_one_voucher()
     {
         var f = await SetupAsync("2");
-        var emptyItem = await _db.CreateItemAsync("POS-EMPTY-2", "صنف بلا رصيد");
+        var receipt = await CheckoutAsync(f, 1,
+            new PosPaymentInput { TreasuryId = f.TreasuryId, TreasuryMethodId = f.CashMethod,
+                Amount = 60 },
+            new PosPaymentInput { TreasuryId = f.TreasuryId, TreasuryMethodId = f.CardMethod,
+                Amount = 40 });
 
-        await Assert.ThrowsAnyAsync<AppException>(() => CheckoutAsync(f, emptyItem.Id, 1));
+        Assert.Equal(100m, receipt.Paid);
+        var voucher = Assert.Single(receipt.Vouchers);
+        Assert.Equal(2, voucher.Lines);
+        Assert.StartsWith("RCV-", voucher.VoucherNo);
 
         await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
         await connection.OpenAsync();
-        var bookings = await connection.ExecuteScalarAsync<int>(
-            "SELECT count(*) FROM bookings WHERE branch_id = @branch", new { branch = f.Branch });
-        var invoices = await connection.ExecuteScalarAsync<int>(
-            "SELECT count(*) FROM commercial_documents WHERE branch_id = @branch",
-            new { branch = f.Branch });
-        var vouchers = await connection.ExecuteScalarAsync<int>(
-            "SELECT count(*) FROM vouchers WHERE branch_id = @branch", new { branch = f.Branch });
+        var entries = (await connection.QueryAsync<(string Code, decimal Debit, decimal Credit)>("""
+            SELECT a.code, l.debit, l.credit FROM journal_entry_lines l
+            JOIN accounts a ON a.id = l.account_id WHERE l.entry_id = (
+                SELECT journal_entry_id FROM vouchers WHERE id = @id)
+            """, new { id = voucher.VoucherId })).ToList();
 
-        Assert.Equal(0, bookings);
-        Assert.Equal(0, invoices);
-        Assert.Equal(0, vouchers);
+        Assert.Contains(entries, l => l.Code == "1101" && l.Debit == 60m);
+        Assert.Contains(entries, l => l.Code == "1130" && l.Debit == 40m);
+        Assert.Contains(entries, l => l.Code == "1110" && l.Credit == 100m);
+    }
+
+    [Fact]
+    public async Task Pos_payment_above_total_is_rejected_and_nothing_created()
+    {
+        var f = await SetupAsync("3");
+
+        var error = await Assert.ThrowsAsync<ValidationAppException>(() => CheckoutAsync(f, 1,
+            new PosPaymentInput { TreasuryId = f.TreasuryId, TreasuryMethodId = f.CashMethod,
+                Amount = 300 }));
+        Assert.Equal("validation.pos_payment_exceeds_total", error.Code);
+
+        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
+        await connection.OpenAsync();
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
+            "SELECT count(*) FROM bookings WHERE branch_id = @b", new { b = f.Branch }));
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
+            "SELECT count(*) FROM vouchers WHERE branch_id = @b", new { b = f.Branch }));
     }
 }
