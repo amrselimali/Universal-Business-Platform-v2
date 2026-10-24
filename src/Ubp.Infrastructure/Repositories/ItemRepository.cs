@@ -10,7 +10,7 @@ public interface IItemRepository
     Task<PagedResult<Item>> ListAsync(PageRequest request, Guid? categoryId, string? itemType,
         CancellationToken ct = default);
     Task<IReadOnlyList<ItemOption>> ListOptionsAsync(string? search, int take = 25,
-        CancellationToken ct = default);
+        bool sellableOnly = false, CancellationToken ct = default);
     Task<Item?> GetAsync(Guid id, CancellationToken ct = default);
     Task<ItemDetail?> GetDetailAsync(Guid id, CancellationToken ct = default);
     Task<Item> CreateAsync(ItemInput input, CancellationToken ct = default);
@@ -79,23 +79,32 @@ public sealed partial class ItemRepository : IItemRepository
     }
 
     public async Task<IReadOnlyList<ItemOption>> ListOptionsAsync(string? search, int take = 25,
-        CancellationToken ct = default)
+        bool sellableOnly = false, CancellationToken ct = default)
     {
         take = take is < 1 or > 50 ? 25 : take;
         const string sql = """
             SELECT i.id AS Id, i.code AS Code, i.name_ar AS NameAr, i.name_en AS NameEn,
                    i.base_unit_id AS BaseUnitId,
                    (SELECT u.name_ar FROM units u WHERE u.id = i.base_unit_id) AS BaseUnitName,
-                   COALESCE((SELECT sum(b.on_hand) FROM stock_balances b WHERE b.item_id = i.id), 0) AS OnHand
+                   COALESCE((SELECT sum(b.on_hand) FROM stock_balances b WHERE b.item_id = i.id), 0) AS OnHand,
+                   i.item_type AS ItemType, i.tax_id AS TaxId,
+                   COALESCE((SELECT t.rate FROM taxes t WHERE t.id = i.tax_id), 0) AS TaxRate,
+                   COALESCE(i.default_price,
+                            (SELECT iu.sale_price FROM item_units iu
+                             WHERE iu.item_id = i.id AND iu.unit_id = i.base_unit_id), 0) AS DefaultPrice,
+                   i.price_includes_tax AS PriceIncludesTax, i.is_consumable AS IsConsumable
             FROM items i
-            WHERE i.is_active AND i.item_type = 'GOODS'
+            WHERE i.is_active
+              AND (@sellableOnly = false AND i.item_type = 'GOODS'
+                   OR @sellableOnly = true AND i.item_type IN ('GOODS', 'SERVICE')
+                      AND NOT i.is_consumable)
               AND (@search IS NULL OR @search = '' OR i.search_text LIKE '%' || normalize_search(@search) || '%')
             ORDER BY i.name_ar
             LIMIT @take
             """;
         await using var connection = await _factory.OpenAsync(ct);
         var rows = await connection.QueryAsync<ItemOption>(new CommandDefinition(sql,
-            new { search, take }, cancellationToken: ct));
+            new { search, take, sellableOnly }, cancellationToken: ct));
         return rows.ToList();
     }
 

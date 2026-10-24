@@ -38,8 +38,8 @@ else
                     <MudSelectItem T="Guid" Value="@warehouse.Id">@warehouse.NameAr</MudSelectItem>
                 }
             </MudSelect>
-            <MudSelect T="Guid" @bind-Value="_itemId" Label="@T.T("sales.item")"
-                       Variant="Variant.Outlined">
+            <MudSelect T="Guid" Value="_itemId" Label="@T.T("sales.item")"
+                       Variant="Variant.Outlined" ValueChanged="OnItemChanged">
                 @foreach (var item in _items)
                 {
                     <MudSelectItem T="Guid" Value="@item.Id">@item.Code — @item.NameAr</MudSelectItem>
@@ -76,13 +76,16 @@ else
                                ValueChanged="@(v => context.TreasuryMethodId = v)">
                         @foreach (var method in MethodsFor(context.TreasuryId))
                         {
-                            <MudSelectItem T="Guid" Value="@method.Id">@method.NameAr</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@method.Id">
+                                @method.NameAr (@method.FeePercent.ToString("N2")%)
+                            </MudSelectItem>
                         }
                     </MudSelect>
                 </MudTd>
                 <MudTd Align="Right">
                     <MudNumericField T="decimal" @bind-Value="context.Amount" Min="0m"
                                      Format="N2" Dense="true" />
+                    <MudText Typo="Typo.caption">@T.T("pos.fee"): @FeeOf(context).ToString("N2")</MudText>
                 </MudTd>
                 <MudTd>
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
@@ -94,8 +97,11 @@ else
         <div class="ubp-toolbar mt-2">
             <MudButton Size="Size.Small" Variant="Variant.Outlined"
                        StartIcon="@Icons.Material.Filled.Add" OnClick="AddPayment">@T.T("pos.add_payment")</MudButton>
+            <MudText>@T.T("pos.net"): <b>@Net.ToString("N2")</b></MudText>
+            <MudText>@T.T("pos.tax"): <b>@Tax.ToString("N2")</b></MudText>
             <MudText>@T.T("accounting.total"): <b>@Total.ToString("N2")</b></MudText>
             <MudText>@T.T("pos.paid"): <b>@Paid.ToString("N2")</b></MudText>
+            <MudText>@T.T("pos.fees"): <b>@Fees.ToString("N2")</b></MudText>
             @if (Can(ActionCodes.Checkout))
             {
                 <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CheckoutAsync"
@@ -109,6 +115,8 @@ else
     {
         <MudAlert Severity="Severity.Success" Class="mt-4">
             @T.T("pos.booking_created"): @_receipt.BookingNo ·
+            @T.T("pos.tax"): @_receipt.TaxTotal.ToString("N2") ·
+            @T.T("pos.fees"): @_receipt.FeeTotal.ToString("N2") ·
             @T.T("pos.paid"): @_receipt.Paid.ToString("N2")
             @if (_receipt.Vouchers.Count > 0)
             {
@@ -142,8 +150,25 @@ else
     private PosReceipt? _receipt;
     private bool _busy;
 
-    private decimal Total => _quantity * _price;
+    private ItemOption? SelectedItem => _items.FirstOrDefault(i => i.Id == _itemId);
+    private decimal Gross => _quantity * _price;
+    private decimal Tax
+    {
+        get
+        {
+            var item = SelectedItem;
+            if (item is null || item.TaxRate <= 0) return 0m;
+            return item.PriceIncludesTax
+                ? Math.Round(Gross - Net, 2, MidpointRounding.AwayFromZero)
+                : Math.Round(Net * item.TaxRate / 100m, 2, MidpointRounding.AwayFromZero);
+        }
+    }
+    private decimal Net => SelectedItem is { PriceIncludesTax: true, TaxRate: > 0 }
+        ? Math.Round(Gross / (1 + SelectedItem.TaxRate / 100m), 2, MidpointRounding.AwayFromZero)
+        : Gross;
+    private decimal Total => Net + Tax;
     private decimal Paid => _payments.Sum(p => p.Amount);
+    private decimal Fees => _payments.Sum(FeeOf);
 
     protected override string ScreenCode => ScreenCodes.PosTerminal;
 
@@ -156,8 +181,9 @@ else
         _customerId = _customers.FirstOrDefault()?.Id ?? Guid.Empty;
         _warehouses = await Warehouses.OptionsAsync(Actor!);
         _warehouseId = _warehouses.FirstOrDefault()?.Id ?? Guid.Empty;
-        _items = await Items.OptionsAsync(Actor!, null);
+        _items = await Items.OptionsAsync(Actor!, null, true);
         _itemId = _items.FirstOrDefault()?.Id ?? Guid.Empty;
+        if (_items.FirstOrDefault() is { DefaultPrice: > 0 } first) _price = first.DefaultPrice;
         await LoadTreasuriesAsync();
     }
 
@@ -185,6 +211,21 @@ else
     {
         payment.TreasuryId = treasuryId;
         payment.TreasuryMethodId = MethodsFor(treasuryId).FirstOrDefault()?.Id ?? Guid.Empty;
+    }
+
+    private decimal FeeOf(PaymentModel payment)
+    {
+        var method = MethodsFor(payment.TreasuryId).FirstOrDefault(m => m.Id == payment.TreasuryMethodId);
+        return method is null ? 0m : Math.Round(payment.Amount * method.FeePercent / 100m +
+            method.FeeFixed, 2, MidpointRounding.AwayFromZero);
+    }
+
+    private void OnItemChanged(Guid itemId)
+    {
+        _itemId = itemId;
+        var item = SelectedItem;
+        if (item is not null && item.DefaultPrice > 0) _price = item.DefaultPrice;
+        StateHasChanged();
     }
 
     private void AddPayment()

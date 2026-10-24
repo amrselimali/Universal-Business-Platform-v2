@@ -32,6 +32,7 @@ public sealed partial class PosRepository : IPosRepository
         public Guid ItemId { get; set; }
         public Guid UnitId { get; set; }
         public Guid? TaxId { get; set; }
+        public string ItemType { get; set; } = "GOODS";
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal DiscountPercent { get; set; }
@@ -52,6 +53,7 @@ public sealed partial class PosRepository : IPosRepository
         public decimal FeeFixed { get; set; }
         public bool RequiresReference { get; set; }
         public decimal Amount { get; set; }
+        public decimal Fee { get; set; }
         public string? Reference { get; set; }
     }
 
@@ -67,8 +69,9 @@ public sealed partial class PosRepository : IPosRepository
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
 
-        var rates = await LoadTaxRatesAsync(connection, tx, input, ct);
-        var lines = BuildLines(input, rates);
+        var items = await LoadItemInfoAsync(connection, tx, input, ct);
+        var rates = await LoadTaxRatesAsync(connection, tx, input, items, ct);
+        var lines = BuildLines(input, rates, items);
         var total = lines.Sum(l => l.TotalAmount);
 
         var payments = await ValidatePaymentsAsync(connection, tx, input, total, ct);
@@ -86,7 +89,7 @@ public sealed partial class PosRepository : IPosRepository
 
         foreach (var line in lines)
         {
-            if (reserveStock)
+            if (reserveStock && line.ItemType == "GOODS")
             {
                 var available = await connection.ExecuteScalarAsync<decimal>(new CommandDefinition(
                     "SELECT COALESCE(fn_stock_available(@itemId, @warehouseId), 0)",
@@ -140,8 +143,7 @@ public sealed partial class PosRepository : IPosRepository
             foreach (var payment in group)
             {
                 lineNo++;
-                var fee = Math.Round(payment.Amount * payment.FeePercent / 100m +
-                    payment.FeeFixed, 2, MidpointRounding.AwayFromZero);
+                var fee = payment.Fee;
                 if (fee >= payment.Amount)
                     throw new ValidationAppException("validation.invalid_fee");
 
@@ -177,11 +179,16 @@ public sealed partial class PosRepository : IPosRepository
             receipt.Vouchers.Add(new PosPaymentResult
             {
                 VoucherId = voucherId, VoucherNo = voucherNo, TreasuryId = group.Key,
-                Amount = amount, Lines = group.Count()
+                Amount = amount, Fee = group.Sum(p => p.Fee), Lines = group.Count()
             });
         }
 
         receipt.Paid = receipt.Vouchers.Sum(v => v.Amount);
+        receipt.FeeTotal = receipt.Vouchers.Sum(v => v.Fee);
+        receipt.TaxTotal = lines.Sum(l => l.TaxAmount);
+
+        await ConsumeServiceRecipesAsync(connection, tx, input, lines, userId, ct);
+
         await tx.CommitAsync(ct);
         return receipt;
     }
@@ -218,6 +225,8 @@ public sealed partial class PosRepository : IPosRepository
 
             account.Amount = payment.Amount;
             account.Reference = payment.Reference;
+            account.Fee = Math.Round(payment.Amount * account.FeePercent / 100m +
+                account.FeeFixed, 2, MidpointRounding.AwayFromZero);
             result.Add(account);
         }
 
