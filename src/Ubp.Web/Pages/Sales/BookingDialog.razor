@@ -12,8 +12,6 @@
                         <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
                     }
                 </MudSelect>
-                <MudDatePicker @bind-Date="_date" Label="@T.T("sales.booking_date")"
-                               Variant="Variant.Outlined" Required="true" />
                 <MudSelect T="Guid" @bind-Value="_input.CustomerId" Label="@T.T("sales.customer")"
                            Variant="Variant.Outlined" Required="true">
                     @foreach (var customer in _customers)
@@ -23,6 +21,12 @@
                         </MudSelectItem>
                     }
                 </MudSelect>
+                <MudDatePicker @bind-Date="_date" Label="@T.T("sales.booking_date")"
+                               Variant="Variant.Outlined" Required="true" />
+                <MudTimePicker @bind-Time="_startTime" Label="@T.T("sales.from")"
+                               Variant="Variant.Outlined" />
+                <MudTimePicker @bind-Time="_endTime" Label="@T.T("sales.to")"
+                               Variant="Variant.Outlined" />
                 <MudSelect T="Guid?" @bind-Value="_input.AssignedEmployeeId"
                            Label="@T.T("sales.assigned_employee")" Variant="Variant.Outlined"
                            Clearable="true">
@@ -41,9 +45,6 @@
         <MudTable Items="_lines" Dense="true" Elevation="0" Class="ubp-table my-2">
             <HeaderContent>
                 <MudTh>@T.T("sales.item")</MudTh>
-                <MudTh>@T.T("sales.warehouse")</MudTh>
-                <MudTh Align="Right">@T.T("sales.quantity")</MudTh>
-                <MudTh Align="Right">@T.T("sales.price")</MudTh>
                 <MudTh></MudTh>
             </HeaderContent>
             <RowTemplate>
@@ -52,26 +53,11 @@
                                ValueChanged="@(v => PickItem(context, v))">
                         @foreach (var item in _items)
                         {
-                            <MudSelectItem T="Guid" Value="@item.Id">@item.Code — @item.NameAr</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@item.Id">
+                                @item.Code — @item.NameAr (@T.T("sales.item_type_" + item.ItemType.ToLowerInvariant()))
+                            </MudSelectItem>
                         }
                     </MudSelect>
-                </MudTd>
-                <MudTd>
-                    <MudSelect T="Guid" Value="context.WarehouseId" Dense="true"
-                               ValueChanged="@(v => context.WarehouseId = v)">
-                        @foreach (var warehouse in _warehouses)
-                        {
-                            <MudSelectItem T="Guid" Value="@warehouse.Id">@warehouse.NameAr</MudSelectItem>
-                        }
-                    </MudSelect>
-                </MudTd>
-                <MudTd Align="Right">
-                    <MudNumericField T="decimal" @bind-Value="context.Quantity" Min="0.0001m"
-                                     Format="N4" Dense="true" />
-                </MudTd>
-                <MudTd Align="Right">
-                    <MudNumericField T="decimal" @bind-Value="context.UnitPrice" Min="0m"
-                                     Format="N4" Dense="true" />
                 </MudTd>
                 <MudTd>
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
@@ -80,11 +66,8 @@
             </RowTemplate>
         </MudTable>
 
-        <div class="ubp-toolbar">
-            <MudButton Size="Size.Small" Variant="Variant.Outlined"
-                       StartIcon="@Icons.Material.Filled.Add" OnClick="AddLine">@T.T("sales.add_line")</MudButton>
-            <MudText>@T.T("accounting.total"): <b>@Total.ToString("N2")</b></MudText>
-        </div>
+        <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Add" OnClick="AddLine">@T.T("sales.add_line")</MudButton>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
@@ -98,9 +81,6 @@
     {
         public Guid ItemId { get; set; }
         public Guid BaseUnitId { get; set; }
-        public Guid WarehouseId { get; set; }
-        public decimal Quantity { get; set; } = 1;
-        public decimal UnitPrice { get; set; }
     }
 
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -119,14 +99,14 @@
     private MudForm _form = default!;
     private BookingInput _input = new();
     private DateTime? _date = DateTime.Today;
+    private TimeSpan? _startTime = new(10, 0, 0);
+    private TimeSpan? _endTime = new(10, 30, 0);
     private List<LineModel> _lines = new();
     private IReadOnlyList<Partner> _customers = Array.Empty<Partner>();
     private IReadOnlyList<Employee> _employees = Array.Empty<Employee>();
     private IReadOnlyList<ItemOption> _items = Array.Empty<ItemOption>();
     private IReadOnlyList<Warehouse> _warehouses = Array.Empty<Warehouse>();
     private bool _busy;
-
-    private decimal Total => _lines.Sum(l => l.Quantity * l.UnitPrice);
 
     protected override async Task OnInitializedAsync()
     {
@@ -137,9 +117,8 @@
         _items = await Items.OptionsAsync(actor, null, true);
         _warehouses = await Warehouses.OptionsAsync(actor);
         _employees = await MasterData.EmployeeOptionsAsync(actor);
-        var customers = await Partners.ListAsync(actor, PartnerKind.Customer,
-            new PageRequest { Page = 1, PageSize = 25 }, null);
-        _customers = customers.Items;
+        _customers = (await Partners.ListAsync(actor, PartnerKind.Customer,
+            new PageRequest { Page = 1, PageSize = 25 }, null)).Items;
         AddLine();
     }
 
@@ -148,7 +127,6 @@
         _input.BranchId = value;
         var actor = await UserContext.RequireAsync();
         _warehouses = await Warehouses.OptionsAsync(actor);
-        foreach (var line in _lines) line.WarehouseId = _warehouses.FirstOrDefault()?.Id ?? Guid.Empty;
         StateHasChanged();
     }
 
@@ -156,10 +134,7 @@
     {
         var item = _items.FirstOrDefault();
         _lines.Add(new LineModel
-        {
-            ItemId = item?.Id ?? Guid.Empty, BaseUnitId = item?.BaseUnitId ?? Guid.Empty,
-            WarehouseId = _warehouses.FirstOrDefault()?.Id ?? Guid.Empty, Quantity = 1
-        });
+        { ItemId = item?.Id ?? Guid.Empty, BaseUnitId = item?.BaseUnitId ?? Guid.Empty });
         StateHasChanged();
     }
 
@@ -180,8 +155,10 @@
     private async Task SaveAsync()
     {
         await _form.Validate();
+        var warehouseId = _warehouses.FirstOrDefault()?.Id ?? Guid.Empty;
         if (!_form.IsValid || _input.CustomerId == Guid.Empty || _lines.Count == 0 ||
-            _lines.Any(l => l.ItemId == Guid.Empty || l.WarehouseId == Guid.Empty || l.Quantity <= 0))
+            warehouseId == Guid.Empty || _lines.Any(l => l.ItemId == Guid.Empty) ||
+            _date is null || _startTime is null || _endTime is null)
         {
             Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
             return;
@@ -191,11 +168,13 @@
         try
         {
             var actor = await UserContext.RequireAsync();
-            _input.BookingDate = _date ?? DateTime.Today;
+            _input.BookingDate = _date.Value.Date;
+            _input.StartsAt = new DateTimeOffset(_date.Value.Date + _startTime.Value);
+            _input.EndsAt = new DateTimeOffset(_date.Value.Date + _endTime.Value);
             _input.Lines = _lines.Select(l => new BookingLineInput
             {
-                ItemId = l.ItemId, UnitId = l.BaseUnitId, WarehouseId = l.WarehouseId,
-                Quantity = l.Quantity, UnitPrice = l.UnitPrice
+                ItemId = l.ItemId, UnitId = l.BaseUnitId, WarehouseId = warehouseId,
+                Quantity = 1, UnitPrice = 0
             }).ToList();
 
             var booking = await Bookings.CreateAsync(actor, _input);

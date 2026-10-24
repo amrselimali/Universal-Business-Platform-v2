@@ -1,6 +1,7 @@
 using Dapper;
 using Npgsql;
 using Ubp.Core.Models;
+using Ubp.Core.Paging;
 using Ubp.Core.Results;
 using Xunit;
 
@@ -71,6 +72,29 @@ public sealed class BookingTests : IClassFixture<TestDb>
         var error = await Assert.ThrowsAsync<ValidationAppException>(() =>
             service.ConfirmAsync(actor, second.Id));
         Assert.Equal("validation.booking_not_available", error.Code);
+    }
+
+    [Fact]
+    public async Task Booking_list_filters_by_selected_day()
+    {
+        var actor = await _db.AdminActorAsync();
+        var service = _db.BookingService();
+        var (branch, warehouse, item, customer, _) = await SetupAsync("6");
+
+        var today = await CreateBookingAsync(branch, warehouse, customer, item, 1);
+        var yesterday = await service.CreateAsync(actor, new BookingInput
+        {
+            BranchId = branch, CustomerId = customer.Id,
+            BookingDate = DateTime.Today.AddDays(-1),
+            Lines = { new BookingLineInput { ItemId = item.Id, UnitId = item.BaseUnitId,
+                WarehouseId = warehouse, Quantity = 1, UnitPrice = 10 } }
+        });
+
+        var list = await service.ListAsync(actor, new BookingFilter
+        { BranchId = branch, Date = DateTime.Today }, new PageRequest { Page = 1, PageSize = 25 });
+
+        Assert.Contains(list.Items, b => b.Id == today.Id);
+        Assert.DoesNotContain(list.Items, b => b.Id == yesterday.Id);
     }
 
     [Fact]
