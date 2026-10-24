@@ -2,6 +2,7 @@ using Dapper;
 using Npgsql;
 using Ubp.Core.Models;
 using Ubp.Core.Results;
+using Ubp.Infrastructure.Data;
 
 namespace Ubp.Infrastructure.Repositories;
 
@@ -30,7 +31,8 @@ public sealed partial class BookingRepository
             """, new
         {
             id, input.BranchId, bookingDate = input.BookingDate.Date, input.CustomerId,
-            input.DueDate, input.StartsAt, input.EndsAt, input.ExpiresAt,
+            input.DueDate, StartsAt = DbTime.Utc(input.StartsAt),
+            EndsAt = DbTime.Utc(input.EndsAt), ExpiresAt = DbTime.Utc(input.ExpiresAt),
             input.AssignedEmployeeId, input.RelatedBookingId, total = lines.Sum(l => l.TotalAmount),
             input.Notes, userId
         }, tx, cancellationToken: ct));
@@ -64,7 +66,8 @@ public sealed partial class BookingRepository
             """, new
         {
             id, version, bookingDate = input.BookingDate.Date, input.CustomerId, input.DueDate,
-            input.StartsAt, input.EndsAt, input.ExpiresAt, input.Notes, input.RelatedBookingId,
+            StartsAt = DbTime.Utc(input.StartsAt), EndsAt = DbTime.Utc(input.EndsAt),
+            ExpiresAt = DbTime.Utc(input.ExpiresAt), input.Notes, input.RelatedBookingId,
             total = lines.Sum(l => l.TotalAmount), userId
         }, tx, cancellationToken: ct));
 

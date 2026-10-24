@@ -75,6 +75,29 @@ public sealed class BookingTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Booking_times_with_non_utc_offset_are_stored_as_utc()
+    {
+        var actor = await _db.AdminActorAsync();
+        var service = _db.BookingService();
+        var (branch, warehouse, item, customer, _) = await SetupAsync("8");
+        var localStart = new DateTimeOffset(
+            DateTime.SpecifyKind(DateTime.Today.AddHours(10), DateTimeKind.Unspecified),
+            TimeSpan.FromHours(3));
+
+        var booking = await service.CreateAsync(actor, new BookingInput
+        {
+            BranchId = branch, CustomerId = customer.Id, BookingDate = DateTime.Today,
+            StartsAt = localStart, EndsAt = localStart.AddMinutes(30),
+            Lines = { new BookingLineInput { ItemId = item.Id, UnitId = item.BaseUnitId,
+                WarehouseId = warehouse, Quantity = 1, UnitPrice = 0 } }
+        });
+
+        var loaded = await service.GetAsync(actor, booking.Id);
+        Assert.Equal(localStart.ToUniversalTime(), loaded.StartsAt);
+        Assert.Equal(localStart.AddMinutes(30).ToUniversalTime(), loaded.EndsAt);
+    }
+
+    [Fact]
     public async Task Booking_list_filters_by_selected_day()
     {
         var actor = await _db.AdminActorAsync();
