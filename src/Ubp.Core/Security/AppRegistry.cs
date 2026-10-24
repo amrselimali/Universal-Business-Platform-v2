@@ -274,7 +274,15 @@ public static class AppRegistry
         new(ScreenCodes.PostingCenter, "/accounting/posting-center", "FactCheck",
             "screen.posting_center", GroupAccounting,
             new[] { A(ActionCodes.View), A(ActionCodes.ViewUnposted), A(ActionCodes.Reconcile) },
-            "accounting.posting")
+            "accounting.posting"),
+
+        new(ScreenCodes.PosTerminal, "/pos/terminal", "PointOfSale", "screen.pos_terminal",
+            GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Checkout) }, "pos.terminal"),
+
+        new(ScreenCodes.PosReceipts, "/pos/receipts", "ReceiptLong", "screen.pos_receipts",
+            GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "pos.receipts")
     };
 
     public static readonly IReadOnlyDictionary<string, ScreenDefinition> ByCode =

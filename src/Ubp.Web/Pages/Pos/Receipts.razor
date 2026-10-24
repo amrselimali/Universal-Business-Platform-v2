@@ -1,0 +1,63 @@
+@page "/pos/receipts"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject PosService Pos
+@inject BranchService Branches
+<PageTitle>@T.T("screen.pos_receipts")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.pos_receipts")" Subtitle="@T.T("pos.receipts_hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("sales.invoice_no")</MudTh>
+                <MudTh>@T.T("common.date")</MudTh>
+                <MudTh>@T.T("sales.customer")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@context.DocNo</span></MudTd>
+                <MudTd>@context.DocDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd>@context.PartyName</MudTd>
+                <MudTd Align="Right">@context.Total.ToString("N2")</MudTd>
+                <MudTd>@T.T("accounting.status_" + context.Status)</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<CommercialDocument> _items = Array.Empty<CommercialDocument>();
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private Guid? _branchId;
+
+    protected override string ScreenCode => ScreenCodes.PosReceipts;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync() =>
+        _items = await Pos.ListReceiptsAsync(Actor!, _branchId, 200);
+
+    private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+}

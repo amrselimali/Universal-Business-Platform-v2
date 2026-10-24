@@ -43,8 +43,12 @@
   commissions on three bases, four aging reports, and a posting center with three reconciliations;
   4 screens; 6 tests (116 total).
 
+### Phase 4G (completed 2026-10-24)
+- POS checkout in a single transaction: booking (source pos) + FEFO delivery + COGS + invoice +
+  receipt voucher + allocation; rollback verified; 2 screens; 2 tests (118 total).
+
 ### Next
-4G (POS) → 4H (follow-ups) → 6 (reports/notifications) → 7 (operations).
+4H (follow-ups) → 6 (reports/notifications) → 7 (operations).
 الخطة التفصيلية للباقي (جداول/شاشات/أزرار/دورات عمل/اختبارات/جهد): `docs/PHASE-REMAINING-AR.md`.
 
 ### Phase 4D (completed 2026-10-24)

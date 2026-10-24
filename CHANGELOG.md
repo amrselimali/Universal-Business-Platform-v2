@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-10-24 — Phase 4G: point of sale
+
+### Added
+- Migration `0033`: POS booking index and receipt-voucher date index (no new tables).
+- `PosRepository.CheckoutAsync`: one transaction creates a confirmed POS booking
+  (`source = 'pos'`), its delivery note, issues stock through the FEFO engine, posts the COGS
+  entry, auto-creates/posts the sales invoice, posts the receipt voucher and allocates it to the
+  invoice — any failure rolls everything back.
+- `PosService` with `pos.terminal.view/checkout` and `pos.receipts.view/print` permissions + audit.
+- Screens: `/pos/terminal` (quick sale with customer, item, quantity, price, treasury method and a
+  receipt summary) and `/pos/receipts` (POS invoices), with translations.
+- 2 tests (118 total): full checkout creates booking/delivery/invoice/voucher and balances, and a
+  stock failure leaves no booking, invoice or voucher behind.
+
+### Known limitations (4G)
+- Terminal supports a single line per checkout; multi-line cart and barcode search are next-step UI.
+
 ## 2026-10-24 — Phase 4F: settlements, commissions, aging and posting center
 
 ### Added

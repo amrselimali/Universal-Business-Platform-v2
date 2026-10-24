@@ -66,6 +66,8 @@ public static class ScreenCodes
     public const string SalesCommissions = "SALES_COMMISSIONS";
     public const string AgingReport = "AGING_REPORT";
     public const string PostingCenter = "POSTING_CENTER";
+    public const string PosTerminal = "POS_TERMINAL";
+    public const string PosReceipts = "POS_RECEIPTS";
 }
 
 public static class ActionCodes
@@ -129,4 +131,5 @@ public static class ActionCodes
     public const string Export = "EXPORT";
     public const string ViewUnposted = "VIEW_UNPOSTED";
     public const string Reconcile = "RECONCILE";
+    public const string Checkout = "CHECKOUT";
 }
