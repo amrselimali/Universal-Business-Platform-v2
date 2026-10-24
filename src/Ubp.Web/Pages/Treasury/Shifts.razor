@@ -55,9 +55,9 @@ else
                 <MudTd Align="Right">@context.ExpectedCash.ToString("N2")</MudTd>
                 <MudTd Align="Right">@(context.CountedCash?.ToString("N2") ?? "—")</MudTd>
                 <MudTd Align="Right">
-                    <span class="@(context.Variance is < 0 ? "ubp-negative" : "")">
+                    <MudText Color="@(context.Variance is < 0 ? Color.Error : Color.Default)">
                         @(context.Variance?.ToString("N2") ?? "—")
-                    </span>
+                    </MudText>
                 </MudTd>
                 <MudTd>
                     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
