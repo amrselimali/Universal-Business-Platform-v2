@@ -45,7 +45,7 @@ public sealed partial class StockPostingRepository : IStockPostingRepository
             sql, new { documentId }, tx, cancellationToken: ct)) ?? throw new NotFoundAppException();
     }
 
-    private static async Task<Guid> PostCoreAsync(NpgsqlConnection connection, NpgsqlTransaction tx,
+    internal static async Task<Guid> PostCoreAsync(NpgsqlConnection connection, NpgsqlTransaction tx,
         Guid documentId, Guid userId, bool allowNegative, CancellationToken ct)
     {
         var header = await LockHeaderAsync(connection, tx, documentId, ct);
