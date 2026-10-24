@@ -1,0 +1,80 @@
+@page "/reports/accounting/party-statement"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.party_statement")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.party_statement")" Subtitle="@T.T("accounting.party_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Print))
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Print"
+                           OnClick="PrintAsync">@T.T("common.print")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="char" @bind-Value="_partyType" Label="@T.T("accounting.party_type")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="char" Value="@('C')">@T.T("accounting.customers")</MudSelectItem>
+                <MudSelectItem T="char" Value="@('S')">@T.T("accounting.suppliers")</MudSelectItem>
+            </MudSelect>
+            <MudSelect T="Guid?" @bind-Value="_partyId" Label="@T.T("accounting.party")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var party in _parties)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)party.Id)">@party.Code — @party.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker @bind-Date="_from" Label="@T.T("common.from")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
+            <MudDatePicker @bind-Date="_to" Label="@T.T("common.to")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SearchAsync"
+                       Disabled="_busy">@T.T("common.search")</MudButton>
+        </div>
+
+        @if (_report is not null)
+        {
+            <div class="ubp-totals mb-3">
+                <span>@T.T("accounting.opening_balance"): <b>@_report.OpeningBalance.ToString("N2")</b></span>
+                <span>@T.T("accounting.debit"): <b>@_report.TotalDebit.ToString("N2")</b></span>
+                <span>@T.T("accounting.credit"): <b>@_report.TotalCredit.ToString("N2")</b></span>
+                <span>@T.T("accounting.closing_balance"): <b>@_report.ClosingBalance.ToString("N2")</b></span>
+            </div>
+
+            <MudTable Items="_report.Rows" Dense="true" Hover="true" Striped="true" Elevation="0"
+                      Class="ubp-table">
+                <HeaderContent>
+                    <MudTh>@T.T("accounting.entry_no")</MudTh>
+                    <MudTh>@T.T("accounting.entry_date")</MudTh>
+                    <MudTh>@T.T("common.description")</MudTh>
+                    <MudTh>@T.T("accounting.account")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.debit")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.credit")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.balance")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><span class="ubp-code">@(context.EntryNo ?? "—")</span></MudTd>
+                    <MudTd>@context.EntryDate.ToString("yyyy-MM-dd")</MudTd>
+                    <MudTd>@context.Description</MudTd>
+                    <MudTd>@context.AccountCode</MudTd>
+                    <MudTd Align="Right">@context.Debit.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.Credit.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.RunningBalance.ToString("N2")</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+}

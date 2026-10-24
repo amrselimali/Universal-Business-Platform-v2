@@ -1,0 +1,84 @@
+@page "/reports/accounting/trial-balance"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.trial_balance")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.trial_balance")" Subtitle="@T.T("accounting.trial_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Print))
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Print"
+                           OnClick="PrintAsync">@T.T("common.print")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudDatePicker @bind-Date="_from" Label="@T.T("common.from")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
+            <MudDatePicker @bind-Date="_to" Label="@T.T("common.to")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
+            <MudSelect T="Guid?" @bind-Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SearchAsync"
+                       Disabled="_busy">@T.T("common.search")</MudButton>
+        </div>
+
+        @if (_report is not null)
+        {
+            <MudChip T="string" Color="@(_report.IsBalanced ? Color.Success : Color.Error)" Class="mb-3">
+                @(_report.IsBalanced ? T.T("accounting.balanced") : T.T("accounting.not_balanced"))
+            </MudChip>
+
+            <MudTable Items="_report.Rows" Dense="true" Hover="true" Striped="true" Elevation="0"
+                      Class="ubp-table">
+                <HeaderContent>
+                    <MudTh>@T.T("common.code")</MudTh>
+                    <MudTh>@T.T("accounting.account")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.opening_debit")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.opening_credit")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.debit")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.credit")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.closing_debit")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.closing_credit")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><span class="ubp-code">@context.Code</span></MudTd>
+                    <MudTd>@context.DisplayName(IsEnglish)</MudTd>
+                    <MudTd Align="Right">@context.OpeningDebit.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.OpeningCredit.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.Debit.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.Credit.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.ClosingDebit.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.ClosingCredit.ToString("N2")</MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd></MudTd>
+                    <MudTd><b>@T.T("accounting.total")</b></MudTd>
+                    <MudTd Align="Right"><b>@_report.TotalOpeningDebit.ToString("N2")</b></MudTd>
+                    <MudTd Align="Right"><b>@_report.TotalOpeningCredit.ToString("N2")</b></MudTd>
+                    <MudTd Align="Right"><b>@_report.TotalDebit.ToString("N2")</b></MudTd>
+                    <MudTd Align="Right"><b>@_report.TotalCredit.ToString("N2")</b></MudTd>
+                    <MudTd Align="Right"><b>@_report.TotalClosingDebit.ToString("N2")</b></MudTd>
+                    <MudTd Align="Right"><b>@_report.TotalClosingCredit.ToString("N2")</b></MudTd>
+                </FooterContent>
+            </MudTable>
+        }
+    </MudPaper>
+}

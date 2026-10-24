@@ -1,0 +1,36 @@
+@inherits ComponentBase
+@inject Ubp.Web.Services.UiCulture T
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(Kind == PartnerKind.Customer ? T.T("accounting.select_customer") : T.T("accounting.select_supplier"))
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_search" Placeholder="@T.T("common.search")" Immediate="true"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" DebounceInterval="300"
+                      OnDebounceIntervalElapsed="SearchAsync" />
+        <MudTable Items="_results" Dense="true" Hover="true" Elevation="0" Class="mt-3">
+            <HeaderContent>
+                <MudTh>@T.T("common.code")</MudTh>
+                <MudTh>@T.T("common.name_ar")</MudTh>
+                <MudTh>@T.T("common.phone")</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@context.Code</span></MudTd>
+                <MudTd>@context.NameAr</MudTd>
+                <MudTd>@context.Phone</MudTd>
+                <MudTd Align="Right">
+                    <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small"
+                                   Color="Color.Primary" OnClick="@(() => Select(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@T.T("common.cancel")</MudButton>
+    </DialogActions>
+</MudDialog>

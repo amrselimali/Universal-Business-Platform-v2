@@ -1,0 +1,117 @@
+@page "/accounting/entries"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.entries")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.entries")" Subtitle="@T.T("accounting.entries_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Create))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="NewEntry">
+                    @T.T("accounting.new_entry")
+                </MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudTextField @bind-Value="_search" Placeholder="@T.T("common.search")" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search"
+                          DebounceInterval="300" OnDebounceIntervalElapsed="ReloadAsync" />
+            <MudSelect T="string?" @bind-Value="_status" Label="@T.T("common.status")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       @bind-Value:after="ReloadAsync">
+                <MudSelectItem T="string?" Value="@EntryStatuses.Draft">@T.T("accounting.status_draft")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@EntryStatuses.Posted">@T.T("accounting.status_posted")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@EntryStatuses.Cancelled">@T.T("accounting.status_cancelled")</MudSelectItem>
+            </MudSelect>
+            <MudSelect T="Guid?" @bind-Value="_journalId" Label="@T.T("accounting.journal")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       @bind-Value:after="ReloadAsync">
+                @foreach (var journal in _journals)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)journal.Id)">@journal.Code</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker @bind-Date="_from" Label="@T.T("common.from")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
+            <MudDatePicker @bind-Date="_to" Label="@T.T("common.to")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="ReloadAsync">@T.T("common.refresh")</MudButton>
+        </div>
+
+        <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="JournalEntry" SortLabel="entry_no">@T.T("accounting.entry_no")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="JournalEntry" SortLabel="entry_date">@T.T("accounting.entry_date")</MudTableSortLabel></MudTh>
+                <MudTh>@T.T("accounting.journal")</MudTh>
+                <MudTh>@T.T("common.description")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.debit")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.credit")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@T.T("accounting.entry_no")">
+                    <span class="ubp-code">@(context.EntryNo ?? "—")</span>
+                </MudTd>
+                <MudTd DataLabel="@T.T("accounting.entry_date")">@context.EntryDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd DataLabel="@T.T("accounting.journal")">@context.JournalCode</MudTd>
+                <MudTd DataLabel="@T.T("common.description")">@context.Description</MudTd>
+                <MudTd Align="Right" DataLabel="@T.T("accounting.debit")">@context.TotalDebit.ToString("N2")</MudTd>
+                <MudTd Align="Right" DataLabel="@T.T("accounting.credit")">@context.TotalCredit.ToString("N2")</MudTd>
+                <MudTd DataLabel="@T.T("common.status")">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@StatusColor(context.Status)">@T.T("accounting.status_" + context.Status)</MudChip>
+                    @if (context.IsReversed)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning">@T.T("accounting.reversed")</MudChip>
+                    }
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true"
+                             AnchorOrigin="Origin.BottomRight">
+                        @if (Can(ActionCodes.Open))
+                        {
+                            <MudMenuItem OnClick="@(() => Open(context))"
+                                         Icon="@Icons.Material.Filled.OpenInNew">@T.T("accounting.open")</MudMenuItem>
+                        }
+                        @if (Can(ActionCodes.Copy))
+                        {
+                            <MudMenuItem OnClick="@(() => CopyAsync(context))"
+                                         Icon="@Icons.Material.Filled.ContentCopy">@T.T("accounting.copy")</MudMenuItem>
+                        }
+                        @if (Can(ActionCodes.Reverse) && context.IsPosted && !context.IsReversed)
+                        {
+                            <MudMenuItem OnClick="@(() => ReverseAsync(context))"
+                                         Icon="@Icons.Material.Filled.Undo">@T.T("accounting.reverse")</MudMenuItem>
+                        }
+                        @if (Can(ActionCodes.CancelEntry) && context.IsDraft)
+                        {
+                            <MudMenuItem OnClick="@(() => CancelAsync(context))"
+                                         Icon="@Icons.Material.Filled.Block">@T.T("common.cancel")</MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}

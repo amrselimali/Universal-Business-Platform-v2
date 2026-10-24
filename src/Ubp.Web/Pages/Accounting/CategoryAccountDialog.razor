@@ -1,0 +1,38 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("accounting.category_accounts")</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudSelect T="Guid" @bind-Value="_input.CategoryId" Label="@T.T("accounting.category")"
+                           Variant="Variant.Outlined" Required="true">
+                    @foreach (var category in Categories)
+                    {
+                        <MudSelectItem T="Guid" Value="@category.Id">
+                            @category.Code — @(_english && !string.IsNullOrWhiteSpace(category.NameEn) ? category.NameEn : category.NameAr)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                @foreach (var field in AccountFields)
+                {
+                    <MudSelect T="Guid?" Value="@field.Get(_input)" Label="@T.T(field.LabelKey)"
+                               Variant="Variant.Outlined" Clearable="true" Required="@field.Required"
+                               ValueChanged="@(v => field.Set(_input, v))">
+                        @foreach (var account in Accounts)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)account.Id)">
+                                @account.Code — @account.DisplayName(_english)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

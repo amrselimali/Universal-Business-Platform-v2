@@ -1,0 +1,48 @@
+@inherits ComponentBase
+
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("accounting.preview")</MudText></TitleContent>
+    <DialogContent>
+        @if (Preview.ErrorKey is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true">@T.T(Preview.ErrorKey)</MudAlert>
+        }
+        else
+        {
+            <MudText Typo="Typo.caption" Class="ubp-muted mb-2">
+                @Preview.Document.DocNo — @Preview.Document.DocDate.ToString("yyyy-MM-dd")
+            </MudText>
+            <MudSimpleTable Dense="true">
+                <thead>
+                    <tr>
+                        <th>@T.T("accounting.account")</th>
+                        <th class="text-end">@T.T("accounting.debit")</th>
+                        <th class="text-end">@T.T("accounting.credit")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in Preview.Lines)
+                    {
+                        <tr>
+                            <td>@AccountLabel(line.AccountId)</td>
+                            <td class="text-end">@line.Debit.ToString("N2")</td>
+                            <td class="text-end">@line.Credit.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>@T.T("accounting.total")</th>
+                        <th class="text-end">@Preview.Lines.Sum(l => l.Debit).ToString("N2")</th>
+                        <th class="text-end">@Preview.Lines.Sum(l => l.Credit).ToString("N2")</th>
+                    </tr>
+                </tfoot>
+            </MudSimpleTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   OnClick="@(() => MudDialog.Close())">@T.T("common.close")</MudButton>
+    </DialogActions>
+</MudDialog>

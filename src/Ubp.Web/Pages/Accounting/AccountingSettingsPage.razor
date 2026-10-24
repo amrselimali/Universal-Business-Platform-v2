@@ -1,0 +1,117 @@
+@page "/accounting/settings"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.accounting_settings")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.accounting_settings")" Subtitle="@T.T("accounting.settings_hint")">
+        <Actions>
+            @if (Can(ActionCodes.CheckCompleteness))
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Info"
+                           StartIcon="@Icons.Material.Filled.FactCheck" OnClick="CheckAsync">
+                    @T.T("accounting.check_completeness")
+                </MudButton>
+            }
+            @if (Can(ActionCodes.Save))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync">
+                    @T.T("common.save")
+                </MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card mb-4">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">@T.T("accounting.general_settings")</MudText>
+        <div class="ubp-form-grid">
+            <MudDatePicker @bind-Date="_startDate" Label="@T.T("accounting.start_date")"
+                           Variant="Variant.Outlined" DateFormat="yyyy-MM-dd"
+                           Editable="true" Disabled="@(!Can(ActionCodes.Save))" />
+            <MudSwitch T="bool" Value="@_autoPost" Label="@T.T("accounting.auto_post_stock")"
+                       Color="Color.Success"
+                       Disabled="@(!Can(ActionCodes.EnableAutoPost))"
+                       ValueChanged="ToggleAutoPostAsync" />
+        </div>
+        <MudText Typo="Typo.caption" Class="ubp-muted mt-2">@T.T("accounting.auto_post_hint")</MudText>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="ubp-card mb-4">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">@T.T("accounting.posting_defaults")</MudText>
+        <MudSimpleTable Dense="true" Hover="true">
+            <thead>
+                <tr>
+                    <th>@T.T("accounting.posting_key")</th>
+                    <th>@T.T("accounting.account")</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var key in PostingKeys.All)
+                {
+                    <tr>
+                        <td>@T.T("accounting.check." + key)</td>
+                        <td>
+                            <MudSelect T="Guid?" Value="@DefaultOf(key)" ValueChanged="@(v => SaveDefaultAsync(key, v))"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                                       Disabled="@(!Can(ActionCodes.Save))">
+                                @foreach (var account in _accounts)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)account.Id)">
+                                        @account.Code — @account.DisplayName(IsEnglish)
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="d-flex align-center justify-space-between mb-2">
+            <MudText Typo="Typo.subtitle1">@T.T("accounting.category_accounts")</MudText>
+            @if (Can(ActionCodes.Save))
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddCategoryAsync">
+                    @T.T("common.add")
+                </MudButton>
+            }
+        </div>
+        <MudTable Items="_categoryAccounts" Dense="true" Hover="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>@T.T("accounting.category")</MudTh>
+                <MudTh>@T.T("accounting.inventory_account")</MudTh>
+                <MudTh>@T.T("accounting.cogs_account")</MudTh>
+                <MudTh>@T.T("accounting.adjustment_gain")</MudTh>
+                <MudTh>@T.T("accounting.adjustment_loss")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.CategoryCode — @context.CategoryName</MudTd>
+                <MudTd>@context.InventoryAccountName</MudTd>
+                <MudTd>@context.CogsAccountName</MudTd>
+                <MudTd>@AccountName(context.AdjustmentGainAccountId)</MudTd>
+                <MudTd>@AccountName(context.AdjustmentLossAccountId)</MudTd>
+                <MudTd Align="Right">
+                    @if (Can(ActionCodes.Save))
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                       OnClick="@(() => RemoveCategoryAsync(context))" />
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}

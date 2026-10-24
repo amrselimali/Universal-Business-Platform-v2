@@ -1,0 +1,60 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(Model is null
+                ? (ParentId is null ? T.T("accounting.add_root") : T.T("accounting.add_child"))
+                : T.T("common.edit"))
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            @if (ParentName is not null)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    @T.T("accounting.parent"): @ParentName
+                </MudAlert>
+            }
+            <div class="ubp-form-grid">
+                <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true"
+                              Variant="Variant.Outlined" MaxLength="20" Disabled="@IsSystem" />
+                <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true"
+                              Variant="Variant.Outlined" MaxLength="200" />
+                <MudTextField @bind-Value="_input.NameEn" Label="@T.T("common.name_en")"
+                              Variant="Variant.Outlined" MaxLength="200" />
+                <MudSelect T="string" @bind-Value="_input.AccountType"
+                           Label="@T.T("accounting.account_type")" Variant="Variant.Outlined"
+                           Disabled="@IsSystem">
+                    @foreach (var type in AccountTypes.All)
+                    {
+                        <MudSelectItem T="string" Value="@type">@T.T("accounting.type_" + type)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="short" @bind-Value="_input.CostCenterPolicy"
+                           Label="@T.T("accounting.cost_center_policy")" Variant="Variant.Outlined">
+                    <MudSelectItem T="short" Value="@CostCenterPolicies.NotAllowed">@T.T("accounting.policy_not_allowed")</MudSelectItem>
+                    <MudSelectItem T="short" Value="@CostCenterPolicies.Optional">@T.T("accounting.policy_optional")</MudSelectItem>
+                    <MudSelectItem T="short" Value="@CostCenterPolicies.Required">@T.T("accounting.policy_required")</MudSelectItem>
+                </MudSelect>
+                <MudSwitch @bind-Value="_input.IsGroup" Label="@T.T("accounting.is_group")"
+                           Color="Color.Primary" />
+                <MudSwitch @bind-Value="_input.IsActive" Label="@T.T("common.active")"
+                           Color="Color.Success" Disabled="@IsSystem" />
+                <MudTextField @bind-Value="_input.Notes" Label="@T.T("common.notes")"
+                              Variant="Variant.Outlined" Lines="2" />
+            </div>
+            @if (Model is { IsSystem: true })
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+                    @T.T("accounting.system_account_hint")
+                </MudAlert>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

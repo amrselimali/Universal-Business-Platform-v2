@@ -1,0 +1,93 @@
+@page "/accounting/cost-centers"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.cost_centers")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.cost_centers")" Subtitle="@T.T("accounting.cost_centers_hint")">
+        <Actions>
+            @if (Can(ActionCodes.CreateRoot))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddRootAsync">
+                    @T.T("accounting.add_root")
+                </MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudTextField @bind-Value="_search" Placeholder="@T.T("common.search")" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search"
+                          DebounceInterval="300" OnDebounceIntervalElapsed="ReloadAsync" />
+            <MudSwitch T="bool" Value="_includeInactive" Label="@T.T("common.include_inactive")"
+                       Color="Color.Primary" ValueChanged="OnFilterChanged" />
+        </div>
+
+        <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="CostCenter" SortLabel="code">@T.T("common.code")</MudTableSortLabel></MudTh>
+                <MudTh>@T.T("common.name_ar")</MudTh>
+                <MudTh>@T.T("common.branch")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@T.T("common.code")">
+                    <span class="ubp-code" style="padding-inline-start:@((context.Level - 1) * 16)px">
+                        @context.Code
+                    </span>
+                </MudTd>
+                <MudTd DataLabel="@T.T("common.name_ar")">@context.DisplayName(IsEnglish)</MudTd>
+                <MudTd DataLabel="@T.T("common.branch")">
+                    @(context.BranchName ?? T.T("accounting.all_branches"))
+                </MudTd>
+                <MudTd DataLabel="@T.T("common.status")">
+                    <MudSwitch T="bool" Value="@context.IsActive" Color="Color.Success"
+                               Disabled="@(!Can(ActionCodes.ToggleActive))"
+                               ValueChanged="@(v => ToggleAsync(context, v))" />
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true"
+                             AnchorOrigin="Origin.BottomRight">
+                        @if (Can(ActionCodes.CreateChild) && context.IsGroup)
+                        {
+                            <MudMenuItem OnClick="@(() => AddChildAsync(context))"
+                                         Icon="@Icons.Material.Filled.AddCircleOutline">@T.T("accounting.add_child")</MudMenuItem>
+                        }
+                        @if (Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => EditAsync(context))"
+                                         Icon="@Icons.Material.Filled.Edit">@T.T("common.edit")</MudMenuItem>
+                        }
+                        @if (Can(ActionCodes.Move))
+                        {
+                            <MudMenuItem OnClick="@(() => MoveAsync(context))"
+                                         Icon="@Icons.Material.Filled.SwapVert">@T.T("accounting.move")</MudMenuItem>
+                        }
+                        @if (Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => DeleteAsync(context))"
+                                         Icon="@Icons.Material.Filled.Delete">@T.T("common.delete")</MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}

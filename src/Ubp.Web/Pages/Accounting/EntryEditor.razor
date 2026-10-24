@@ -1,0 +1,176 @@
+@page "/accounting/entries/new"
+@page "/accounting/entries/{Id:guid}"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.entry")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.entry")" Subtitle="@Subtitle()">
+        <Actions>
+            @if (IsDraft && Can(ActionCodes.SaveDraft))
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync" Disabled="_busy">
+                    @T.T("accounting.save_draft")
+                </MudButton>
+            }
+            @if (IsDraft && Can(ActionCodes.AutoBalance))
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Info"
+                           StartIcon="@Icons.Material.Filled.Balance" OnClick="AutoBalanceAsync"
+                           Disabled="_busy">
+                    @T.T("accounting.auto_balance")
+                </MudButton>
+            }
+            @if (IsDraft && Can(ActionCodes.Post))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Success"
+                           StartIcon="@Icons.Material.Filled.CheckCircle" OnClick="PostAsync"
+                           Disabled="_busy">
+                    @T.T("accounting.post")
+                </MudButton>
+            }
+            @if (!IsDraft && Can(ActionCodes.Reverse) && !_detail!.Header.IsReversed)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Warning"
+                           StartIcon="@Icons.Material.Filled.Undo" OnClick="ReverseAsync" Disabled="_busy">
+                    @T.T("accounting.reverse")
+                </MudButton>
+            }
+            @if (Can(ActionCodes.Print))
+            {
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Print"
+                           OnClick="PrintAsync">@T.T("common.print")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card mb-4">
+        <div class="ubp-form-grid">
+            <MudSelect T="Guid" @bind-Value="_input.JournalId" Label="@T.T("accounting.journal")"
+                       Variant="Variant.Outlined" Disabled="@(!IsDraft)">
+                @foreach (var journal in _journals)
+                {
+                    <MudSelectItem T="Guid" Value="@journal.Id">
+                        @journal.Code — @journal.DisplayName(IsEnglish)
+                    </MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="Guid" @bind-Value="_input.BranchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Disabled="@(!IsDraft)">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker @bind-Date="_entryDate" Label="@T.T("accounting.entry_date")"
+                           Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" Editable="true"
+                           Disabled="@(!IsDraft)" />
+            <MudTextField @bind-Value="_input.Reference" Label="@T.T("accounting.reference")"
+                          Variant="Variant.Outlined" MaxLength="100" Disabled="@(!IsDraft)" />
+            <MudTextField @bind-Value="_input.Description" Label="@T.T("common.description")"
+                          Variant="Variant.Outlined" MaxLength="500" Disabled="@(!IsDraft)" />
+        </div>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <MudTable Items="_input.Lines" Dense="true" Hover="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>#</MudTh>
+                <MudTh>@T.T("accounting.account")</MudTh>
+                <MudTh>@T.T("common.description")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.debit")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.credit")</MudTh>
+                <MudTh>@T.T("accounting.party")</MudTh>
+                <MudTh>@T.T("accounting.cost_center")</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@(_input.Lines.IndexOf(context) + 1)</MudTd>
+                <MudTd>
+                    <MudSelect T="Guid" Value="@context.AccountId" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" Disabled="@(!IsDraft)"
+                               ValueChanged="@(v => OnAccountChanged(context, v))">
+                        @foreach (var account in _accounts)
+                        {
+                            <MudSelectItem T="Guid" Value="@account.Id">
+                                @account.Code — @account.DisplayName(IsEnglish)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudTd>
+                <MudTd>
+                    <MudTextField @bind-Value="context.Description" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" Disabled="@(!IsDraft)" MaxLength="300" />
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudNumericField T="decimal" Value="@context.Debit" Variant="Variant.Outlined"
+                                     Margin="Margin.Dense" Format="N2" Disabled="@(!IsDraft)"
+                                     ValueChanged="@(v => OnAmount(context, v, true))" />
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudNumericField T="decimal" Value="@context.Credit" Variant="Variant.Outlined"
+                                     Margin="Margin.Dense" Format="N2" Disabled="@(!IsDraft)"
+                                     ValueChanged="@(v => OnAmount(context, v, false))" />
+                </MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@PartyColor(context)" OnClick="@(() => PickPartyAsync(context))"
+                             Icon="@Icons.Material.Filled.Person">@PartyLabel(context)</MudChip>
+                </MudTd>
+                <MudTd>
+                    <MudSelect T="Guid?" Value="@context.CostCenterId" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" Clearable="true" Disabled="@(!IsDraft)"
+                               ValueChanged="@(v => context.CostCenterId = v)">
+                        @foreach (var costCenter in _costCenters)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)costCenter.Id)">
+                                @costCenter.Code — @costCenter.DisplayName(IsEnglish)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                    @if (IsDraft && Can(ActionCodes.DistributeCost))
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.CallSplit" Size="Size.Small"
+                                       OnClick="@(() => DistributeAsync(context))" />
+                    }
+                </MudTd>
+                <MudTd>
+                    @if (IsDraft && Can(ActionCodes.DeleteLine))
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                       OnClick="@(() => RemoveLine(context))" />
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <div class="d-flex align-center justify-space-between mt-3">
+            @if (IsDraft && Can(ActionCodes.AddLine))
+            {
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="AddLine">@T.T("accounting.add_line")</MudButton>
+            }
+            else
+            {
+                <span></span>
+            }
+            <div class="ubp-totals">
+                <span>@T.T("accounting.total_debit"): <b>@_input.Lines.Sum(l => l.Debit).ToString("N2")</b></span>
+                <span>@T.T("accounting.total_credit"): <b>@_input.Lines.Sum(l => l.Credit).ToString("N2")</b></span>
+                <span class="@(IsBalanced ? "ubp-ok" : "ubp-error")">
+                    @T.T("accounting.difference"): <b>@Difference.ToString("N2")</b>
+                </span>
+            </div>
+        </div>
+    </MudPaper>
+}

@@ -110,7 +110,10 @@ Bootstrap__SuperAdminPassword="<strong password>"
 `fiscal_periods` · `period_scope_closures` · `period_close_checks` · `period_events` ·
 `stock_documents` · `stock_document_lines` · `stock_movements` · `stock_balances` ·
 `stock_transfer_receipts` · `stock_transfer_receipt_lines` · `stocktakes` · `stocktake_lines`.
-إجمالي 43 جدولًا بعد الترحيلات 0001–0018.
+**المرحلة 3:** `accounts` · `cost_centers` · `journals` · `posting_defaults` ·
+`item_category_accounts` · `journal_entries` · `journal_entry_lines` ·
+`gl_balances` · `party_balances`.
+إجمالي 52 جدولًا بعد الترحيلات 0001–0023.
 
 ---
 
@@ -138,6 +141,9 @@ Bootstrap__SuperAdminPassword="<strong password>"
 - الفهارس على أعمدة الفرز/الفلترة والمفاتيح الأجنبية.
 - كاش قصير على السيرفر للإعدادات والصلاحيات، ويُمسح عند التعديل (لا كاش بيانات على الجهاز).
 - التواريخ UTC وتُعرض بتوقيت القاهرة.
+- التقارير المحاسبية تقرأ من أرصدة شهرية مجمّعة (`gl_balances` / `party_balances`)
+  ولا تجمع بنود القيود في كل طلب؛ وكشف الأستاذ يستخدم Keyset مع فهرس
+  يغطي المدين/الدائن (INCLUDE) لجمع الفترة بدون رجوع للجدول.
 
 ---
 
@@ -166,6 +172,19 @@ Bootstrap__SuperAdminPassword="<strong password>"
 | الجرد | `/inventory/stocktake` | جلسات جرد + تسوية آلية بالفروق |
 | الفترات المالية | `/accounting/periods` | إغلاق فرع/وحدة/شركة + فحوصات + سجل |
 | تقارير المخزون | `/reports/stock` | أرصدة المخزون + كارت الصنف |
+| دليل الحسابات | `/accounting/accounts` | شجرة بمسار مادي + سياسة مركز تكلفة |
+| مراكز التكلفة | `/accounting/cost-centers` | شجرة + ربط اختياري بفرع |
+| دفاتر اليومية | `/accounting/journals` | 7 دفاتر نظامية + مخصصة |
+| إعدادات الحسابات | `/accounting/settings` | حسابات الترحيل + فحص الاكتمال |
+| القيود | `/accounting/entries` | مسودة/مرحّل/ملغي + عكس ونسخ |
+| شاشنة القيد | `/accounting/entries/{id}` | طرف + توزيع مراكز + موازنة تلقائية |
+| الأرصدة الافتتاحية | `/accounting/opening-balances` | استيراد CSV + موازنة على حقوق الملكية |
+| مركز قيود المخزون | `/accounting/stock-posting` | معاينة وتوليد قيود المستندات |
+| كشف الأستاذ | `/reports/accounting/ledger` | Keyset على (entry_date, id) |
+| ميزان المراجعة | `/reports/accounting/trial-balance` | قراءة من `gl_balances` |
+| كشف حساب طرف | `/reports/accounting/party-statement` | عميل/مورد من `party_balances` |
+| تحليل مراكز التكلفة | `/reports/accounting/cost-centers` | مدين/دائن حسب المركز |
+| مطابقة المخزون | `/reports/accounting/stock-vs-gl` | قيمة المخزون مقابل الأستاذ |
 
 كل شاشة مقسّمة إلى **Component + Service + Repository**، وكل ملف كود ≤ 300 سطر.
 
@@ -236,9 +255,14 @@ docker compose up -d --build
 ومتوسط تكلفة مرجح متحرك، تحويلات باستلام جزئي، جرد وتسويات، عكس مستندات،
 تقارير أرصدة وكارت صنف، و9 شاشات جديدة. التفاصيل في `docs/PHASE2-AR.md`.
 
+**منجز في المرحلة الثالثة:** دليل حسابات بشجرة ومسار مادي، مراكز تكلفة،
+دفاتر يومية، قيود بترحيل ذري وعكس ممنوع مزدوج، أرصدة شهرية للحسابات والأطراف،
+أرصدة افتتاحية مع استيراد CSV، ترحيل مخزون آلي، و5 تقارير مالية،
+و13 شاشة جديدة. التفاصيل في `docs/PHASE3-AR.md`.
+
 **المرحلة التالية المقترحة:**
 1. فواتير المبيعات والمشتريات وربطها بالمخزون والعملاء والموردين.
-2. ترحيل محاسبي (Journal Entries) وقواعد Posting Rules على محرك الفترات الحالي.
+2. قواعد ترحيل الفواتير على محرك الفترات والأرصدة الحالي.
 3. `tenant_id` + RLS إذا تقرر دعم عدة شركات.
 4. RBAC على مستوى الحقول + تخصيص أعمدة/نماذج لكل مستخدم.
 5. QA متقدم: Playwright، تقارير تغطية، بوابات إصدار، وبيانات اختبار معزولة.
