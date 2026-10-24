@@ -20,6 +20,8 @@ public sealed partial class AccountService
         new("1110", "1100", false, AccountTypes.AssetReceivable, "العملاء", "Accounts Receivable", true),
         new("1120", "1100", false, AccountTypes.AssetCurrent, "المخزون", "Inventory", true),
         new("1130", "1100", false, AccountTypes.AssetCurrent, "مصروفات مدفوعة مقدماً", "Prepaid Expenses"),
+        new("1140", "1100", false, AccountTypes.AssetCurrent,
+            "ضريبة القيمة المضافة - مدخلات", "VAT Input", true),
         new("1200", "1000", true, AccountTypes.AssetFixed, "الأصول الثابتة", "Fixed Assets"),
         new("1210", "1200", false, AccountTypes.AssetFixed, "أثاث ومعدات", "Furniture & Equipment"),
 
@@ -28,6 +30,8 @@ public sealed partial class AccountService
         new("2150", "2000", false, AccountTypes.LiabilityCurrent,
             "مخزون مستلم غير مفوتر", "Goods Received Not Invoiced", true),
         new("2200", "2000", false, AccountTypes.LiabilityCurrent, "مصروفات مستحقة", "Accrued Expenses"),
+        new("2210", "2000", false, AccountTypes.LiabilityCurrent,
+            "ضريبة القيمة المضافة - مخرجات", "VAT Output", true),
 
         new("3000", null, true, AccountTypes.Equity, "حقوق الملكية", "Equity"),
         new("3100", "3000", false, AccountTypes.Equity, "رأس المال", "Capital", true),
@@ -43,6 +47,8 @@ public sealed partial class AccountService
         new("5300", "5000", false, AccountTypes.Expense, "مصروفات تشغيلية", "Operating Expenses"),
         new("5410", "5000", false, AccountTypes.Income, "فروق جرد - ربح", "Inventory Gain", true),
         new("5420", "5000", false, AccountTypes.Expense, "فروق جرد - خسارة", "Inventory Loss", true),
+        new("5430", "5000", false, AccountTypes.Expense,
+            "فروق أسعار المشتريات", "Purchase Price Variance", true),
         new("5490", "5000", false, AccountTypes.Expense, "فروق تقريب", "Rounding Differences", true)
     };
 

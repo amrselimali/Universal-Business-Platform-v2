@@ -57,11 +57,19 @@ public static class PostingKeys
     public const string StockAdjustmentLoss = "stock_adjustment_loss";
     public const string OpeningEquity = "opening_equity";
     public const string Rounding = "rounding";
+    public const string SalesRevenue = "sales_revenue";
+    public const string VatOutput = "vat_output";
+    public const string VatInput = "vat_input";
+    public const string CustomerReceivable = "customer_receivable";
+    public const string SupplierPayable = "supplier_payable";
+    public const string PurchaseVariance = "purchase_variance";
+    public const string RoundingDifference = "rounding_difference";
 
     public static readonly string[] All =
     {
         StockInventory, StockCogs, StockAdjustmentGain, StockAdjustmentLoss,
-        OpeningEquity, Rounding
+        OpeningEquity, Rounding, SalesRevenue, VatOutput, VatInput, CustomerReceivable,
+        SupplierPayable, PurchaseVariance, RoundingDifference
     };
 }
 

@@ -15,6 +15,8 @@ public interface ICommercialDocumentRepository
         CancellationToken ct = default);
     Task<CommercialDocument?> UpdateDraftAsync(Guid id, int version, CommercialDocumentInput input,
         Guid userId, CancellationToken ct = default);
+    Task<CommercialDocument> PostAsync(Guid id, Guid userId, bool allowNegative,
+        CancellationToken ct = default);
     Task<bool> DeleteDraftAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<SupplierAgingRow>> SupplierAgingAsync(Guid? branchId, DateTime asOf,
         CancellationToken ct = default);

@@ -102,7 +102,14 @@ public sealed partial class AccountingSettingsService
             [PostingKeys.OpeningEquity] = "3100",
             [PostingKeys.StockAdjustmentGain] = "5410",
             [PostingKeys.StockAdjustmentLoss] = "5420",
-            [PostingKeys.Rounding] = "5490"
+            [PostingKeys.Rounding] = "5490",
+            [PostingKeys.SalesRevenue] = "4100",
+            [PostingKeys.CustomerReceivable] = "1110",
+            [PostingKeys.VatOutput] = "2210",
+            [PostingKeys.SupplierPayable] = "2100",
+            [PostingKeys.VatInput] = "1140",
+            [PostingKeys.PurchaseVariance] = "5430",
+            [PostingKeys.RoundingDifference] = "5490"
         };
 
         var existing = (await _settings.ListDefaultsAsync(ct))

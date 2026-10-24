@@ -38,9 +38,14 @@ public sealed class Phase4SetupTests : IClassFixture<TestDb>
         var settings = _db.AccountingSettings();
         var readiness = _db.Readiness();
 
-        var sales = await readiness.MissingAsync("sales");
-        Assert.Contains("sales_revenue", sales);
         Assert.Empty(await readiness.MissingAsync("inventory"));
+
+        // إزالة ربط مفتاح مبيعات إلزامي لإظهار الفحص
+        await settings.SetDefaultAsync(actor, "customer_receivable", null);
+        PostingReadinessService.InvalidateAll();
+
+        var sales = await _db.Readiness().MissingAsync("sales");
+        Assert.Contains("customer_receivable", sales);
 
         var exception = await Assert.ThrowsAsync<ValidationAppException>(async () =>
             await readiness.RequireAsync("sales"));

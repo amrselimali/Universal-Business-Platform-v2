@@ -83,15 +83,8 @@ BEGIN
         RETURN OLD;
     END IF;
 
-    IF OLD.status <> 'draft' AND (
-        NEW.status = 'draft'
-        OR NEW.doc_type <> OLD.doc_type
-        OR NEW.branch_id <> OLD.branch_id
-        OR NEW.doc_date <> OLD.doc_date
-        OR NEW.doc_no IS DISTINCT FROM OLD.doc_no
-        OR NEW.total <> OLD.total
-        OR NEW.supplier_id IS DISTINCT FROM OLD.supplier_id
-        OR NEW.customer_id IS DISTINCT FROM OLD.customer_id) THEN
+    -- أي تعديل على مستند غير مسودة ممنوع (يشمل الملاحظات والمبالغ)
+    IF OLD.status <> 'draft' THEN
         RAISE EXCEPTION 'POSTED_DOCUMENT_IMMUTABLE' USING ERRCODE = '23514';
     END IF;
     RETURN NEW;

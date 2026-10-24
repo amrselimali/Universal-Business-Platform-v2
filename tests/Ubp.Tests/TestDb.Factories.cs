@@ -45,6 +45,7 @@ public sealed partial class TestDb
     public PriceListRepository PriceListRepo => new(Factory);
     public ServiceRecipeRepository RecipeRepo => new(Factory);
     public BranchSettingsRepository BranchSettingsRepo => new(Factory);
+    public CommercialDocumentRepository CommercialRepo => new(Factory);
 
     public PermissionService Permissions() => new(PermissionRepo, Cache);
 
