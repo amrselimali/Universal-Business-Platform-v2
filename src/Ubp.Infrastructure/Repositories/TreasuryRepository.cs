@@ -12,6 +12,29 @@ public interface ITreasuryRepository
     Task<Guid> CreateMethodAsync(Guid id, TreasuryMethodInput input, Guid userId, CancellationToken ct = default);
     Task<IReadOnlyList<Treasury>> ListTreasuriesAsync(Guid? branchId, CancellationToken ct = default);
     Task<IReadOnlyList<TreasuryMethod>> ListMethodsAsync(Guid treasuryId, CancellationToken ct = default);
+
+    Task<Guid> CreateVoucherAsync(Guid id, VoucherInput input, Guid userId, CancellationToken ct = default);
+    Task<Voucher?> GetVoucherAsync(Guid id, CancellationToken ct = default);
+    Task<IReadOnlyList<Voucher>> ListVouchersAsync(Guid? branchId, string? voucherType, string? status,
+        int limit, CancellationToken ct = default);
+    Task<Guid> PostVoucherAsync(Guid id, Guid userId, CancellationToken ct = default);
+    Task<bool> DeleteVoucherAsync(Guid id, CancellationToken ct = default);
+    Task<Guid> AllocateAsync(Guid voucherId, Guid documentId, decimal amount, Guid userId,
+        CancellationToken ct = default);
+    Task<IReadOnlyList<VoucherAllocation>> ListAllocationsAsync(Guid voucherId,
+        CancellationToken ct = default);
+
+    Task<Guid> OpenShiftAsync(Guid id, ShiftInput input, Guid userId, CancellationToken ct = default);
+    Task<Shift> CloseShiftAsync(Guid shiftId, decimal countedCash, Guid userId,
+        CancellationToken ct = default);
+    Task<Shift?> GetOpenShiftAsync(Guid treasuryId, CancellationToken ct = default);
+    Task<Shift?> GetShiftAsync(Guid id, CancellationToken ct = default);
+    Task<IReadOnlyList<Shift>> ListShiftsAsync(Guid? branchId, int limit,
+        CancellationToken ct = default);
+    Task SaveDenominationsAsync(Guid shiftId, IReadOnlyList<ShiftDenominationInput> denominations,
+        CancellationToken ct = default);
+    Task<IReadOnlyList<ShiftDenomination>> ListDenominationsAsync(Guid shiftId,
+        CancellationToken ct = default);
 }
 
 public sealed partial class TreasuryRepository : ITreasuryRepository

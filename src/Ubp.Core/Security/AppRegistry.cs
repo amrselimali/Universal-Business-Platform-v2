@@ -208,7 +208,23 @@ public static class AppRegistry
 
         new(ScreenCodes.PurchaseAging, "/purchasing/aging", "HourglassBottom",
             "screen.purchase_aging", GroupReports,
-            new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "purchasing.aging")
+            new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "purchasing.aging"),
+
+        new(ScreenCodes.Treasuries, "/treasury/management", "AccountBalanceWallet",
+            "screen.treasuries", GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.ManageMethods) },
+            "treasury.management"),
+
+        new(ScreenCodes.TreasuryVouchers, "/treasury/vouchers", "ReceiptLong",
+            "screen.treasury_vouchers", GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.Delete), A(ActionCodes.Post), A(ActionCodes.Print) },
+            "treasury.vouchers"),
+
+        new(ScreenCodes.TreasuryShifts, "/treasury/shifts", "PointOfSale",
+            "screen.treasury_shifts", GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.Open), A(ActionCodes.Close) },
+            "treasury.shifts")
     };
 
     public static readonly IReadOnlyDictionary<string, ScreenDefinition> ByCode =

@@ -53,6 +53,9 @@ public static class ScreenCodes
     public const string PurchaseInvoices = "PURCHASE_INVOICES";
     public const string PurchaseReturns = "PURCHASE_RETURNS";
     public const string PurchaseAging = "PURCHASE_AGING";
+    public const string Treasuries = "TREASURIES";
+    public const string TreasuryVouchers = "TREASURY_VOUCHERS";
+    public const string TreasuryShifts = "TREASURY_SHIFTS";
 }
 
 public static class ActionCodes
@@ -104,4 +107,6 @@ public static class ActionCodes
     public const string ManageItems = "MANAGE_ITEMS";
     public const string EditLines = "EDIT_LINES";
     public const string ManageDefaults = "MANAGE_DEFAULTS";
+    public const string ManageMethods = "MANAGE_METHODS";
+    public const string Close = "CLOSE";
 }

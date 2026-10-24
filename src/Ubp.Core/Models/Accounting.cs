@@ -64,12 +64,18 @@ public static class PostingKeys
     public const string SupplierPayable = "supplier_payable";
     public const string PurchaseVariance = "purchase_variance";
     public const string RoundingDifference = "rounding_difference";
+    public const string CustomerAdvances = "customer_advances";
+    public const string SupplierAdvances = "supplier_advances";
+    public const string PaymentFees = "payment_fees";
+    public const string CashOverShort = "cash_over_short";
+    public const string InterBranchClearing = "inter_branch_clearing";
 
     public static readonly string[] All =
     {
         StockInventory, StockCogs, StockAdjustmentGain, StockAdjustmentLoss,
         OpeningEquity, Rounding, SalesRevenue, VatOutput, VatInput, CustomerReceivable,
-        SupplierPayable, PurchaseVariance, RoundingDifference
+        SupplierPayable, PurchaseVariance, RoundingDifference, CustomerAdvances,
+        SupplierAdvances, PaymentFees, CashOverShort, InterBranchClearing
     };
 }
 
