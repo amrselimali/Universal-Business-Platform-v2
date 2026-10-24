@@ -232,13 +232,11 @@ public static class AppRegistry
         new(ScreenCodes.TreasuryReconciliation, "/treasury/reconciliation", "SwapHoriz",
             "screen.treasury_reconciliation", GroupAccounting,
             new[] { A(ActionCodes.View), A(ActionCodes.Post) }, "treasury.reconciliation"),
-
         new(ScreenCodes.SalesBookings, "/sales/bookings", "EventAvailable", "screen.sales_bookings",
             GroupSales,
             new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
                     A(ActionCodes.Confirm), A(ActionCodes.CancelEntry), A(ActionCodes.AssignOthers) },
             "sales.bookings"),
-
         new(ScreenCodes.SalesAppointments, "/sales/appointments", "CalendarMonth",
             "screen.sales_appointments", GroupSales,
             new[] { A(ActionCodes.View), A(ActionCodes.Manage) }, "sales.appointments"),
@@ -247,7 +245,6 @@ public static class AppRegistry
             "screen.sales_deliveries", GroupSales,
             new[] { A(ActionCodes.View), A(ActionCodes.Execute), A(ActionCodes.Post) },
             "sales.deliveries"),
-
         new(ScreenCodes.SalesInvoices, "/sales/invoices", "Receipt", "screen.sales_invoices",
             GroupSales,
             new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
