@@ -20,13 +20,13 @@
     <MudSpacer />
 
     <div class="ubp-header-actions">
-        @if (Branches.Count > 1 || Actor.IsAdmin)
+        @if (Branches.Count > 1 || Actor.IsSuperAdmin)
         {
             <form method="post" action="/auth/branch" class="ubp-inline-form">
                 <AntiforgeryToken />
                 <input type="hidden" name="returnUrl" value="@CurrentPath" />
                 <select name="branchId" class="ubp-select" onchange="this.form.submit()" aria-label="@T.T("branch.current")">
-                    @if (Actor.IsAdmin)
+                    @if (Actor.IsSuperAdmin)
                     {
                         <option value="" selected="@(CurrentBranchId is null)">@T.T("branch.none")</option>
                     }

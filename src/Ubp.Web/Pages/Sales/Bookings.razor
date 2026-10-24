@@ -30,6 +30,9 @@ else
                     <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
                 }
             </MudSelect>
+            <MudDatePicker Date="_date" Label="@T.T("sales.booking_date")" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           DateChanged="OnDateChanged" />
             <MudSelect T="string?" Value="_status" Label="@T.T("common.status")"
                        Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
                        ValueChanged="OnStatusChanged">
@@ -107,6 +110,7 @@ else
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private Guid? _branchId;
     private string? _status;
+    private DateTime? _date = DateTime.Today;
 
     protected override string ScreenCode => ScreenCodes.SalesBookings;
 
@@ -118,13 +122,14 @@ else
     private async Task<TableData<Booking>> LoadServerData(TableState state, CancellationToken ct)
     {
         var result = await BookingApi.ListAsync(Actor!, new BookingFilter
-        { BranchId = _branchId, Status = _status }, new PageRequest
+        { BranchId = _branchId, Status = _status, Date = _date }, new PageRequest
         { Page = state.Page + 1, PageSize = 25 }, ct);
         return new TableData<Booking> { Items = result.Items, TotalItems = result.Total };
     }
 
     private Task OnBranchChanged(Guid? value) { _branchId = value; return _table.ReloadServerData(); }
     private Task OnStatusChanged(string? value) { _status = value; return _table.ReloadServerData(); }
+    private Task OnDateChanged(DateTime? value) { _date = value; return _table.ReloadServerData(); }
 
     private static Color StatusColor(string status) => status switch
     {

@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-10-24 — Booking screen: time-only lines, day filter, hidden unauthorized branches
+
+### Changed
+- Booking dialog no longer shows quantity, price or totals: each line is a product only, and the
+  booking carries a from/to time range (quantity 1 / price 0 behind the scenes).
+- Bookings list filters by a selected day (today by default, clearable) and shows the time range.
+- Header branch switcher hides the “no branch” option and any unauthorized branch for non-super
+  admins (only assigned branches are listed).
+- 1 test (130 total) for the day filter.
+
 ## 2026-10-24 — Security fix: branch scope enforced server-side
 
 ### Fixed

@@ -112,6 +112,7 @@ public sealed class BookingAssignment
 public sealed class BookingFilter
 {
     public Guid? BranchId { get; set; }
+    public DateTime? Date { get; set; }
     public string? Status { get; set; }
     public Guid? CustomerId { get; set; }
     public string? Search { get; set; }
