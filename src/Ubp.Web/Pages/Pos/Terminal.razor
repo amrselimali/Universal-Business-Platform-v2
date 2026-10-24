@@ -7,6 +7,7 @@
 @inject WarehouseService Warehouses
 @inject PartnerService Partners
 @inject TreasuryService Treasury
+@inject IJSRuntime JS
 <PageTitle>@T.T("screen.pos_terminal")</PageTitle>
 
 @if (Denied) { <ForbiddenView /> }
@@ -15,267 +16,195 @@ else
 {
     <PageHeader Title="@T.T("screen.pos_terminal")" Subtitle="@T.T("pos.terminal_hint")" />
 
-    <MudPaper Elevation="0" Class="ubp-card">
-        <div class="ubp-form-grid">
-            <MudSelect T="Guid" Value="_branchId" Label="@T.T("common.branch")"
-                       Variant="Variant.Outlined" ValueChanged="OnBranchChanged">
-                @foreach (var branch in _branches)
-                {
-                    <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
-                }
-            </MudSelect>
-            <MudSelect T="Guid" @bind-Value="_customerId" Label="@T.T("sales.customer")"
-                       Variant="Variant.Outlined">
-                @foreach (var customer in _customers)
-                {
-                    <MudSelectItem T="Guid" Value="@customer.Id">@customer.NameAr</MudSelectItem>
-                }
-            </MudSelect>
-            <MudSelect T="Guid" @bind-Value="_warehouseId" Label="@T.T("sales.warehouse")"
-                       Variant="Variant.Outlined">
-                @foreach (var warehouse in _warehouses)
-                {
-                    <MudSelectItem T="Guid" Value="@warehouse.Id">@warehouse.NameAr</MudSelectItem>
-                }
-            </MudSelect>
-            <MudSelect T="Guid" Value="_itemId" Label="@T.T("sales.item")"
-                       Variant="Variant.Outlined" ValueChanged="OnItemChanged">
-                @foreach (var item in _items)
-                {
-                    <MudSelectItem T="Guid" Value="@item.Id">@item.Code — @item.NameAr</MudSelectItem>
-                }
-            </MudSelect>
-            <MudNumericField @bind-Value="_quantity" Label="@T.T("sales.quantity")"
-                             Variant="Variant.Outlined" Min="0.0001m" Format="N4" />
-            <MudNumericField @bind-Value="_price" Label="@T.T("sales.price")"
-                             Variant="Variant.Outlined" Min="0m" Format="N4" />
-        </div>
-    </MudPaper>
-
-    <MudPaper Elevation="0" Class="ubp-card mt-4">
-        <MudText Typo="Typo.subtitle1" Class="mb-2">@T.T("pos.payments_optional")</MudText>
-        <MudTable Items="_payments" Dense="true" Elevation="0" Class="ubp-table">
-            <HeaderContent>
-                <MudTh>@T.T("treasury.treasury")</MudTh>
-                <MudTh>@T.T("treasury.method")</MudTh>
-                <MudTh Align="Right">@T.T("common.amount")</MudTh>
-                <MudTh></MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>
-                    <MudSelect T="Guid" Value="context.TreasuryId" Dense="true"
-                               ValueChanged="@(v => PickTreasury(context, v))">
-                        @foreach (var treasury in _treasuries)
+    <MudGrid Class="ubp-print-hide" Spacing="2">
+        <MudItem xs="12" md="7">
+            <MudPaper Elevation="0" Class="ubp-card">
+                <div class="ubp-toolbar">
+                    <MudText Typo="Typo.subtitle1">@T.T("pos.products")</MudText>
+                    <MudTextField @bind-Value="_search" Placeholder="@T.T("pos.search_products")"
+                                  Immediate="true" DebounceInterval="300"
+                                  OnDebounceIntervalElapsed="SearchAsync"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search" />
+                    <MudSelect T="Guid" Value="_branchId" Label="@T.T("common.branch")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               ValueChanged="OnBranchChanged">
+                        @foreach (var branch in _branches)
                         {
-                            <MudSelectItem T="Guid" Value="@treasury.Id">@treasury.NameAr</MudSelectItem>
+                            <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
                         }
                     </MudSelect>
-                </MudTd>
-                <MudTd>
-                    <MudSelect T="Guid" Value="context.TreasuryMethodId" Dense="true"
-                               ValueChanged="@(v => context.TreasuryMethodId = v)">
-                        @foreach (var method in MethodsFor(context.TreasuryId))
-                        {
-                            <MudSelectItem T="Guid" Value="@method.Id">
-                                @method.NameAr (@method.FeePercent.ToString("N2")%)
-                            </MudSelectItem>
-                        }
-                    </MudSelect>
-                </MudTd>
-                <MudTd Align="Right">
-                    <MudNumericField T="decimal" @bind-Value="context.Amount" Min="0m"
-                                     Format="N2" Dense="true" />
-                    <MudText Typo="Typo.caption">@T.T("pos.fee"): @FeeOf(context).ToString("N2")</MudText>
-                </MudTd>
-                <MudTd>
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                   OnClick="@(() => _payments.Remove(context))" />
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
+                </div>
 
-        <div class="ubp-toolbar mt-2">
-            <MudButton Size="Size.Small" Variant="Variant.Outlined"
-                       StartIcon="@Icons.Material.Filled.Add" OnClick="AddPayment">@T.T("pos.add_payment")</MudButton>
-            <MudText>@T.T("pos.net"): <b>@Net.ToString("N2")</b></MudText>
-            <MudText>@T.T("pos.tax"): <b>@Tax.ToString("N2")</b></MudText>
-            <MudText>@T.T("accounting.total"): <b>@Total.ToString("N2")</b></MudText>
-            <MudText>@T.T("pos.paid"): <b>@Paid.ToString("N2")</b></MudText>
-            <MudText>@T.T("pos.fees"): <b>@Fees.ToString("N2")</b></MudText>
-            @if (Can(ActionCodes.Checkout))
-            {
-                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CheckoutAsync"
-                           Disabled="_busy">@T.T("pos.checkout")
-                </MudButton>
-            }
-        </div>
-    </MudPaper>
+                @if (_products.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">@T.T("pos.no_products")</MudAlert>
+                }
+                else
+                {
+                    <MudGrid Spacing="1">
+                        @foreach (var product in _products)
+                        {
+                            <MudItem xs="6" sm="4" md="3">
+                                <MudPaper Outlined="true" Class="pa-2 pos-product"
+                                          @onclick="@(() => AddToCart(product))">
+                                    <MudText Typo="Typo.subtitle2">@product.NameAr</MudText>
+                                    <MudText Typo="Typo.caption">
+                                        @T.T("sales.item_type_" + product.ItemType.ToLowerInvariant())
+                                        @if (product.ItemType == "GOODS")
+                                        {
+                                            <text> · @product.OnHand.ToString("N2")</text>
+                                        }
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">
+                                        <b>@PriceOf(product).ToString("N2")</b>
+                                    </MudText>
+                                </MudPaper>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="5">
+            <MudPaper Elevation="0" Class="ubp-card">
+                <MudSelect T="Guid" Value="_customerId" Label="@T.T("sales.customer")"
+                           Variant="Variant.Outlined" ValueChanged="OnCustomerChanged"
+                           Class="mb-2">
+                    @foreach (var customer in _customers)
+                    {
+                        <MudSelectItem T="Guid" Value="@customer.Id">
+                            @customer.NameAr @(string.IsNullOrWhiteSpace(customer.Phone) ? "" : $" — {customer.Phone}")
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudTable Items="_cart" Dense="true" Elevation="0" Class="ubp-table">
+                    <HeaderContent>
+                        <MudTh>@T.T("sales.item")</MudTh>
+                        <MudTh Align="Right">@T.T("sales.quantity")</MudTh>
+                        <MudTh Align="Right">@T.T("sales.price")</MudTh>
+                        <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>
+                            @context.Name
+                            @if (context.TaxRate > 0)
+                            {
+                                <MudText Typo="Typo.caption">@T.T("pos.tax"): @context.TaxRate%</MudText>
+                            }
+                        </MudTd>
+                        <MudTd Align="Right">
+                            <MudNumericField T="decimal" @bind-Value="context.Quantity" Min="0.0001m"
+                                             Format="N4" Dense="true" />
+                        </MudTd>
+                        <MudTd Align="Right">
+                            <MudNumericField T="decimal" @bind-Value="context.UnitPrice" Min="0m"
+                                             Format="N4" Dense="true" />
+                        </MudTd>
+                        <MudTd Align="Right">@context.Total.ToString("N2")</MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                           OnClick="@(() => _cart.Remove(context))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+                <div class="pos-totals mt-2">
+                    <div><span>@T.T("pos.net")</span><b>@Net.ToString("N2")</b></div>
+                    <div><span>@T.T("pos.tax")</span><b>@Tax.ToString("N2")</b></div>
+                    <div><span>@T.T("pos.fees")</span><b>@Fees.ToString("N2")</b></div>
+                    <div class="pos-grand"><span>@T.T("accounting.total")</span><b>@Total.ToString("N2")</b></div>
+                </div>
+
+                <MudTable Items="_payments" Dense="true" Elevation="0" Class="ubp-table mt-2">
+                    <HeaderContent>
+                        <MudTh>@T.T("treasury.method")</MudTh>
+                        <MudTh Align="Right">@T.T("common.amount")</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>
+                            <MudSelect T="Guid" Value="context.TreasuryMethodId" Dense="true"
+                                       ValueChanged="@(v => context.TreasuryMethodId = v)">
+                                @foreach (var method in _methods)
+                                {
+                                    <MudSelectItem T="Guid" Value="@method.Id">
+                                        @method.NameAr (@method.FeePercent.ToString("N2")%)
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd Align="Right">
+                            <MudNumericField T="decimal" @bind-Value="context.Amount" Min="0m"
+                                             Format="N2" Dense="true" />
+                            <MudText Typo="Typo.caption">@T.T("pos.fee"): @FeeOf(context).ToString("N2")</MudText>
+                        </MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                           OnClick="@(() => _payments.Remove(context))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+                <div class="ubp-toolbar mt-2">
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.Add" OnClick="AddPayment">@T.T("pos.add_payment")</MudButton>
+                    <MudText>@T.T("pos.paid"): <b>@Paid.ToString("N2")</b></MudText>
+                    @if (Can(ActionCodes.Checkout))
+                    {
+                        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                                   OnClick="CheckoutAsync" Disabled="@(_busy || _cart.Count == 0)">
+                            @T.T("pos.checkout")
+                        </MudButton>
+                    }
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 
     @if (_receipt is not null)
     {
-        <MudAlert Severity="Severity.Success" Class="mt-4">
-            @T.T("pos.booking_created"): @_receipt.BookingNo ·
-            @T.T("pos.tax"): @_receipt.TaxTotal.ToString("N2") ·
-            @T.T("pos.fees"): @_receipt.FeeTotal.ToString("N2") ·
-            @T.T("pos.paid"): @_receipt.Paid.ToString("N2")
-            @if (_receipt.Vouchers.Count > 0)
-            {
-                <text> · @string.Join(" · ", _receipt.Vouchers.Select(v => v.VoucherNo))</text>
-            }
-        </MudAlert>
-    }
-}
-
-@code {
-    private sealed class PaymentModel
-    {
-        public Guid TreasuryId { get; set; }
-        public Guid TreasuryMethodId { get; set; }
-        public decimal Amount { get; set; }
-    }
-
-    private Guid _branchId;
-    private Guid _customerId;
-    private Guid _warehouseId;
-    private Guid _itemId;
-    private decimal _quantity = 1;
-    private decimal _price = 100;
-    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
-    private IReadOnlyList<Partner> _customers = Array.Empty<Partner>();
-    private IReadOnlyList<Warehouse> _warehouses = Array.Empty<Warehouse>();
-    private IReadOnlyList<Treasury> _treasuries = Array.Empty<Treasury>();
-    private readonly Dictionary<Guid, IReadOnlyList<TreasuryMethod>> _methodsByTreasury = new();
-    private IReadOnlyList<ItemOption> _items = Array.Empty<ItemOption>();
-    private List<PaymentModel> _payments = new();
-    private PosReceipt? _receipt;
-    private bool _busy;
-
-    private ItemOption? SelectedItem => _items.FirstOrDefault(i => i.Id == _itemId);
-    private decimal Gross => _quantity * _price;
-    private decimal Tax
-    {
-        get
-        {
-            var item = SelectedItem;
-            if (item is null || item.TaxRate <= 0) return 0m;
-            return item.PriceIncludesTax
-                ? Math.Round(Gross - Net, 2, MidpointRounding.AwayFromZero)
-                : Math.Round(Net * item.TaxRate / 100m, 2, MidpointRounding.AwayFromZero);
-        }
-    }
-    private decimal Net => SelectedItem is { PriceIncludesTax: true, TaxRate: > 0 }
-        ? Math.Round(Gross / (1 + SelectedItem.TaxRate / 100m), 2, MidpointRounding.AwayFromZero)
-        : Gross;
-    private decimal Total => Net + Tax;
-    private decimal Paid => _payments.Sum(p => p.Amount);
-    private decimal Fees => _payments.Sum(FeeOf);
-
-    protected override string ScreenCode => ScreenCodes.PosTerminal;
-
-    protected override async Task OnLoadAsync()
-    {
-        _branches = await Branches.OptionsAsync(Actor!);
-        _branchId = _branches.FirstOrDefault()?.Id ?? Guid.Empty;
-        _customers = (await Partners.ListAsync(Actor!, PartnerKind.Customer,
-            new PageRequest { Page = 1, PageSize = 25 }, null)).Items;
-        _customerId = _customers.FirstOrDefault()?.Id ?? Guid.Empty;
-        _warehouses = await Warehouses.OptionsAsync(Actor!);
-        _warehouseId = _warehouses.FirstOrDefault()?.Id ?? Guid.Empty;
-        _items = await Items.OptionsAsync(Actor!, null, true);
-        _itemId = _items.FirstOrDefault()?.Id ?? Guid.Empty;
-        if (_items.FirstOrDefault() is { DefaultPrice: > 0 } first) _price = first.DefaultPrice;
-        await LoadTreasuriesAsync();
-    }
-
-    private async Task LoadTreasuriesAsync()
-    {
-        _treasuries = await Treasury.ListTreasuriesAsync(Actor!, _branchId);
-        _methodsByTreasury.Clear();
-        foreach (var treasury in _treasuries)
-            _methodsByTreasury[treasury.Id] = await Treasury.ListMethodsAsync(Actor!, treasury.Id);
-    }
-
-    private IReadOnlyList<TreasuryMethod> MethodsFor(Guid treasuryId) =>
-        _methodsByTreasury.TryGetValue(treasuryId, out var methods)
-            ? methods : Array.Empty<TreasuryMethod>();
-
-    private async Task OnBranchChanged(Guid value)
-    {
-        _branchId = value;
-        await LoadTreasuriesAsync();
-        _payments.Clear();
-        StateHasChanged();
-    }
-
-    private void PickTreasury(PaymentModel payment, Guid treasuryId)
-    {
-        payment.TreasuryId = treasuryId;
-        payment.TreasuryMethodId = MethodsFor(treasuryId).FirstOrDefault()?.Id ?? Guid.Empty;
-    }
-
-    private decimal FeeOf(PaymentModel payment)
-    {
-        var method = MethodsFor(payment.TreasuryId).FirstOrDefault(m => m.Id == payment.TreasuryMethodId);
-        return method is null ? 0m : Math.Round(payment.Amount * method.FeePercent / 100m +
-            method.FeeFixed, 2, MidpointRounding.AwayFromZero);
-    }
-
-    private void OnItemChanged(Guid itemId)
-    {
-        _itemId = itemId;
-        var item = SelectedItem;
-        if (item is not null && item.DefaultPrice > 0) _price = item.DefaultPrice;
-        StateHasChanged();
-    }
-
-    private void AddPayment()
-    {
-        var treasury = _treasuries.FirstOrDefault();
-        _payments.Add(new PaymentModel
-        {
-            TreasuryId = treasury?.Id ?? Guid.Empty,
-            TreasuryMethodId = treasury is null ? Guid.Empty
-                : MethodsFor(treasury.Id).FirstOrDefault()?.Id ?? Guid.Empty,
-            Amount = Total - Paid > 0 ? Total - Paid : 0
-        });
-        StateHasChanged();
-    }
-
-    private async Task CheckoutAsync() => await RunAsync(async () =>
-    {
-        if (_customerId == Guid.Empty || _warehouseId == Guid.Empty || _itemId == Guid.Empty ||
-            _quantity <= 0)
-        {
-            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
-            return;
-        }
-
-        _busy = true;
-        try
-        {
-            _receipt = await Pos.CheckoutAsync(Actor!, new PosCheckoutInput
-            {
-                BranchId = _branchId, CustomerId = _customerId, WarehouseId = _warehouseId,
-                DocDate = DateTime.Today,
-                Lines =
+        <MudPaper Elevation="0" Class="ubp-card mt-4">
+            <div class="ubp-toolbar">
+                <MudText Typo="Typo.subtitle1">@T.T("pos.receipt")</MudText>
+                <MudButton StartIcon="@Icons.Material.Filled.Print" Variant="Variant.Outlined"
+                           OnClick="PrintAsync">@T.T("pos.print")</MudButton>
+                @if (WhatsAppUrl is not null)
                 {
-                    new PosLineInput
-                    {
-                        ItemId = _itemId,
-                        UnitId = _items.FirstOrDefault(i => i.Id == _itemId)?.BaseUnitId
-                                 ?? Guid.Empty,
-                        Quantity = _quantity, UnitPrice = _price
-                    }
-                },
-                Payments = _payments.Where(p => p.Amount > 0)
-                    .Select(p => new PosPaymentInput
-                    {
-                        TreasuryId = p.TreasuryId, TreasuryMethodId = p.TreasuryMethodId,
-                        Amount = p.Amount
-                    }).ToList()
-            });
-            _payments.Clear();
-        }
-        finally { _busy = false; }
-    });
+                    <MudButton Href="@WhatsAppUrl" Target="_blank"
+                               StartIcon="@Icons.Material.Filled.Send" Variant="Variant.Outlined"
+                               Color="Color.Success">@T.T("pos.send_whatsapp")</MudButton>
+                }
+            </div>
+
+            <div id="pos-print-area" class="pos-receipt">
+                <div class="pos-receipt-head">
+                    <div><b>@T.T("pos.receipt")</b></div>
+                    <div>@_receipt.BookingNo · @DateTime.Now.ToString("yyyy-MM-dd HH:mm")</div>
+                    <div>@_customerName</div>
+                </div>
+                <table>
+                    <tbody>
+                        @foreach (var line in _lastLines)
+                        {
+                            <tr>
+                                <td>@line.Name × @line.Quantity.ToString("N2")</td>
+                                <td class="num">@line.Total.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <div class="pos-receipt-totals">
+                    <div><span>@T.T("pos.net")</span><span>@_lastNet.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.tax")</span><span>@_receipt.TaxTotal.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.fees")</span><span>@_receipt.FeeTotal.ToString("N2")</span></div>
+                    <div><b>@T.T("accounting.total")</b><b>@_receipt.Total.ToString("N2")</b></div>
+                    <div><span>@T.T("pos.paid")</span><span>@_receipt.Paid.ToString("N2")</span></div>
+                </div>
+            </div>
+        </MudPaper>
+    }
 }

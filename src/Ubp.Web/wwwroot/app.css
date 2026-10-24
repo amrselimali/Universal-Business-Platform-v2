@@ -123,3 +123,27 @@ a { color: inherit; text-decoration: none; }
     width: 84px; height: 84px; border-radius: 24px; display: grid; place-items: center;
     background: rgba(255, 255, 255, .15); font-size: 2.4rem; font-weight: 800;
 }
+
+/* POS receipt printing: only the receipt block is printed */
+@media print {
+    body * { visibility: hidden; }
+    #pos-print-area, #pos-print-area * { visibility: visible; }
+    #pos-print-area {
+        position: absolute;
+        inset-block-start: 0;
+        inset-inline-start: 0;
+        width: 80mm;
+        font-size: 12px;
+    }
+}
+
+/* POS layout */
+.pos-product { cursor: pointer; min-height: 72px; }
+.pos-product:hover { border-color: var(--mud-palette-primary); }
+.pos-totals { display: grid; gap: 2px; }
+.pos-totals > div { display: flex; justify-content: space-between; }
+.pos-totals .pos-grand { font-size: 1.1rem; border-top: 1px dashed #ccc; padding-top: 4px; }
+.pos-receipt { font-family: monospace; max-width: 320px; }
+.pos-receipt table { width: 100%; }
+.pos-receipt .num { text-align: left; }
+.pos-receipt-totals > div { display: flex; justify-content: space-between; }
