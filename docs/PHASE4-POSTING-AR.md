@@ -166,9 +166,12 @@ cancel(booking)  → reserved_qty -= المتبقي
 ### 4D
 | المسار | الشاشة | الأزرار |
 |---|---|---|
-| `/sales/bookings` | الحجوزات | `sales.bookings.view/create/confirm/cancel/assign_others` |
-| `/sales/appointments` | جدول المواعيد اليومي | `sales.appointments.view/manage` |
-| `/sales/deliveries` | إذون الصرف والتنفيذ | `sales.deliveries.view/execute/post` |
+| `/sales/bookings` | الحجوزات | `sales.bookings.view/create/edit/confirm/cancel/assign_others` ✅ |
+| `/sales/appointments` | جدول المواعيد اليومي | `sales.appointments.view/manage` ✅ |
+| `/sales/deliveries` | إذون الصرف والتنفيذ | `sales.deliveries.view/execute/post` ✅ |
+
+> استهلاك وصفات الخدمات (`consumption_mode` + البدائل) مؤجَّل؛ الجدول `service_consumptions`
+> موجود والعقد محدد. الفاتورة التلقائية عند التنفيذ (D4) تُنفَّذ مع 4E.
 
 ### 4E
 | المسار | الشاشة | الأزرار |

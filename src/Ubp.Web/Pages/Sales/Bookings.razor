@@ -1,0 +1,175 @@
+@page "/sales/bookings"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject BookingService BookingApi
+@inject BranchService Branches
+@inject IDialogService Dialogs
+<PageTitle>@T.T("screen.sales_bookings")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.sales_bookings")" Subtitle="@T.T("sales.bookings_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Create))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">@T.T("common.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string?" Value="_status" Label="@T.T("common.status")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnStatusChanged">
+                <MudSelectItem T="string?" Value="@BookingStatuses.Draft">@T.T("sales.status_draft")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@BookingStatuses.Confirmed">@T.T("sales.status_confirmed")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@BookingStatuses.PartiallyDelivered">@T.T("sales.status_partial")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@BookingStatuses.Completed">@T.T("sales.status_completed")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@BookingStatuses.Cancelled">@T.T("sales.status_cancelled")</MudSelectItem>
+            </MudSelect>
+        </div>
+
+        <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("sales.booking_no")</MudTh>
+                <MudTh>@T.T("sales.booking_date")</MudTh>
+                <MudTh>@T.T("sales.customer")</MudTh>
+                <MudTh>@T.T("sales.assigned_employee")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@(context.DocNo ?? "—")</span></MudTd>
+                <MudTd>@context.BookingDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd>@context.CustomerName</MudTd>
+                <MudTd>@(context.EmployeeName ?? "—")</MudTd>
+                <MudTd Align="Right">@context.TotalAmount.ToString("N2")</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@StatusColor(context.Status)">
+                        @T.T("sales.status_" + StatusKey(context.Status))
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true"
+                             AnchorOrigin="Origin.BottomRight">
+                        @if (context.IsDraft && Can(ActionCodes.Confirm))
+                        {
+                            <MudMenuItem OnClick="@(() => ConfirmAsync(context))"
+                                         Icon="@Icons.Material.Filled.CheckCircle">@T.T("sales.confirm")</MudMenuItem>
+                        }
+                        @if (!context.IsClosed && Can(ActionCodes.AssignOthers))
+                        {
+                            <MudMenuItem OnClick="@(() => AssignAsync(context))"
+                                         Icon="@Icons.Material.Filled.PersonAdd">@T.T("sales.assign")</MudMenuItem>
+                        }
+                        @if (!context.IsClosed && Can(ActionCodes.CancelEntry))
+                        {
+                            <MudMenuItem OnClick="@(() => CancelAsync(context))"
+                                         Icon="@Icons.Material.Filled.Block">@T.T("sales.cancel_booking")</MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private MudTable<Booking> _table = default!;
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private Guid? _branchId;
+    private string? _status;
+
+    protected override string ScreenCode => ScreenCodes.SalesBookings;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+    }
+
+    private async Task<TableData<Booking>> LoadServerData(TableState state, CancellationToken ct)
+    {
+        var result = await BookingApi.ListAsync(Actor!, new BookingFilter
+        { BranchId = _branchId, Status = _status }, new PageRequest
+        { Page = state.Page + 1, PageSize = 25 }, ct);
+        return new TableData<Booking> { Items = result.Items, TotalItems = result.Total };
+    }
+
+    private Task OnBranchChanged(Guid? value) { _branchId = value; return _table.ReloadServerData(); }
+    private Task OnStatusChanged(string? value) { _status = value; return _table.ReloadServerData(); }
+
+    private static Color StatusColor(string status) => status switch
+    {
+        BookingStatuses.Completed => Color.Success,
+        BookingStatuses.Cancelled => Color.Error,
+        BookingStatuses.Confirmed or BookingStatuses.PartiallyDelivered => Color.Info,
+        _ => Color.Warning
+    };
+
+    private static string StatusKey(string status) => status switch
+    {
+        BookingStatuses.Confirmed => "confirmed",
+        BookingStatuses.PartiallyDelivered => "partial",
+        BookingStatuses.Completed => "completed",
+        BookingStatuses.Cancelled => "cancelled",
+        _ => "draft"
+    };
+
+    private async Task AddAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<BookingDialog>(T.T("sales.new_booking"),
+            new DialogParameters { ["Branches"] = _branches, ["DefaultBranchId"] = _branchId });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await _table.ReloadServerData();
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task ConfirmAsync(Booking booking) => await RunAsync(async () =>
+    {
+        await BookingApi.ConfirmAsync(Actor!, booking.Id);
+        await _table.ReloadServerData();
+        ShowSuccess("sales.confirmed");
+    });
+
+    private async Task AssignAsync(Booking booking)
+    {
+        var dialog = await Dialogs.ShowAsync<AssignBookingDialog>(T.T("sales.assign"),
+            new DialogParameters { ["Booking"] = booking });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await _table.ReloadServerData();
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task CancelAsync(Booking booking)
+    {
+        var dialog = await Dialogs.ShowAsync<CancelBookingDialog>(T.T("sales.cancel_booking"),
+            new DialogParameters { ["Booking"] = booking });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await _table.ReloadServerData();
+            ShowSuccess("common.deleted");
+        }
+    }
+}

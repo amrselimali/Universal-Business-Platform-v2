@@ -1,0 +1,49 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("sales.cancel_booking") — @Booking.DocNo</MudText></TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">@T.T("sales.cancel_hint")</MudAlert>
+        <MudTextField @bind-Value="_reason" Label="@T.T("sales.cancel_reason")" Required="true"
+                      Variant="Variant.Outlined" Lines="3" MaxLength="300" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("sales.cancel_booking")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Booking Booking { get; set; } = default!;
+
+    [Inject] private BookingService Bookings { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private string? _reason;
+    private bool _busy;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_reason))
+        {
+            Snackbar.Add(T.T("validation.cancel_reason_required"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var booking = await Bookings.CancelAsync(actor, Booking.Id, _reason);
+            MudDialog.Close(DialogResult.Ok(booking));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

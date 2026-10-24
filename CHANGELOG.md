@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 2026-10-24 — Phase 4D: bookings, appointments, delivery execution
+
+### Added
+- Migration `0030`: `bookings`, `booking_lines`, `booking_assignments`, `appointments`
+  (with `EXCLUDE USING gist` so one employee cannot have overlapping slots), `delivery_notes`,
+  `delivery_note_lines`, `service_consumptions`, plus the `delivery` journal source type.
+- `BookingRepository`: draft creation with per-line discount/tax totals, confirmation that
+  reserves `stock_balances.reserved_qty` only when `reserve_stock_on_booking` is on, cancellation
+  that releases reservations, employee assignment with history (`owner`/`executor`).
+- `DeliveryRepository`: draft from booking remainders, posting that releases the reservation,
+  issues stock through the FEFO engine, books `Dr COGS / Cr Inventory`, fills the line cost
+  snapshot, and moves the booking to `partially_delivered`/`completed`.
+- `AppointmentRepository` + day schedule; overlapping slots are rejected by the database
+  (`23P01` → `validation.appointment_overlap`) and cancellations free the slot.
+- `BookingService` and `SalesFulfillmentService` with `sales.bookings.*`,
+  `sales.appointments.*`, `sales.deliveries.*` permissions and audit entries.
+- Screens: `/sales/bookings` (+ create/assign/cancel dialogs), `/sales/appointments`
+  (+ dialog and status actions), `/sales/deliveries` (+ delivery dialog and posting).
+- 5 tests (105 total): reservation and over-booking block, delivery + COGS + completion,
+  cancellation releasing reservations, appointment overlap/cancel, assignment history.
+
+### Known limitations (4D remainder)
+- Service recipe consumption (`consumption_mode` + substitutes) is not wired yet; the table and
+  contract exist. Auto-invoice on delivery (`D4`) lands with 4E.
+
 ## 2026-10-24 — Phase 4C-ب: clearing reconciliation, voucher cancel, shift reopen, allocation UI
 
 ### Added

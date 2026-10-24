@@ -34,8 +34,13 @@
   reversal of the variance entry, and an allocation dialog on posted vouchers — 100 tests total.
 
 ### Next
-4D (bookings/deliveries) → 4E (sales invoices/returns) → 4F (reports) → 4G/4H → 6 → 7.
+4E (sales invoices/returns) → 4F (settlements/reports) → 4G/4H → 6 → 7.
 الخطة التفصيلية للباقي (جداول/شاشات/أزرار/دورات عمل/اختبارات/جهد): `docs/PHASE-REMAINING-AR.md`.
+
+### Phase 4D (completed 2026-10-24)
+- Bookings + reservations (`reserve_stock_on_booking`), appointments with DB overlap guard,
+  delivery notes that issue FEFO stock, book COGS and complete the booking; 3 screens; 5 tests
+  (105 total). Deferred: service-recipe consumption and auto-invoice on delivery (4E).
 
 ## 2026-10-22 — Phase 3 delivered (accounting core + general ledger)
 

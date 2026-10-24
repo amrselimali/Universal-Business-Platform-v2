@@ -1,0 +1,166 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("sales.new_delivery")</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudSelect T="Guid" Value="_branchId" Label="@T.T("common.branch")"
+                           Variant="Variant.Outlined" ValueChanged="OnBranchChanged">
+                    @foreach (var branch in Branches)
+                    {
+                        <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid" Value="_bookingId" Label="@T.T("sales.booking_no")"
+                           Variant="Variant.Outlined" ValueChanged="OnBookingChanged">
+                    @foreach (var booking in _bookings)
+                    {
+                        <MudSelectItem T="Guid" Value="@booking.Id">
+                            @booking.DocNo — @booking.CustomerName
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudDatePicker @bind-Date="_date" Label="@T.T("common.date")"
+                               Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_notes" Label="@T.T("common.notes")"
+                              Variant="Variant.Outlined" MaxLength="500" />
+            </div>
+        </MudForm>
+
+        @if (_lines.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="my-2">@T.T("sales.no_remaining_lines")</MudAlert>
+        }
+        else
+        {
+            <MudTable Items="_lines" Dense="true" Elevation="0" Class="ubp-table my-2">
+                <HeaderContent>
+                    <MudTh>@T.T("sales.item")</MudTh>
+                    <MudTh Align="Right">@T.T("sales.remaining_qty")</MudTh>
+                    <MudTh Align="Right">@T.T("sales.deliver_qty")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.ItemName</MudTd>
+                    <MudTd Align="Right">@context.Remaining.ToString("N4")</MudTd>
+                    <MudTd Align="Right">
+                        <MudNumericField T="decimal" @bind-Value="context.Quantity"
+                                         Min="0m" Max="@context.Remaining" Format="N4" Dense="true" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="@(_busy || _lines.Count == 0)">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private sealed class LineModel
+    {
+        public Guid BookingLineId { get; set; }
+        public string ItemName { get; set; } = "";
+        public decimal Remaining { get; set; }
+        public decimal Quantity { get; set; }
+    }
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public IReadOnlyList<Branch> Branches { get; set; } = Array.Empty<Branch>();
+    [Parameter] public Guid? DefaultBranchId { get; set; }
+
+    [Inject] private BookingService Bookings { get; set; } = default!;
+    [Inject] private SalesFulfillmentService Fulfillment { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private Guid _branchId;
+    private Guid _bookingId;
+    private Guid _warehouseId;
+    private DateTime? _date = DateTime.Today;
+    private string? _notes;
+    private IReadOnlyList<Booking> _bookings = Array.Empty<Booking>();
+    private List<LineModel> _lines = new();
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _branchId = DefaultBranchId ?? Branches.FirstOrDefault()?.Id ?? Guid.Empty;
+        await LoadBookingsAsync();
+    }
+
+    private async Task LoadBookingsAsync()
+    {
+        var actor = await UserContext.RequireAsync();
+        var page = await Bookings.ListAsync(actor, new BookingFilter { BranchId = _branchId },
+            new Core.Paging.PageRequest { Page = 1, PageSize = 25 });
+        _bookings = page.Items
+            .Where(b => b.Status is BookingStatuses.Confirmed or BookingStatuses.PartiallyDelivered)
+            .ToList();
+        _bookingId = _bookings.FirstOrDefault()?.Id ?? Guid.Empty;
+        await LoadLinesAsync();
+    }
+
+    private async Task LoadLinesAsync()
+    {
+        _lines = new List<LineModel>();
+        if (_bookingId == Guid.Empty) return;
+
+        var actor = await UserContext.RequireAsync();
+        var booking = await Bookings.GetAsync(actor, _bookingId);
+        _warehouseId = booking.Lines.FirstOrDefault()?.WarehouseId ?? Guid.Empty;
+        _lines = booking.Lines
+            .Where(l => l.RemainingQty > 0)
+            .Select(l => new LineModel
+            {
+                BookingLineId = l.Id, ItemName = l.ItemName ?? "",
+                Remaining = l.RemainingQty, Quantity = l.RemainingQty
+            }).ToList();
+    }
+
+    private async Task OnBranchChanged(Guid value)
+    {
+        _branchId = value;
+        await LoadBookingsAsync();
+        StateHasChanged();
+    }
+
+    private async Task OnBookingChanged(Guid value)
+    {
+        _bookingId = value;
+        await LoadLinesAsync();
+        StateHasChanged();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var lines = _lines.Where(l => l.Quantity > 0).ToList();
+        if (lines.Count == 0 || _warehouseId == Guid.Empty)
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var note = await Fulfillment.CreateDeliveryAsync(actor, new DeliveryInput
+            {
+                BookingId = _bookingId, BranchId = _branchId,
+                DocDate = _date ?? DateTime.Today, WarehouseId = _warehouseId, Notes = _notes,
+                Lines = lines.Select(l => new DeliveryLineInput
+                { BookingLineId = l.BookingLineId, Quantity = l.Quantity }).ToList()
+            });
+            MudDialog.Close(DialogResult.Ok(note));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}
