@@ -52,7 +52,8 @@ public sealed partial class CommercialDocumentRepository : ICommercialDocumentRe
         l.discount_amount AS DiscountAmount, l.net_amount AS NetAmount, l.tax_id AS TaxId,
         l.tax_rate AS TaxRate, l.tax_amount AS TaxAmount, l.total_amount AS TotalAmount,
         l.unit_cost AS UnitCost, l.cost_total AS CostTotal, l.lot_number AS LotNumber,
-        l.expiry_date AS ExpiryDate, l.returned_qty AS ReturnedQty, l.description AS Description
+        l.expiry_date AS ExpiryDate, l.returned_qty AS ReturnedQty, l.description AS Description,
+        l.booking_line_id AS BookingLineId
         FROM commercial_document_lines l
         JOIN items i ON i.id = l.item_id
         JOIN units un ON un.id = l.unit_id

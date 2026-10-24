@@ -60,6 +60,8 @@ public static class ScreenCodes
     public const string SalesBookings = "SALES_BOOKINGS";
     public const string SalesAppointments = "SALES_APPOINTMENTS";
     public const string SalesDeliveries = "SALES_DELIVERIES";
+    public const string SalesInvoices = "SALES_INVOICES";
+    public const string SalesReturns = "SALES_RETURNS";
 }
 
 public static class ActionCodes

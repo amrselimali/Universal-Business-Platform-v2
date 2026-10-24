@@ -66,7 +66,12 @@ public sealed class SalesFulfillmentService
 
         var settings = await _settings.GetAsync(ct);
         DeliveryNote note;
-        try { note = await _deliveries.PostAsync(id, actor.UserId, settings.AllowNegativeStock, ct); }
+        var autoInvoice = settings.AutoInvoiceOnDelivery && settings.InvoiceGroupingMode == 0;
+        try
+        {
+            note = await _deliveries.PostAsync(id, actor.UserId, settings.AllowNegativeStock,
+                autoInvoice, ct);
+        }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
 
         await _audit.WriteAsync(actor, "delivery_notes", id.ToString(), "UPDATE",

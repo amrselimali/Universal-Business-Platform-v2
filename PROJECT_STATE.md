@@ -33,8 +33,13 @@
 - `/treasury/reconciliation` + settlement entry, voucher cancel for drafts, shift reopen with
   reversal of the variance entry, and an allocation dialog on posted vouchers — 100 tests total.
 
+### Phase 4E (completed 2026-10-24)
+- Sales invoices from delivered booking lines with revenue/VAT posting and automatic advance
+  consumption; sales returns with credit note and restock at the original cost; auto-invoice on
+  delivery inside the delivery transaction; D3 and N24 guards; 2 screens; 5 tests (110 total).
+
 ### Next
-4E (sales invoices/returns) → 4F (settlements/reports) → 4G/4H → 6 → 7.
+4F (settlements/commissions/aging/posting center) → 4G/4H → 6 → 7.
 الخطة التفصيلية للباقي (جداول/شاشات/أزرار/دورات عمل/اختبارات/جهد): `docs/PHASE-REMAINING-AR.md`.
 
 ### Phase 4D (completed 2026-10-24)

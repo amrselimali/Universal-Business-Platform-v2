@@ -14,7 +14,7 @@ public interface IDeliveryRepository
     Task<IReadOnlyList<DeliveryNote>> ListAsync(Guid? branchId, string? status, int limit,
         CancellationToken ct = default);
     Task<DeliveryNote> PostAsync(Guid id, Guid userId, bool allowNegative,
-        CancellationToken ct = default);
+        bool autoInvoice = false, CancellationToken ct = default);
     Task<bool> DeleteDraftAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<DeliveryNote>> ListByBookingAsync(Guid bookingId,
         CancellationToken ct = default);

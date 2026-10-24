@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 2026-10-24 — Phase 4E: sales invoices and returns
+
+### Added
+- Migration `0031`: `booking_id`/`delivered_at` on `commercial_documents`, `booking_line_id` on
+  `commercial_document_lines`, `sales_return_links`, the D3 guard (`SALES_LINE_REQUIRES_BOOKING`),
+  the N24 return-quantity guard (`RETURN_QTY_EXCEEDED` + `returned_qty` maintenance), and a narrow
+  line-guard exception that allows updating only `returned_qty` on a posted line.
+- `SalesInvoiceRepository`: drafts from delivered booking remainders or returnable invoice lines,
+  posting a sales invoice (`Dr receivable / Cr revenue + VAT`), automatic consumption of open
+  receipt vouchers (`Dr advances / Cr receivable`) updating `allocated_total`, and updating
+  `booking_lines.invoiced_qty`.
+- Sales returns: credit note (`Dr revenue + VAT / Cr receivable`) plus stock re-entry at the
+  original delivery cost with `Dr inventory / Cr COGS`, inside one transaction.
+- Auto invoice on delivery (`auto_invoice_on_delivery` + `invoice_grouping_mode = 0`) created and
+  posted inside the delivery transaction and linked through `delivery_notes.invoice_id`.
+- `SalesInvoiceService` with `sales.invoices.*` and `sales.returns.*` permissions and audit.
+- Screens: `/sales/invoices` (+ dialog from booking remainders) and `/sales/returns`
+  (+ dialog from posted invoices), with translations.
+- 5 tests (110 total): D3 guard, revenue + advance consumption with party-balance reconciliation,
+  credit note + restock at original cost + N24 guard, auto invoice on delivery, over-invoicing guard.
+
+### Known limitations (4E)
+- The existing unique index `ux_commercial_documents_original` allows a single return document per
+  original invoice; multiple partial return documents need a schema decision (recorded for 4F).
+
 ## 2026-10-24 — Phase 4D: bookings, appointments, delivery execution
 
 ### Added

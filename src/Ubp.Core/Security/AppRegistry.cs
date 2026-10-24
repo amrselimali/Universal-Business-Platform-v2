@@ -246,7 +246,17 @@ public static class AppRegistry
         new(ScreenCodes.SalesDeliveries, "/sales/deliveries", "LocalShipping",
             "screen.sales_deliveries", GroupSales,
             new[] { A(ActionCodes.View), A(ActionCodes.Execute), A(ActionCodes.Post) },
-            "sales.deliveries")
+            "sales.deliveries"),
+
+        new(ScreenCodes.SalesInvoices, "/sales/invoices", "Receipt", "screen.sales_invoices",
+            GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
+                    A(ActionCodes.Post), A(ActionCodes.Print) }, "sales.invoices"),
+
+        new(ScreenCodes.SalesReturns, "/sales/returns", "AssignmentReturn",
+            "screen.sales_returns", GroupSales,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Post),
+                    A(ActionCodes.Print) }, "sales.returns")
     };
 
     public static readonly IReadOnlyDictionary<string, ScreenDefinition> ByCode =

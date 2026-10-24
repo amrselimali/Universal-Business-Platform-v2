@@ -1,0 +1,122 @@
+@page "/sales/invoices"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject SalesInvoiceService Sales
+@inject BranchService Branches
+@inject IDialogService Dialogs
+<PageTitle>@T.T("screen.sales_invoices")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.sales_invoices")" Subtitle="@T.T("sales.invoices_hint")">
+        <Actions>
+            @if (Can(ActionCodes.Create))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">@T.T("common.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string?" Value="_status" Label="@T.T("common.status")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnStatusChanged">
+                <MudSelectItem T="string?" Value="@CommercialStatuses.Draft">@T.T("accounting.status_draft")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@CommercialStatuses.Posted">@T.T("accounting.status_posted")</MudSelectItem>
+            </MudSelect>
+        </div>
+
+        <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("sales.invoice_no")</MudTh>
+                <MudTh>@T.T("common.date")</MudTh>
+                <MudTh>@T.T("sales.customer")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.allocated_total")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@(context.DocNo ?? "—")</span></MudTd>
+                <MudTd>@context.DocDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd>@context.PartyName</MudTd>
+                <MudTd Align="Right">@context.Total.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.AllocatedTotal.ToString("N2")</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@(context.IsPosted ? Color.Success : Color.Warning)">
+                        @T.T("accounting.status_" + context.Status)
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Right">
+                    @if (context.IsDraft && Can(ActionCodes.Post))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                                   OnClick="@(() => PostAsync(context))">@T.T("accounting.post")</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private MudTable<CommercialDocument> _table = default!;
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private Guid? _branchId;
+    private string? _status;
+
+    protected override string ScreenCode => ScreenCodes.SalesInvoices;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+    }
+
+    private async Task<TableData<CommercialDocument>> LoadServerData(TableState state,
+        CancellationToken ct)
+    {
+        var result = await Sales.ListAsync(Actor!, new CommercialDocFilter
+        {
+            DocType = CommercialDocTypes.SalesInvoice, BranchId = _branchId, Status = _status
+        }, new PageRequest { Page = state.Page + 1, PageSize = 25 }, ct);
+        return new TableData<CommercialDocument> { Items = result.Items, TotalItems = result.Total };
+    }
+
+    private Task OnBranchChanged(Guid? value) { _branchId = value; return _table.ReloadServerData(); }
+    private Task OnStatusChanged(string? value) { _status = value; return _table.ReloadServerData(); }
+
+    private async Task AddAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<SalesInvoiceDialog>(T.T("sales.new_invoice"),
+            new DialogParameters { ["Branches"] = _branches, ["DefaultBranchId"] = _branchId });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await _table.ReloadServerData();
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task PostAsync(CommercialDocument invoice) => await RunAsync(async () =>
+    {
+        await Sales.PostAsync(Actor!, invoice.Id);
+        await _table.ReloadServerData();
+        ShowSuccess("accounting.posted");
+    });
+}

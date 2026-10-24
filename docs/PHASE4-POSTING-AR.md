@@ -176,9 +176,12 @@ cancel(booking)  → reserved_qty -= المتبقي
 ### 4E
 | المسار | الشاشة | الأزرار |
 |---|---|---|
-| `/sales/invoices` | فواتير المبيعات | `sales.invoices.view/create/edit/post/cancel/print` |
-| `/sales/returns` | مرتجعات المبيعات | `sales.returns.view/create/post/print` |
-| `/sales/customers/quick` | عميل سريع | `sales.customers.quick_create` |
+| `/sales/invoices` | فواتير المبيعات | `sales.invoices.view/create/edit/post/print` ✅ |
+| `/sales/returns` | مرتجعات المبيعات | `sales.returns.view/create/post/print` ✅ |
+| `/sales/customers/quick` | عميل سريع | `sales.customers.quick_create` — لم يبدأ |
+
+> مرتجع واحد لكل فاتورة أصلية بحكم الفهرس `ux_commercial_documents_original`؛ تعدد مرتجعات
+> جزئية يحتاج قرار مخطط (مسجّل ضمن 4F).
 
 ### 4F
 | المسار | الشاشة | الأزرار |

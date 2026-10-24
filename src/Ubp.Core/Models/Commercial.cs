@@ -62,6 +62,7 @@ public sealed class CommercialDocument
     public string? EntryNo { get; set; }
     public Guid? StockDocumentId { get; set; }
     public Guid? OriginalDocumentId { get; set; }
+    public Guid? BookingId { get; set; }
     public string? Notes { get; set; }
 
     public DateTimeOffset? PostedAt { get; set; }
@@ -100,6 +101,7 @@ public sealed class CommercialDocumentLine
     public string? LotNumber { get; set; }
     public DateTime? ExpiryDate { get; set; }
     public decimal ReturnedQty { get; set; }
+    public Guid? BookingLineId { get; set; }
     public string? Description { get; set; }
 }
 
@@ -115,6 +117,12 @@ public sealed class CommercialDocumentLineInput
     public string? LotNumber { get; set; }
     public DateTime? ExpiryDate { get; set; }
     public string? Description { get; set; }
+
+    /// <summary>بند الحجز المرتبط — إلزامي لفواتير ومرتجعات المبيعات (D3).</summary>
+    public Guid? BookingLineId { get; set; }
+
+    /// <summary>السطر الأصلي في مرتجعات المبيعات (N24).</summary>
+    public Guid? OriginalLineId { get; set; }
 }
 
 public sealed class CommercialDocumentInput
@@ -128,6 +136,7 @@ public sealed class CommercialDocumentInput
     public Guid? PaymentTermsId { get; set; }
     public DateTime? DueDate { get; set; }
     public Guid? OriginalDocumentId { get; set; }
+    public Guid? BookingId { get; set; }
     public string? Notes { get; set; }
     public List<CommercialDocumentLineInput> Lines { get; set; } = new();
 }

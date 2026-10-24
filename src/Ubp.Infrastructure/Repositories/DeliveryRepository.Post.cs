@@ -23,7 +23,7 @@ public sealed partial class DeliveryRepository
     /// ثم تحديث الكميات المنجزة وحالة الحجز — كل ذلك في معاملة واحدة.
     /// </summary>
     public async Task<DeliveryNote> PostAsync(Guid id, Guid userId, bool allowNegative,
-        CancellationToken ct = default)
+        bool autoInvoice = false, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
@@ -139,6 +139,9 @@ public sealed partial class DeliveryRepository
                 updated_by = @userId
             WHERE id = @id
             """, new { docNo, userId, entryId, stockDocId, id }, tx, cancellationToken: ct));
+
+        if (autoInvoice)
+            await SalesInvoiceRepository.CreateFromDeliveryAsync(connection, tx, id, userId, ct);
 
         await tx.CommitAsync(ct);
         return (await GetAsync(id, ct))!;
