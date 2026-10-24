@@ -48,6 +48,42 @@ else
                                Disabled="@(!Can(ActionCodes.Edit))" />
                     <MudText Typo="Typo.caption" Class="ubp-muted">@T.T("settings.allow_negative_stock_hint")</MudText>
                 </div>
+                <div style="grid-column: 1 / -1;">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1">@T.T("settings.operations")</MudText>
+                </div>
+                <MudNumericField @bind-Value="_dueDays" Label="@T.T("settings.booking_due_days")"
+                                 Variant="Variant.Outlined" Min="0" Max="365"
+                                 Disabled="@(!Can(ActionCodes.Edit))" />
+                <MudNumericField @bind-Value="_slotMinutes" Label="@T.T("settings.appointment_slot")"
+                                 Variant="Variant.Outlined" Min="5" Max="240"
+                                 Disabled="@(!Can(ActionCodes.Edit))" />
+                <MudSelect T="short" @bind-Value="_model.DeliveryRequiresCollection"
+                           Label="@T.T("settings.delivery_requires_collection")"
+                           Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))">
+                    <MudSelectItem T="short" Value="0">@T.T("settings.collection_none")</MudSelectItem>
+                    <MudSelectItem T="short" Value="1">@T.T("settings.collection_optional")</MudSelectItem>
+                    <MudSelectItem T="short" Value="2">@T.T("settings.collection_required")</MudSelectItem>
+                </MudSelect>
+                <MudSelect T="short" @bind-Value="_model.InvoiceGroupingMode"
+                           Label="@T.T("settings.invoice_grouping")"
+                           Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))">
+                    <MudSelectItem T="short" Value="0">@T.T("settings.grouping_immediate")</MudSelectItem>
+                    <MudSelectItem T="short" Value="1">@T.T("settings.grouping_on_close")</MudSelectItem>
+                    <MudSelectItem T="short" Value="2">@T.T("settings.grouping_manual")</MudSelectItem>
+                </MudSelect>
+                <MudTextField @bind-Value="_model.PosReceiptFooter" Label="@T.T("settings.pos_footer")"
+                              Variant="Variant.Outlined" MaxLength="300"
+                              Disabled="@(!Can(ActionCodes.Edit))" />
+                <div style="grid-column: 1 / -1;">
+                    <MudSwitch T="bool" @bind-Value="_model.BlockExpiredIssue" Color="Color.Primary"
+                               Label="@T.T("settings.block_expired")" Disabled="@(!Can(ActionCodes.Edit))" />
+                    <MudSwitch T="bool" @bind-Value="_model.ReserveStockOnBooking" Color="Color.Primary"
+                               Label="@T.T("settings.reserve_on_booking")" Disabled="@(!Can(ActionCodes.Edit))" />
+                    <MudSwitch T="bool" @bind-Value="_model.AutoInvoiceOnDelivery" Color="Color.Primary"
+                               Label="@T.T("settings.auto_invoice")" Disabled="@(!Can(ActionCodes.Edit))" />
+                    <MudSwitch T="bool" @bind-Value="_model.AutoFollowUpOverdue" Color="Color.Primary"
+                               Label="@T.T("settings.auto_follow_up")" Disabled="@(!Can(ActionCodes.Edit))" />
+                </div>
             </div>
 
             <div class="ubp-form-footer">
@@ -68,6 +104,8 @@ else
     private int _passwordMin = 8;
     private int _maxAttempts = 5;
     private int _lockoutMinutes = 15;
+    private int _dueDays = 30;
+    private int _slotMinutes = 15;
     private bool _busy;
 
     protected override async Task OnLoadAsync()
@@ -77,6 +115,8 @@ else
         _passwordMin = _model.PasswordMinLength;
         _maxAttempts = _model.MaxFailedAttempts;
         _lockoutMinutes = _model.LockoutMinutes;
+        _dueDays = _model.BookingDefaultDueDays;
+        _slotMinutes = _model.AppointmentSlotMinutes;
     }
 
     private async Task SaveAsync()
@@ -88,6 +128,8 @@ else
             _model.PasswordMinLength = (short)_passwordMin;
             _model.MaxFailedAttempts = (short)_maxAttempts;
             _model.LockoutMinutes = (short)_lockoutMinutes;
+            _model.BookingDefaultDueDays = (short)_dueDays;
+            _model.AppointmentSlotMinutes = (short)_slotMinutes;
             _model = await Settings.UpdateAsync(Actor!, _model);
             ShowSuccess("settings.updated");
         });

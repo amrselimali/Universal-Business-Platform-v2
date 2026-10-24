@@ -30,6 +30,13 @@ public sealed partial class AccountingSettingsService
             new { settingKey, accountId }, ct);
     }
 
+    public async Task<IReadOnlyList<PostingDefaultType>> ListTypesAsync(ActorContext actor,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.AccountingSettings, ActionCodes.View, ct: ct);
+        return await _settings.ListTypesAsync(ct);
+    }
+
     public async Task<IReadOnlyList<PostingDefault>> ListDefaultsAsync(ActorContext actor,
         CancellationToken ct = default)
     {

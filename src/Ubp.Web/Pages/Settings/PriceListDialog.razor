@@ -1,0 +1,82 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(Model is null ? T.T("common.add") : T.T("common.edit"))</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true"
+                              Variant="Variant.Outlined" MaxLength="20" />
+                <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true"
+                              Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_input.NameEn" Label="@T.T("common.name_en")"
+                              Variant="Variant.Outlined" />
+                <MudDatePicker @bind-Date="_validFrom" Label="@T.T("settings.valid_from")"
+                               Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" Editable="true" />
+                <MudDatePicker @bind-Date="_validTo" Label="@T.T("settings.valid_to")"
+                               Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" Editable="true" />
+                <div style="grid-column: 1 / -1;">
+                    <MudSwitch @bind-Value="_input.IsDefault" Color="Color.Warning"
+                               Label="@T.T("settings.is_default")" />
+                    <MudSwitch @bind-Value="_input.IsActive" Color="Color.Success" Label="@T.T("common.active")" />
+                </div>
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public PriceList? Model { get; set; }
+
+    [Inject] private MasterDataService MasterData { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private PriceListInput _input = new();
+    private DateTime? _validFrom;
+    private DateTime? _validTo;
+    private bool _busy;
+
+    protected override void OnInitialized()
+    {
+        if (Model is null) return;
+        _input = new PriceListInput
+        {
+            Code = Model.Code, NameAr = Model.NameAr, NameEn = Model.NameEn,
+            IsDefault = Model.IsDefault, ValidFrom = Model.ValidFrom, ValidTo = Model.ValidTo,
+            Notes = Model.Notes, IsActive = Model.IsActive
+        };
+        _validFrom = Model.ValidFrom;
+        _validTo = Model.ValidTo;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            _input.ValidFrom = _validFrom;
+            _input.ValidTo = _validTo;
+            var saved = await MasterData.SavePriceListAsync(actor, Model?.Id, Model?.Version ?? 0, _input);
+            MudDialog.Close(DialogResult.Ok(saved));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

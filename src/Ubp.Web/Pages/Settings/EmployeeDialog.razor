@@ -1,0 +1,88 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(Model is null ? T.T("common.add") : T.T("common.edit"))</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true"
+                              Variant="Variant.Outlined" MaxLength="30" />
+                <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true"
+                              Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_input.NameEn" Label="@T.T("common.name_en")"
+                              Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_input.Phone" Label="@T.T("common.phone")"
+                              Variant="Variant.Outlined" MaxLength="30" />
+                <MudTextField @bind-Value="_input.Email" Label="@T.T("settings.email")"
+                              Variant="Variant.Outlined" MaxLength="200" />
+                <MudDatePicker @bind-Date="_hireDate" Label="@T.T("settings.hire_date")"
+                               Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" Editable="true" />
+                <div style="grid-column: 1 / -1;">
+                    <MudSwitch @bind-Value="_input.IsBookingReceiver" Color="Color.Primary"
+                               Label="@T.T("settings.role_receiver")" />
+                    <MudSwitch @bind-Value="_input.IsSeller" Color="Color.Primary"
+                               Label="@T.T("settings.role_seller")" />
+                    <MudSwitch @bind-Value="_input.IsServiceExecutor" Color="Color.Primary"
+                               Label="@T.T("settings.role_executor")" />
+                    <MudSwitch @bind-Value="_input.IsActive" Color="Color.Success"
+                               Label="@T.T("common.active")" />
+                </div>
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Employee? Model { get; set; }
+
+    [Inject] private MasterDataService MasterData { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private EmployeeInput _input = new();
+    private DateTime? _hireDate;
+    private bool _busy;
+
+    protected override void OnInitialized()
+    {
+        if (Model is null) return;
+        _input = new EmployeeInput
+        {
+            Code = Model.Code, NameAr = Model.NameAr, NameEn = Model.NameEn, Phone = Model.Phone,
+            Email = Model.Email, UserId = Model.UserId, HireDate = Model.HireDate,
+            IsBookingReceiver = Model.IsBookingReceiver, IsSeller = Model.IsSeller,
+            IsServiceExecutor = Model.IsServiceExecutor, Notes = Model.Notes, IsActive = Model.IsActive
+        };
+        _hireDate = Model.HireDate;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            _input.HireDate = _hireDate;
+            var saved = await MasterData.SaveEmployeeAsync(actor, Model?.Id,
+                Model?.Version ?? 0, _input);
+            MudDialog.Close(DialogResult.Ok(saved));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

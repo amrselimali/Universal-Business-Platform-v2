@@ -19,6 +19,7 @@ public partial class AccountingSettingsPage
     private bool _autoPost;
     private IReadOnlyList<Account> _accounts = Array.Empty<Account>();
     private IReadOnlyList<ItemCategoryAccount> _categoryAccounts = Array.Empty<ItemCategoryAccount>();
+    private IReadOnlyList<PostingDefaultType> _types = Array.Empty<PostingDefaultType>();
     private readonly Dictionary<string, Guid?> _defaults = new(StringComparer.OrdinalIgnoreCase);
 
     protected override string ScreenCode => ScreenCodes.AccountingSettings;
@@ -37,6 +38,7 @@ public partial class AccountingSettingsPage
         _accounts = await Accounts.PostableAsync(Actor!);
         _categoryAccounts = await SettingsService.ListCategoryAccountsAsync(Actor!);
 
+        _types = await SettingsService.ListTypesAsync(Actor!);
         var defaults = await SettingsService.ListDefaultsAsync(Actor!);
         _defaults.Clear();
         foreach (var key in PostingKeys.All)
