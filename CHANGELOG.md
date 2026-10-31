@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 6A: reports center, saved filters, CSV/XLSX export
+
+### Added
+- Migration `0039`: `saved_report_filters` with `UNIQUE (user_id, report_key, filter_name)`,
+  a JSON-object check constraint, a report-key format check and a lookup index.
+- `ReportCatalog` (Core) is the single approved list of reports, each bound to the screen code that
+  guards it, so `/reports/center` only offers what the user may open.
+- `ReportCenterService`: list approved reports by permission, save/apply/delete per-user filters
+  (upsert instead of duplicates), and export stock balances to CSV/XLSX.
+- `ReportExporter`: RFC4180 CSV with a UTF-8 BOM (Arabic opens correctly in Excel) and a hand-built
+  OOXML `xlsx` package via `System.IO.Compression` only — no `System.IO.Packaging`, no new package
+  (X-01). Numeric cells are written as numbers, strings are XML-escaped, sheet names are sanitised
+  and truncated to 31 characters.
+- `/reports/center` screen: report tiles, warehouse/zero-balance filter, CSV/XLSX/print buttons and
+  saved-filter management, registered in `AppRegistry` with `VIEW/SAVE_FILTER/DELETE_FILTER/
+  EXPORT_CSV/EXPORT_XLSX/PRINT`; `wwwroot/js/reports.js` performs the download.
+- `AppRegistry` split into `AppRegistry.Reports.cs` to keep the 300-line cap.
+
+### Tests
+- 16 new tests (195 total, 0 failures): export escaping/BOM/zip layout/number cells/column names,
+  filter upsert + ownership + validation, and report visibility by permission.
+- Live check: migration `0039` applied, `/reports/center` answers `200` with the Arabic title and
+  tiles, and `js/reports.js` is served.
+
+
 ## 2026-10-31 — Phase 3 gate + migration 0038 (concurrency, idempotency)
 
 ### Added

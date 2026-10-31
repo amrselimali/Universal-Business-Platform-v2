@@ -1,5 +1,18 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 6A delivered (reports center + exports)
+
+- Migration `0039`: `saved_report_filters` (unique per user/report/name, JSON object only).
+- `/reports/center` lists the approved `ReportCatalog` entries the user may open, manages per-user
+  saved filters, and exports stock balances to CSV or XLSX (1000-row cap, X-13).
+- XLSX is generated without any package (`ZipArchive` + minimal OOXML) — X-01 is now implemented,
+  not just decided.
+- 195 tests pass on a real PostgreSQL instance (16 new); build clean, every file ≤ 300 lines.
+
+### Next in Phase 6
+- 6B (`bi` schema + materialized views), 6C (`sales_daily_totals` dashboard), 6D (notifications +
+  broadcaster), 6E (`message_outbox` + hosted retry worker).
+
 ## 2026-10-31 — Phase 3 gate and idempotency (0038)
 
 - Migration `0038`: `stock_documents.idempotency_key` + partial unique index per branch, and

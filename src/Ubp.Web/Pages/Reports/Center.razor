@@ -1,0 +1,106 @@
+@page "/reports/center"
+@attribute [Authorize]
+@inherits SecurePageBase
+<PageTitle>@T.T("screen.reports_center")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.reports_center")" Subtitle="@T.T("reports.center_hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <MudText Typo="Typo.h6" Class="mb-3">@T.T("reports.available")</MudText>
+        <MudGrid Spacing="2">
+            @foreach (var report in _reports)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Outlined="true" Class="pa-4 ubp-report-tile">
+                        <MudText Typo="Typo.subtitle1">@T.T(report.TitleKey)</MudText>
+                        <MudText Typo="Typo.caption" Class="ubp-muted">@report.Key</MudText>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Href="@report.Route"
+                                   Class="mt-2 px-0">@T.T("reports.open")</MudButton>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="ubp-card mt-4">
+        <MudText Typo="Typo.h6" Class="mb-3">@T.T("reports.export_stock")</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="5">
+                <MudSelect T="Guid?" Label="@T.T("reports.warehouse")" Variant="Variant.Outlined"
+                           Value="_warehouseId" ValueChanged="OnWarehouseChanged" Clearable="true">
+                    <MudSelectItem T="Guid?" Value="@((Guid?)null)">@T.T("common.all")</MudSelectItem>
+                    @foreach (var warehouse in _warehouses)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)warehouse.Id)">
+                            @warehouse.NameAr
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSwitch T="bool" Value="_includeZero" ValueChanged="OnZeroChanged"
+                           Label="@T.T("reports.include_zero")" Color="Color.Primary" />
+            </MudItem>
+        </MudGrid>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.TableChart"
+                       Disabled="@(_busy || !Can(ActionCodes.ExportCsv))"
+                       OnClick="@(() => ExportAsync(ReportExportFormat.Csv))">
+                @T.T("reports.export_csv")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.GridOn"
+                       Disabled="@(_busy || !Can(ActionCodes.ExportXlsx))"
+                       OnClick="@(() => ExportAsync(ReportExportFormat.Xlsx))">
+                @T.T("reports.export_xlsx")
+            </MudButton>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Print"
+                       Disabled="@(!Can(ActionCodes.Print))" OnClick="PrintAsync">
+                @T.T("reports.print")
+            </MudButton>
+        </div>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="ubp-card mt-4">
+        <MudText Typo="Typo.h6" Class="mb-3">@T.T("reports.saved_filters")</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="5">
+                <MudSelect T="Guid?" Label="@T.T("reports.saved_filters")" Variant="Variant.Outlined"
+                           Value="_selectedFilterId" ValueChanged="ApplyFilterAsync" Clearable="true">
+                    @foreach (var filter in _filters)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)filter.Id)">@filter.FilterName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="5">
+                <MudTextField @bind-Value="_filterName" Label="@T.T("reports.filter_name")"
+                              Variant="Variant.Outlined" MaxLength="120" />
+            </MudItem>
+            <MudItem xs="12" md="2" Class="d-flex align-center">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2"
+                           Disabled="@(_busy || !Can(ActionCodes.SaveFilter))" OnClick="SaveFilterAsync">
+                    @T.T("common.save")
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                   Disabled="@(_selectedFilterId is null || !Can(ActionCodes.DeleteFilter))"
+                   OnClick="DeleteFilterAsync">@T.T("reports.delete_filter")</MudButton>
+    </MudPaper>
+}
+
+@code {
+    private void OnWarehouseChanged(Guid? warehouseId) => _warehouseId = warehouseId;
+    private void OnZeroChanged(bool includeZero) => _includeZero = includeZero;
+}

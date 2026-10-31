@@ -13,6 +13,7 @@ public static class PermissionScope
 public static class ScreenCodes
 {
     public const string Dashboard = "DASHBOARD";
+    public const string ReportsCenter = "REPORTS_CENTER";
     public const string SettingsGeneral = "SETTINGS_GENERAL";
     public const string Branches = "BRANCHES";
     public const string Warehouses = "WAREHOUSES";
@@ -117,6 +118,10 @@ public static class ActionCodes
     public const string CheckCompleteness = "CHECK_COMPLETENESS";
     public const string EnableAutoPost = "ENABLE_AUTO_POST";
     public const string Save = "SAVE";
+    public const string SaveFilter = "SAVE_FILTER";
+    public const string DeleteFilter = "DELETE_FILTER";
+    public const string ExportCsv = "EXPORT_CSV";
+    public const string ExportXlsx = "EXPORT_XLSX";
     public const string ManageItems = "MANAGE_ITEMS";
     public const string EditLines = "EDIT_LINES";
     public const string ManageDefaults = "MANAGE_DEFAULTS";
