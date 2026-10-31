@@ -14,12 +14,14 @@ public interface IPeriodRepository
     Task<FiscalPeriod> CreateAsync(FiscalPeriodInput input, CancellationToken ct = default);
     Task<FiscalPeriod?> UpdateAsync(Guid id, int version, FiscalPeriodInput input, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);
-    Task SetStatusAsync(Guid id, string status, Guid userId, string? reason, CancellationToken ct = default);
+    /// <summary>إغلاق الفترة يُرفض ذرياً إن وُجدت مستندات مخزنية غير مرحلة.</summary>
+    Task<bool> SetStatusAsync(Guid id, string status, Guid userId, string? reason, CancellationToken ct = default);
 
     Task<IReadOnlyList<PeriodClosure>> ListClosuresAsync(Guid periodId, CancellationToken ct = default);
     Task<PeriodClosure?> GetClosureAsync(Guid periodId, string scopeType, Guid? branchId,
         string moduleCode, CancellationToken ct = default);
-    Task UpsertClosureAsync(Guid periodId, string scopeType, Guid? branchId, string moduleCode,
+    /// <summary>عند الإغلاق يتحقق داخل نفس الجملة من عدم وجود مسودات في النطاق (بوابة تزامن).</summary>
+    Task<bool> UpsertClosureAsync(Guid periodId, string scopeType, Guid? branchId, string moduleCode,
         bool closed, Guid userId, string? reason, CancellationToken ct = default);
     Task<int> CountOpenClosuresAsync(Guid periodId, CancellationToken ct = default);
     Task<int> CountClosuresAsync(Guid periodId, CancellationToken ct = default);

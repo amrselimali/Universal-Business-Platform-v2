@@ -1,5 +1,20 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 3 gate and idempotency (0038)
+
+- Migration `0038`: `stock_documents.idempotency_key` + partial unique index per branch, and
+  `updated_by` on `stock_documents`/`stocktakes`. Next free number: `0039` (saved report filters).
+- Posting/closing race is closed at the statement level: `period_scope_closures` and
+  `fiscal_periods` close writes refuse to apply while an unposted stock document exists in the
+  scope, so no document can be posted into a scope that its own closure already covered.
+- Idempotent document creation (client retry safe) with audit-safe replay handling.
+- 179 tests pass on a real PostgreSQL instance (14 new), including a 50-way concurrent posting run
+  on an isolated database and a 5-round post-vs-close race.
+- Known gap: the browser E2E scenario (Playwright) is still open — `docs/EXCEPTIONS.md` X-08.
+
+### Next
+- Phase 6 (`saved_report_filters`, reports center, dashboard, notifications) starting with `0039`.
+
 ## 2026-10-31 — Phases 1, 2.1 and 2.2 delivered
 
 - Migrations `0036` (`users.must_change_password`, `password_changed_at`) and `0037`

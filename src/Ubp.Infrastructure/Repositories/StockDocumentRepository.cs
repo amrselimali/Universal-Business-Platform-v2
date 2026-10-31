@@ -12,8 +12,11 @@ public interface IStockDocumentRepository
     Task<StockDocument?> GetAsync(Guid id, CancellationToken ct = default);
     Task<StockDocumentDetail?> GetDetailAsync(Guid id, CancellationToken ct = default);
     Task<StockDocument> CreateDraftAsync(StockDocumentInput input, Guid userId, CancellationToken ct = default);
-    Task<StockDocument?> UpdateDraftAsync(Guid id, int version, StockDocumentInput input,
+    /// <summary>يعيد معرّف المستند المنشأ بنفس مفتاح idempotency إن وُجد (0038).</summary>
+    Task<Guid?> GetByIdempotencyKeyAsync(Guid branchId, string idempotencyKey,
         CancellationToken ct = default);
+    Task<StockDocument?> UpdateDraftAsync(Guid id, int version, StockDocumentInput input,
+        Guid? userId = null, CancellationToken ct = default);
     Task<bool> DeleteDraftAsync(Guid id, CancellationToken ct = default);
     Task CancelAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<TransferReceipt>> ListReceiptsAsync(Guid documentId, CancellationToken ct = default);

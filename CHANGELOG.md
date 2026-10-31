@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 3 gate + migration 0038 (concurrency, idempotency)
+
+### Added
+- Migration `0038`: `stock_documents.idempotency_key` (unique per branch, partial index) and
+  `updated_by` on `stock_documents`/`stocktakes`; the append-only ledger tables deliberately stay
+  without `updated_by` (documented inside the script).
+- Client retries are now safe: `CreateDraftAsync` relies on
+  `ON CONFLICT (branch_id, idempotency_key) DO NOTHING` and returns the existing document, and
+  `StockDocumentService.SaveAsync` short-circuits a replayed key before writing an audit row.
+- Concurrency gate (Phase 3) with 8 scenarios; the close path is now atomic: the closure write and
+  the period status update both reject **inside the same SQL statement** when an unposted stock
+  document exists in the scope, so posting cannot slip between the check and the closure.
+- `IsolatedDatabaseFactory` (`IsolatedDb` in tests): creates, migrates, seeds and drops a dedicated
+  database per concurrency scenario, bounded pool included.
+- Connection hygiene: `CreateDraftAsync`/`UpdateDraftAsync` no longer hold a write connection while
+  reading the document back (this was halving the practical throughput under load).
+
+### Tests
+- 14 new tests (179 total, 0 failures): idempotent replay ×4, concurrent double-posting, 50
+  concurrent receipts on an isolated database (numbers + balance + value), post-vs-close race ×5,
+  company close blocked by an open branch scope, reopen requires a reason and records an event,
+  full rollback of a failed posting, refresh-token single use/logout, and Arabic/English key parity.
+
+
 ## 2026-10-31 — Phase 1 + 2.1 + 2.2: forced password change, lookup layer, display formatter
 
 ### Added
