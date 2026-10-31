@@ -13,6 +13,7 @@ public static class PermissionScope
 public static class ScreenCodes
 {
     public const string Dashboard = "DASHBOARD";
+    public const string Notifications = "NOTIFICATIONS";
     public const string ReportsCenter = "REPORTS_CENTER";
     public const string SettingsGeneral = "SETTINGS_GENERAL";
     public const string Branches = "BRANCHES";
@@ -75,6 +76,8 @@ public static class ScreenCodes
 public static class ActionCodes
 {
     public const string View = "VIEW";
+    public const string MarkAsRead = "MARK_AS_READ";
+    public const string ClearAll = "CLEAR_ALL";
     public const string Add = "ADD";
     public const string Create = "CREATE";
     public const string Edit = "EDIT";

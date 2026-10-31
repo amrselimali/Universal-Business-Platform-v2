@@ -1,0 +1,137 @@
+@page "/notifications/center"
+@attribute [Authorize]
+@inherits SecurePageBase
+@implements IDisposable
+@inject NotificationService Notifications
+@inject NotificationBroadcaster Broadcaster
+@inject IDisplayFormatter Fmt
+<PageTitle>@T.T("screen.notifications")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.notifications")" Subtitle="@T.T("notifications.hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!Can(ActionCodes.MarkAsRead))"
+                       OnClick="MarkAllReadAsync">@T.T("notifications.mark_all_read")</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" Disabled="@(!Can(ActionCodes.ClearAll))"
+                       OnClick="ClearAsync">@T.T("notifications.clear_all")</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="RefreshAsync">@T.T("common.refresh")</MudButton>
+            <MudSpacer />
+            <MudChip T="string" Color="Color.Primary" Size="Size.Small">
+                @T.T("notifications.unread"): @_unread
+            </MudChip>
+        </div>
+
+        @if (_items.Count == 0)
+        {
+            <MudText Class="ubp-muted">@T.T("notifications.empty")</MudText>
+        }
+        else
+        {
+            <MudList T="Notification" Dense="true">
+                @foreach (var item in _items)
+                {
+                    <MudListItem T="Notification" OnClick="@(() => OpenAsync(item))">
+                        <div class="d-flex align-center gap-2">
+                            <MudIcon Icon="@Icon(item.Severity)" Color="@SeverityColor(item.Severity)" Size="Size.Small" />
+                            <div class="flex-grow-1">
+                                <div class="@(item.IsRead ? "ubp-muted" : "ubp-strong")">@T.T(item.TitleKey)</div>
+                                @if (!string.IsNullOrWhiteSpace(item.Body))
+                                {
+                                    <div class="ubp-small ubp-muted">@item.Body</div>
+                                }
+                                <div class="ubp-small ubp-muted">@Fmt.DateTime(item.CreatedAt)</div>
+                            </div>
+                            @if (!item.IsRead)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Primary" Size="Size.Small" />
+                            }
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<Notification> _items = Array.Empty<Notification>();
+    private int _unread;
+    private IDisposable? _subscription;
+
+    protected override string ScreenCode => ScreenCodes.Notifications;
+
+    protected override async Task OnLoadAsync()
+    {
+        if (_subscription is null)
+        {
+            _subscription = Broadcaster.Subscribe(Actor!.UserId, async _ =>
+            {
+                await RefreshAsync();
+                await InvokeAsync(StateHasChanged);
+            });
+        }
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        var page = await Notifications.ListAsync(Actor!, new PageRequest { PageSize = 25 }, false);
+        _items = page.Items;
+        _unread = await Notifications.UnreadCountAsync(Actor!);
+    }
+
+    private async Task OpenAsync(Notification item)
+    {
+        if (!item.IsRead && Can(ActionCodes.MarkAsRead))
+        {
+            await Notifications.MarkReadAsync(Actor!, item.Id);
+            await RefreshAsync();
+        }
+        if (!string.IsNullOrWhiteSpace(item.LinkUrl)) Navigation.NavigateTo(item.LinkUrl);
+    }
+
+    private async Task MarkAllReadAsync()
+    {
+        await Notifications.MarkAllReadAsync(Actor!);
+        await RefreshAsync();
+    }
+
+    private async Task ClearAsync()
+    {
+        await Notifications.ClearAsync(Actor!);
+        await RefreshAsync();
+    }
+
+    private static string Icon(string severity) => severity switch
+    {
+        NotificationSeverities.Success => Icons.Material.Filled.CheckCircle,
+        NotificationSeverities.Warning => Icons.Material.Filled.Warning,
+        NotificationSeverities.Error => Icons.Material.Filled.Error,
+        _ => Icons.Material.Filled.Info
+    };
+
+    private static MudBlazor.Color SeverityColor(string severity) => severity switch
+    {
+        NotificationSeverities.Success => MudBlazor.Color.Success,
+        NotificationSeverities.Warning => MudBlazor.Color.Warning,
+        NotificationSeverities.Error => MudBlazor.Color.Error,
+        _ => MudBlazor.Color.Info
+    };
+
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+        _subscription = null;
+    }
+}

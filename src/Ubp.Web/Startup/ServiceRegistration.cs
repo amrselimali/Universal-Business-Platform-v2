@@ -174,6 +174,9 @@ public static class ServiceRegistration
         services.AddScoped<StockReportService>();
         services.AddScoped<ReportCenterService>();
         services.AddScoped<ISavedReportFilterRepository, SavedReportFilterRepository>();
+        services.AddSingleton<NotificationBroadcaster>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<NotificationService>();
         services.AddScoped<AccountService>();
         services.AddScoped<CostCenterService>();
         services.AddScoped<JournalService>();

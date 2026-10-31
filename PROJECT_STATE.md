@@ -1,5 +1,17 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 6D delivered (notifications)
+
+- Migration `0040`: `notifications` (user XOR role target, severity/payload checks, unread indexes).
+- `NotificationService` + `NotificationBroadcaster`: per-user fan-out to open circuits, unread
+  counter, mark-read / mark-all / clear, and a trusted `SendAsync` other services can call.
+- UI: bell with unread badge in the header and `/notifications/center` (subscribes and disposes).
+- 201 tests pass (6 new); build clean; every file ≤ 300 lines.
+
+### Next in Phase 6
+- 6C (`sales_daily_totals` + dashboard under 300 ms), 6E (`message_outbox` + retry worker),
+  6B (`bi` schema with materialized views and `bi_reader`).
+
 ## 2026-10-31 — Phase 6A delivered (reports center + exports)
 
 - Migration `0039`: `saved_report_filters` (unique per user/report/name, JSON object only).

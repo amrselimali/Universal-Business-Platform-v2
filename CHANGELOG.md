@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 6D: internal notifications (bell, center, broadcaster)
+
+### Added
+- Migration `0040`: `notifications` targeting **either** a user **or** a role (XOR check), severity
+  check, JSON-object payload check, and partial indexes for unread lookups.
+- `NotificationRepository`: visibility = direct + role-based (`user_roles`), unread counter,
+  mark-read / mark-all-read / clear, and role member resolution.
+- `NotificationService`: permission-guarded read/mark/clear plus a trusted internal `SendAsync` used
+  by other services; the bell counter degrades to zero (no exception) for users without the screen.
+- `NotificationBroadcaster` (singleton): per-user subscriptions returning `IDisposable`, publishing
+  to every open circuit, and releasing handlers on dispose (no leak — asserted by a test).
+- UI: bell with an unread badge in `HeaderBar` (subscribes/disposes correctly) and
+  `/notifications/center` with icon/severity, mark-all-read, clear-all and live refresh.
+- Registered as the `NOTIFICATIONS` screen (`VIEW/MARK_AS_READ/CLEAR_ALL`).
+
+### Tests
+- 6 new tests (201 total, 0 failures): direct + role visibility (members only), unread counter,
+  mark-read/mark-all/clear, target XOR validation, broadcaster delivery + dispose release, and
+  role broadcast reaching every member.
+- Live check: migration `0040` applied, `/notifications/center` answers `200`, and the bell link
+  renders in the header.
+
+
 ## 2026-10-31 — Phase 6A: reports center, saved filters, CSV/XLSX export
 
 ### Added

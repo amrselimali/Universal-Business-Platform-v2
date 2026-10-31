@@ -46,7 +46,8 @@
 | `0037` | `app_settings.time_zone` | **منفَّذ** (2026-10-31) |
 | `0038` | `stock_documents.idempotency_key` + فهرس فريد جزئي + `updated_by` | **منفَّذ** (2026-10-31) |
 | `0039` | `saved_report_filters` (المرحلة 6A) | **منفَّذ** (2026-10-31) |
-| `0040+` | `bi` · `sales_daily_totals` · `notifications` · `message_outbox` | لم يُنفَّذ |
+| `0040` | `bi` · `sales_daily_totals` · `notifications` · `message_outbox` | `notifications` **منفَّذ** · الباقي لم يُنفَّذ |
+| `0041+` | `sales_daily_totals` · `message_outbox` · `bi` | لم يُنفَّذ |
 
 > ملاحظة: `0019` غير موجود في التسلسل (فجوة قديمة لا تُملأ، ولا يُعاد استخدام رقمها).
 

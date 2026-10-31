@@ -14,6 +14,10 @@ public static partial class AppRegistry
         new(StockReports, "/reports/stock", "Assessment", "screen.stock_reports", GroupReports,
             new[] { R(View) }),
 
+        new(ScreenCodes.Notifications, "/notifications/center", "Notifications",
+            "screen.notifications", GroupMain,
+            new[] { R(View), R(MarkAsRead), R(ClearAll) }),
+
         new(ScreenCodes.ReportsCenter, "/reports/center", "QueryStats", "screen.reports_center",
             GroupReports,
             new[] { R(View), R(SaveFilter), R(DeleteFilter), R(ExportCsv), R(ExportXlsx), R(Print) })
