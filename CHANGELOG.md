@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 7 (part 1): migration CLI, backup log, system-health screen
+
+### Added
+- `--migrate` command-line path (`MigrationCli`): runs DbUp once and exits with a status code
+  (`MIGRATIONS_OK applied=N total=N` / exit 0, or `MIGRATIONS_FAILED error=…` / exit 1) so CI/CD can
+  apply migrations before switching the app version. `Program.cs` itself stays free of the
+  infrastructure layer (architecture test enforced).
+- Migration `0044`: `backup_log` (status/kind checks, "finished implies finish time") plus
+  `fn_record_backup(...)` for the **external** `pg_dump` cron; the UI never executes system commands.
+- `BackupLogRepository` (read-only list/last) and `SystemHealthRepository` (server version, database
+  size, table count, queries running longer than 30 s, last backup).
+- `SystemHealthService` with the `SYSTEM_HEALTH` screen permission and `/admin/system-health`:
+  status cards, pending-migration names, and the backup log table.
+
+### Tests
+- 4 new tests (224 total, 0 failures): a recorded backup appears in the log, an inconsistent backup
+  row is rejected by the check constraint, the snapshot reports real database facts with **zero
+  pending migrations**, and the backup list is newest-first.
+- Live check: `--migrate` applied `0044` and exited 0; after `fn_record_backup(...)`,
+  `/admin/system-health` answered `200` and rendered the backup row.
+
+
 ## 2026-10-31 — Phase 6B: `bi` analytics schema (read-only, refreshed)
 
 ### Added

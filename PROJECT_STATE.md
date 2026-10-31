@@ -1,5 +1,22 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 7 (part 1): operations surface
+
+- `--migrate` CLI for CI/CD (`MIGRATIONS_OK/FAILED` + exit code); it is the recommended deploy step
+  instead of `AutoMigrate=true`.
+- Migration `0044`: `backup_log` + `fn_record_backup()` for the external cron; the app only reads.
+- `/admin/system-health` (`SYSTEM_HEALTH` permission): database facts, long-running queries, applied
+  and **pending** migrations, and the backup log.
+- 224 tests pass (4 new). Live: `--migrate` applied the last migration and exited 0; the health page
+  returned 200 with a recorded backup row.
+
+### Remaining in Phase 7
+- 7D import tool (`OpeningBalanceService.ImportCsvAsync` preview screen + `import_jobs`).
+- 7E load & security pass (rate limiting on login, 1M-line and 100-user runs).
+- 7F pilot run, user guides and rollback plan.
+- Owner-side: rotate the Neon password, activate `.github/workflows/ci.yml`, branch protection,
+  secrets, `ubp_app` role, Playwright decision (X-08/X-12).
+
 ## 2026-10-31 — Phase 6B delivered → **Phase 6 complete**
 
 - Migration `0043`: `bi` schema with three materialized views (unique-indexed for concurrent

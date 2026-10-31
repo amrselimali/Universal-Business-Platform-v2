@@ -1,0 +1,108 @@
+@page "/admin/system-health"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject SystemHealthService Health
+@inject IDisplayFormatter Fmt
+<PageTitle>@T.T("screen.system_health")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.system_health")" Subtitle="@T.T("system_health.hint")" />
+
+    <div class="ubp-stats">
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.Storage" />
+            <div><span>@T.T("system_health.database")</span>
+                <strong>@(_snapshot.Facts.DatabaseOk ? T.T("system_health.ok") : T.T("system_health.down"))</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.Memory" />
+            <div><span>@T.T("system_health.version")</span><strong>@(_snapshot.Facts.ServerVersion ?? "—")</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.DataUsage" />
+            <div><span>@T.T("system_health.size")</span><strong>@FormatSize(_snapshot.Facts.DatabaseSizeBytes)</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.TableChart" />
+            <div><span>@T.T("system_health.tables")</span><strong>@_snapshot.Facts.TableCount</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.HourglassBottom" />
+            <div><span>@T.T("system_health.long_queries")</span><strong>@_snapshot.Facts.LongRunningQueries</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.Schema" />
+            <div><span>@T.T("system_health.migrations")</span>
+                <strong>@_snapshot.AppliedMigrations / @T.T("system_health.pending"): @_snapshot.PendingMigrations</strong></div>
+        </div>
+    </div>
+
+    @if (_snapshot.PendingScripts.Count > 0)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+            @T.T("system_health.pending") — @string.Join(", ", _snapshot.PendingScripts)
+        </MudAlert>
+    }
+
+    <MudPaper Elevation="0" Class="ubp-card mt-4">
+        <MudText Typo="Typo.h6" Class="mb-3">@T.T("system_health.backups")</MudText>
+        @if (_backups.Count == 0)
+        {
+            <MudText Class="ubp-muted">@T.T("system_health.no_backups")</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true">
+                <thead>
+                <tr>
+                    <th>@T.T("backup.time")</th>
+                    <th>@T.T("backup.status")</th>
+                    <th>@T.T("backup.file")</th>
+                    <th>@T.T("backup.size")</th>
+                    <th>@T.T("backup.duration")</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var backup in _backups)
+                {
+                    <tr>
+                        <td>@Fmt.DateTime(backup.StartedAt)</td>
+                        <td>@backup.Status</td>
+                        <td>@(backup.FileName ?? "—")</td>
+                        <td>@(backup.SizeBytes is { } size ? FormatSize(size) : "—")</td>
+                        <td>@(backup.DurationSeconds is { } seconds ? $"{seconds}s" : "—")</td>
+                    </tr>
+                }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    private SystemHealthSnapshot _snapshot = new(
+        new SystemHealthFacts(false, null, null, null, null, 0, 0, 0, null), 0, 0, Array.Empty<string>());
+    private IReadOnlyList<BackupLogEntry> _backups = Array.Empty<BackupLogEntry>();
+
+    protected override string ScreenCode => ScreenCodes.SystemHealth;
+
+    protected override async Task OnLoadAsync()
+    {
+        _snapshot = await Health.GetAsync(Actor!);
+        _backups = await Health.BackupsAsync(Actor!);
+    }
+
+    private static string FormatSize(long bytes) =>
+        bytes >= 1_073_741_824 ? $"{bytes / 1_073_741_824d:0.0} GB"
+        : bytes >= 1_048_576 ? $"{bytes / 1_048_576d:0.0} MB"
+        : $"{bytes / 1024d:0.0} KB";
+}

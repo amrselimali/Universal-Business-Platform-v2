@@ -181,6 +181,9 @@ public static class ServiceRegistration
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<DashboardService>();
         services.AddScoped<IBiRepository, BiRepository>();
+        services.AddScoped<IBackupLogRepository, BackupLogRepository>();
+        services.AddScoped<ISystemHealthRepository, SystemHealthRepository>();
+        services.AddScoped<SystemHealthService>();
         services.AddScoped<IMessageOutboxRepository, MessageOutboxRepository>();
         services.AddScoped<OutboxService>();
         services.AddScoped<IMessageSender, LoggingMessageSender>();

@@ -20,6 +20,13 @@ var app = builder.Build();
 // يجب أن يسبق أي اتصال بقاعدة البيانات (الترحيل والتهيئة).
 app.Services.GetRequiredService<IStartupValidator>().Validate();
 
+// مسار النشر: تنفيذ الترحيلات من CI/CD ثم الخروج (بلا تشغيل الويب).
+if (MigrationCli.IsRequested(args))
+{
+    Environment.ExitCode = MigrationCli.Run(app.Services);
+    return;
+}
+
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto

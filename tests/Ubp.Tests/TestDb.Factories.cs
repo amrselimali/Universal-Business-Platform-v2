@@ -81,6 +81,10 @@ public sealed partial class TestDb
     public DashboardService Dashboard() =>
         new(new DashboardRepository(Factory), Permissions());
 
+    public SystemHealthService SystemHealth() =>
+        new(new SystemHealthRepository(Factory), new BackupLogRepository(Factory),
+            new Ubp.Infrastructure.Migrations.MigrationRunner(Options), Permissions());
+
     public SettingsService Settings() =>
         new(SettingsRepo, AuditRepo, Permissions(), Cache);
 

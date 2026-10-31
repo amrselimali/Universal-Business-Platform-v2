@@ -105,6 +105,12 @@ DataProtection__KeyRingPath="/app/keys"
   2. زر «تحديث / تهيئة قاعدة البيانات» في شاشة قاعدة البيانات (Super Admin).
   3. CI/CD.
 - مستخدم التطبيق `ubp_app` لا يملك DDL؛ الترحيلات تستخدم اتصالاً منفصلاً بصلاحية أعلى.
+- **مسار النشر الموصى به**: `dotnet Ubp.Web.dll --migrate` يطبّق الترحيلات ثم يخرج برمز حالة
+  (`MIGRATIONS_OK applied=N total=N` → 0، أو `MIGRATIONS_FAILED error=…` → 1). استخدمه في خط النشر
+  وأبقِ `Database:AutoMigrate=false` في الإنتاج.
+- شاشة `/admin/system-health` تعرض: حالة القاعدة، الترحيلات **المعلّقة**، الاستعلامات الأطول من 30
+  ثانية، وسجل النسخ الاحتياطي (يُكتب من وظيفة cron خارجية عبر `select fn_record_backup(...)`؛
+  الواجهة لا تنفّذ أوامر نظام).
 - Data Seeding يضمن: صف الإعدادات الوحيد، العملة الأساسية، أول Super Admin، فرع/مخزن رئيسي.
 - **Audit log** غير قابل للتعديل أو الحذف (Trigger)، ويستخدم Keyset Pagination.
 - **عملة أساسية واحدة** مضمونة بفهرس Unique جزئي.
