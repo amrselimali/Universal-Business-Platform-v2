@@ -176,7 +176,36 @@ docker exec ubp-postgres createdb -U postgres ubp_qa
 
 ---
 
-## 4. الأمان والصلاحيات
+## 4. الترقية من نسخة كانت متصلة بـ Neon (سبب «كان شغّالاً وتوقّف»)
+
+النسخة القديمة كانت تحمل رابط Neon مباشرة داخل `src/Ubp.Web/appsettings.json`، فكان التطبيق
+يتصل بالقاعدة السحابية تلقائياً. في **المرحلة 0** أُزيل هذا الرابط (وأُضيف `appsettings.Development.json`
+يشير إلى قاعدة محلية) لأنه كان **سرّاً مكشوفاً في المستودع** — لذلك صار التطبيق يحتاج قاعدة محلية
+أو تمرير أسرار Neon من خارج المستودع.
+
+**لا يوجد أي فقد بيانات**: كل الترحيلات الجديدة (`0036`–`0045`) إضافية فقط
+(جداول/أعمدة/فهارس/عروض) بلا `DROP` أو `DELETE` أو تغيير أنواع.
+
+### إعادة الاتصال بـ Neon بشكل صحيح (بلا أسرار في git)
+
+```powershell
+# 1) دوّر كلمة مرور Neon من لوحة التحكم أولاً (القديمة مسرّبة في تاريخ git)
+# 2) خزّن الروابط في user-secrets (تُقرأ في Development فقط، ولا تدخل المستودع)
+dotnet user-secrets --project src/Ubp.Web set "Database:ConnectionString" `
+  "postgresql://<user>:<password>@ep-xxxx-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+dotnet user-secrets --project src/Ubp.Web set "Database:MigrationConnectionString" `
+  "postgresql://<user>:<password>@ep-xxxx.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+dotnet user-secrets --project src/Ubp.Web set "Jwt:Key" "<64 حرفاً عشوائياً>"
+dotnet user-secrets --project src/Ubp.Web set "Bootstrap:SuperAdminPassword" "<كلمة مرور قوية>"
+```
+- `MigrationConnectionString` يجب أن يكون **العنوان المباشر** (بدون `-pooler`) لأن الترحيل يعتمد على
+  قفل جلسي `pg_advisory_lock`، والـ pooler قد يفصل الجلسة.
+- أول ترحيل بعد الترقية سيطبّق `0036`–`0045` (تراكمي وآمن على البيانات القائمة).
+- **تغيّر متوقع**: الحساب `admin` سيُطلب منه تغيير كلمة المرور عند أول دخول؛ وإن كانت كلمته ما زالت
+  `Admin@123` فسيستبدلها النظام بـ `Bootstrap:SuperAdminPassword` المكوَّنة.
+- للتشغيل المحلي بدل Neon: `scripts/dev-db.ps1` ثم `dotnet run --project src/Ubp.Web -- --migrate`.
+
+## 5. الأمان والصلاحيات
 
 - **Default Deny**: أي شاشة/زر غير مسجّل في `AppRegistry` أو غير ممنوح = ممنوع.
 - الصلاحية الفعلية = صلاحيات الأدوار، ثم `user_permissions` الفردية تتغلب عليها (سماحاً أو منعاً).
@@ -192,7 +221,7 @@ docker exec ubp-postgres createdb -U postgres ubp_qa
 
 ---
 
-## 5. الأداء والترقيم
+## 6. الأداء والترقيم
 
 - كل الجداول: `LIMIT 25 OFFSET n` مع فرز ثابت `(sort column, id)` — الحد 25 مفروض في طبقة البيانات.
 - `audit_log`: Keyset `WHERE id < @before ORDER BY id DESC LIMIT 25` بدل OFFSET.
@@ -206,7 +235,7 @@ docker exec ubp-postgres createdb -U postgres ubp_qa
 
 ---
 
-## 6. الشاشات
+## 7. الشاشات
 
 | الشاشة | المسار | ملاحظات |
 |---|---|---|
@@ -249,7 +278,7 @@ docker exec ubp-postgres createdb -U postgres ubp_qa
 
 ---
 
-## 7. مركز الجودة (QA)
+## 8. مركز الجودة (QA)
 
 - الاختبارات مسجّلة في الكود (`QaService.Registry`) وتظهر تلقائياً في المصفوفة.
 - تشغيل الكل/المحدد، وتسجيل كل محاولة ونتيجة ورقم تتبع في `qa_test_*`.
@@ -259,7 +288,7 @@ docker exec ubp-postgres createdb -U postgres ubp_qa
 
 ---
 
-## 8. الاختبارات
+## 9. الاختبارات
 
 ```bash
 # إنشاء قواعد الاختبار
@@ -284,7 +313,7 @@ dotnet test
 
 ---
 
-## 9. النشر
+## 10. النشر
 
 ### Docker
 ```bash
@@ -303,7 +332,7 @@ docker compose up -d --build
 
 ---
 
-## 10. الوضع الحالي والمراحل التالية
+## 11. الوضع الحالي والمراحل التالية
 
 **منجز في المرحلة الأولى:** كل الجداول والشاشات أعلاه، المصادقة والجلسات، الصلاحيات،
 الفروع/المخازن/العملات/الحقول المخصصة، سجل الأنشطة، إدارة قاعدة البيانات، مركز جودة أولي،
