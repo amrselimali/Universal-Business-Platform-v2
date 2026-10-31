@@ -1,5 +1,15 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 8 (8A/8B/8C/8D) complete
+
+- Migrations `0046`–`0052` (55 scripts total) cover: reservation deposits, main treasury, branch
+  account defaults, fixed assets, meters, maintenance, depreciation (LINEAR monthly/annual + UNITS),
+  disposal with gain/loss, and the sales↔meter link.
+- 252 tests pass on a real PostgreSQL instance; the whole chain is re-verified on a fresh database.
+- Known follow-ups (documented, no blockers): a UI button for disposal, applying sales-meter sync on a
+  schedule (it is callable via the service today), and a role-level permission matrix page.
+
+
 ## 2026-10-31 — Phase 8A completed (assets · meters · maintenance · depreciation)
 
 - Migrations `0049`–`0051`: assets/categories/meters/maintenance/depreciation + the `DEP` journal +

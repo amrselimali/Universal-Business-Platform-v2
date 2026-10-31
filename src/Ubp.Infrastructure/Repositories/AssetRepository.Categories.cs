@@ -41,7 +41,7 @@ public sealed partial class AssetRepository
         {
             input.Code, input.NameAr, input.DepreciationMethod, input.DepreciationFrequency,
             input.UsefulLifeMonths, input.IsMetered, input.AssetAccountId, input.AccumAccountId,
-            input.ExpenseAccountId, input.MaintenanceExpenseAccountId
+            input.ExpenseAccountId, input.MaintenanceExpenseAccountId, input.ExpectedUnits
         }, cancellationToken: ct));
     }
 }
