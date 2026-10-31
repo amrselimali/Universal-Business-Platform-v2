@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 8B: reservations as customer deposits (`0047`)
+
+### Added
+- Migration `0047`: `reservation_adjustments` (TO_ADVANCE / RELEASE / EXTEND with a **unique partial
+  index** so a booking line converts once), `v_customer_reservations` (reserved · consumed ·
+  remaining · remaining value per customer/item/branch) and `v_item_sellable`
+  (`on_hand − reserved`).
+- `ReservationRepository` + `ReservationService`: paged list scoped to the caller's branches,
+  **convert the unused remainder into a customer deposit** by posting a real receipt voucher
+  (reuses treasury numbering, GL posting, allocation and audit; advance is consumed by the invoice
+  later, and any shortfall stays on the customer account), extension of the expiry, and release
+  through the existing booking cancellation.
+- `/sales/reservations` screen (`SALES_RESERVATIONS` with
+  `VIEW · CONVERT_TO_ADVANCE · RELEASE_RESERVATION · EXTEND_RESERVATION · EXPORT_CSV · PRINT`):
+  remaining-only filter, extend-to date, and per-row convert/extend/release buttons that only appear
+  when the user holds the permission.
+- `AppRegistry` split further into `AppRegistry.Sales.cs` (kept under 300 lines).
+
+### Tests
+- 5 new tests (234 total, 0 failures): the view reports reserved/consumed/remaining and value,
+  the sellable view subtracts reservations, conversion posts exactly one voucher plus one adjustment
+  and refuses a second attempt, release frees the reservation, and listing respects branch scope.
+- Live check: `--migrate` applied `0047` (exit 0), both views exist, `/sales/reservations` → `200`.
+
+
 ## 2026-10-31 — Phase 7 complete: import tool, login hardening, runbook
 
 ### Added

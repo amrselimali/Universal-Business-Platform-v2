@@ -1,5 +1,17 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 8B delivered (reservations = deposits)
+
+- Migration `0047`: `reservation_adjustments` (+ unique partial index), `v_customer_reservations`,
+  `v_item_sellable`.
+- `/sales/reservations`: reserved / consumed / remaining / remaining-value per customer and item,
+  branch-scoped, with **convert-remainder-to-deposit** (posted receipt voucher + adjustment guard),
+  extend and release. The invoice/session path consumes the deposit and leaves any shortfall on the
+  customer account, as decided.
+- 234 tests pass (5 new). Live: `0047` applied, both views exist, the screen answers `200`.
+- Phase 8 progress: **8B ✅** · next **8C** (main treasury + multi-branch reports + branch account
+  defaults) then **8A** (assets, meters, maintenance, monthly/annual depreciation).
+
 ## 2026-10-31 — Phase 7 delivered → **all planned phases complete**
 
 - `--migrate` deploy step, `backup_log` + `fn_record_backup` (external cron only),

@@ -1,0 +1,68 @@
+@page "/sales/reservations"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject ReservationService ReservationsApi
+@inject IDisplayFormatter Fmt
+<PageTitle>@T.T("screen.reservations")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.reservations")" Subtitle="@T.T("reservations.hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="d-flex flex-wrap align-center gap-2 mb-3">
+            <MudSwitch T="bool" Value="_onlyRemaining" ValueChanged="OnRemainingChanged"
+                       Label="@T.T("reservations.only_remaining")" Color="Color.Primary" />
+            <MudDatePicker @bind-Date="_extendTo" Label="@T.T("reservations.extend_to")"
+                           Variant="Variant.Outlined" Class="ubp-date" />
+            <MudButton Variant="Variant.Text" OnClick="RefreshAsync">@T.T("common.refresh")</MudButton>
+        </div>
+
+        <MudTable T="ReservationRow" @ref="_table" ServerData="LoadAsync" Dense="true" Hover="true"
+                  Breakpoint="Breakpoint.Md" SelectedItemChanged="OnSelected">
+            <HeaderContent>
+                <MudTh>@T.T("reservations.booking")</MudTh>
+                <MudTh>@T.T("reservations.customer")</MudTh>
+                <MudTh>@T.T("reservations.item")</MudTh>
+                <MudTh>@T.T("reservations.reserved")</MudTh>
+                <MudTh>@T.T("reservations.consumed")</MudTh>
+                <MudTh>@T.T("reservations.remaining")</MudTh>
+                <MudTh>@T.T("reservations.remaining_value")</MudTh>
+                <MudTh>@T.T("reservations.expires")</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.BookingNo</MudTd>
+                <MudTd>@context.CustomerName</MudTd>
+                <MudTd>@context.ItemCode — @context.ItemName</MudTd>
+                <MudTd>@Fmt.Decimal(context.ReservedQty)</MudTd>
+                <MudTd>@Fmt.Decimal(context.ConsumedQty)</MudTd>
+                <MudTd><strong>@Fmt.Decimal(context.RemainingQty)</strong></MudTd>
+                <MudTd>@Fmt.Decimal(context.RemainingValue)</MudTd>
+                <MudTd>@(context.ExpiresAt is null ? "—" : Fmt.Date(context.ExpiresAt))</MudTd>
+                <MudTd>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                               Disabled="@(_busy || context.RemainingQty <= 0 || !Can(ActionCodes.ConvertToAdvance))"
+                               OnClick="@(() => ConvertAsync(context))">@T.T("reservations.to_advance")</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning"
+                               Disabled="@(_busy || !Can(ActionCodes.ExtendReservation))"
+                               OnClick="@(() => ExtendAsync(context))">@T.T("reservations.extend")</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                               Disabled="@(_busy || !Can(ActionCodes.ReleaseReservation))"
+                               OnClick="@(() => ReleaseAsync(context))">@T.T("reservations.release")</MudButton>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25, 50 }" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
