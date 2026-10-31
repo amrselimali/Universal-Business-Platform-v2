@@ -48,6 +48,14 @@ public interface IAssetRepository
     Task<IReadOnlyList<MaintenancePlan>> ListPlansAsync(Guid assetId, CancellationToken ct = default);
     Task<IReadOnlyList<DepreciationRunRow>> ListRunsAsync(Guid? branchId, int take = 24,
         CancellationToken ct = default);
+    /// <summary>الاستبعاد ومزامنة قراءات البيع (8أ).</summary>
+    Task<Guid?> DefaultAccountAsync(string key, CancellationToken ct = default);
+    Task<Guid?> BranchCashAccountAsync(Guid branchId, CancellationToken ct = default);
+    Task<decimal> AccumulatedAsync(Guid assetId, CancellationToken ct = default);
+    Task<bool> MarkDisposedAsync(Guid assetId, decimal disposalAmount, Guid journalEntryId,
+        Guid userId, CancellationToken ct = default);
+    Task<int> SyncSalesReadingsAsync(Guid? branchId, DateOnly from, DateOnly to, Guid userId,
+        CancellationToken ct = default);
 }
 
 /// <summary>

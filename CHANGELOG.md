@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 8A completed: disposal, sales meter link (`0052`)
+
+### Added
+- Migration `0052`: posting keys `asset_disposal_gain`/`asset_disposal_loss`, `items.metered_asset_id`
+  (item ↔ metered asset link) and `asset_meter_readings.source_line_id` with a **unique partial index**
+  so an invoice line produces at most one `SALES` reading.
+- `AssetService.DisposeAsync`: writes off the cost, releases the accumulated depreciation, records the
+  cash consideration (branch treasury account) and posts the difference as a **gain or loss** through
+  the normal journal service, then marks the asset `DISPOSED` (shared assets are refused).
+- `AssetService.SyncSalesReadingsAsync` + `AssetRepository.SyncSalesReadingsAsync`: one SQL statement
+  converts posted sales-invoice lines of metered items into `SALES` readings and advances the counter,
+  idempotent per line — no transaction in the sales path is touched.
+
+### Tests
+- 252 tests pass (3 new): disposal posts a **balanced** entry and marks the asset disposed, a second
+  disposal is refused, and the sales sync runs idempotently (link persisted, zero when no lines).
+
+
 ## 2026-10-31 — Phase 8A (part 5): UNITS depreciation method (`0051`)
 
 ### Added
