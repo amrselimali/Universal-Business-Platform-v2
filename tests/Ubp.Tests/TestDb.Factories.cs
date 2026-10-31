@@ -78,6 +78,9 @@ public sealed partial class TestDb
 
     public PermissionService Permissions() => new(PermissionRepo, Cache);
 
+    public DashboardService Dashboard() =>
+        new(new DashboardRepository(Factory), Permissions());
+
     public SettingsService Settings() =>
         new(SettingsRepo, AuditRepo, Permissions(), Cache);
 

@@ -58,6 +58,10 @@ public sealed partial class SalesInvoiceRepository
         else
             throw new ValidationAppException("validation.not_supported_document");
 
+        // إجماليات اللوحة ضمن نفس المعاملة: تنجح مع الترحيل أو تتراجع معه.
+        await UpsertDailyTotalsAsync(connection, tx, head,
+            head.DocType == CommercialDocTypes.SalesInvoice ? 1 : -1, ct);
+
         await tx.CommitAsync(ct);
         return id;
     }

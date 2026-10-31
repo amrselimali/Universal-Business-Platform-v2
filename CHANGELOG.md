@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 6C: sales daily totals + dashboard under 300 ms
+
+### Added
+- Migration `0041`: `sales_daily_totals` keyed by `(day, branch_id)` with invoice/return counters,
+  net/tax/gross/COGS columns and a `day` index.
+- The totals row is upserted **inside the invoice posting transaction**
+  (`SalesInvoiceRepository.DailyTotals.cs`), so it commits or rolls back with the posting; returns
+  subtract the same aggregates (`sign = -1`).
+- `DashboardRepository` reads only aggregates: today/month sales from `sales_daily_totals`, stock
+  value from `stock_balances` (branch-scoped through `warehouse_branches`) and receivables from
+  `party_balances` — constant-cost queries independent of invoice volume.
+- `DashboardService` (dashboard permission + branch scope) and KPI cards on `/` and the new
+  `/dashboard` route: sales today, invoices today, month sales, gross margin, stock value,
+  receivables.
+
+### Tests
+- 3 new tests (204 total, 0 failures): posting updates the totals and the dashboard, a failed posting
+  leaves **no** totals row (atomicity), and a measured read over 180 days × 3 branches stays under
+  the 300 ms budget while matching the SQL expectations.
+- Live check: migration `0041` applied, `/dashboard` and `/` answer `200` with the KPI block.
+
+
 ## 2026-10-31 — Phase 6D: internal notifications (bell, center, broadcaster)
 
 ### Added

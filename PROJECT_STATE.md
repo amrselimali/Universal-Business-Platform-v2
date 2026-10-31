@@ -1,5 +1,18 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 6C delivered (daily totals + dashboard)
+
+- Migration `0041`: `sales_daily_totals` per `(day, branch)`; the row is written inside the invoice
+  posting transaction (commits/rolls back with it) and returns subtract from the same aggregates.
+- `/dashboard` (and `/`) show today/month sales, invoice count, gross margin, stock value and
+  receivables, all read from aggregates — a measured read over 180 days × 3 branches is asserted to
+  stay under 300 ms.
+- 204 tests pass (3 new); build clean; every file ≤ 300 lines.
+
+### Next in Phase 6
+- 6E (`message_outbox` + hosted retry worker), then 6B (`bi` schema with materialized views and
+  `bi_reader`), then Phase 7 (operations).
+
 ## 2026-10-31 — Phase 6D delivered (notifications)
 
 - Migration `0040`: `notifications` (user XOR role target, severity/payload checks, unread indexes).
