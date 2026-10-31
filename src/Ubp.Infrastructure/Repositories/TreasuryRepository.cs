@@ -11,6 +11,9 @@ public interface ITreasuryRepository
     Task<Guid> CreateTreasuryAsync(Guid id, TreasuryInput input, Guid userId, CancellationToken ct = default);
     Task<Guid> CreateMethodAsync(Guid id, TreasuryMethodInput input, Guid userId, CancellationToken ct = default);
     Task<IReadOnlyList<Treasury>> ListTreasuriesAsync(Guid? branchId, CancellationToken ct = default);
+    /// <summary>يجعل الخزينة رئيسية ويلغي غيرها (خزينة رئيسية واحدة فقط).</summary>
+    Task<bool> SetMainAsync(Guid treasuryId, Guid userId, CancellationToken ct = default);
+    Task<Guid?> GetMainAsync(CancellationToken ct = default);
     Task<IReadOnlyList<TreasuryMethod>> ListMethodsAsync(Guid treasuryId, CancellationToken ct = default);
 
     Task<Guid> CreateVoucherAsync(Guid id, VoucherInput input, Guid userId, CancellationToken ct = default);
@@ -89,6 +92,7 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
         return (await connection.QueryAsync<Treasury>(new CommandDefinition("""
             SELECT t.id AS Id, t.branch_id AS BranchId, t.code AS Code, t.name_ar AS NameAr,
                    t.name_en AS NameEn, t.treasury_type AS TreasuryType, t.account_id AS AccountId,
+                   t.is_main AS IsMain,
                    a.code AS AccountCode, a.name_ar AS AccountName, t.opening_balance AS OpeningBalance,
                    t.is_active AS IsActive
             FROM treasuries t JOIN accounts a ON a.id = t.account_id

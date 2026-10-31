@@ -38,6 +38,7 @@ else
                 <MudTh>@T.T("common.code")</MudTh>
                 <MudTh>@T.T("common.name_ar")</MudTh>
                 <MudTh>@T.T("treasury.type")</MudTh>
+                <MudTh>@T.T("treasury.main")</MudTh>
                 <MudTh>@T.T("treasury.account")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.opening_balance")</MudTh>
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
@@ -46,6 +47,17 @@ else
                 <MudTd><span class="ubp-code">@context.Code</span></MudTd>
                 <MudTd>@context.DisplayName(IsEnglish)</MudTd>
                 <MudTd>@T.T("treasury.type_" + context.TreasuryType)</MudTd>
+                <MudTd>
+                    @if (context.IsMain)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">@T.T("treasury.main")</MudChip>
+                    }
+                    else if (Can(ActionCodes.SetMain))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                   OnClick="@(() => SetMainAsync(context))">@T.T("treasury.set_main")</MudButton>
+                    }
+                </MudTd>
                 <MudTd>@context.AccountCode — @context.AccountName</MudTd>
                 <MudTd Align="Right">@context.OpeningBalance.ToString("N2")</MudTd>
                 <MudTd Align="Right">
@@ -90,6 +102,13 @@ else
         _branchId = value;
         await RunAsync(ReloadAsync);
     }
+
+    private async Task SetMainAsync(Treasury treasury) =>
+        await RunAsync(async () =>
+        {
+            await Treasury.SetMainTreasuryAsync(Actor!, treasury.Id);
+            await ReloadAsync();
+        });
 
     private async Task AddAsync()
     {

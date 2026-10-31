@@ -65,6 +65,9 @@ public sealed class Treasury
     public decimal OpeningBalance { get; set; }
     public bool IsActive { get; set; } = true;
 
+    /// <summary>الخزينة الرئيسية (واحدة على مستوى الشركة) — الترحيل 0048.</summary>
+    public bool IsMain { get; set; }
+
     public string DisplayName(bool english) =>
         english && !string.IsNullOrWhiteSpace(NameEn) ? NameEn! : NameAr;
 }

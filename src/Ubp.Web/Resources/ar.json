@@ -959,6 +959,8 @@
   "stocktake.status_posted": "مرحّل",
   "stocktake.total_difference": "صافي الفرق",
   "treasury.account": "حساب الأستاذ",
+  "treasury.main": "خزينة رئيسية",
+  "treasury.set_main": "تعيين رئيسية",
   "treasury.add_denomination": "إضافة فئة",
   "treasury.add_line": "إضافة سطر",
   "treasury.add_method": "إضافة طريقة دفع",

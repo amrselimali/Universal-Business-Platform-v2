@@ -92,6 +92,9 @@ public sealed partial class TestDb
         new(new ReservationRepository(Factory), TreasuryRepo, PartnerRepo, TreasuryService(),
             BookingService(), Permissions());
 
+    public BranchAccountDefaultsService BranchDefaults() =>
+        new(new BranchAccountDefaultsRepository(Factory), AccountRepo, Permissions());
+
     public SettingsService Settings() =>
         new(SettingsRepo, AuditRepo, Permissions(), Cache);
 
