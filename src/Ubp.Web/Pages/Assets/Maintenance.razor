@@ -1,0 +1,119 @@
+@page "/assets/maintenance"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject AssetService AssetsApi
+@inject IDisplayFormatter Fmt
+<PageTitle>@T.T("screen.asset_maintenance")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.asset_maintenance")" Subtitle="@T.T("assets.maintenance_hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" Value="_assetId" ValueChanged="OnAssetChanged"
+                       Label="@T.T("assets.asset")" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var asset in _assets)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)asset.Id)">@asset.Code — @asset.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudButton Variant="Variant.Outlined" OnClick="ReloadAsync">@T.T("common.refresh")</MudButton>
+        </div>
+
+        @if (_assetId is not null)
+        {
+            @if (Can(ActionCodes.OpenMaintenance))
+            {
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               OnClick="@(() => _showOrderForm = !_showOrderForm)">@T.T("assets.new_order")</MudButton>
+                    <MudButton Variant="Variant.Text"
+                               OnClick="@(() => _showPlanForm = !_showPlanForm)">@T.T("assets.new_plan")</MudButton>
+                </div>
+            }
+
+            @if (_showOrderForm)
+            {
+                <MudGrid Spacing="2" Class="mb-3">
+                    <MudItem xs="12" md="3">
+                        <MudDatePicker @bind-Date="_orderDate" Label="@T.T("assets.maintenance_date")"
+                                       Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" md="3">
+                        <MudNumericField T="decimal" @bind-Value="_orderCost" Label="@T.T("assets.cost")"
+                                         Variant="Variant.Outlined" Min="0" />
+                    </MudItem>
+                    <MudItem xs="12" md="3">
+                        <MudSelect T="string" @bind-Value="_orderAction" Label="@T.T("assets.action")"
+                                   Variant="Variant.Outlined">
+                            <MudSelectItem T="string" Value="@("PREVENTIVE")">@T.T("assets.preventive")</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("CORRECTIVE")">@T.T("assets.corrective")</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="3" Class="d-flex align-center">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   OnClick="OpenOrderAsync" Disabled="_busy">@T.T("common.save")</MudButton>
+                    </MudItem>
+                </MudGrid>
+            }
+
+            @if (_showPlanForm)
+            {
+                <MudGrid Spacing="2" Class="mb-3">
+                    <MudItem xs="12" md="3">
+                        <MudSelect T="string" @bind-Value="_planKind" Label="@T.T("assets.plan_kind")"
+                                   Variant="Variant.Outlined">
+                            <MudSelectItem T="string" Value="@("TIME")">@T.T("assets.plan_time")</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("METER")">@T.T("assets.plan_meter")</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="3">
+                        <MudNumericField T="int?" @bind-Value="_intervalDays" Label="@T.T("assets.interval_days")"
+                                         Variant="Variant.Outlined" Min="1" />
+                    </MudItem>
+                    <MudItem xs="12" md="3">
+                        <MudNumericField T="decimal?" @bind-Value="_intervalUnits"
+                                         Label="@T.T("assets.interval_units")" Variant="Variant.Outlined" Min="1" />
+                    </MudItem>
+                    <MudItem xs="12" md="3" Class="d-flex align-center">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   OnClick="CreatePlanAsync" Disabled="_busy">@T.T("common.save")</MudButton>
+                    </MudItem>
+                </MudGrid>
+            }
+
+            <MudTable Items="_orders" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>@T.T("assets.maintenance_date")</MudTh>
+                    <MudTh>@T.T("assets.action")</MudTh>
+                    <MudTh>@T.T("assets.cost")</MudTh>
+                    <MudTh>@T.T("assets.status")</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@Fmt.DateOnly(DateOnly.FromDateTime(context.MaintenanceDate))</MudTd>
+                    <MudTd>@T.T("assets.action_" + context.Action.ToLowerInvariant())</MudTd>
+                    <MudTd>@Fmt.Decimal(context.Cost)</MudTd>
+                    <MudTd>@T.T("assets.order_" + context.Status.ToLowerInvariant())</MudTd>
+                    <MudTd>
+                        @if (context.Status == MaintenanceStatuses.Open && Can(ActionCodes.CloseMaintenance))
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success"
+                                       OnClick="@(() => CloseOrderAsync(context))">@T.T("assets.close_order")</MudButton>
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent><MudText Class="ubp-muted">@T.T("common.no_data")</MudText></NoRecordsContent>
+            </MudTable>
+        }
+    </MudPaper>
+}

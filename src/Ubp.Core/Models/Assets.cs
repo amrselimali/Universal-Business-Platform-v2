@@ -154,3 +154,12 @@ public sealed record MaintenanceOrderInput(Guid AssetId, Guid? PlanId, DateTime 
 
 /// <summary>سطر إهلاك محسوب لأصل في شهر معين (قبل/بعد الترحيل المحاسبي).</summary>
 public sealed record DepreciationLine(Guid AssetId, decimal Amount, decimal AccumulatedAfter);
+
+public sealed record MaintenancePlan(Guid Id, Guid AssetId, string Kind, int? IntervalDays,
+    decimal? IntervalUnits, DateTime? NextDueDate, decimal? NextDueMeter, bool IsActive);
+
+/// <summary>سطر من سجل تشغيلات الإهلاك (مع رقم القيد — مصدر واحد للبيانات المحاسبية).</summary>
+public sealed record DepreciationRunRow(Guid Id, DateOnly PeriodMonth, Guid? BranchId,
+    decimal TotalAmount, Guid? JournalEntryId, string? EntryNo, int AssetsCount,
+    DateTimeOffset RunAt);
+

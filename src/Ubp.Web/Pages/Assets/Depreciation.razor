@@ -1,0 +1,51 @@
+@page "/assets/depreciation"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject AssetService AssetsApi
+@inject IDisplayFormatter Fmt
+<PageTitle>@T.T("screen.asset_depreciation")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.asset_depreciation")" Subtitle="@T.T("assets.depreciation_hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudDatePicker @bind-Date="_month" Label="@T.T("assets.month")"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="yyyy-MM"
+                           OpenTo="OpenTo.Month" />
+            @if (Can(ActionCodes.RunDepreciation))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RunDepreciationAsync"
+                           Disabled="_busy">@T.T("assets.run_depreciation")</MudButton>
+            }
+            <MudButton Variant="Variant.Outlined" OnClick="ReloadAsync">@T.T("common.refresh")</MudButton>
+        </div>
+
+        <MudTable Items="_runs" Dense="true" Hover="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>@T.T("assets.month")</MudTh>
+                <MudTh>@T.T("assets.assets_count")</MudTh>
+                <MudTh>@T.T("assets.total")</MudTh>
+                <MudTh>@T.T("assets.entry_no")</MudTh>
+                <MudTh>@T.T("assets.run_at")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.PeriodMonth.ToString("yyyy-MM")</MudTd>
+                <MudTd>@context.AssetsCount</MudTd>
+                <MudTd>@Fmt.Decimal(context.TotalAmount)</MudTd>
+                <MudTd>@(context.EntryNo ?? "—")</MudTd>
+                <MudTd>@Fmt.DateTime(context.RunAt)</MudTd>
+            </RowTemplate>
+            <NoRecordsContent><MudText Class="ubp-muted">@T.T("common.no_data")</MudText></NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}

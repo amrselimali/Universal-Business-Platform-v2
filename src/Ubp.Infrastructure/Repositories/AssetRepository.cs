@@ -41,6 +41,10 @@ public interface IAssetRepository
     Task<IReadOnlyList<AssetCategory>> ListCategoriesAsync(CancellationToken ct = default);
     Task<Guid> CreateCategoryAsync(AssetCategoryInput input, Guid userId,
         CancellationToken ct = default);
+    /// <summary>خطط الصيانة وسجل تشغيلات الإهلاك (شاشتا 8أ).</summary>
+    Task<IReadOnlyList<MaintenancePlan>> ListPlansAsync(Guid assetId, CancellationToken ct = default);
+    Task<IReadOnlyList<DepreciationRunRow>> ListRunsAsync(Guid? branchId, int take = 24,
+        CancellationToken ct = default);
 }
 
 /// <summary>
