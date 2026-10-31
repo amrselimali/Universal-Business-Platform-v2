@@ -33,6 +33,10 @@ public sealed class StandardReportService
         {
             StandardReportKeys.Vat => await _reports.VatSummaryAsync(from, to, branches, ct),
             StandardReportKeys.ItemMargin => await _reports.ItemMarginAsync(from, to, branches, ct),
+            StandardReportKeys.CustomerMeter => await _reports.CustomerMeterUsageAsync(from, to,
+                branches, ct),
+            StandardReportKeys.Reservations => await _reports.ReservationStatusAsync(from, to,
+                branches, ct: ct),
             _ => throw new ValidationAppException("validation.report_key_unknown")
         };
     }

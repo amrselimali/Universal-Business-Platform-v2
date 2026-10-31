@@ -1386,5 +1386,13 @@
   "assets.dispose_hint": "يُشطب الأصل ويُخرج مجمع الإهلاك؛ الفرق يُسجَّل ربحاً أو خسارة.",
   "assets.sale_amount": "قيمة البيع/الاستبعاد",
   "assets.dispose_date": "تاريخ الاستبعاد",
-  "assets.dispose_done": "تم استبعاد الأصل (ربح / خسارة)"
+  "assets.dispose_done": "تم استبعاد الأصل (ربح / خسارة)",
+  "report.customer": "العميل",
+  "report.asset": "الأصل",
+  "report.units": "الوحدات",
+  "report.readings": "عدد القراءات",
+  "report.last_reading": "آخر قراءة",
+  "report.units_total": "إجمالي الوحدات",
+  "report.deposit": "الدفعة المقدمة",
+  "report.remaining_total": "إجمالي قيمة المتبقي"
 }

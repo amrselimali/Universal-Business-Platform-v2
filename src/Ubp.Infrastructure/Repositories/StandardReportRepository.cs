@@ -12,6 +12,12 @@ public interface IStandardReportRepository
     /// <summary>هامش الربح لكل صنف: إيراد الفاتورة مقابل تكلفة التسليم (نفس ربط COGS).</summary>
     Task<ReportTable> ItemMarginAsync(DateOnly from, DateOnly to, Guid[] branchIds,
         CancellationToken ct = default);
+    /// <summary>استهلاك العدادات لكل عميل (قراءات SALES).</summary>
+    Task<ReportTable> CustomerMeterUsageAsync(DateOnly from, DateOnly to, Guid[] branchIds,
+        CancellationToken ct = default);
+    /// <summary>حالة الحجوزات والدفعات (محجوز/مستهلك/متبقٍ + الدفعة).</summary>
+    Task<ReportTable> ReservationStatusAsync(DateOnly from, DateOnly to, Guid[] branchIds,
+        bool onlyRemaining = true, CancellationToken ct = default);
 }
 
 /// <summary>
