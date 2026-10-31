@@ -27,6 +27,8 @@ public static class ScreenCodes
     public const string SystemHealth = "SYSTEM_HEALTH";
     public const string ImportTool = "IMPORT_TOOL";
     public const string Assets = "ASSETS";
+    public const string AssetMaintenance = "ASSET_MAINTENANCE";
+    public const string AssetDepreciation = "ASSET_DEPRECIATION";
     public const string QaCenter = "QA_CENTER";
     public const string Units = "UNITS";
     public const string ItemCategories = "ITEM_CATEGORIES";

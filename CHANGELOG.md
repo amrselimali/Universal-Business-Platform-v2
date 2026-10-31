@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 8A (part 4): maintenance and depreciation screens
+
+### Added
+- `/assets/maintenance` (`ASSET_MAINTENANCE`): asset picker, orders table (date/action/cost/status),
+  inline **new order** form and **new plan** form (TIME in days or METER in units), and a per-row
+  «إغلاق» that closes the order and resets the counter when the asset is flagged
+  `meter_resets_on_maintenance`.
+- `/assets/depreciation` (`ASSET_DEPRECIATION`): month picker + «تشغيل الإهلاك» for the current
+  branch and a history table (month · assets · total · **entry no** from the journal · run time).
+- `AssetService.PlansAsync/CreatePlanAsync` and `RunsAsync` + repository `ListPlansAsync`/
+  `ListRunsAsync` (single source: the depreciation run table joined to `journal_entries`).
+- Layering fix the architecture test demanded: `MaintenancePlan` and `DepreciationRunRow` moved from
+  `Ubp.Infrastructure.Repositories` to `Ubp.Core.Models`, so no page imports the infrastructure layer.
+
+### Tests
+- 248 tests pass (0 failures) including the architecture and registry gates; live check: all three
+  asset screens answer `200`.
+
+
 ## 2026-10-31 — Phase 8A (part 3): asset screens
 
 ### Added
