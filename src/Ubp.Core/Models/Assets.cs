@@ -108,6 +108,8 @@ public sealed class AssetCategory
     public Guid? ExpenseAccountId { get; set; }
     public Guid? MaintenanceExpenseAccountId { get; set; }
     public bool IsActive { get; set; } = true;
+    /// <summary>الوحدات المتوقعة لطريقة UNITS (الترحيل 0051).</summary>
+    public decimal? ExpectedUnits { get; set; }
 }
 
 public sealed class AssetCategoryInput
@@ -122,6 +124,7 @@ public sealed class AssetCategoryInput
     public Guid? AccumAccountId { get; set; }
     public Guid? ExpenseAccountId { get; set; }
     public Guid? MaintenanceExpenseAccountId { get; set; }
+    public decimal? ExpectedUnits { get; set; }
 }
 
 public sealed class AssetMeterReading

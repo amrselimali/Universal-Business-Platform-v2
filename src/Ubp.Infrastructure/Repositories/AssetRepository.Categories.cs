@@ -18,7 +18,7 @@ public sealed partial class AssetRepository
                    asset_account_id AS AssetAccountId, accum_account_id AS AccumAccountId,
                    expense_account_id AS ExpenseAccountId,
                    maintenance_expense_account_id AS MaintenanceExpenseAccountId,
-                   is_active AS IsActive
+                   is_active AS IsActive, expected_units AS ExpectedUnits
             FROM asset_categories WHERE is_active ORDER BY code
             """, cancellationToken: ct));
         return rows.ToList();
@@ -32,10 +32,10 @@ public sealed partial class AssetRepository
             INSERT INTO asset_categories
                 (code, name_ar, depreciation_method, depreciation_frequency, useful_life_months,
                  is_metered, asset_account_id, accum_account_id, expense_account_id,
-                 maintenance_expense_account_id)
+                 maintenance_expense_account_id, expected_units)
             VALUES (@Code, @NameAr, @DepreciationMethod, @DepreciationFrequency, @UsefulLifeMonths,
                     @IsMetered, @AssetAccountId, @AccumAccountId, @ExpenseAccountId,
-                    @MaintenanceExpenseAccountId)
+                    @MaintenanceExpenseAccountId, @ExpectedUnits)
             RETURNING id
             """, new
         {

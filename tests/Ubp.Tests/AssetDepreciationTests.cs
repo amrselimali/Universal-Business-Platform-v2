@@ -91,6 +91,43 @@ public sealed class AssetDepreciationTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Units_method_depreciates_by_the_meter_delta_of_the_month()
+    {
+        var actor = await _db.AdminActorAsync();
+        var chart = await _db.SeedAccountingAsync();
+        var postable = (await _db.AccountRepo.ListPostableAsync())
+            .Where(a => !a.RequiresParty).Take(2).ToList();
+        var branch = await _db.CreateBranchAsync("DU-B1", "فرع الوحدات");
+
+        Guid category;
+        await using (var connection = new NpgsqlConnection(TestDb.AdminConnection))
+        {
+            await connection.OpenAsync();
+            category = await connection.ExecuteScalarAsync<Guid>("""
+                INSERT INTO asset_categories
+                    (code, name_ar, depreciation_method, depreciation_frequency, expected_units,
+                     expense_account_id, accum_account_id)
+                VALUES (@code, 'تصنيف وحدات', 'UNITS', 'MONTHLY', 1000, @expense, @accum)
+                RETURNING id
+                """, new { code = "DU" + Guid.NewGuid().ToString("N")[..6],
+                    expense = postable[0].Id, accum = postable[1].Id });
+        }
+
+        var asset = await _db.Assets().CreateAsync(actor, new AssetInput
+        {
+            Code = "DU-A1", NameAr = "ماكينة وحدات", CategoryId = category, BranchId = branch,
+            Cost = 1000, IsMetered = true, MeterType = MeterTypes.Pages,
+            InServiceDate = DateTime.Today
+        });
+        await _db.Assets().AddReadingAsync(actor, asset.Id, 100);
+
+        var result = await _db.Assets().RunDepreciationAsync(actor, DateTime.Today, branch);
+
+        // 100 وحدة × (1000 ÷ 1000) = 100
+        Assert.Equal(100m, result.Total);
+    }
+
+    [Fact]
     public async Task Annual_category_only_depreciates_in_december()
     {
         var actor = await _db.AdminActorAsync();

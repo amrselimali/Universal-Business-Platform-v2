@@ -7,7 +7,7 @@ namespace Ubp.Infrastructure.Repositories;
 /// <summary>أصل قابل للإهلاك مع بيانات تصنيفه ورصيد الإهلاك المتراكم.</summary>
 public sealed record DepreciableAsset(Guid AssetId, Guid BranchId, decimal Cost, decimal SalvageValue,
     string Method, string Frequency, int UsefulLifeMonths, Guid ExpenseAccountId,
-    Guid AccumAccountId, decimal Accumulated);
+    Guid AccumAccountId, decimal Accumulated, decimal? ExpectedUnits);
 
 public sealed partial class AssetRepository
 {
@@ -22,14 +22,13 @@ public sealed partial class AssetRepository
                    c.expense_account_id AS ExpenseAccountId,
                    c.accum_account_id AS AccumAccountId,
                    COALESCE((SELECT SUM(l.amount) FROM asset_depreciation_lines l
-                             WHERE l.asset_id = a.id), 0) AS Accumulated
+                             WHERE l.asset_id = a.id), 0) AS Accumulated,
+                   c.expected_units AS ExpectedUnits
             FROM fixed_assets a
             JOIN asset_categories c ON c.id = a.category_id
             WHERE a.status = 'ACTIVE' AND c.is_active
               AND a.branch_id = @branchId
               AND (a.in_service_date IS NULL OR a.in_service_date <= @monthEnd)
-              AND c.depreciation_method = 'LINEAR'
-              AND c.useful_life_months > 0
               AND c.expense_account_id IS NOT NULL AND c.accum_account_id IS NOT NULL
             ORDER BY a.code
             """;
@@ -37,6 +36,18 @@ public sealed partial class AssetRepository
         var rows = await connection.QueryAsync<DepreciableAsset>(new CommandDefinition(sql,
             new { branchId, monthEnd }, cancellationToken: ct));
         return rows.ToList();
+    }
+
+    public async Task<decimal> MeterDeltaAsync(Guid assetId, DateOnly from, DateOnly to,
+        CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteScalarAsync<decimal>(new CommandDefinition("""
+            SELECT COALESCE(SUM(delta), 0) FROM asset_meter_readings
+            WHERE asset_id = @assetId AND source <> 'MAINTENANCE_RESET'
+              AND reading_at >= @from AND reading_at < @to
+            """, new { assetId, from = from.ToDateTime(TimeOnly.MinValue),
+                to = to.ToDateTime(TimeOnly.MinValue) }, cancellationToken: ct));
     }
 
     public async Task<bool> RunExistsAsync(DateOnly periodMonth, Guid branchId,

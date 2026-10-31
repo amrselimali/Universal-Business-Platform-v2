@@ -34,11 +34,26 @@ public sealed partial class AssetService
             var remaining = depreciable - asset.Accumulated;
             if (remaining <= 0) continue;
 
-            var monthly = Math.Round(depreciable / asset.UsefulLifeMonths, 2,
-                MidpointRounding.AwayFromZero);
-            var annual = string.Equals(asset.Frequency, DepreciationFrequencies.Annual,
-                StringComparison.OrdinalIgnoreCase);
-            var amount = annual ? (month.Month == 12 ? monthly * 12 : 0m) : monthly;
+            decimal amount;
+            if (string.Equals(asset.Method, DepreciationMethods.Units, StringComparison.OrdinalIgnoreCase))
+            {
+                // طريقة الوحدات: القسط = وحدات الشهر × (القابل للإهلاك ÷ الوحدات المتوقعة)
+                if (asset.ExpectedUnits is null or <= 0) continue;
+                var units = await _assets.MeterDeltaAsync(asset.AssetId, month,
+                    month.AddMonths(1), ct);
+                amount = Math.Round(units * depreciable / asset.ExpectedUnits.Value, 2,
+                    MidpointRounding.AwayFromZero);
+            }
+            else
+            {
+                if (asset.UsefulLifeMonths <= 0) continue;
+                var monthly = Math.Round(depreciable / asset.UsefulLifeMonths, 2,
+                    MidpointRounding.AwayFromZero);
+                var annual = string.Equals(asset.Frequency, DepreciationFrequencies.Annual,
+                    StringComparison.OrdinalIgnoreCase);
+                amount = annual ? (month.Month == 12 ? monthly * 12 : 0m) : monthly;
+            }
+
             amount = Math.Min(amount, remaining);
             if (amount <= 0) continue;
 

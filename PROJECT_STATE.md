@@ -1,5 +1,21 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 8A completed (assets · meters · maintenance · depreciation)
+
+- Migrations `0049`–`0051`: assets/categories/meters/maintenance/depreciation + the `DEP` journal +
+  `expected_units`, with branch-bound **or shared** assets and per-asset meter-reset policy.
+- Depreciation supports **LINEAR monthly, LINEAR annual (December) and UNITS**, always through the
+  normal journal service with double-run protection at service and database level.
+- Screens: `/assets/management`, `/assets/maintenance`, `/assets/depreciation` (all permission-gated,
+  branch-scoped, single-source read models in `Ubp.Core.Models`).
+- 249 tests pass; migration chain (49 scripts) verified on a fresh database.
+
+### Remaining backlog (small, explicit)
+- Asset disposal/sale with gain or loss (needs two posting-default keys → migration + config UI).
+- Automatic `SALES` meter readings from sales consumption (needs an item↔asset link).
+- Role-level permission matrix page (user-level matrix already exists on `/users`).
+
+
 ## 2026-10-31 — Phase 8A part 2 (depreciation engine)
 
 - Migration `0050`: system journal `DEP`.
