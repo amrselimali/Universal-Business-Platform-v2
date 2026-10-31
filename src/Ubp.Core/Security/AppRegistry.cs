@@ -188,11 +188,11 @@ public static partial class AppRegistry
                     A(ActionCodes.ToggleActive), A(ActionCodes.Delete),
                     A(ActionCodes.ManageItems) }, "settings.price_lists"),
 
-        new(ScreenCodes.ServiceRecipes, "/inventory/recipes", "Blender", "screen.service_recipes",
+        // الوصفات تُدار داخل شاشة الأصناف (لا شاشة مستقلة) — المدخل يحفظ الصلاحية ويمنع رابطاً ميتاً
+        new(ScreenCodes.ServiceRecipes, "/inventory/items", "Blender", "screen.service_recipes",
             GroupInventory,
-            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
-                    A(ActionCodes.ToggleActive), A(ActionCodes.Delete),
-                    A(ActionCodes.EditLines) }, "inventory.recipes"),
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.EditLines),
+                    A(ActionCodes.ToggleActive) }, "inventory.recipes"),
 
         new(ScreenCodes.PurchaseInvoices, "/purchasing/invoices", "Receipt", "screen.purchase_invoices",
             GroupAccounting,
@@ -204,7 +204,7 @@ public static partial class AppRegistry
             new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),
                     A(ActionCodes.Delete), A(ActionCodes.Post) }, "purchasing.returns"),
 
-        new(ScreenCodes.PurchaseAging, "/purchasing/aging", "HourglassBottom",
+        new(ScreenCodes.PurchaseAging, "/reports/aging", "HourglassBottom",
             "screen.purchase_aging", GroupReports,
             new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "purchasing.aging"),
 

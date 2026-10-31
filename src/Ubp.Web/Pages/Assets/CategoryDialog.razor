@@ -1,0 +1,68 @@
+@inject UiCulture T
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("assets.new_category")</MudText></TitleContent>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_code" Label="@T.T("common.code")" Required="true"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="8">
+                <MudTextField @bind-Value="_name" Label="@T.T("common.name_ar")" Required="true"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="string" @bind-Value="_method" Label="@T.T("assets.method")"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem T="string" Value="@("LINEAR")">@T.T("assets.method_linear")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("UNITS")">@T.T("assets.method_units")</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="string" @bind-Value="_frequency" Label="@T.T("assets.frequency")"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem T="string" Value="@("MONTHLY")">@T.T("assets.frequency_monthly")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("ANNUAL")">@T.T("assets.frequency_annual")</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField T="int?" @bind-Value="_life" Label="@T.T("assets.useful_life")"
+                                 Variant="Variant.Outlined" Min="1" />
+            </MudItem>
+            @if (_method == "UNITS")
+            {
+                <MudItem xs="12" md="4">
+                    <MudNumericField T="decimal?" @bind-Value="_expectedUnits"
+                                     Label="@T.T("assets.expected_units")" Variant="Variant.Outlined" Min="1" />
+                </MudItem>
+            }
+            <MudItem xs="12" md="4">
+                <MudSwitch T="bool" @bind-Value="_metered" Label="@T.T("assets.has_meter")"
+                           Color="Color.Primary" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@T.T("common.cancel")</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string _code = "";
+    private string _name = "";
+    private string _method = "LINEAR";
+    private string _frequency = "MONTHLY";
+    private int? _life = 60;
+    private decimal? _expectedUnits = 100000;
+    private bool _metered;
+
+    private void Save() => MudDialog.Close(DialogResult.Ok(new Ubp.Core.Models.AssetCategoryInput
+    {
+        Code = _code, NameAr = _name, DepreciationMethod = _method,
+        DepreciationFrequency = _frequency, UsefulLifeMonths = _life,
+        ExpectedUnits = _method == "UNITS" ? _expectedUnits : null, IsMetered = _metered
+    }));
+}
