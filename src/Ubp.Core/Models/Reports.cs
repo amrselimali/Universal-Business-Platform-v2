@@ -34,7 +34,15 @@ public static class ReportCatalog
             "screen.cost_center_report", ScreenCodes.CostCenterReport),
         new("accounting.stock_vs_gl", "/reports/accounting/stock-vs-gl",
             "screen.stock_vs_gl_report", ScreenCodes.StockVsGlReport),
-        new("sales.aging", "/reports/aging", "screen.aging_report", ScreenCodes.AgingReport)
+        new("sales.aging", "/reports/aging", "screen.aging_report", ScreenCodes.AgingReport),
+        new(StandardReportKeys.Vat, "/reports/standard/tax.vat_summary", "report.vat",
+            ScreenCodes.ReportsCenter),
+        new(StandardReportKeys.ItemMargin, "/reports/standard/sales.item_margin", "report.item_margin",
+            ScreenCodes.ReportsCenter),
+        new(StandardReportKeys.CustomerMeter, "/reports/standard/assets.customer_meter_usage",
+            "report.customer_meter", ScreenCodes.ReportsCenter),
+        new(StandardReportKeys.Reservations, "/reports/standard/sales.reservation_status",
+            "report.reservation_status", ScreenCodes.ReportsCenter)
     };
 
     public static ReportDefinition? Find(string key) =>

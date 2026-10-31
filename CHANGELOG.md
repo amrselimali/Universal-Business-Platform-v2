@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 2026-10-31 — Standard report framework + VAT and item-margin reports
+
+### Added
+- Unified report model in `Ubp.Core.Models` (`ReportColumn`/`ReportTable` + `StandardReportKeys`) and a
+  single runner `StandardReportService`: one permission (`ReportsCenter/VIEW`), server-side branch
+  scoping and date validation, dispatching by report key.
+- `StandardReportRepository`: one SQL statement per report on the approved source —
+  **VAT summary** (posted invoice lines grouped by period/direction/rate, with total) and
+  **item profit margin** (invoice revenue vs the delivery-note cost used by COGS).
+- `/reports/standard/{Key}` — one page renders **any** standard report from its table definition,
+  with branch scope picker, period pickers and **CSV/XLSX/print** reusing `ReportExporter`.
+- Both reports are registered in `ReportCatalog`, so they appear in `/reports/center` and inherit the
+  saved-filter/export experience.
+
+### Tests
+- 254 tests pass (2 new): the VAT report aggregates posted purchase lines into net/tax/gross, and the
+  runner rejects unknown keys and reversed date ranges.
+- Live: `/reports/standard/tax.vat_summary` and `/reports/standard/sales.item_margin` answer `200`,
+  and `/reports/center` lists them.
+
+
 ## 2026-10-31 — Assets UI disposal + scheduled sales-meter sync
 
 ### Added
