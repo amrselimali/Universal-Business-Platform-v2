@@ -97,6 +97,21 @@ DataProtection__KeyRingPath="/app/keys"
 
 ## 3. قاعدة البيانات والترحيلات
 
+### عند ظهور `SocketException: actively refused`
+معناها: **لا يوجد PostgreSQL يستمع على العنوان المطلوب**. تحقق بالترتيب:
+
+1. هل الحاوية تعمل؟ `docker compose ps` ثم `docker compose up -d postgres`.
+2. هل المنفذ مفتوح على جهازك؟
+   - Linux/macOS: `nc -vz 127.0.0.1 5432`
+   - Windows: `Test-NetConnection 127.0.0.1 -Port 5432`
+3. **استخدم `Host=127.0.0.1` لا `localhost`**: الـ compose ينشر `127.0.0.1:5432` (IPv4 فقط)،
+   و`localhost` عند .NET على Windows قد يُحلّ إلى `::1` فيُرفض الاتصال.
+4. اسم المضيف `postgres` يعمل **داخل** شبكة compose فقط، لا من Visual Studio على الجهاز المضيف.
+5. لا تربط على قاعدة Neon من التطوير بلا داعٍ؛ إن استخدمتها فاستخدم الرابط المباشر (لا pooler) للترحيل.
+
+عند فشل الاتصال يرجع الـ runner رسالة واضحة بالشكل:
+`MIGRATION_CONNECTION_FAILED target=127.0.0.1:5432/ubp hint=… detail=…` (بلا أي كلمة مرور).
+
 - كل تغيير في الهيكل = **سكريبت جديد مرقّم** داخل
   `src/Ubp.Infrastructure/Migrations/Scripts/` (مثل `0011_add_x.sql`). لا يُعدَّل سكريبت بعد تنفيذه.
 - التنفيذ عبر **DbUp** داخل معاملة لكل سكريبت، مع قفل Advisory يمنع التنفيذ المتوازي.

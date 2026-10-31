@@ -30,7 +30,18 @@ public sealed partial class MigrationRunner
             return new MigrationReport { Success = false, Error = "MIGRATION_CONNECTION_NOT_CONFIGURED" };
 
         using var lockConnection = new NpgsqlConnection(_options.MigrationConnectionString);
-        lockConnection.Open();
+        try
+        {
+            lockConnection.Open();
+        }
+        catch (Exception ex) when (ex is NpgsqlException or System.Net.Sockets.SocketException
+                                       or TimeoutException
+                                       or { InnerException: System.Net.Sockets.SocketException })
+        {
+            // رسالة صريحة بدل استثناء خام: المضيف والمنفذ والقاعدة بلا أي سر، مع تلميح إصلاح.
+            return new MigrationReport { Success = false, Error = ConnectionFailure(ex) };
+        }
+
         using (var lockCommand = new NpgsqlCommand("SELECT pg_try_advisory_lock(@key)", lockConnection))
         {
             lockCommand.Parameters.AddWithValue("key", AdvisoryLockKey);
@@ -63,6 +74,31 @@ public sealed partial class MigrationRunner
                 unlock.ExecuteNonQuery();
             }
         }
+    }
+
+    /// <summary>وصف هدف الاتصال (بلا كلمة مرور) + تلميح إصلاح مناسب لنوع الفشل.</summary>
+    private string ConnectionFailure(Exception ex)
+    {
+        string target;
+        try
+        {
+            var builder = new NpgsqlConnectionStringBuilder(_options.MigrationConnectionString);
+            target = $"{builder.Host}:{builder.Port}/{builder.Database}";
+        }
+        catch
+        {
+            target = "unknown";
+        }
+
+        var socket = ex as System.Net.Sockets.SocketException
+                     ?? ex.InnerException as System.Net.Sockets.SocketException;
+        var hint = socket is not null
+            ? "nothing is listening there: start PostgreSQL (docker compose up -d postgres) " +
+              "and prefer Host=127.0.0.1 over localhost (docker binds IPv4 only), " +
+              "or use the container host name 'postgres' only from inside compose"
+            : "check the database name/user/password and SSL settings";
+
+        return $"MIGRATION_CONNECTION_FAILED target={target} hint={hint} detail={ex.Message}";
     }
 
     public IReadOnlyList<(string Name, DateTime AppliedAt)> GetAppliedScripts()
