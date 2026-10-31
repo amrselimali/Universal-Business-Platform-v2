@@ -152,6 +152,7 @@ public static class ServiceRegistration
         services.AddScoped<PermissionService>();
         services.AddScoped<SettingsService>();
         services.AddScoped<ISettingsService>(sp => sp.GetRequiredService<SettingsService>());
+        services.AddScoped<IDisplayFormatter, DisplayFormatter>();
         services.AddScoped<AuditService>();
         services.AddScoped<CustomFieldService>();
         services.AddScoped<BranchService>();
@@ -180,6 +181,7 @@ public static class ServiceRegistration
         services.AddScoped<StockAccountingService>();
         services.AddScoped<AccountingReportService>();
         services.AddScoped<MasterDataService>();
+        services.AddScoped<LookupService>();
         services.AddScoped<RecipeService>();
         services.AddScoped<PostingReadinessService>();
         services.AddScoped<PurchaseInvoiceService>();

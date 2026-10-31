@@ -58,7 +58,8 @@ public static partial class AuthEndpoints
             accessToken = result.AccessToken,
             refreshToken = result.RefreshToken,
             sessionId = result.SessionId,
-            branchId = result.BranchId
+            branchId = result.BranchId,
+            mustChangePassword = result.MustChangePassword
         });
     }
 

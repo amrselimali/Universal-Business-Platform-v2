@@ -1,6 +1,7 @@
 @page "/qa"
 @attribute [Authorize]
 @inherits SecurePageBase
+@inject IDisplayFormatter Fmt
 <PageTitle>@T.T("screen.qa")</PageTitle>
 
 @if (Denied)
@@ -60,7 +61,7 @@ else
                              Color="@StatusColor(context.Status)">@context.Status</MudChip>
                     @if (context.LastRunAt is not null)
                     {
-                        <span class="ubp-muted ubp-small">@context.LastRunAt.Value.ToLocalTime().ToString("dd/MM HH:mm")</span>
+                        <span class="ubp-muted ubp-small">@Fmt.DateTime(context.LastRunAt)</span>
                     }
                 </MudTd>
             </RowTemplate>
@@ -79,7 +80,7 @@ else
                 <MudTh></MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd>@context.StartedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
+                <MudTd>@Fmt.DateTime(context.StartedAt)</MudTd>
                 <MudTd><MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)" Variant="Variant.Outlined">@context.Status</MudChip></MudTd>
                 <MudTd>@context.PassedCount</MudTd>
                 <MudTd>@context.FailedCount</MudTd>

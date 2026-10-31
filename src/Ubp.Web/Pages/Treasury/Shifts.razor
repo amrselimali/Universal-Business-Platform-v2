@@ -4,6 +4,7 @@
 @inject TreasuryService Treasury
 @inject BranchService Branches
 @inject IDialogService Dialogs
+@inject IDisplayFormatter Fmt
 <PageTitle>@T.T("screen.treasury_shifts")</PageTitle>
 
 @if (Denied) { <ForbiddenView /> }
@@ -50,7 +51,7 @@ else
                 <MudTd><span class="ubp-code">@context.Code</span></MudTd>
                 <MudTd>@context.TreasuryName</MudTd>
                 <MudTd>@context.Username</MudTd>
-                <MudTd>@context.OpenedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</MudTd>
+                <MudTd>@Fmt.DateTime(context.OpenedAt)</MudTd>
                 <MudTd Align="Right">@context.OpeningCash.ToString("N2")</MudTd>
                 <MudTd Align="Right">@context.ExpectedCash.ToString("N2")</MudTd>
                 <MudTd Align="Right">@(context.CountedCash?.ToString("N2") ?? "—")</MudTd>

@@ -4,6 +4,7 @@
 @inject SalesFulfillmentService Fulfillment
 @inject BranchService Branches
 @inject IDialogService Dialogs
+@inject IDisplayFormatter Fmt
 <PageTitle>@T.T("screen.sales_appointments")</PageTitle>
 
 @if (Denied) { <ForbiddenView /> }
@@ -48,8 +49,8 @@ else
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd>@context.StartsAt.ToLocalTime().ToString("HH:mm")</MudTd>
-                <MudTd>@context.EndsAt.ToLocalTime().ToString("HH:mm")</MudTd>
+                <MudTd>@Fmt.Time(context.StartsAt)</MudTd>
+                <MudTd>@Fmt.Time(context.EndsAt)</MudTd>
                 <MudTd>@context.EmployeeName</MudTd>
                 <MudTd>@(context.CustomerName ?? "—")</MudTd>
                 <MudTd>@(context.BookingNo ?? "—")</MudTd>

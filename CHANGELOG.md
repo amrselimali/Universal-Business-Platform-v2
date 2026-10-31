@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 1 + 2.1 + 2.2: forced password change, lookup layer, display formatter
+
+### Added
+- Migration `0036`: `users.must_change_password` + `password_changed_at`; the seeded default
+  `Admin@123` account is flagged automatically.
+- Forced password change on first sign-in: `LoginResult`/`SessionUser`/`ActorContext` carry the flag,
+  `PasswordChangeGate` blocks every route and API except `/change-password`, and `MainLayout`
+  redirects internal Blazor navigation (a circuit navigation never reaches the middleware).
+  Admin-initiated resets (`UserService.ResetPasswordAsync`) now force a change at the next login.
+- Migration `0037`: `app_settings.time_zone` (IANA, default `Africa/Cairo`), validated on save
+  (`validation.time_zone`) and editable in `/settings/general`.
+- `IDisplayFormatter` (date/time/number) reads the configured formats and zone and converts the
+  stored UTC values; it replaces every `.ToLocalTime()` in the UI (which depended on the server
+  time zone — UTC in the container — and disagreed with the hard-coded `Africa/Cairo` in the audit
+  screen).
+- `LookupService` in `Ubp.Application`: partners/items/warehouses/item categories for pickers with
+  branch scoping from `ActorContext`, replacing direct repository injection in 7 UI files.
+- `TableInfo`/`ColumnInfo`/`RowPage` moved from the repository layer to `Ubp.Core.Models`, so the
+  database admin screen no longer imports `Ubp.Infrastructure`.
+- 3 architectural tests: UI must not import `Ubp.Infrastructure`, `Ubp.Infrastructure` is confined
+  to `Startup` and known adapters, and every source file stays ≤ 300 lines (the CI gate now has a
+  test-level twin). The first run caught a 7th violating file (`PriceListItemsDialog.razor`).
+
+### Tests
+- 24 new tests (165 total, 0 failures) on a real PostgreSQL: forced-change flow, gate rules,
+  display formatting/zone fallback, settings round-trip and validation, plus the architecture suite.
+- Live verification: login returns `mustChangePassword: true`, a page request answers
+  `302 → /change-password`, `/api/v1/system/me` stays allowed, any other API answers
+  `403 {"error":"auth.password_change_required"}`, and normal access resumes once the flag clears.
+
+
 ## 2026-10-31 — Phase 0: security, CI/CD and startup guards
 
 ### Security

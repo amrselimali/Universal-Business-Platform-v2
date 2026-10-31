@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ubp.Application.Services;
+using Ubp.Core.Models;
 using Ubp.Core.Security;
-using Ubp.Infrastructure.Repositories;
 
 namespace Ubp.Web.Pages.Admin;
 

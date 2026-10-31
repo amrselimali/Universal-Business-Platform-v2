@@ -9,6 +9,8 @@ public sealed class AppSettings
     public string DateFormat { get; set; } = "dd/MM/yyyy";
     public string TimeFormat { get; set; } = "HH:mm";
     public string NumberFormat { get; set; } = "#,##0.00";
+    /// <summary>منطقة IANA للعرض؛ التخزين يبقى UTC (الترحيل 0037).</summary>
+    public string TimeZone { get; set; } = "Africa/Cairo";
     public short SessionTimeoutMinutes { get; set; } = 30;
     public short PasswordMinLength { get; set; } = 8;
     public short MaxFailedAttempts { get; set; } = 5;

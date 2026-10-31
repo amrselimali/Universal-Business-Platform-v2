@@ -34,6 +34,9 @@ else
                               Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))" />
                 <MudTextField @bind-Value="_model.NumberFormat" Label="@T.T("settings.number_format")"
                               Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))" />
+                <MudTextField @bind-Value="_model.TimeZone" Label="@T.T("settings.time_zone")"
+                              HelperText="@T.T("settings.time_zone_hint")"
+                              Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))" />
                 <MudNumericField @bind-Value="_sessionTimeout" Label="@T.T("settings.session_timeout")"
                                  Variant="Variant.Outlined" Min="5" Max="480" Disabled="@(!Can(ActionCodes.Edit))" />
                 <MudNumericField @bind-Value="_passwordMin" Label="@T.T("settings.password_min")"

@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using Ubp.Application.Services;
 using Ubp.Core.Models;
-using Ubp.Core.Paging;
-using Ubp.Infrastructure.Repositories;
+using Ubp.Web.Services;
 
 namespace Ubp.Web.Pages.Accounting;
 
@@ -11,7 +11,8 @@ public partial class PartyPickerDialog
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public PartnerKind Kind { get; set; } = PartnerKind.Customer;
 
-    [Inject] private IPartnerRepository Partners { get; set; } = default!;
+    [Inject] private LookupService Lookups { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
 
     private string? _search;
     private IReadOnlyList<Partner> _results = Array.Empty<Partner>();
@@ -21,11 +22,8 @@ public partial class PartyPickerDialog
 
     private async Task SearchAsync()
     {
-        var page = await Partners.ListAsync(Kind, new PageRequest
-        {
-            Page = 1, PageSize = PageRequest.MaxPageSize, Search = _search
-        }, null, false, Array.Empty<Guid>());
-        _results = page.Items;
+        var actor = await UserContext.RequireAsync();
+        _results = await Lookups.PartnersAsync(actor, Kind, _search);
         _loaded = true;
     }
 

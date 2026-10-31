@@ -1,4 +1,5 @@
 @inherits ComponentBase
+@inject IDisplayFormatter Fmt
 
 <MudDialog>
     <TitleContent>
@@ -6,7 +7,7 @@
     </TitleContent>
     <DialogContent>
         <div class="ubp-detail-meta">
-            <div><span>@T.T("audit.time")</span><strong>@Entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</strong></div>
+            <div><span>@T.T("audit.time")</span><strong>@Fmt.DateTime(Entry.CreatedAt)</strong></div>
             <div><span>@T.T("audit.user")</span><strong>@(Entry.Username ?? "—")</strong></div>
             <div><span>@T.T("audit.branch")</span><strong>@(Entry.BranchName ?? "—")</strong></div>
             <div><span>@T.T("audit.action")</span><strong>@Entry.Action</strong></div>

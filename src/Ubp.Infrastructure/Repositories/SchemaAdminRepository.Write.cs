@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Dapper;
+using Ubp.Core.Models;
 using Ubp.Infrastructure.Data;
 
 namespace Ubp.Infrastructure.Repositories;

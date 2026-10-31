@@ -3,6 +3,7 @@
 @inherits SecurePageBase
 @inject FollowUpService FollowUpApi
 @inject PartnerService Partners
+@inject IDisplayFormatter Fmt
 <PageTitle>@T.T("screen.follow_ups")</PageTitle>
 
 @if (Denied) { <ForbiddenView /> }
@@ -65,7 +66,7 @@ else
                 <MudTd>@context.CustomerName</MudTd>
                 <MudTd>@(context.BookingNo ?? "—")</MudTd>
                 <MudTd>@T.T("sales.channel_" + context.Channel)</MudTd>
-                <MudTd>@context.DueAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</MudTd>
+                <MudTd>@Fmt.DateTime(context.DueAt)</MudTd>
                 <MudTd>
                     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                              Color="@(context.IsPending ? (context.IsOverdue ? Color.Error : Color.Warning) : Color.Success)">

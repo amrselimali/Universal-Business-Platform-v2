@@ -23,7 +23,8 @@ public sealed partial class AuthService
         return new LoginResult
         {
             Success = true, User = user, SessionId = sessionId, BranchId = branchId,
-            AccessToken = access, RefreshToken = refreshRaw
+            AccessToken = access, RefreshToken = refreshRaw,
+            MustChangePassword = user.MustChangePassword
         };
     }
 
@@ -69,7 +70,8 @@ public sealed partial class AuthService
             SessionId = sessionId, User = user, BranchId = branchId,
             BranchIds = branchIds,
             WarehouseIds = await _users.GetWarehouseIdsAsync(user.Id, ct),
-            UserLanguage = user.Language
+            UserLanguage = user.Language,
+            MustChangePassword = user.MustChangePassword
         };
     }
 

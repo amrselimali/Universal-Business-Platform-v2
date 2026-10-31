@@ -71,7 +71,7 @@ else
                 <MudTh Align="Right"></MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd>@CairoTime(context.CreatedAt)</MudTd>
+                <MudTd>@AuditTime(context.CreatedAt)</MudTd>
                 <MudTd>@(context.Username ?? "—")</MudTd>
                 <MudTd>@(context.BranchName ?? "—")</MudTd>
                 <MudTd><span class="ubp-code">@context.TableName</span></MudTd>

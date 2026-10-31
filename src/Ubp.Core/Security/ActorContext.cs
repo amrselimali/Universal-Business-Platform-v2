@@ -7,6 +7,8 @@ public sealed class ActorContext
     public string? Name { get; init; }
     public bool IsAdmin { get; init; }
     public bool IsSuperAdmin { get; init; }
+    /// <summary>يُمنع كل وصول آخر حتى تُغيَّر كلمة المرور (0036).</summary>
+    public bool MustChangePassword { get; init; }
     public string Language { get; init; } = "ar";
     public Guid? CurrentBranchId { get; init; }
     public IReadOnlyCollection<Guid> AllowedBranchIds { get; init; } = Array.Empty<Guid>();

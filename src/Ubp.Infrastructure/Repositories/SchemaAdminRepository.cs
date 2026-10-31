@@ -2,20 +2,10 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Dapper;
 using Npgsql;
+using Ubp.Core.Models;
 using Ubp.Infrastructure.Data;
 
 namespace Ubp.Infrastructure.Repositories;
-
-public sealed class TableInfo
-{
-    public string Schema { get; set; } = "";
-    public string Name { get; set; } = "";
-    public long RowCount { get; set; }
-    public int ColumnCount { get; set; }
-}
-
-public sealed record ColumnInfo(string Name, string DataType, bool Nullable);
-public sealed record RowPage(IReadOnlyList<string> Columns, IReadOnlyList<string> RowsJson, int Total);
 
 public interface ISchemaAdminRepository
 {

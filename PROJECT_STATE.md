@@ -1,5 +1,25 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phases 1, 2.1 and 2.2 delivered
+
+- Migrations `0036` (`users.must_change_password`, `password_changed_at`) and `0037`
+  (`app_settings.time_zone`); the sequence stays gap-free after `0035` and no applied script was
+  edited (G1). Next free numbers: `0038` idempotency, `0039` saved report filters.
+- Forced password change at first sign-in, enforced in three places: session flag, HTTP gate
+  (`PasswordChangeGate` → 302 for pages, 403 `auth.password_change_required` for APIs) and the Blazor
+  layout (circuit navigation). Admin resets force the same flow.
+- `IDisplayFormatter` is the single source for dates/times/numbers: reads `app_settings`
+  (formats + IANA zone), converts UTC on display, and replaced all `.ToLocalTime()` usages and the
+  hard-coded `Africa/Cairo` in the audit screen.
+- `LookupService` (Application) replaced direct repository injection in 7 UI files; the schema DTOs
+  moved to `Ubp.Core.Models`.
+- Architecture tests now guard the layering and the 300-line cap (the CI gate has a test twin).
+- 165 tests pass on a real PostgreSQL instance; build is clean (0 errors), every file ≤ 300 lines.
+
+### Next
+- Phase 3 concurrency gate (`IsolatedDatabaseFactory` + the eight scenarios), then `0038`
+  idempotency keys for stock documents.
+
 ## 2026-10-31 — Phase 0 delivered (security, CI/CD, startup guards)
 
 - The committed Neon credential (`neondb_owner` + password) was removed from

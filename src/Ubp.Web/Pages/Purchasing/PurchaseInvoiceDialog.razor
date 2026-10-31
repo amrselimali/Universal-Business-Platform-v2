@@ -1,4 +1,3 @@
-@using Ubp.Infrastructure.Repositories
 @inherits ComponentBase
 
 <MudDialog>
@@ -58,9 +57,7 @@
     [Parameter] public string DocType { get; set; } = CommercialDocTypes.PurchaseInvoice;
 
     [Inject] private PurchaseInvoiceService Purchases { get; set; } = default!;
-    [Inject] private IItemRepository ItemsRepo { get; set; } = default!;
-    [Inject] private IPartnerRepository Partners { get; set; } = default!;
-    [Inject] private IWarehouseRepository Warehouses { get; set; } = default!;
+    [Inject] private LookupService Lookups { get; set; } = default!;
     [Inject] private MasterDataService MasterData { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
     [Inject] private UiCulture T { get; set; } = default!;
@@ -94,12 +91,10 @@
         var actor = await UserContext.GetAsync();
         if (actor is null) return;
 
-        _items = await ItemsRepo.ListOptionsAsync(null, 100);
+        _items = await Lookups.ItemsAsync(actor, null, 100);
         _taxes = await MasterData.TaxOptionsAsync(actor);
-        _suppliers = (await Partners.ListAsync(PartnerKind.Supplier,
-            new PageRequest { Page = 1, PageSize = 25 }, null, false, Array.Empty<Guid>())).Items;
-        _warehouses = await Warehouses.ListOptionsAsync(PermissionScope.All, actor.UserId,
-            actor.AllowedBranchIds, actor.IsAdmin);
+        _suppliers = await Lookups.PartnersAsync(actor, PartnerKind.Supplier);
+        _warehouses = await Lookups.WarehousesAsync(actor);
 
         if (IsReturn)
         {

@@ -11,6 +11,7 @@ public partial class Index
     [Inject] private AuditQueryService AuditService { get; set; } = default!;
     [Inject] private BranchService BranchService { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private IDisplayFormatter Fmt { get; set; } = default!;
 
     private static readonly string[] Actions =
     {
@@ -85,18 +86,7 @@ public partial class Index
         await RefreshAsync();
     }
 
-    private static string CairoTime(DateTimeOffset value)
-    {
-        try
-        {
-            var zone = TimeZoneInfo.FindSystemTimeZoneById("Africa/Cairo");
-            return TimeZoneInfo.ConvertTime(value, zone).ToString("dd/MM/yyyy HH:mm:ss");
-        }
-        catch
-        {
-            return value.ToString("dd/MM/yyyy HH:mm:ss");
-        }
-    }
+    private string AuditTime(DateTimeOffset value) => Fmt.DateTime(value);
 
     private static Color ActionColor(string action) => action switch
     {

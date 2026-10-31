@@ -2,16 +2,14 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Ubp.Application.Services;
 using Ubp.Core.Models;
-using Ubp.Core.Paging;
 using Ubp.Core.Security;
-using Ubp.Infrastructure.Repositories;
 
 namespace Ubp.Web.Pages.Reports.Accounting;
 
 public partial class PartyStatement
 {
     [Inject] private AccountingReportService Reports { get; set; } = default!;
-    [Inject] private IPartnerRepository Partners { get; set; } = default!;
+    [Inject] private LookupService Lookups { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private PartyStatementReport? _report;
@@ -31,10 +29,9 @@ public partial class PartyStatement
 
     private async Task LoadPartiesAsync()
     {
-        var page = await Partners.ListAsync(_partyType == 'C' ? PartnerKind.Customer : PartnerKind.Supplier,
-            new PageRequest { Page = 1, PageSize = PageRequest.MaxPageSize }, null, false,
-            Array.Empty<Guid>());
-        _parties = page.Items;
+        var actor = await UserContext.RequireAsync();
+        _parties = await Lookups.PartnersAsync(actor,
+            _partyType == 'C' ? PartnerKind.Customer : PartnerKind.Supplier);
         _partyId = _parties.FirstOrDefault()?.Id;
     }
 

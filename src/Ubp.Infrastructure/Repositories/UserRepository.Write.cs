@@ -10,8 +10,10 @@ public sealed partial class UserRepository
     public async Task<Guid> CreateAsync(UserInput input, string passwordHash, CancellationToken ct = default)
     {
         const string sql = """
-            INSERT INTO users (name, username, password_hash, is_active, language, is_admin, is_super_admin)
-            VALUES (@Name, @Username, @PasswordHash, @IsActive, @Language, @IsAdmin, @IsSuperAdmin)
+            INSERT INTO users (name, username, password_hash, is_active, language, is_admin,
+                               is_super_admin, must_change_password)
+            VALUES (@Name, @Username, @PasswordHash, @IsActive, @Language, @IsAdmin,
+                    @IsSuperAdmin, @MustChangePassword)
             RETURNING id
             """;
         await using var connection = await _factory.OpenAsync(ct);
@@ -19,7 +21,7 @@ public sealed partial class UserRepository
         var id = await connection.ExecuteScalarAsync<Guid>(sql, new
         {
             input.Name, input.Username, PasswordHash = passwordHash, input.IsActive,
-            input.Language, input.IsAdmin, input.IsSuperAdmin
+            input.Language, input.IsAdmin, input.IsSuperAdmin, input.MustChangePassword
         }, tx);
         await ReplaceLinksAsync(connection, tx, id, input, ct);
         await tx.CommitAsync(ct);

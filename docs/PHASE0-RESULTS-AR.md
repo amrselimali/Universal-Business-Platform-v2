@@ -30,9 +30,9 @@
 | 21 | إضافة `BANK` لـ `module_code` مؤجلة | **قرار موثَّق** | X-05 |
 | 22 | إبقاء `auth.no_branch` منفصلة | **قرار موثَّق** (لا تغيير كود) | X-06 |
 | 23 | Playwright عبر `npx` لا NuGet | **قرار مفتوح** | X-08 |
-| 24 | إجبار تغيير كلمة مرور المدير | **مؤجَّل** إلى `0037` | X-04 |
-| 25 | `app_settings.time_zone` + `IDisplayFormatter` | **مؤجَّل** (المرحلة 2.2، مع خلل `.ToLocalTime()` الحالي) | `docs/PHASE-REMAINING-AR.md` |
-| 26 | اختبار معماري يمنع `Ubp.Infrastructure` في الصفحات | **مؤجَّل** حتى إصلاح 6 صفحات تنتهكه الآن | — |
+| 24 | إجبار تغيير كلمة مرور المدير | **منفَّذ** (`0036` + بوابة + توجيه Blazor) | `PasswordChangeGate`, `SessionValidationMiddleware` |
+| 25 | `app_settings.time_zone` + `IDisplayFormatter` | **منفَّذ** (`0037` + استبدال كل `.ToLocalTime()`) | `DisplayFormatter.cs`, `SettingsService` |
+| 26 | اختبار معماري يمنع `Ubp.Infrastructure` في الصفحات | **منفَّذ** (3 اختبارات؛ كشف ملفاً سابعاً) | `ArchitectureTests.cs` |
 | 27 | `IsolatedDatabaseFactory` لاختبارات التزامن | **مؤجَّل** إلى المرحلة 3 | — |
 | 28 | عدم إعادة بناء اختبار الترقيم المتزامن | **مطبَّق** (لا ملف جديد؛ الموجود يغطيه) | `DocumentSequenceTests.cs` |
 
@@ -42,9 +42,9 @@
 
 | الرقم | المحتوى | الحالة |
 |---|---|---|
-| `0036` | `stock_documents.idempotency_key` + فهرس فريد جزئي + حقول تتبع ناقصة (بعد جرد `information_schema`) | لم يُنفَّذ |
-| `0037` | `users.must_change_password` + `password_changed_at` | لم يُنفَّذ |
-| `0038` | `app_settings.time_zone` | لم يُنفَّذ |
+| `0036` | `users.must_change_password` + `password_changed_at` | **منفَّذ** (2026-10-31) |
+| `0037` | `app_settings.time_zone` | **منفَّذ** (2026-10-31) |
+| `0038` | `stock_documents.idempotency_key` + فهرس فريد جزئي + حقول تتبع ناقصة (بعد جرد `information_schema`) | لم يُنفَّذ |
 | `0039` | `saved_report_filters` (المرحلة 6A) | لم يُنفَّذ |
 | `0040+` | `bi` · `notifications` · `message_outbox` · `sales_daily_totals` | لم يُنفَّذ |
 

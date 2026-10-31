@@ -4,6 +4,7 @@
 @inject BookingService BookingApi
 @inject BranchService Branches
 @inject IDialogService Dialogs
+@inject IDisplayFormatter Fmt
 <PageTitle>@T.T("screen.sales_bookings")</PageTitle>
 
 @if (Denied) { <ForbiddenView /> }
@@ -63,7 +64,7 @@ else
                     @if (context.StartsAt is not null && context.EndsAt is not null)
                     {
                         <span dir="ltr">
-                            @context.StartsAt.Value.ToLocalTime().ToString("HH:mm") – @context.EndsAt.Value.ToLocalTime().ToString("HH:mm")
+                            @Fmt.Time(context.StartsAt) – @Fmt.Time(context.EndsAt)
                         </span>
                     }
                     else { <text>—</text> }

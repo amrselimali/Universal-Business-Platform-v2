@@ -67,10 +67,12 @@ public sealed class DataSeeder
             IsActive = true,
             IsAdmin = true,
             IsSuperAdmin = true,
+            MustChangePassword = true,
             Language = "ar"
         };
         await _users.CreateAsync(input, _hasher.Hash(_options.SuperAdminPassword), ct);
-        _logger.LogWarning("Bootstrap Super Admin '{Username}' was created. Change the password immediately.",
+        _logger.LogWarning(
+            "Bootstrap Super Admin '{Username}' was created and must change the password at first sign-in.",
             username);
     }
 
@@ -96,9 +98,10 @@ public sealed class DataSeeder
             return;
         }
 
-        await _users.ResetPasswordAsync(existing.Id, _hasher.Hash(configured), ct);
+        await _users.SetPasswordAsync(existing.Id, _hasher.Hash(configured), requireChange: true, ct);
         _logger.LogWarning(
             "Super Admin '{Username}' still had the well-known default password; " +
-            "it was replaced by the configured Bootstrap:SuperAdminPassword.", existing.Username);
+            "it was replaced by the configured Bootstrap:SuperAdminPassword and must be changed at sign-in.",
+            existing.Username);
     }
 }
