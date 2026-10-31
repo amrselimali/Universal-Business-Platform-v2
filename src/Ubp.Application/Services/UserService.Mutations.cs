@@ -70,7 +70,7 @@ public sealed partial class UserService
         var error = await _settings.ValidatePasswordAsync(newPassword, target.User.Username, ct);
         if (error is not null) throw new ValidationAppException(error);
 
-        await _users.ResetPasswordAsync(id, _hasher.Hash(newPassword), ct);
+        await _users.SetPasswordAsync(id, _hasher.Hash(newPassword), requireChange: true, ct);
         await _sessions.RevokeAllSessionsAsync(id, ct);
         await _refreshTokens.RevokeAllForUserAsync(id, ct);
         await _audit.WriteAsync(actor, "users", id.ToString(), "PASSWORD_RESET", null, null, ct);

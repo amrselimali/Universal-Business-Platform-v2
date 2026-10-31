@@ -19,13 +19,18 @@ public sealed partial class UserRepository
             "UPDATE users SET is_active = @isActive WHERE id = @id", new { id, isActive }, cancellationToken: ct)) > 0;
     }
 
-    public async Task ResetPasswordAsync(Guid id, string passwordHash, CancellationToken ct = default)
+    public Task ResetPasswordAsync(Guid id, string passwordHash, CancellationToken ct = default) =>
+        SetPasswordAsync(id, passwordHash, false, ct);
+
+    public async Task SetPasswordAsync(Guid id, string passwordHash, bool requireChange,
+        CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         await connection.ExecuteAsync(new CommandDefinition("""
-            UPDATE users SET password_hash = @passwordHash, failed_attempts = 0, locked_until = NULL
+            UPDATE users SET password_hash = @passwordHash, failed_attempts = 0, locked_until = NULL,
+                             must_change_password = @requireChange, password_changed_at = now()
             WHERE id = @id
-            """, new { id, passwordHash }, cancellationToken: ct));
+            """, new { id, passwordHash, requireChange }, cancellationToken: ct));
     }
 
     public async Task UnlockAsync(Guid id, CancellationToken ct = default)

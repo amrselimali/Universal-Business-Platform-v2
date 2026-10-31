@@ -22,39 +22,85 @@ public sealed class DatabaseOptions
     public bool AutoMigrate { get; set; }
     public bool AutoMigrateQa { get; set; }
 
+    /// <summary>
+    /// يحوّل رابط Neon/Postgres بصيغة URL إلى صيغة Npgsql القياسية.
+    /// لا يُعطّل أي تحقق أمني: لا <c>TrustServerCertificate</c> ولا تجاهل للـ sslmode.
+    /// </summary>
     private static string FormatConnectionString(string connectionString)
     {
         if (string.IsNullOrWhiteSpace(connectionString))
             return connectionString;
 
-        // إذا كان الرابط مكتوب بصيغة URL الخاصة بـ Neon، نقوم بتحويله للصيغة القياسية لـ Npgsql تلقائياً
-        if (connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+        if (!Uri.TryCreate(connectionString, UriKind.Absolute, out var uri)
+            || (uri.Scheme != "postgres" && uri.Scheme != "postgresql"))
+            return connectionString;
+
+        var userInfo = uri.UserInfo.Split(':', 2);
+        var builder = new NpgsqlConnectionStringBuilder
         {
-            try
-            {
-                var uri = new Uri(connectionString);
-                var userInfo = uri.UserInfo.Split(':');
-                var builder = new NpgsqlConnectionStringBuilder
-                {
-                    Host = uri.Host,
-                    Port = uri.Port > 0 ? uri.Port : 5432,
-                    Database = uri.AbsolutePath.TrimStart('/'),
-                    Username = userInfo[0],
-                    Password = userInfo.Length > 1 ? userInfo[1] : "",
-                    SslMode = SslMode.Require,
-                    TrustServerCertificate = true
-                };
-                return builder.ToString();
-            }
-            catch
-            {
-                return connectionString;
-            }
+            Host = uri.Host,
+            Port = uri.Port > 0 ? uri.Port : 5432,
+            Database = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/')),
+            Username = Uri.UnescapeDataString(userInfo[0]),
+            Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : ""
+        };
+
+        foreach (var pair in uri.Query.TrimStart('?').Split('&',
+                     StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = pair.Split('=', 2);
+            var key = Uri.UnescapeDataString(parts[0]);
+            var value = parts.Length > 1 ? Uri.UnescapeDataString(parts[1]) : "";
+            ApplyQueryParameter(builder, key, value);
         }
 
-        return connectionString;
+        return builder.ToString();
+    }
+
+    private static void ApplyQueryParameter(NpgsqlConnectionStringBuilder builder, string key,
+        string value)
+    {
+        switch (key.ToLowerInvariant())
+        {
+            case "sslmode":
+                // Neon يقدّم شهادات موثوقة؛ نطلب تحققاً كاملاً بدل الاكتفاء بالتشفير.
+                builder.SslMode = value.ToLowerInvariant() switch
+                {
+                    "disable" => SslMode.Disable,
+                    "allow" => SslMode.Allow,
+                    "prefer" => SslMode.Prefer,
+                    "require" or "verify-ca" or "verify-full" => SslMode.VerifyFull,
+                    _ => builder.SslMode
+                };
+                break;
+            case "channel_binding":
+                builder.ChannelBinding = value.ToLowerInvariant() switch
+                {
+                    "disable" => ChannelBinding.Disable,
+                    "prefer" => ChannelBinding.Prefer,
+                    "require" => ChannelBinding.Require,
+                    _ => builder.ChannelBinding
+                };
+                break;
+            case "application_name":
+                builder.ApplicationName = value;
+                break;
+            case "connect_timeout":
+                if (int.TryParse(value, out var seconds) && seconds > 0)
+                    builder.Timeout = seconds;
+                break;
+            case "options":
+            case "sslcert":
+            case "sslkey":
+            case "sslrootcert":
+                // معاملات لا تُترجم إلى Npgsql؛ تُدار عبر شهادة النظام أو متغيرات Npgsql.
+                break;
+            default:
+                break;
+        }
     }
 }
+
 
 public interface IDbConnectionFactory
 {

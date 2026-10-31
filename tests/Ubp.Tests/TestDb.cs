@@ -15,6 +15,8 @@ namespace Ubp.Tests;
 
 public sealed partial class TestDb
 {
+    public static readonly string AdminPassword = "Test-Admin!2026";
+
     public static readonly string AdminConnection =
         Environment.GetEnvironmentVariable("UBP_TEST_CONNECTION")
         ?? "Host=localhost;Port=5432;Database=ubp_test;Username=postgres";
@@ -51,7 +53,8 @@ public sealed partial class TestDb
     private async Task Seed()
     {
         var seeder = new DataSeeder(new SettingsRepository(Factory), new UserRepository(Factory),
-            new PasswordHasher(), new BootstrapOptions(), NullLogger<DataSeeder>.Instance);
+            new PasswordHasher(), new BootstrapOptions { SuperAdminPassword = AdminPassword },
+            NullLogger<DataSeeder>.Instance);
         await seeder.SeedAsync();
     }
 

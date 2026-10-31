@@ -1,6 +1,7 @@
 using Dapper;
 using Npgsql;
 using Ubp.Core.Models;
+using Ubp.Core.Results;
 
 namespace Ubp.Infrastructure.Repositories;
 
@@ -12,53 +13,90 @@ public sealed partial class StockDocumentRepository
         const string sql = """
             INSERT INTO stock_documents
                 (doc_type, doc_date, branch_id, warehouse_id, to_branch_id, to_warehouse_id,
-                 notes, created_by)
+                 notes, created_by, idempotency_key)
             VALUES
                 (@DocType, @DocDate, @BranchId, @WarehouseId, @ToBranchId, @ToWarehouseId,
-                 @Notes, @userId)
+                 @Notes, @userId, @IdempotencyKey)
+            ON CONFLICT (branch_id, idempotency_key) WHERE idempotency_key IS NOT NULL
+            DO NOTHING
             RETURNING id
             """;
-        await using var connection = await _factory.OpenAsync(ct);
-        await using var tx = await connection.BeginTransactionAsync(ct);
-        var id = await connection.ExecuteScalarAsync<Guid>(new CommandDefinition(sql, new
+        Guid? id;
+        Guid? existing = null;
+        await using (var connection = await _factory.OpenAsync(ct))
         {
-            input.DocType, input.DocDate, input.BranchId, input.WarehouseId,
-            input.ToBranchId, input.ToWarehouseId, input.Notes, userId
-        }, tx, cancellationToken: ct));
+            await using var tx = await connection.BeginTransactionAsync(ct);
+            id = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(sql, new
+            {
+                input.DocType, input.DocDate, input.BranchId, input.WarehouseId,
+                input.ToBranchId, input.ToWarehouseId, input.Notes, userId,
+                IdempotencyKey = Normalize(input.IdempotencyKey)
+            }, tx, cancellationToken: ct));
 
-        await InsertLinesAsync(connection, tx, id, input, ct);
-        await tx.CommitAsync(ct);
-        return (await GetAsync(id, ct))!;
+            if (id is null)
+            {
+                // إعادة محاولة بنفس المفتاح: نعيد المستند القائم بدل إنشاء نسخة ثانية.
+                await tx.RollbackAsync(ct);
+                existing = await GetByIdempotencyKeyAsync(input.BranchId,
+                    Normalize(input.IdempotencyKey)!, ct);
+            }
+            else
+            {
+                await InsertLinesAsync(connection, tx, id.Value, input, ct);
+                await tx.CommitAsync(ct);
+            }
+        }
+
+        if (existing is null && id is null)
+            throw new ConflictException("error.idempotency_conflict");
+        // إغلاق اتصال الكتابة قبل القراءة يمنع استهلاك اتصالين لكل عملية تحت الحمل.
+        return (await GetAsync((existing ?? id)!.Value, ct))!;
     }
 
-    public async Task<StockDocument?> UpdateDraftAsync(Guid id, int version, StockDocumentInput input,
+    public async Task<Guid?> GetByIdempotencyKeyAsync(Guid branchId, string idempotencyKey,
         CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition("""
+            SELECT id FROM stock_documents
+            WHERE branch_id = @branchId AND idempotency_key = @idempotencyKey
+            """, new { branchId, idempotencyKey }, cancellationToken: ct));
+    }
+
+    private static string? Normalize(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? null : key.Trim();
+
+    public async Task<StockDocument?> UpdateDraftAsync(Guid id, int version, StockDocumentInput input,
+        Guid? userId = null, CancellationToken ct = default)
     {
         const string sql = """
             UPDATE stock_documents SET
                 doc_date = @DocDate, branch_id = @BranchId, warehouse_id = @WarehouseId,
-                to_branch_id = @ToBranchId, to_warehouse_id = @ToWarehouseId, notes = @Notes
+                to_branch_id = @ToBranchId, to_warehouse_id = @ToWarehouseId, notes = @Notes,
+                updated_by = coalesce(@userId, updated_by)
             WHERE id = @id AND version = @version AND status = 'DRAFT'
             RETURNING id
             """;
-        await using var connection = await _factory.OpenAsync(ct);
-        await using var tx = await connection.BeginTransactionAsync(ct);
-        var updated = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(sql, new
+        await using (var connection = await _factory.OpenAsync(ct))
         {
-            id, version, input.DocDate, input.BranchId, input.WarehouseId,
-            input.ToBranchId, input.ToWarehouseId, input.Notes
-        }, tx, cancellationToken: ct));
+            await using var tx = await connection.BeginTransactionAsync(ct);
+            var updated = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(sql, new
+            {
+                id, version, input.DocDate, input.BranchId, input.WarehouseId,
+                input.ToBranchId, input.ToWarehouseId, input.Notes, userId
+            }, tx, cancellationToken: ct));
 
-        if (updated is null)
-        {
-            await tx.RollbackAsync(ct);
-            return null;
+            if (updated is null)
+            {
+                await tx.RollbackAsync(ct);
+                return null;
+            }
+
+            await connection.ExecuteAsync(new CommandDefinition(
+                "DELETE FROM stock_document_lines WHERE document_id = @id", new { id }, tx, cancellationToken: ct));
+            await InsertLinesAsync(connection, tx, id, input, ct);
+            await tx.CommitAsync(ct);
         }
-
-        await connection.ExecuteAsync(new CommandDefinition(
-            "DELETE FROM stock_document_lines WHERE document_id = @id", new { id }, tx, cancellationToken: ct));
-        await InsertLinesAsync(connection, tx, id, input, ct);
-        await tx.CommitAsync(ct);
         return await GetAsync(id, ct);
     }
 

@@ -51,11 +51,14 @@ Universal-Business-Platform-v2/
 docker compose up -d postgres
 # أو استخدم PostgreSQL محلياً وأنشئ قواعد: ubp و ubp_qa
 
-# 2) الإعدادات (يمكن تعديلها في src/Ubp.Web/appsettings.json)
+# 2) الإعدادات
+#    قيم التطوير المحلي موجودة في src/Ubp.Web/appsettings.Development.json
+#    (appsettings.json نفسه لا يحمل أي سر أو قيمة اتصال).
 #    Database:ConnectionString            → مستخدم التطبيق (بدون DDL)
-#    Database:MigrationConnectionString   → مستخدم DDL للترحيلات
+#    Database:MigrationConnectionString   → مستخدم DDL للترحيلات (اتصال مباشر لا pooler)
 #    Database:QaConnectionString          → قاعدة QA مستقلة
-#    Jwt:Key                              → 32 حرفاً على الأقل
+#    Jwt:Key                              → 32 حرفاً على الأقل (64+ في الإنتاج)
+#    Bootstrap:SuperAdminPassword         → إلزامية في الإنتاج (لا قيمة افتراضية)
 
 # 3) التشغيل
 dotnet run --project src/Ubp.Web
@@ -63,14 +66,18 @@ dotnet run --project src/Ubp.Web
 
 الرابط: **http://localhost:5080**
 
-بيانات الدخول الأولى:
+بيانات الدخول الأولى (بيئة التطوير فقط):
 | البند | القيمة |
 |---|---|
 | اسم المستخدم | `admin` |
-| كلمة المرور | `Admin@123` |
+| كلمة المرور | `Dev-Admin!2026` (من `Bootstrap:SuperAdminPassword` في `appsettings.Development.json`) |
 
-> ⚠️ **غيّر كلمة المرور فوراً** من قائمة المستخدم أو `Bootstrap:SuperAdminPassword` قبل أول تشغيل.
-> عند أول تشغيل تُطبَّق الترحيلات تلقائياً على `ubp` و`ubp_qa` (يمكن تعطيل ذلك بـ `Database:AutoMigrate=false`).
+> ⚠️ **لا تُشحن أي كلمة مرور افتراضية**: في بيئة `Production` يفشل الإقلاع إن كانت
+> `Bootstrap:SuperAdminPassword` أو `Jwt:Key` أو روابط قاعدة البيانات ناقصة أو ضعيفة
+> (`IValidateOptions` + `ValidateOnStart`). غيّر كلمة مرور المدير بعد أول دخول.
+> عند أول تشغيل تُطبَّق الترحيلات تلقائياً في التطوير فقط (يمكن تعطيل ذلك بـ `Database:AutoMigrate=false`).
+> فحص الصحة: `/health/live` (بلا قاعدة بيانات) و`/api/v1/system/health` (يرجع 503 عند تعذر الاتصال
+> ولا يكشف أي تفاصيل عن السيرفر أو القاعدة).
 
 ### متغيرات البيئة في الإنتاج
 ```bash
@@ -80,7 +87,11 @@ Database__QaConnectionString="Host=...;Database=ubp_qa;Username=postgres;Passwor
 Database__AutoMigrate=false
 Jwt__Key="<64+ random chars>"
 Bootstrap__SuperAdminPassword="<strong password>"
+DataProtection__KeyRingPath="/app/keys"
 ```
+
+> للتطوير المحلي بدل متغيرات البيئة يمكن استخدام `dotnet user-secrets --project src/Ubp.Web set Jwt:Key "..."`،
+> فمشروع `Ubp.Web` يحمل `UserSecretsId` ولا يُقرأ أي سر من ملفات المستودع.
 
 ---
 
@@ -94,6 +105,12 @@ Bootstrap__SuperAdminPassword="<strong password>"
   2. زر «تحديث / تهيئة قاعدة البيانات» في شاشة قاعدة البيانات (Super Admin).
   3. CI/CD.
 - مستخدم التطبيق `ubp_app` لا يملك DDL؛ الترحيلات تستخدم اتصالاً منفصلاً بصلاحية أعلى.
+- **مسار النشر الموصى به**: `dotnet Ubp.Web.dll --migrate` يطبّق الترحيلات ثم يخرج برمز حالة
+  (`MIGRATIONS_OK applied=N total=N` → 0، أو `MIGRATIONS_FAILED error=…` → 1). استخدمه في خط النشر
+  وأبقِ `Database:AutoMigrate=false` في الإنتاج.
+- شاشة `/admin/system-health` تعرض: حالة القاعدة، الترحيلات **المعلّقة**، الاستعلامات الأطول من 30
+  ثانية، وسجل النسخ الاحتياطي (يُكتب من وظيفة cron خارجية عبر `select fn_record_backup(...)`؛
+  الواجهة لا تنفّذ أوامر نظام).
 - Data Seeding يضمن: صف الإعدادات الوحيد، العملة الأساسية، أول Super Admin، فرع/مخزن رئيسي.
 - **Audit log** غير قابل للتعديل أو الحذف (Trigger)، ويستخدم Keyset Pagination.
 - **عملة أساسية واحدة** مضمونة بفهرس Unique جزئي.

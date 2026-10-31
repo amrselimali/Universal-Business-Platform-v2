@@ -38,7 +38,7 @@
     [Parameter] public string PriceListName { get; set; } = "";
 
     [Inject] private MasterDataService MasterData { get; set; } = default!;
-    [Inject] private Ubp.Infrastructure.Repositories.IItemRepository Items { get; set; } = default!;
+    [Inject] private LookupService Lookups { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
     [Inject] private UiCulture T { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
@@ -49,9 +49,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _items = await Items.ListOptionsAsync(null, 100);
         var actor = await UserContext.GetAsync();
         if (actor is null) return;
+
+        _items = await Lookups.ItemsAsync(actor, null, 100);
 
         var existing = await MasterData.PriceListItemsAsync(actor, PriceListId);
         foreach (var item in existing)

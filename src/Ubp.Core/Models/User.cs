@@ -17,6 +17,9 @@ public sealed class User
     public DateTimeOffset UpdatedAt { get; set; }
     public int Version { get; set; } = 1;
 
+    /// <summary>يُمنع كل وصول آخر حتى تُغيَّر كلمة المرور (الترحيل 0036).</summary>
+    public bool MustChangePassword { get; set; }
+
     public bool IsLocked => LockedUntil.HasValue && LockedUntil.Value > DateTimeOffset.UtcNow;
 }
 
@@ -54,6 +57,8 @@ public sealed class UserInput
     public string Language { get; set; } = "ar";
     public bool IsAdmin { get; set; }
     public bool IsSuperAdmin { get; set; }
+    /// <summary>يُطلب من المستخدم تغيير كلمة المرور عند أول دخول.</summary>
+    public bool MustChangePassword { get; set; }
     public List<Guid> BranchIds { get; set; } = new();
     public Guid? DefaultBranchId { get; set; }
     public List<Guid> WarehouseIds { get; set; } = new();

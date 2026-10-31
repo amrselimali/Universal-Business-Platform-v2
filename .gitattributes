@@ -1,0 +1,30 @@
+# Default: normalize line endings on commit, LF in the working tree.
+* text=auto eol=lf
+
+*.cs text diff=csharp
+*.razor text
+*.csproj text
+*.slnx text
+*.props text
+*.sql text
+*.json text
+*.md text
+*.yml text
+*.yaml text
+*.sh text eol=lf
+*.ps1 text eol=crlf
+
+# Binary documents and assets: never diff, never convert.
+*.docx binary
+*.doc binary
+*.xlsx binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

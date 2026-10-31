@@ -12,5 +12,11 @@ TestResults/
 .dotnet/
 .dev/
 .pg/
+.pg18/
 .pgdata/
 .libs/
+
+# ملف الـ workflow لا يُدفع عبر تطبيق بلا صلاحية workflows؛
+# المصدر المتعقَّب هو docs/ci-workflow.yml — انسخه إلى .github/workflows/ci.yml
+# ثم `git add -f` بعد منح الصلاحية.
+.github/workflows/ci.yml

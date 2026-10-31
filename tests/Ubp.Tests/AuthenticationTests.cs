@@ -14,10 +14,19 @@ public sealed class AuthenticationTests : IClassFixture<TestDb>
     public async Task Seeded_super_admin_can_login_with_documented_password()
     {
         var auth = _db.Auth();
-        var result = await auth.LoginAsync("admin", "Admin@123", "127.0.0.1", "trace-login");
+        var result = await auth.LoginAsync("admin", TestDb.AdminPassword, "127.0.0.1", "trace-login");
         Assert.True(result.Success);
         Assert.NotNull(result.SessionId);
         Assert.True(result.User!.IsSuperAdmin);
+    }
+
+    [Fact]
+    public async Task The_known_default_password_from_migration_0009_no_longer_works()
+    {
+        var auth = _db.Auth();
+        var result = await auth.LoginAsync("admin", "Admin@123", "127.0.0.1", "trace-default");
+        Assert.False(result.Success);
+        Assert.Equal("auth.invalid_credentials", result.ErrorKey);
     }
 
     [Fact]

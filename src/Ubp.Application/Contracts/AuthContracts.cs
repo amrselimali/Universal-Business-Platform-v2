@@ -16,6 +16,8 @@ public sealed class LoginResult
     public Guid? BranchId { get; init; }
     public string? AccessToken { get; init; }
     public string? RefreshToken { get; init; }
+    /// <summary>يجب على المستخدم تغيير كلمة المرور قبل أي وصول آخر (0036).</summary>
+    public bool MustChangePassword { get; init; }
 
     public static LoginResult Fail(string key) => new() { Success = false, ErrorKey = key };
 }
@@ -28,4 +30,6 @@ public sealed class SessionUser
     public required IReadOnlyList<Guid> BranchIds { get; init; }
     public required IReadOnlyList<Guid> WarehouseIds { get; init; }
     public string UserLanguage { get; init; } = "ar";
+    /// <summary>يُمنع كل وصول آخر حتى تُغيَّر كلمة المرور.</summary>
+    public bool MustChangePassword { get; init; }
 }

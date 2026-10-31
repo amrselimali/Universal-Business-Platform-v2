@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Antiforgery;
 using Ubp.Application.Contracts;
 using Ubp.Application.Services;
 using Ubp.Web.Security;
+using Ubp.Web.Startup;
 
 namespace Ubp.Web.Endpoints;
 
@@ -11,13 +12,15 @@ public static partial class AuthEndpoints
 
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/auth").DisableAntiforgery();
+        var group = app.MapGroup("/auth").DisableAntiforgery()
+            .RequireRateLimiting(RateLimitingRegistration.LoginPolicy);
         group.MapPost("/login", LoginForm);
         group.MapPost("/logout", LogoutForm);
         group.MapPost("/branch", SwitchBranch);
         group.MapPost("/language", SwitchLanguage);
 
-        var api = app.MapGroup("/api/v1/auth").DisableAntiforgery();
+        var api = app.MapGroup("/api/v1/auth").DisableAntiforgery()
+            .RequireRateLimiting(RateLimitingRegistration.LoginPolicy);
         api.MapPost("/login", ApiLogin);
         api.MapPost("/refresh", ApiRefresh);
         api.MapPost("/logout", ApiLogout).RequireAuthorization();
@@ -58,7 +61,8 @@ public static partial class AuthEndpoints
             accessToken = result.AccessToken,
             refreshToken = result.RefreshToken,
             sessionId = result.SessionId,
-            branchId = result.BranchId
+            branchId = result.BranchId,
+            mustChangePassword = result.MustChangePassword
         });
     }
 

@@ -11,6 +11,8 @@ public interface ISettingsService
     Task<AppSettings> GetAsync(CancellationToken ct = default);
     Task<AppSettings> UpdateAsync(ActorContext actor, AppSettings input, CancellationToken ct = default);
     Task<string?> ValidatePasswordAsync(string password, string username, CancellationToken ct = default);
+    /// <summary>آخر نسخة مخبأة (بلا I/O) — يستخدمها منسّق العرض في أثناء الرسم.</summary>
+    AppSettings? CachedSnapshot { get; }
     void Invalidate();
 }
 
@@ -30,6 +32,9 @@ public sealed class SettingsService : ISettingsService
         _permissions = permissions;
         _cache = cache;
     }
+
+    public AppSettings? CachedSnapshot =>
+        _cache.TryGetValue(CacheKey, out AppSettings? cached) ? cached : null;
 
     public async Task<AppSettings> GetAsync(CancellationToken ct = default)
     {
@@ -60,6 +65,8 @@ public sealed class SettingsService : ISettingsService
             throw new ValidationAppException("validation.lockout_minutes");
         if (string.IsNullOrWhiteSpace(input.CompanyName))
             throw new ValidationAppException("validation.company_name_required");
+        if (!IsValidTimeZone(input.TimeZone))
+            throw new ValidationAppException("validation.time_zone");
 
         var updated = await _repository.UpdateAsync(input, ct)
             ?? throw new ConflictException("error.version_conflict");
@@ -86,4 +93,23 @@ public sealed class SettingsService : ISettingsService
     }
 
     public void Invalidate() => _cache.Remove(CacheKey);
+
+    /// <summary>يقبل أي منطقة IANA يعرفها النظام، ويرفض غيرها حتى لا ينكسر العرض لاحقاً.</summary>
+    public static bool IsValidTimeZone(string? timeZone)
+    {
+        if (string.IsNullOrWhiteSpace(timeZone)) return false;
+        try
+        {
+            TimeZoneInfo.FindSystemTimeZoneById(timeZone.Trim());
+            return true;
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return false;
+        }
+        catch (InvalidTimeZoneException)
+        {
+            return false;
+        }
+    }
 }

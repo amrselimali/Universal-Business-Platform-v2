@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Ubp.Web.Components;
 using Ubp.Web.Endpoints;
@@ -15,6 +16,17 @@ builder.Services.AddUbpServices(builder.Configuration);
 
 var app = builder.Build();
 
+// التحقق المعماري القياسي: يفشل الإقلاع إذا كانت الإعدادات ناقصة أو قيمة افتراضية غير آمنة.
+// يجب أن يسبق أي اتصال بقاعدة البيانات (الترحيل والتهيئة).
+app.Services.GetRequiredService<IStartupValidator>().Validate();
+
+// مسار النشر: تنفيذ الترحيلات من CI/CD ثم الخروج (بلا تشغيل الويب).
+if (MigrationCli.IsRequested(args))
+{
+    Environment.ExitCode = MigrationCli.Run(app.Services);
+    return;
+}
+
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
@@ -26,6 +38,7 @@ app.UseAntiforgery();
 app.UseAuthentication();
 app.UseMiddleware<SessionValidationMiddleware>();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.UseSerilogRequestLogging();
 
 app.MapAuthEndpoints();

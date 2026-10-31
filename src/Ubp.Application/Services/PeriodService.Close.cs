@@ -33,7 +33,15 @@ public sealed partial class PeriodService
                 new Dictionary<string, string> { ["check"] = blocked.CheckCode });
         }
 
-        await _repository.UpsertClosureAsync(id, scopeType, branchId, moduleCode, true, actor.UserId, null, ct);
+        var applied = await _repository.UpsertClosureAsync(id, scopeType, branchId, moduleCode, true,
+            actor.UserId, null, ct);
+        if (!applied)
+        {
+            await _repository.AddEventAsync(id, scopeType, branchId, moduleCode, "CLOSE_REJECTED",
+                actor.UserId, "CONCURRENT_DOCUMENTS", actor.TraceId, ct);
+            throw new ValidationAppException("validation.period_close_blocked",
+                new Dictionary<string, string> { ["check"] = "CONCURRENT_DOCUMENTS" });
+        }
         await _repository.AddEventAsync(id, scopeType, branchId, moduleCode, "CLOSE",
             actor.UserId, null, actor.TraceId, ct);
         await _audit.WriteAsync(actor, "period_scope_closures", id.ToString(), "UPDATE", null,
@@ -92,7 +100,13 @@ public sealed partial class PeriodService
                 new Dictionary<string, string> { ["check"] = blocked.CheckCode });
         }
 
-        await _repository.SetStatusAsync(id, "CLOSED", actor.UserId, null, ct);
+        if (!await _repository.SetStatusAsync(id, "CLOSED", actor.UserId, null, ct))
+        {
+            await _repository.AddEventAsync(id, PeriodScopes.Company, null, PeriodModules.Inventory,
+                "CLOSE_REJECTED", actor.UserId, "CONCURRENT_DOCUMENTS", actor.TraceId, ct);
+            throw new ValidationAppException("validation.period_close_blocked",
+                new Dictionary<string, string> { ["check"] = "CONCURRENT_DOCUMENTS" });
+        }
         await _repository.AddEventAsync(id, PeriodScopes.Company, null, PeriodModules.Inventory,
             "COMPANY_FINAL_CLOSE", actor.UserId, null, actor.TraceId, ct);
         await _audit.WriteAsync(actor, "fiscal_periods", id.ToString(), "UPDATE",

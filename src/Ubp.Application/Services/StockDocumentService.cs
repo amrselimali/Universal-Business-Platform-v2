@@ -55,8 +55,15 @@ public sealed partial class StockDocumentService
 
         try
         {
+            if (!id.HasValue && !string.IsNullOrWhiteSpace(input.IdempotencyKey))
+            {
+                var replayed = await _docs.GetByIdempotencyKeyAsync(input.BranchId,
+                    input.IdempotencyKey.Trim(), ct);
+                if (replayed is not null) return await LoadAsync(actor, replayed.Value, ct);
+            }
+
             var document = id.HasValue
-                ? await _docs.UpdateDraftAsync(id.Value, version, input, ct)
+                ? await _docs.UpdateDraftAsync(id.Value, version, input, actor.UserId, ct)
                   ?? throw new ConflictException("error.version_conflict")
                 : await _docs.CreateDraftAsync(input, actor.UserId, ct);
 

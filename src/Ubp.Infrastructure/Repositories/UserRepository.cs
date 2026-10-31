@@ -22,6 +22,8 @@ public interface IUserRepository
     Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);
     Task<bool> SetActiveAsync(Guid id, bool isActive, CancellationToken ct = default);
     Task ResetPasswordAsync(Guid id, string passwordHash, CancellationToken ct = default);
+    /// <summary>يضبط كلمة المرور ويحدد إن كان يجب تغييرها عند أول دخول (0036).</summary>
+    Task SetPasswordAsync(Guid id, string passwordHash, bool requireChange, CancellationToken ct = default);
     Task UpdateLanguageAsync(Guid id, string language, CancellationToken ct = default);
     Task<bool> HasHistoryAsync(Guid id, CancellationToken ct = default);
     Task UnlockAsync(Guid id, CancellationToken ct = default);
@@ -47,6 +49,7 @@ public sealed partial class UserRepository : IUserRepository
         u.is_active AS IsActive, u.language AS Language, u.is_admin AS IsAdmin,
         u.is_super_admin AS IsSuperAdmin, u.failed_attempts AS FailedAttempts,
         u.locked_until AS LockedUntil, u.last_login_at AS LastLoginAt,
+        u.must_change_password AS MustChangePassword,
         u.created_at AS CreatedAt, u.updated_at AS UpdatedAt, u.version AS Version
         """;
 

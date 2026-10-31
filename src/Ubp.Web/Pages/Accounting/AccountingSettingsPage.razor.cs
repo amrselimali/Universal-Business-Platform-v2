@@ -3,7 +3,6 @@ using MudBlazor;
 using Ubp.Application.Services;
 using Ubp.Core.Models;
 using Ubp.Core.Security;
-using Ubp.Infrastructure.Repositories;
 
 namespace Ubp.Web.Pages.Accounting;
 
@@ -11,7 +10,7 @@ public partial class AccountingSettingsPage
 {
     [Inject] private AccountingSettingsService SettingsService { get; set; } = default!;
     [Inject] private AccountService Accounts { get; set; } = default!;
-    [Inject] private IItemCategoryRepository ItemCategories { get; set; } = default!;
+    [Inject] private LookupService Lookups { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
 
     private AccountingSettings _settings = new();
@@ -82,7 +81,7 @@ public partial class AccountingSettingsPage
 
     private async Task AddCategoryAsync() => await RunAsync(async () =>
     {
-        var categories = await ItemCategories.ListOptionsAsync();
+        var categories = await Lookups.ItemCategoriesAsync(Actor!);
         var parameters = new DialogParameters
         {
             ["Categories"] = categories, ["Accounts"] = _accounts

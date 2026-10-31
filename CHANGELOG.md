@@ -1,5 +1,264 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 7 complete: import tool, login hardening, runbook
+
+### Added
+- Migration `0045`: `import_jobs` (status/kind checks, count invariants) recording every import run.
+- `ImportService`: `PreviewAsync` (parse only — **zero writes**) and `ExecuteAsync`
+  (parse → reject on any error or imbalance → otherwise one draft entry via
+  `OpeningBalanceService.SaveDraftAsync`) with a `FAILED`/`IMPORTED` job row each time.
+- `/admin/import-tool` (`IMPORT_TOOL` with `VIEW/PREVIEW/IMPORT_CSV`): CSV upload, branch/date,
+  preview table with per-row errors and totals, execute button gated on a clean balanced preview,
+  and the import-job history.
+- Login hardening (7E): built-in ASP.NET Core rate limiter — **10 requests/minute per IP** on
+  `/auth/*` and `/api/v1/auth/*` returning `429` beyond the limit (no new package).
+- `docs/PHASE7-RUNBOOK-AR.md` (7F): deploy order (`--migrate` first), health checks, backup cron via
+  `fn_record_backup`, restore drill, rollback matrix, pilot checklist and the quality gates.
+
+### Tests
+- 5 new tests (229 total, 0 failures): preview writes nothing (no entries, no jobs), a broken CSV
+  records a `FAILED` job without touching the ledger, an unbalanced CSV is rejected, a balanced CSV
+  saves exactly one draft entry and an `IMPORTED` job with matching totals, and the admin holds the
+  import permissions.
+- Live checks: `--migrate` applied `0045` (exit 0); `/admin/import-tool` returned `200`; twelve rapid
+  login attempts returned `401 ×9` then **`429 ×3`**, proving the limiter works.
+
+
+## 2026-10-31 — Phase 7 (part 1): migration CLI, backup log, system-health screen
+
+### Added
+- `--migrate` command-line path (`MigrationCli`): runs DbUp once and exits with a status code
+  (`MIGRATIONS_OK applied=N total=N` / exit 0, or `MIGRATIONS_FAILED error=…` / exit 1) so CI/CD can
+  apply migrations before switching the app version. `Program.cs` itself stays free of the
+  infrastructure layer (architecture test enforced).
+- Migration `0044`: `backup_log` (status/kind checks, "finished implies finish time") plus
+  `fn_record_backup(...)` for the **external** `pg_dump` cron; the UI never executes system commands.
+- `BackupLogRepository` (read-only list/last) and `SystemHealthRepository` (server version, database
+  size, table count, queries running longer than 30 s, last backup).
+- `SystemHealthService` with the `SYSTEM_HEALTH` screen permission and `/admin/system-health`:
+  status cards, pending-migration names, and the backup log table.
+
+### Tests
+- 4 new tests (224 total, 0 failures): a recorded backup appears in the log, an inconsistent backup
+  row is rejected by the check constraint, the snapshot reports real database facts with **zero
+  pending migrations**, and the backup list is newest-first.
+- Live check: `--migrate` applied `0044` and exited 0; after `fn_record_backup(...)`,
+  `/admin/system-health` answered `200` and rendered the backup row.
+
+
+## 2026-10-31 — Phase 6B: `bi` analytics schema (read-only, refreshed)
+
+### Added
+- Migration `0043`: schema `bi` with three materialized views — `sales_daily`,
+  `stock_value_by_warehouse`, `party_balances_monthly` — each with a **unique index** (required by
+  `REFRESH … CONCURRENTLY`), plus `bi.fn_refresh_all()` for a plain refresh.
+- Role `bi_reader` (`NOLOGIN`) with `USAGE` on `bi`, `SELECT` on its objects and
+  `ALTER DEFAULT PRIVILEGES`; it has **no** rights on `public` (asserted by tests).
+- `BiRepository`: read the views, `RefreshAsync` (plain) and `RefreshConcurrentlyAsync`
+  (three statements, each in its own implicit transaction).
+- `BiRefreshWorker` (`BackgroundService`, `Bi:Enabled/IntervalMinutes`, default every 15 min) that
+  refreshes concurrently so readers are never blocked.
+
+### Tests
+- 4 new tests (220 total, 0 failures): views reflect the source after refresh, concurrent refresh
+  works and picks up new rows, the stock-value view is readable, and `bi_reader` can select inside
+  `bi` but cannot insert/update/delete there nor read `public.users`.
+- Live check: migration `0043` applied, `bi.sales_daily` matched the source row count after the
+  worker's startup refresh, and `bi_reader` privileges were `t` for `bi` and `f` for `public.users`.
+
+
+## 2026-10-31 — Phase 6E: message outbox + retry worker
+
+### Added
+- Migration `0042`: `message_outbox` with channel/status checks, a **partial unique index on
+  `dedupe_key`** (no duplicate messages on retry), and a partial index on the due queue.
+- `MessageOutboxRepository`: idempotent `EnqueueAsync`, `ClaimDueAsync` using
+  `FOR UPDATE SKIP LOCKED` with `next_attempt_at` as a lease, `MarkSent`/`MarkFailed`, status counts.
+- `OutboxService` (validation before the queue) and `IMessageSender` with a `LoggingMessageSender`
+  demo provider that masks the recipient — the single seam to replace with a real SMS/WhatsApp
+  provider (X-15).
+- `OutboxDispatcher` (`BackgroundService`): claims a batch, sends, marks sent, or records the failure
+  with exponential backoff (60s, 120s, 240s … capped at 1h) until `MaxAttempts` makes it `FAILED`.
+  Configurable through the `Outbox` section (`Enabled/PollSeconds/BatchSize/MaxAttempts`).
+
+### Tests
+- 12 new tests (216 total, 0 failures): dedupe replay, validation, lease-once semantics,
+  lease expiry, backoff scheduling, terminal failure after max attempts, exponential backoff table,
+  plus dispatcher success/failure paths against a fake provider.
+- Live check: migration `0042` applied, a queued WhatsApp message was picked up by the running
+  worker and moved to `SENT` with `sent_at` set, and replaying the same `dedupe_key` inserted nothing.
+
+
+## 2026-10-31 — Phase 6C: sales daily totals + dashboard under 300 ms
+
+### Added
+- Migration `0041`: `sales_daily_totals` keyed by `(day, branch_id)` with invoice/return counters,
+  net/tax/gross/COGS columns and a `day` index.
+- The totals row is upserted **inside the invoice posting transaction**
+  (`SalesInvoiceRepository.DailyTotals.cs`), so it commits or rolls back with the posting; returns
+  subtract the same aggregates (`sign = -1`).
+- `DashboardRepository` reads only aggregates: today/month sales from `sales_daily_totals`, stock
+  value from `stock_balances` (branch-scoped through `warehouse_branches`) and receivables from
+  `party_balances` — constant-cost queries independent of invoice volume.
+- `DashboardService` (dashboard permission + branch scope) and KPI cards on `/` and the new
+  `/dashboard` route: sales today, invoices today, month sales, gross margin, stock value,
+  receivables.
+
+### Tests
+- 3 new tests (204 total, 0 failures): posting updates the totals and the dashboard, a failed posting
+  leaves **no** totals row (atomicity), and a measured read over 180 days × 3 branches stays under
+  the 300 ms budget while matching the SQL expectations.
+- Live check: migration `0041` applied, `/dashboard` and `/` answer `200` with the KPI block.
+
+
+## 2026-10-31 — Phase 6D: internal notifications (bell, center, broadcaster)
+
+### Added
+- Migration `0040`: `notifications` targeting **either** a user **or** a role (XOR check), severity
+  check, JSON-object payload check, and partial indexes for unread lookups.
+- `NotificationRepository`: visibility = direct + role-based (`user_roles`), unread counter,
+  mark-read / mark-all-read / clear, and role member resolution.
+- `NotificationService`: permission-guarded read/mark/clear plus a trusted internal `SendAsync` used
+  by other services; the bell counter degrades to zero (no exception) for users without the screen.
+- `NotificationBroadcaster` (singleton): per-user subscriptions returning `IDisposable`, publishing
+  to every open circuit, and releasing handlers on dispose (no leak — asserted by a test).
+- UI: bell with an unread badge in `HeaderBar` (subscribes/disposes correctly) and
+  `/notifications/center` with icon/severity, mark-all-read, clear-all and live refresh.
+- Registered as the `NOTIFICATIONS` screen (`VIEW/MARK_AS_READ/CLEAR_ALL`).
+
+### Tests
+- 6 new tests (201 total, 0 failures): direct + role visibility (members only), unread counter,
+  mark-read/mark-all/clear, target XOR validation, broadcaster delivery + dispose release, and
+  role broadcast reaching every member.
+- Live check: migration `0040` applied, `/notifications/center` answers `200`, and the bell link
+  renders in the header.
+
+
+## 2026-10-31 — Phase 6A: reports center, saved filters, CSV/XLSX export
+
+### Added
+- Migration `0039`: `saved_report_filters` with `UNIQUE (user_id, report_key, filter_name)`,
+  a JSON-object check constraint, a report-key format check and a lookup index.
+- `ReportCatalog` (Core) is the single approved list of reports, each bound to the screen code that
+  guards it, so `/reports/center` only offers what the user may open.
+- `ReportCenterService`: list approved reports by permission, save/apply/delete per-user filters
+  (upsert instead of duplicates), and export stock balances to CSV/XLSX.
+- `ReportExporter`: RFC4180 CSV with a UTF-8 BOM (Arabic opens correctly in Excel) and a hand-built
+  OOXML `xlsx` package via `System.IO.Compression` only — no `System.IO.Packaging`, no new package
+  (X-01). Numeric cells are written as numbers, strings are XML-escaped, sheet names are sanitised
+  and truncated to 31 characters.
+- `/reports/center` screen: report tiles, warehouse/zero-balance filter, CSV/XLSX/print buttons and
+  saved-filter management, registered in `AppRegistry` with `VIEW/SAVE_FILTER/DELETE_FILTER/
+  EXPORT_CSV/EXPORT_XLSX/PRINT`; `wwwroot/js/reports.js` performs the download.
+- `AppRegistry` split into `AppRegistry.Reports.cs` to keep the 300-line cap.
+
+### Tests
+- 16 new tests (195 total, 0 failures): export escaping/BOM/zip layout/number cells/column names,
+  filter upsert + ownership + validation, and report visibility by permission.
+- Live check: migration `0039` applied, `/reports/center` answers `200` with the Arabic title and
+  tiles, and `js/reports.js` is served.
+
+
+## 2026-10-31 — Phase 3 gate + migration 0038 (concurrency, idempotency)
+
+### Added
+- Migration `0038`: `stock_documents.idempotency_key` (unique per branch, partial index) and
+  `updated_by` on `stock_documents`/`stocktakes`; the append-only ledger tables deliberately stay
+  without `updated_by` (documented inside the script).
+- Client retries are now safe: `CreateDraftAsync` relies on
+  `ON CONFLICT (branch_id, idempotency_key) DO NOTHING` and returns the existing document, and
+  `StockDocumentService.SaveAsync` short-circuits a replayed key before writing an audit row.
+- Concurrency gate (Phase 3) with 8 scenarios; the close path is now atomic: the closure write and
+  the period status update both reject **inside the same SQL statement** when an unposted stock
+  document exists in the scope, so posting cannot slip between the check and the closure.
+- `IsolatedDatabaseFactory` (`IsolatedDb` in tests): creates, migrates, seeds and drops a dedicated
+  database per concurrency scenario, bounded pool included.
+- Connection hygiene: `CreateDraftAsync`/`UpdateDraftAsync` no longer hold a write connection while
+  reading the document back (this was halving the practical throughput under load).
+
+### Tests
+- 14 new tests (179 total, 0 failures): idempotent replay ×4, concurrent double-posting, 50
+  concurrent receipts on an isolated database (numbers + balance + value), post-vs-close race ×5,
+  company close blocked by an open branch scope, reopen requires a reason and records an event,
+  full rollback of a failed posting, refresh-token single use/logout, and Arabic/English key parity.
+
+
+## 2026-10-31 — Phase 1 + 2.1 + 2.2: forced password change, lookup layer, display formatter
+
+### Added
+- Migration `0036`: `users.must_change_password` + `password_changed_at`; the seeded default
+  `Admin@123` account is flagged automatically.
+- Forced password change on first sign-in: `LoginResult`/`SessionUser`/`ActorContext` carry the flag,
+  `PasswordChangeGate` blocks every route and API except `/change-password`, and `MainLayout`
+  redirects internal Blazor navigation (a circuit navigation never reaches the middleware).
+  Admin-initiated resets (`UserService.ResetPasswordAsync`) now force a change at the next login.
+- Migration `0037`: `app_settings.time_zone` (IANA, default `Africa/Cairo`), validated on save
+  (`validation.time_zone`) and editable in `/settings/general`.
+- `IDisplayFormatter` (date/time/number) reads the configured formats and zone and converts the
+  stored UTC values; it replaces every `.ToLocalTime()` in the UI (which depended on the server
+  time zone — UTC in the container — and disagreed with the hard-coded `Africa/Cairo` in the audit
+  screen).
+- `LookupService` in `Ubp.Application`: partners/items/warehouses/item categories for pickers with
+  branch scoping from `ActorContext`, replacing direct repository injection in 7 UI files.
+- `TableInfo`/`ColumnInfo`/`RowPage` moved from the repository layer to `Ubp.Core.Models`, so the
+  database admin screen no longer imports `Ubp.Infrastructure`.
+- 3 architectural tests: UI must not import `Ubp.Infrastructure`, `Ubp.Infrastructure` is confined
+  to `Startup` and known adapters, and every source file stays ≤ 300 lines (the CI gate now has a
+  test-level twin). The first run caught a 7th violating file (`PriceListItemsDialog.razor`).
+
+### Tests
+- 24 new tests (165 total, 0 failures) on a real PostgreSQL: forced-change flow, gate rules,
+  display formatting/zone fallback, settings round-trip and validation, plus the architecture suite.
+- Live verification: login returns `mustChangePassword: true`, a page request answers
+  `302 → /change-password`, `/api/v1/system/me` stays allowed, any other API answers
+  `403 {"error":"auth.password_change_required"}`, and normal access resumes once the flag clears.
+
+
+## 2026-10-31 — Phase 0: security, CI/CD and startup guards
+
+### Security
+- Removed the live Neon connection string (and its `neondb_owner` password) from
+  `src/Ubp.Web/appsettings.json`. Configuration now ships no secrets and no connection defaults;
+  local values live in `appsettings.Development.json` and production values come from the
+  environment/Secrets.
+- `DatabaseOptions` no longer forces `Trust Server Certificate=true` when converting a
+  `postgresql://` URL, and it no longer swallows parsing errors. `sslmode` and `channel_binding`
+  are mapped explicitly (`require` → `VerifyFull`) — see `docs/EXCEPTIONS.md` X-02.
+- `BootstrapOptions.SuperAdminPassword` has no default value any more; `DataSeeder` refuses to
+  create the Super Admin when the password is missing or shorter than 12 characters.
+- The applied migration `0009_seed.sql` seeds `admin` with the well-known `Admin@123` hash (it is
+  never edited — G1). `DataSeeder` now detects that exact hash and replaces it with the configured
+  `Bootstrap:SuperAdminPassword`, so the documented knob finally works on a fresh database; when no
+  strong password is configured it logs a Critical instead of rotating silently.
+- `docker compose`: Postgres is published on `127.0.0.1` only, and `SUPER_ADMIN_PASSWORD` is a
+  required variable (no `Admin@123` fallback).
+- Startup validation now uses the standard `IValidateOptions<T>` + `ValidateOnStart()` pattern
+  (`Ubp.Web/Startup/Validation`) and runs before any database access. Production rejects the
+  database owner role for the runtime connection, well-known passwords, development JWT keys and
+  a transaction pooler for the migration connection (X-03).
+- Public health probe reduced to `{"status":"healthy|unhealthy"}`: no server name, database name or
+  table count; it returns `503` when the database is unreachable, caches the result for 15 seconds,
+  and a database-free `/health/live` was added (X-07).
+- Data Protection key ring can be persisted to disk (`DataProtection:KeyRingPath`), wired in
+  `docker-compose.yml` to `/app/keys` so cookie/token keys survive restarts (X-09).
+
+### CI/CD
+- `.github/workflows/ci.yml` added — the previous `ci/ci.yml` was outside `.github/workflows`, so
+  the pipeline never ran. It keeps the 300-line gate and adds a guard that fails on committed
+  build output or committed database credentials, plus concurrency and a job timeout.
+- The same file is committed as `docs/ci-workflow.yml` because the automation token used here has
+  no `workflows` permission: copy it to `.github/workflows/ci.yml` in the GitHub UI (or push it
+  with a token that has the `workflow` scope) to activate the pipeline.
+
+### Repository hygiene
+- `.gitattributes` added (line-ending normalisation, binary document types).
+- Removed the tracked Word lock file `0- Plan/~$Foundation.docx`.
+
+### Tests
+- 10 new tests (9 in `StartupOptionsTests` without a database + 1 asserting the `0009` default
+  password is neutralised) — 131 → 141 total.
+
+
 ## 2026-10-24 — Fix: DateTimeOffset offsets when writing timestamptz
 
 ### Fixed

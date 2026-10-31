@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@using Ubp.Web.Security
 @inject UserContext UserContext
 @inject SettingsService Settings
 @inject BranchService Branches
@@ -96,6 +97,12 @@
     {
         _actor = await UserContext.GetAsync();
         if (_actor is null) return;
+        if (_actor.MustChangePassword &&
+            !PasswordChangeGate.IsChangePasswordRoute(Navigation.ToBaseRelativePath(Navigation.Uri)))
+        {
+            Navigation.NavigateTo(PasswordChangeGate.ChangePasswordPath);
+            return;
+        }
         var settings = await Settings.GetAsync();
         _companyName = settings.CompanyName;
         _logoUrl = settings.LogoUrl;

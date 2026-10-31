@@ -46,6 +46,7 @@ public sealed class UserContext
             Name = session.User.Name,
             IsAdmin = session.User.IsAdmin,
             IsSuperAdmin = session.User.IsSuperAdmin,
+            MustChangePassword = session.MustChangePassword,
             Language = session.UserLanguage,
             CurrentBranchId = session.BranchId,
             AllowedBranchIds = session.BranchIds,

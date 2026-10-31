@@ -41,47 +41,70 @@ public sealed partial class PeriodRepository
             "DELETE FROM fiscal_periods WHERE id = @id", new { id }, cancellationToken: ct)) > 0;
     }
 
-    public async Task SetStatusAsync(Guid id, string status, Guid userId, string? reason,
+    public async Task<bool> SetStatusAsync(Guid id, string status, Guid userId, string? reason,
         CancellationToken ct = default)
     {
         const string sql = """
-            UPDATE fiscal_periods SET
+            UPDATE fiscal_periods p SET
                 status = @status,
-                closed_at = CASE WHEN @status = 'CLOSED' THEN now() ELSE closed_at END,
-                closed_by = CASE WHEN @status = 'CLOSED' THEN @userId ELSE closed_by END,
-                reopened_at = CASE WHEN @status = 'OPEN' THEN now() ELSE reopened_at END,
-                reopened_by = CASE WHEN @status = 'OPEN' THEN @userId ELSE reopened_by END,
-                reopen_reason = CASE WHEN @status = 'OPEN' THEN @reason ELSE reopen_reason END
-            WHERE id = @id
+                closed_at = CASE WHEN @status = 'CLOSED' THEN now() ELSE p.closed_at END,
+                closed_by = CASE WHEN @status = 'CLOSED' THEN @userId ELSE p.closed_by END,
+                reopened_at = CASE WHEN @status = 'OPEN' THEN now() ELSE p.reopened_at END,
+                reopened_by = CASE WHEN @status = 'OPEN' THEN @userId ELSE p.reopened_by END,
+                reopen_reason = CASE WHEN @status = 'OPEN' THEN @reason ELSE p.reopen_reason END
+            WHERE p.id = @id
+              AND (@status <> 'CLOSED' OR NOT EXISTS (
+                    SELECT 1 FROM stock_documents d
+                    WHERE d.status IN ('DRAFT', 'PARTIALLY_RECEIVED')
+                      AND d.doc_date BETWEEN p.start_date AND p.end_date))
+            RETURNING p.id
             """;
         await using var connection = await _factory.OpenAsync(ct);
-        await connection.ExecuteAsync(new CommandDefinition(sql,
-            new { id, status, userId, reason }, cancellationToken: ct));
+        return await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(sql,
+            new { id, status, userId, reason }, cancellationToken: ct)) is not null;
     }
 
-    public async Task UpsertClosureAsync(Guid periodId, string scopeType, Guid? branchId,
+    public async Task<bool> UpsertClosureAsync(Guid periodId, string scopeType, Guid? branchId,
         string moduleCode, bool closed, Guid userId, string? reason, CancellationToken ct = default)
     {
         const string sql = """
-            INSERT INTO period_scope_closures
-                (period_id, scope_type, branch_id, module_code, status, closed_at, closed_by)
-            VALUES
-                (@periodId, @scopeType, @branchId, @moduleCode, @status, now(), @userId)
-            ON CONFLICT ON CONSTRAINT ux_period_scope
-            DO UPDATE SET
-                status = EXCLUDED.status,
-                closed_at = CASE WHEN EXCLUDED.status = 'CLOSED' THEN now() ELSE period_scope_closures.closed_at END,
-                closed_by = CASE WHEN EXCLUDED.status = 'CLOSED' THEN @userId ELSE period_scope_closures.closed_by END,
-                reopened_at = CASE WHEN EXCLUDED.status = 'OPEN' THEN now() ELSE period_scope_closures.reopened_at END,
-                reopened_by = CASE WHEN EXCLUDED.status = 'OPEN' THEN @userId ELSE period_scope_closures.reopened_by END,
-                reopen_reason = CASE WHEN EXCLUDED.status = 'OPEN' THEN @reason ELSE period_scope_closures.reopen_reason END
+            WITH applied AS (
+                INSERT INTO period_scope_closures
+                    (period_id, scope_type, branch_id, module_code, status, closed_at, closed_by)
+                SELECT @periodId, @scopeType, @branchId, @moduleCode, @status, now(), @userId
+                WHERE
+                    @status = 'OPEN'
+                    OR @moduleCode <> 'INVENTORY'
+                    OR (@scopeType = 'COMPANY' AND NOT EXISTS (
+                        SELECT 1 FROM stock_documents d
+                        JOIN fiscal_periods p ON p.id = @periodId
+                        WHERE d.status IN ('DRAFT', 'PARTIALLY_RECEIVED')
+                          AND d.doc_date BETWEEN p.start_date AND p.end_date))
+                    OR (@scopeType = 'BRANCH' AND NOT EXISTS (
+                        SELECT 1 FROM stock_documents d
+                        JOIN fiscal_periods p ON p.id = @periodId
+                        WHERE d.status IN ('DRAFT', 'PARTIALLY_RECEIVED')
+                          AND d.doc_date BETWEEN p.start_date AND p.end_date
+                          AND d.branch_id = @branchId))
+                ON CONFLICT ON CONSTRAINT ux_period_scope
+                DO UPDATE SET
+                    status = EXCLUDED.status,
+                    closed_at = CASE WHEN EXCLUDED.status = 'CLOSED' THEN now() ELSE period_scope_closures.closed_at END,
+                    closed_by = CASE WHEN EXCLUDED.status = 'CLOSED' THEN @userId ELSE period_scope_closures.closed_by END,
+                    reopened_at = CASE WHEN EXCLUDED.status = 'OPEN' THEN now() ELSE period_scope_closures.reopened_at END,
+                    reopened_by = CASE WHEN EXCLUDED.status = 'OPEN' THEN @userId ELSE period_scope_closures.reopened_by END,
+                    reopen_reason = CASE WHEN EXCLUDED.status = 'OPEN' THEN @reason ELSE period_scope_closures.reopen_reason END
+                RETURNING period_id
+            )
+            SELECT count(*)::int FROM applied
             """;
         await using var connection = await _factory.OpenAsync(ct);
-        await connection.ExecuteAsync(new CommandDefinition(sql, new
+        var applied = await connection.ExecuteScalarAsync<int>(new CommandDefinition(sql, new
         {
             periodId, scopeType, branchId, moduleCode,
             status = closed ? "CLOSED" : "OPEN", userId, reason
         }, cancellationToken: ct));
+        return applied > 0;
     }
 
     public async Task AddCheckAsync(PeriodCheckInput input, Guid userId, CancellationToken ct = default)

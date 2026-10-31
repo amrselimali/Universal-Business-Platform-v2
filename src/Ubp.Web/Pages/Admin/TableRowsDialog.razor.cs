@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ubp.Application.Services;
-using Ubp.Infrastructure.Repositories;
+using Ubp.Core.Models;
 using Ubp.Web.Services;
 
 namespace Ubp.Web.Pages.Admin;

@@ -1,9 +1,12 @@
 @page "/"
+@page "/dashboard"
 @attribute [Authorize]
 @inherits SecurePageBase
 @inject SettingsService Settings
 @inject PermissionService Permissions
 @inject BranchService Branches
+@inject DashboardService Dashboard
+@inject IDisplayFormatter Fmt
 <PageTitle>@T.T("screen.dashboard")</PageTitle>
 
 @if (Denied)
@@ -44,6 +47,34 @@ else
         </div>
     </div>
 
+    <PageHeader Title="@T.T("dashboard.kpis")" Subtitle="@T.T("dashboard.kpis_hint")" />
+    <div class="ubp-stats">
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.PointOfSale" />
+            <div><span>@T.T("dashboard.sales_today")</span><strong>@Fmt.Decimal(_kpis.Today.NetTotal)</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.Receipt" />
+            <div><span>@T.T("dashboard.invoices_today")</span><strong>@_kpis.Today.InvoiceCount</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" />
+            <div><span>@T.T("dashboard.sales_month")</span><strong>@Fmt.Decimal(_kpis.Month.NetTotal)</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" />
+            <div><span>@T.T("dashboard.margin_month")</span><strong>@Fmt.Decimal(_kpis.Month.GrossMargin)</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory2" />
+            <div><span>@T.T("dashboard.stock_value")</span><strong>@Fmt.Decimal(_kpis.StockValue)</strong></div>
+        </div>
+        <div class="ubp-stat">
+            <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" />
+            <div><span>@T.T("dashboard.receivables")</span><strong>@Fmt.Decimal(_kpis.Receivables)</strong></div>
+        </div>
+    </div>
+
     <PageHeader Title="@T.T("dashboard.shortcuts")" Subtitle="@T.T("dashboard.shortcuts_hint")" />
     <div class="ubp-shortcuts">
         @foreach (var screen in _shortcuts)
@@ -63,6 +94,8 @@ else
     private string _companyName = "";
     private string _branchName = "";
     private IReadOnlyList<ScreenDefinition> _shortcuts = Array.Empty<ScreenDefinition>();
+    private DashboardSnapshot _kpis = new(
+        new SalesKpi(0, 0, 0, 0, 0, 0), new SalesKpi(0, 0, 0, 0, 0, 0), 0, 0);
 
     protected override async Task OnLoadAsync()
     {
@@ -72,6 +105,8 @@ else
         _branchName = Actor!.CurrentBranchId is { } branchId
             ? branchOptions.FirstOrDefault(b => b.Id == branchId)?.NameAr ?? T.T("branch.none")
             : T.T("branch.none");
+
+        _kpis = await Dashboard.GetAsync(Actor!);
 
         var visible = (await Permissions.GetVisibleScreenCodesAsync(Actor!)).ToHashSet();
         _shortcuts = AppRegistry.Screens

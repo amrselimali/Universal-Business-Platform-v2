@@ -1,5 +1,6 @@
 @inject UiCulture T
 @inject NavigationManager Navigation
+@implements IDisposable
 
 <MudAppBar Elevation="0" Class="ubp-appbar" Dense="false">
     <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
@@ -49,6 +50,11 @@
             <button type="submit" class="ubp-lang-btn">@(T.Language == "ar" ? "EN" : "ع")</button>
         </form>
 
+        <MudBadge Content="@_unread" Color="Color.Error" Overlap="true" Visible="@(_unread > 0)">
+            <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit"
+                           Href="/notifications/center" title="@T.T("screen.notifications")" />
+        </MudBadge>
+
         <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
             <ActivatorContent>
                 <button type="button" class="ubp-user-btn">
@@ -85,4 +91,32 @@
     private Guid? CurrentBranchId => Actor.CurrentBranchId;
     private string CurrentPath => "/" + Navigation.ToBaseRelativePath(Navigation.Uri).TrimStart('/');
     private string Initial => (Actor.DisplayName.Length > 0 ? Actor.DisplayName[..1] : "U").ToUpperInvariant();
+}
+
+@code {
+    [Inject] private NotificationService Notifications { get; set; } = default!;
+    [Inject] private NotificationBroadcaster Broadcaster { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+
+    private int _unread;
+    private IDisposable? _subscription;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = await UserContext.GetAsync();
+        if (actor is null) return;
+
+        _unread = await Notifications.UnreadCountAsync(actor);
+        _subscription = Broadcaster.Subscribe(actor.UserId, _ =>
+        {
+            _unread++;
+            return InvokeAsync(StateHasChanged);
+        });
+    }
+
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+        _subscription = null;
+    }
 }

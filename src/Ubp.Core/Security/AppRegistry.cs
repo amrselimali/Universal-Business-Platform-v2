@@ -21,7 +21,7 @@ public sealed record ScreenDefinition(
             : $"{PermissionGroup}.{actionCode.ToLowerInvariant()}";
 }
 
-public static class AppRegistry
+public static partial class AppRegistry
 {
     public const string GroupMain = "group.main";
     public const string GroupDefinitions = "group.definitions";
@@ -35,7 +35,7 @@ public static class AppRegistry
 
     private static ScreenAction A(string code) => new(code, $"action.{code.ToLowerInvariant()}");
 
-    public static readonly IReadOnlyList<ScreenDefinition> Screens = new List<ScreenDefinition>
+    private static readonly IReadOnlyList<ScreenDefinition> CoreScreens = new List<ScreenDefinition>
     {
         new(ScreenCodes.Dashboard, "/", "Dashboard", "screen.dashboard", GroupMain,
             new[] { A(ActionCodes.View) }),
@@ -89,9 +89,6 @@ public static class AppRegistry
         new(ScreenCodes.FinancialPeriods, "/accounting/periods", "EventNote", "screen.periods", GroupDefinitions,
             new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit), A(ActionCodes.Delete),
                     A(ActionCodes.ClosePeriod), A(ActionCodes.ReopenPeriod) }),
-
-        new(ScreenCodes.StockReports, "/reports/stock", "Assessment", "screen.stock_reports", GroupReports,
-            new[] { A(ActionCodes.View) }),
 
         new(ScreenCodes.Users, "/users", "ManageAccounts", "screen.users", GroupSecurity,
             new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit), A(ActionCodes.Delete),
@@ -286,6 +283,9 @@ public static class AppRegistry
             new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Complete) },
             "sales.followups")
     };
+
+    public static readonly IReadOnlyList<ScreenDefinition> Screens =
+        CoreScreens.Concat(ReportScreens).Concat(SystemScreens).ToList();
 
     public static readonly IReadOnlyDictionary<string, ScreenDefinition> ByCode =
         Screens.ToDictionary(s => s.Code, StringComparer.OrdinalIgnoreCase);

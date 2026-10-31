@@ -82,6 +82,8 @@ public sealed class StockDocumentInput
     public Guid? ToBranchId { get; set; }
     public Guid? ToWarehouseId { get; set; }
     public string? Notes { get; set; }
+    /// <summary>مفتاح من العميل يمنع تكرار الإنشاء عند إعادة المحاولة (الترحيل 0038).</summary>
+    public string? IdempotencyKey { get; set; }
     public List<StockDocumentLineInput> Lines { get; set; } = new();
 }
 

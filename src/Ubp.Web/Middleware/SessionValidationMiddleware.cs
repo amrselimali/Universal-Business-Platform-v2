@@ -48,6 +48,23 @@ public sealed class SessionValidationMiddleware
         }
 
         context.Items["session"] = session;
+
+        if (PasswordChangeGate.IsBlocked(path, session.MustChangePassword))
+        {
+            if (path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/json; charset=utf-8";
+                await context.Response.WriteAsync(
+                    $"{{\"error\":\"{PasswordChangeGate.ErrorKey}\"}}");
+            }
+            else
+            {
+                context.Response.Redirect(PasswordChangeGate.ChangePasswordPath);
+            }
+            return;
+        }
+
         await _next(context);
     }
 
