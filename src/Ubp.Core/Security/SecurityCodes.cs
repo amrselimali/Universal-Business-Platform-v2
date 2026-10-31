@@ -25,6 +25,7 @@ public static class ScreenCodes
     public const string AuditLog = "AUDIT_LOG";
     public const string DatabaseAdmin = "DATABASE_ADMIN";
     public const string SystemHealth = "SYSTEM_HEALTH";
+    public const string ImportTool = "IMPORT_TOOL";
     public const string QaCenter = "QA_CENTER";
     public const string Units = "UNITS";
     public const string ItemCategories = "ITEM_CATEGORIES";

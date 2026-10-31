@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 7 complete: import tool, login hardening, runbook
+
+### Added
+- Migration `0045`: `import_jobs` (status/kind checks, count invariants) recording every import run.
+- `ImportService`: `PreviewAsync` (parse only — **zero writes**) and `ExecuteAsync`
+  (parse → reject on any error or imbalance → otherwise one draft entry via
+  `OpeningBalanceService.SaveDraftAsync`) with a `FAILED`/`IMPORTED` job row each time.
+- `/admin/import-tool` (`IMPORT_TOOL` with `VIEW/PREVIEW/IMPORT_CSV`): CSV upload, branch/date,
+  preview table with per-row errors and totals, execute button gated on a clean balanced preview,
+  and the import-job history.
+- Login hardening (7E): built-in ASP.NET Core rate limiter — **10 requests/minute per IP** on
+  `/auth/*` and `/api/v1/auth/*` returning `429` beyond the limit (no new package).
+- `docs/PHASE7-RUNBOOK-AR.md` (7F): deploy order (`--migrate` first), health checks, backup cron via
+  `fn_record_backup`, restore drill, rollback matrix, pilot checklist and the quality gates.
+
+### Tests
+- 5 new tests (229 total, 0 failures): preview writes nothing (no entries, no jobs), a broken CSV
+  records a `FAILED` job without touching the ledger, an unbalanced CSV is rejected, a balanced CSV
+  saves exactly one draft entry and an `IMPORTED` job with matching totals, and the admin holds the
+  import permissions.
+- Live checks: `--migrate` applied `0045` (exit 0); `/admin/import-tool` returned `200`; twelve rapid
+  login attempts returned `401 ×9` then **`429 ×3`**, proving the limiter works.
+
+
 ## 2026-10-31 — Phase 7 (part 1): migration CLI, backup log, system-health screen
 
 ### Added

@@ -38,6 +38,7 @@ app.UseAntiforgery();
 app.UseAuthentication();
 app.UseMiddleware<SessionValidationMiddleware>();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.UseSerilogRequestLogging();
 
 app.MapAuthEndpoints();

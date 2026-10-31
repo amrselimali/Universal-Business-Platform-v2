@@ -1,5 +1,20 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 7 delivered → **all planned phases complete**
+
+- `--migrate` deploy step, `backup_log` + `fn_record_backup` (external cron only),
+  `/admin/system-health`, `/admin/import-tool` (preview writes nothing, execute is all-or-nothing with
+  an `import_jobs` audit row), and login rate limiting (10/min/IP → 429).
+- `docs/PHASE7-RUNBOOK-AR.md`: deploy order, health checks, backup/restore drill, rollback matrix and
+  the pilot checklist.
+- Migrations `0001`–`0045` (44 scripts, no gaps after `0019`), 229 tests passing, zero new packages,
+  every file ≤ 300 lines.
+
+### What remains is operational, not code
+- Owner: rotate the Neon password, activate `.github/workflows/ci.yml`, branch protection, secrets,
+  `ubp_app` role, and decide on Playwright (X-08/X-12).
+- Pilot: run the checklist in the runbook against real data.
+
 ## 2026-10-31 — Phase 7 (part 1): operations surface
 
 - `--migrate` CLI for CI/CD (`MIGRATIONS_OK/FAILED` + exit code); it is the recommended deploy step

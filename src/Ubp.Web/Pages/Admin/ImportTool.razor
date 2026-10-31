@@ -1,0 +1,111 @@
+@page "/admin/import-tool"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject ImportService Importer
+@inject BranchService Branches
+@inject IDisplayFormatter Fmt
+<PageTitle>@T.T("screen.import_tool")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.import_tool")" Subtitle="@T.T("import.hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="6">
+                <InputFile OnChange="OnFileAsync" accept=".csv,text/csv" class="ubp-file-input" />
+                <MudText Typo="Typo.caption" Class="ubp-muted mt-2">
+                    @(_fileName ?? T.T("import.choose_file"))
+                </MudText>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudSelect T="Guid?" Label="@T.T("import.branch")" Variant="Variant.Outlined"
+                           Value="_branchId" ValueChanged="OnBranchChanged">
+                    @foreach (var branch in _branches)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudDatePicker @bind-Date="_entryDate" Label="@T.T("import.entry_date")"
+                               Variant="Variant.Outlined" />
+            </MudItem>
+        </MudGrid>
+
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="@(_busy || !Can(ActionCodes.Preview))"
+                       OnClick="PreviewAsync">@T.T("import.preview")</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       Disabled="@(_busy || _preview is null || _preview.Errors.Count > 0 || !_preview.IsBalanced || !Can(ActionCodes.ImportCsv))"
+                       OnClick="ExecuteAsync">@T.T("import.execute")</MudButton>
+        </div>
+
+        @if (_preview is not null)
+        {
+            <MudAlert Severity="@(_preview.Errors.Count == 0 && _preview.IsBalanced ? Severity.Success : Severity.Warning)"
+                      Variant="Variant.Outlined" Class="mt-3">
+                @T.T("import.rows"): @_preview.Lines.Count · @T.T("import.debit"): @Fmt.Number(_preview.TotalDebit)
+                · @T.T("import.credit"): @Fmt.Number(_preview.TotalCredit)
+                · @T.T("import.difference"): @Fmt.Number(_preview.Difference)
+            </MudAlert>
+
+            @if (_preview.Errors.Count > 0)
+            {
+                <MudSimpleTable Dense="true" Class="mt-2">
+                    <thead><tr><th>@T.T("import.row")</th><th>@T.T("import.error")</th><th>@T.T("import.detail")</th></tr></thead>
+                    <tbody>
+                    @foreach (var error in _preview.Errors.Take(50))
+                    {
+                        <tr>
+                            <td>@error.Row</td>
+                            <td>@T.T(error.Key)</td>
+                            <td>@(error.Detail ?? "—")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        }
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="ubp-card mt-4">
+        <MudText Typo="Typo.h6" Class="mb-3">@T.T("import.jobs")</MudText>
+        @if (_jobs.Count == 0)
+        {
+            <MudText Class="ubp-muted">@T.T("import.no_jobs")</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true">
+                <thead>
+                <tr>
+                    <th>@T.T("import.created")</th><th>@T.T("import.file")</th><th>@T.T("import.status")</th>
+                    <th>@T.T("import.rows")</th><th>@T.T("import.debit")</th><th>@T.T("import.credit")</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var job in _jobs)
+                {
+                    <tr>
+                        <td>@Fmt.DateTime(job.CreatedAt)</td>
+                        <td>@(job.FileName ?? "—")</td>
+                        <td>@job.Status</td>
+                        <td>@job.RowsImported / @job.RowsTotal</td>
+                        <td>@Fmt.Number(job.TotalDebit)</td>
+                        <td>@Fmt.Number(job.TotalCredit)</td>
+                    </tr>
+                }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+}

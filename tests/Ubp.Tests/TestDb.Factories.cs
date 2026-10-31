@@ -85,6 +85,9 @@ public sealed partial class TestDb
         new(new SystemHealthRepository(Factory), new BackupLogRepository(Factory),
             new Ubp.Infrastructure.Migrations.MigrationRunner(Options), Permissions());
 
+    public ImportService Imports() =>
+        new(new ImportJobRepository(Factory), OpeningBalanceService(), Permissions());
+
     public SettingsService Settings() =>
         new(SettingsRepo, AuditRepo, Permissions(), Cache);
 

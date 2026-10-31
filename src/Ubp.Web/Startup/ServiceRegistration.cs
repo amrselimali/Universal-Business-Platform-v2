@@ -41,6 +41,7 @@ public static class ServiceRegistration
         services.AddHostedService<OutboxDispatcher>();
         services.Configure<BiOptions>(configuration.GetSection("Bi"));
         services.AddHostedService<BiRefreshWorker>();
+        services.AddUbpRateLimiting();
 
         AddRepositories(services);
         AddApplicationServices(services);
@@ -184,6 +185,8 @@ public static class ServiceRegistration
         services.AddScoped<IBackupLogRepository, BackupLogRepository>();
         services.AddScoped<ISystemHealthRepository, SystemHealthRepository>();
         services.AddScoped<SystemHealthService>();
+        services.AddScoped<IImportJobRepository, ImportJobRepository>();
+        services.AddScoped<ImportService>();
         services.AddScoped<IMessageOutboxRepository, MessageOutboxRepository>();
         services.AddScoped<OutboxService>();
         services.AddScoped<IMessageSender, LoggingMessageSender>();

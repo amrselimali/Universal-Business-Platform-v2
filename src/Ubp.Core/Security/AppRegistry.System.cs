@@ -12,6 +12,9 @@ public static partial class AppRegistry
     private static IReadOnlyList<ScreenDefinition> SystemScreens => new List<ScreenDefinition>
     {
         new(SystemHealth, "/admin/system-health", "MonitorHeart", "screen.system_health",
-            GroupSystem, new[] { S(View) })
+            GroupSystem, new[] { S(View) }),
+
+        new(ScreenCodes.ImportTool, "/admin/import-tool", "UploadFile", "screen.import_tool",
+            GroupSystem, new[] { S(View), S(Preview), S(ImportCsv) })
     };
 }
