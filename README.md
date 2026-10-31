@@ -97,6 +97,20 @@ DataProtection__KeyRingPath="/app/keys"
 
 ## 3. قاعدة البيانات والترحيلات
 
+### عند فشل البناء: `MSB3027 / MSB3021 … file is locked by Ubp.Web`
+هذا يعني أن **التطبيق ما زال يعمل** (أو أن Visual Studio يحتجز ملفات `bin\Debug`)، فمجلّد
+`src/Ubp.Web/bin/Debug/net10.0` غير قابل للكتابة. ليس خطأ في الكود.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\stop-app.ps1 -Rebuild
+```
+أو يدوياً:
+- في Visual Studio: **Shift+F5** (Stop Debugging) — أو أغلق VS تماماً.
+- في الطرفية: `Get-Process Ubp.Web | Stop-Process -Force` ثم `dotnet build-server shutdown`.
+- وأعد البناء: `dotnet build UniversalBusinessPlatform.slnx`.
+- لتشغيل أوامر CLI (`--check-db` / `--migrate`) بينما VS مغلق: استخدم `dotnet run --no-build`
+  إن كنت قد بنيت للتو، وإلا فسيحاول البناء ويكتشف القفل.
+
 ### عند ظهور `SocketException: actively refused`
 معناها: **لا يوجد PostgreSQL يستمع على العنوان المطلوب**. أسرع حل جاهز:
 
