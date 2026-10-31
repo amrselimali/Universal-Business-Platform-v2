@@ -101,13 +101,27 @@ DataProtection__KeyRingPath="/app/keys"
 معناها: **لا يوجد PostgreSQL يستمع على العنوان المطلوب**. تحقق بالترتيب:
 
 1. هل الحاوية تعمل؟ `docker compose ps` ثم `docker compose up -d postgres`.
-2. هل المنفذ مفتوح على جهازك؟
+   ⚠️ **قبل أول أمر compose** يجب أن يوجد ملف `.env` (انسخه: `cp .env.example .env`
+   أو `Copy-Item .env.example .env` في PowerShell)، لأن `docker-compose.yml` يشترط
+   `JWT_KEY` و`SUPER_ADMIN_PASSWORD` لخدمة التطبيق — وغيابهما يوقف **كل** أوامر compose حتى
+   `up -d postgres`.
+2. هل Docker Desktop يعمل أصلاً؟ (على Windows: أيقونة الحوت في شريط المهام يجب ألا تكون متوقفة).
+3. هل المنفذ مفتوح على جهازك؟
    - Linux/macOS: `nc -vz 127.0.0.1 5432`
    - Windows: `Test-NetConnection 127.0.0.1 -Port 5432`
-3. **استخدم `Host=127.0.0.1` لا `localhost`**: الـ compose ينشر `127.0.0.1:5432` (IPv4 فقط)،
+4. **استخدم `Host=127.0.0.1` لا `localhost`**: الـ compose ينشر `127.0.0.1:5432` (IPv4 فقط)،
    و`localhost` عند .NET على Windows قد يُحلّ إلى `::1` فيُرفض الاتصال.
-4. اسم المضيف `postgres` يعمل **داخل** شبكة compose فقط، لا من Visual Studio على الجهاز المضيف.
-5. لا تربط على قاعدة Neon من التطوير بلا داعٍ؛ إن استخدمتها فاستخدم الرابط المباشر (لا pooler) للترحيل.
+5. اسم المضيف `postgres` يعمل **داخل** شبكة compose فقط، لا من Visual Studio على الجهاز المضيف.
+6. لو كان عندك PostgreSQL مثبّت على الجهاز ويحتل المنفذ 5432، ستفشل الحاوية بـ
+   `port is already allocated` — أوقف الخدمة (`Get-Service *postgres*` → `Stop-Service`) أو غيّر منفذ النشر.
+
+**بديل سريع بلا `.env` ولا compose** (حاوية قاعدة فقط):
+```bash
+docker run -d --name ubp-postgres \
+  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=ubp \
+  -p 127.0.0.1:5432:5432 postgres:17
+docker exec ubp-postgres createdb -U postgres ubp_qa
+```
 
 عند فشل الاتصال يرجع الـ runner رسالة واضحة بالشكل:
 `MIGRATION_CONNECTION_FAILED target=127.0.0.1:5432/ubp hint=… detail=…` (بلا أي كلمة مرور).
