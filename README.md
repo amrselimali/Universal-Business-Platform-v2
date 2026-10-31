@@ -176,6 +176,14 @@ docker exec ubp-postgres createdb -U postgres ubp_qa
 
 ---
 
+### أسرع طريق للعودة للعمل (بيانات Neon موجودة)
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\set-db.ps1
+```
+يقرأ رابط القاعدة السابق من تاريخ git، يحوّل الترحيل إلى العنوان المباشر (بدون `-pooler`)، يحفظ
+الأسرار في `user-secrets` (خارج المستودع)، يفحص الاتصال بـ `--check-db`، ثم يطبّق الترحيلات.
+لبذرة قاعدة محلية نظيفة بدل Neon: `scripts\dev-db.ps1`.
+
 ## 4. الترقية من نسخة كانت متصلة بـ Neon (سبب «كان شغّالاً وتوقّف»)
 
 النسخة القديمة كانت تحمل رابط Neon مباشرة داخل `src/Ubp.Web/appsettings.json`، فكان التطبيق
