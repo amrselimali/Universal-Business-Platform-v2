@@ -28,9 +28,25 @@ public static class StandardReportKeys
     public const string ShiftVariance = "treasury.shift_variance";
     public const string DeadStock = "stock.dead_stock";
     public const string SupplierPerformance = "purchasing.supplier_performance";
+    public const string StockAging = "stock.aging";
+    public const string StockMovements = "stock.movements";
+    public const string StockFlow = "stock.flow";
+    public const string StockValueByWarehouse = "stock.value_by_warehouse";
+    public const string Commissions = "hr.commissions";
+    public const string BookingConversion = "sales.booking_conversion";
+    public const string UnappliedAdvances = "sales.unapplied_advances";
+    public const string CreditLimits = "sales.credit_limits";
+    public const string FollowUps = "sales.followups";
+    public const string DepreciationSchedule = "assets.depreciation_schedule";
+    public const string DueMaintenance = "assets.due_maintenance";
+    public const string DailySales = "sales.daily";
+    public const string PartyBalances = "bi.party_balances";
 
     public static readonly IReadOnlyList<string> All =
-        [Vat, ItemMargin, CustomerMeter, Reservations, ShiftVariance, DeadStock, SupplierPerformance];
+        [Vat, ItemMargin, CustomerMeter, Reservations, ShiftVariance, DeadStock, SupplierPerformance,
+         StockAging, StockMovements, StockFlow, StockValueByWarehouse, Commissions, BookingConversion,
+         UnappliedAdvances, CreditLimits, FollowUps, DepreciationSchedule, DueMaintenance, DailySales,
+         PartyBalances];
 }
 
 /// <summary>معاملات تشغيل أي تقرير قياسي.</summary>

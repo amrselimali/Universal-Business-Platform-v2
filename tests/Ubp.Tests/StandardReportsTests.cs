@@ -122,4 +122,17 @@ public sealed class StandardReportsTests : IClassFixture<TestDb>
             Assert.NotEmpty(table.Columns);
         }
     }
+
+    [Fact]
+    public async Task Every_standard_report_executes_and_returns_columns()
+    {
+        var actor = await _db.AdminActorAsync();
+        var service = _db.StandardReports();
+        foreach (var key in Ubp.Core.Models.StandardReportKeys.All)
+        {
+            var table = await service.RunAsync(actor, key,
+                new ReportFilter(DateTime.Today.AddMonths(-1), DateTime.Today));
+            Assert.NotEmpty(table.Columns);
+        }
+    }
 }

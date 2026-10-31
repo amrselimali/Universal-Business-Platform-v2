@@ -27,6 +27,25 @@ public interface IStandardReportRepository
     /// <summary>أداء الموردين (فواتير الشراء وإجمالياتها).</summary>
     Task<ReportTable> SupplierPerformanceAsync(DateOnly from, DateOnly to, Guid[] branchIds,
         CancellationToken ct = default);
+    Task<ReportTable> StockAgingAsync(DateOnly asOf, Guid[] branchIds, CancellationToken ct = default);
+    Task<ReportTable> StockMovementsAsync(DateOnly from, DateOnly to, Guid[] branchIds,
+        CancellationToken ct = default);
+    Task<ReportTable> StockFlowAsync(DateOnly from, DateOnly to, Guid[] branchIds,
+        CancellationToken ct = default);
+    Task<ReportTable> StockValueByWarehouseAsync(Guid[] branchIds, CancellationToken ct = default);
+    Task<ReportTable> CommissionsAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
+    Task<ReportTable> BookingConversionAsync(DateOnly from, DateOnly to, Guid[] branchIds,
+        CancellationToken ct = default);
+    Task<ReportTable> UnappliedAdvancesAsync(Guid[] branchIds, CancellationToken ct = default);
+    Task<ReportTable> CreditLimitsAsync(Guid[] branchIds, CancellationToken ct = default);
+    Task<ReportTable> FollowUpsAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
+    Task<ReportTable> AssetDepreciationAsync(Guid[] branchIds, CancellationToken ct = default);
+    Task<ReportTable> DueMaintenanceAsync(DateOnly asOf, Guid[] branchIds, int days = 30,
+        CancellationToken ct = default);
+    Task<ReportTable> DailySalesAsync(DateOnly from, DateOnly to, Guid[] branchIds,
+        CancellationToken ct = default);
+    Task<ReportTable> PartyBalancesMonthlyAsync(DateOnly from, DateOnly to,
+        CancellationToken ct = default);
 }
 
 /// <summary>
