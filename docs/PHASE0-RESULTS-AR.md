@@ -48,7 +48,8 @@
 | `0039` | `saved_report_filters` (المرحلة 6A) | **منفَّذ** (2026-10-31) |
 | `0040` | `bi` · `sales_daily_totals` · `notifications` · `message_outbox` | `notifications` **منفَّذ** · الباقي لم يُنفَّذ |
 | `0041` | `sales_daily_totals` (6C) | **منفَّذ** (2026-10-31) |
-| `0042+` | `message_outbox` (6E) · `bi` (6B) | لم يُنفَّذ |
+| `0042` | `message_outbox` (6E) | **منفَّذ** (2026-10-31) |
+| `0043+` | مخطط `bi` + Materialized Views + `bi_reader` (6B) | لم يُنفَّذ |
 
 > ملاحظة: `0019` غير موجود في التسلسل (فجوة قديمة لا تُملأ، ولا يُعاد استخدام رقمها).
 

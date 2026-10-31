@@ -1,5 +1,15 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 6E delivered (outbox + retry worker)
+
+- Migration `0042`: `message_outbox` (dedupe unique index, due index, status/channel checks).
+- `OutboxDispatcher` background service with lease-based claiming (`FOR UPDATE SKIP LOCKED`),
+  exponential backoff (60s → 1h cap) and a terminal `FAILED` state; provider behind
+  `IMessageSender` (currently a logging stub, X-15).
+- 216 tests pass (12 new). Live: a queued WhatsApp message was delivered to the stub provider and
+  marked `SENT` by the running worker; replaying the dedupe key added no row.
+- Phase 6 status: 6A ✅ · 6C ✅ · 6D ✅ · 6E ✅ — remaining: 6B (`bi` schema + materialized views).
+
 ## 2026-10-31 — Phase 6C delivered (daily totals + dashboard)
 
 - Migration `0041`: `sales_daily_totals` per `(day, branch)`; the row is written inside the invoice

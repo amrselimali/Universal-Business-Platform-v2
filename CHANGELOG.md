@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 6E: message outbox + retry worker
+
+### Added
+- Migration `0042`: `message_outbox` with channel/status checks, a **partial unique index on
+  `dedupe_key`** (no duplicate messages on retry), and a partial index on the due queue.
+- `MessageOutboxRepository`: idempotent `EnqueueAsync`, `ClaimDueAsync` using
+  `FOR UPDATE SKIP LOCKED` with `next_attempt_at` as a lease, `MarkSent`/`MarkFailed`, status counts.
+- `OutboxService` (validation before the queue) and `IMessageSender` with a `LoggingMessageSender`
+  demo provider that masks the recipient — the single seam to replace with a real SMS/WhatsApp
+  provider (X-15).
+- `OutboxDispatcher` (`BackgroundService`): claims a batch, sends, marks sent, or records the failure
+  with exponential backoff (60s, 120s, 240s … capped at 1h) until `MaxAttempts` makes it `FAILED`.
+  Configurable through the `Outbox` section (`Enabled/PollSeconds/BatchSize/MaxAttempts`).
+
+### Tests
+- 12 new tests (216 total, 0 failures): dedupe replay, validation, lease-once semantics,
+  lease expiry, backoff scheduling, terminal failure after max attempts, exponential backoff table,
+  plus dispatcher success/failure paths against a fake provider.
+- Live check: migration `0042` applied, a queued WhatsApp message was picked up by the running
+  worker and moved to `SENT` with `sent_at` set, and replaying the same `dedupe_key` inserted nothing.
+
+
 ## 2026-10-31 — Phase 6C: sales daily totals + dashboard under 300 ms
 
 ### Added

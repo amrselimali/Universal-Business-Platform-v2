@@ -37,6 +37,8 @@ public static class ServiceRegistration
         services.AddScoped<DataSeeder>();
         services.AddMemoryCache();
         services.AddUbpDataProtection(configuration);
+        services.Configure<OutboxOptions>(configuration.GetSection("Outbox"));
+        services.AddHostedService<OutboxDispatcher>();
 
         AddRepositories(services);
         AddApplicationServices(services);
@@ -176,6 +178,9 @@ public static class ServiceRegistration
         services.AddScoped<ISavedReportFilterRepository, SavedReportFilterRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<DashboardService>();
+        services.AddScoped<IMessageOutboxRepository, MessageOutboxRepository>();
+        services.AddScoped<OutboxService>();
+        services.AddScoped<IMessageSender, LoggingMessageSender>();
         services.AddSingleton<NotificationBroadcaster>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<NotificationService>();
