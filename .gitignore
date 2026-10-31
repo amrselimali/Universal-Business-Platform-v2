@@ -12,5 +12,6 @@ TestResults/
 .dotnet/
 .dev/
 .pg/
+.pg18/
 .pgdata/
 .libs/

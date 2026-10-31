@@ -1,5 +1,47 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 0: security, CI/CD and startup guards
+
+### Security
+- Removed the live Neon connection string (and its `neondb_owner` password) from
+  `src/Ubp.Web/appsettings.json`. Configuration now ships no secrets and no connection defaults;
+  local values live in `appsettings.Development.json` and production values come from the
+  environment/Secrets.
+- `DatabaseOptions` no longer forces `Trust Server Certificate=true` when converting a
+  `postgresql://` URL, and it no longer swallows parsing errors. `sslmode` and `channel_binding`
+  are mapped explicitly (`require` → `VerifyFull`) — see `docs/EXCEPTIONS.md` X-02.
+- `BootstrapOptions.SuperAdminPassword` has no default value any more; `DataSeeder` refuses to
+  create the Super Admin when the password is missing or shorter than 12 characters.
+- The applied migration `0009_seed.sql` seeds `admin` with the well-known `Admin@123` hash (it is
+  never edited — G1). `DataSeeder` now detects that exact hash and replaces it with the configured
+  `Bootstrap:SuperAdminPassword`, so the documented knob finally works on a fresh database; when no
+  strong password is configured it logs a Critical instead of rotating silently.
+- `docker compose`: Postgres is published on `127.0.0.1` only, and `SUPER_ADMIN_PASSWORD` is a
+  required variable (no `Admin@123` fallback).
+- Startup validation now uses the standard `IValidateOptions<T>` + `ValidateOnStart()` pattern
+  (`Ubp.Web/Startup/Validation`) and runs before any database access. Production rejects the
+  database owner role for the runtime connection, well-known passwords, development JWT keys and
+  a transaction pooler for the migration connection (X-03).
+- Public health probe reduced to `{"status":"healthy|unhealthy"}`: no server name, database name or
+  table count; it returns `503` when the database is unreachable, caches the result for 15 seconds,
+  and a database-free `/health/live` was added (X-07).
+- Data Protection key ring can be persisted to disk (`DataProtection:KeyRingPath`), wired in
+  `docker-compose.yml` to `/app/keys` so cookie/token keys survive restarts (X-09).
+
+### CI/CD
+- `.github/workflows/ci.yml` added — the previous `ci/ci.yml` was outside `.github/workflows`, so
+  the pipeline never ran. It keeps the 300-line gate and adds a guard that fails on committed
+  build output or committed database credentials, plus concurrency and a job timeout.
+
+### Repository hygiene
+- `.gitattributes` added (line-ending normalisation, binary document types).
+- Removed the tracked Word lock file `0- Plan/~$Foundation.docx`.
+
+### Tests
+- 9 new tests in `StartupOptionsTests` cover the startup guards and the Neon URL conversion
+  without needing a database (131 → 140 total).
+
+
 ## 2026-10-24 — Fix: DateTimeOffset offsets when writing timestamptz
 
 ### Fixed

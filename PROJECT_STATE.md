@@ -1,5 +1,33 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 0 delivered (security, CI/CD, startup guards)
+
+- The committed Neon credential (`neondb_owner` + password) was removed from
+  `src/Ubp.Web/appsettings.json`; the file now holds no secrets. **The Neon password must still be
+  rotated in the Neon console** — it remains in the git history.
+- Startup configuration validation moved to `IValidateOptions<T>` + `ValidateOnStart()`
+  (`src/Ubp.Web/Startup/Validation`) and runs before any database access; Production fails fast on
+  missing/weak settings, an owner-role runtime connection, a development JWT key or a pooler
+  migration endpoint.
+- `BootstrapOptions` ships no default password and `DataSeeder` never creates the Super Admin
+  without an explicit 12+ character password. Because the already-applied migration
+  `0009_seed.sql` seeds `admin` with the well-known `Admin@123` hash, `DataSeeder` now detects that
+  hash and replaces it with the configured `Bootstrap:SuperAdminPassword` (a Critical log is
+  emitted when no strong password is configured). The migration itself is untouched.
+- Health endpoints: `/health/live` (no database) and `/api/v1/system/health` →
+  `{"status": ...}` only, `503` on failure, cached 15 s.
+- CI now exists at `.github/workflows/ci.yml` (the old `ci/ci.yml` never ran) with the 300-line
+  gate plus a committed-secrets/build-output guard.
+- 140 automated tests (9 new, database-free) cover the startup guards; build is clean
+  (0 errors) and every source file stays ≤ 300 lines.
+- Documented decisions/exceptions: `docs/EXCEPTIONS.md` (X-01 … X-09), including deferring
+  `must_change_password` to migration `0037` and XLSX export without `System.IO.Packaging`.
+
+### Still open from Phase 0
+- Rotate the Neon password and create/verify the dedicated `ubp_app` runtime role.
+- Move the server-side `pg_dump` backup job and the `backup_log` reader to Phase 7 (unchanged).
+- Branch protection on `main` is a repository setting (not code) — enable it so merges require CI.
+
 ## 2026-10-24 — Phase 4C delivered (treasuries, vouchers, cashier shifts)
 
 - Migrations `0001`–`0028`; phases 1, 2, 3, 4A-1, 4A-2, 4B and 4C are implemented on

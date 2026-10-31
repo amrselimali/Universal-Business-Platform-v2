@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Ubp.Web.Components;
 using Ubp.Web.Endpoints;
@@ -14,6 +15,10 @@ builder.Host.UseSerilog((context, config) => config
 builder.Services.AddUbpServices(builder.Configuration);
 
 var app = builder.Build();
+
+// التحقق المعماري القياسي: يفشل الإقلاع إذا كانت الإعدادات ناقصة أو قيمة افتراضية غير آمنة.
+// يجب أن يسبق أي اتصال بقاعدة البيانات (الترحيل والتهيئة).
+app.Services.GetRequiredService<IStartupValidator>().Validate();
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {

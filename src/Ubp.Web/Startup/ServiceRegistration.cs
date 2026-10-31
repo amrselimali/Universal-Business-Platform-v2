@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MudBlazor;
 using MudBlazor.Services;
@@ -21,23 +22,21 @@ public static class ServiceRegistration
     public static IServiceCollection AddUbpServices(this IServiceCollection services,
         IConfiguration configuration)
     {
-        var db = configuration.GetSection("Database").Get<DatabaseOptions>() ?? new DatabaseOptions();
-        var jwt = configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
-        var bootstrap = configuration.GetSection("Bootstrap").Get<BootstrapOptions>() ?? new BootstrapOptions();
-        if (jwt.Key.Length < 32)
-            throw new InvalidOperationException("JWT key must be at least 32 characters.");
+        services.AddValidatedUbpOptions(configuration);
 
-        services.AddSingleton(db);
-        services.AddSingleton(jwt);
-        services.AddSingleton(bootstrap);
-        services.AddSingleton<IDbConnectionFactory>(_ => new NpgsqlConnectionFactory(db));
-        services.AddSingleton(_ => new QaConnectionFactory(db));
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<DatabaseOptions>>().Value);
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<JwtOptions>>().Value);
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<BootstrapOptions>>().Value);
+        services.AddSingleton<IDbConnectionFactory>(sp =>
+            new NpgsqlConnectionFactory(sp.GetRequiredService<DatabaseOptions>()));
+        services.AddSingleton(sp => new QaConnectionFactory(sp.GetRequiredService<DatabaseOptions>()));
         services.AddSingleton<MigrationRunner>();
         services.AddSingleton<PasswordHasher>();
         services.AddSingleton<TokenService>();
         services.AddScoped<IAccessTokenIssuer, TokenIssuerAdapter>();
         services.AddScoped<DataSeeder>();
         services.AddMemoryCache();
+        services.AddUbpDataProtection(configuration);
 
         AddRepositories(services);
         AddApplicationServices(services);
@@ -72,8 +71,12 @@ public static class ServiceRegistration
                 options.ExpireTimeSpan = TimeSpan.FromHours(8);
                 options.SlidingExpiration = false;
             })
-            .AddJwtBearer("Bearer", options =>
+            .AddJwtBearer("Bearer");
+
+        services.AddOptions<JwtBearerOptions>("Bearer")
+            .Configure<IOptions<JwtOptions>>((options, jwtAccessor) =>
             {
+                var jwt = jwtAccessor.Value;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,

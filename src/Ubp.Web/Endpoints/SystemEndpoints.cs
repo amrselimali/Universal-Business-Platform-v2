@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Caching.Memory;
 using Ubp.Application.Contracts;
 using Ubp.Infrastructure.Repositories;
+using Ubp.Web.Services;
 
 namespace Ubp.Web.Endpoints;
 
@@ -7,19 +9,19 @@ public static class SystemEndpoints
 {
     public static IEndpointRouteBuilder MapSystemEndpoints(this IEndpointRouteBuilder app)
     {
+        // فحص حياة بلا قاعدة بيانات (Liveness) — مناسب لموازن الحمل.
+        app.MapGet("/health/live", () => Results.Ok(new { status = "alive" })).AllowAnonymous();
+
+        // فحص جاهزية عام ومختصر: لا يكشف اسم السيرفر أو القاعدة أو عدد الجداول،
+        // ويرجع 503 عند تعذر الاتصال حتى تلتقطه المراقبة.
         app.MapGet("/api/v1/system/health", async (ISchemaAdminRepository schema,
-            CancellationToken ct) =>
+            IMemoryCache cache, CancellationToken ct) =>
         {
-            var test = await schema.TestAsync(ct);
-            var tables = test.Ok ? await schema.GetTablesAsync(ct) : Array.Empty<TableInfo>();
-            return Results.Ok(new
-            {
-                status = test.Ok ? "healthy" : "unhealthy",
-                database = test.Ok ? "connected" : "disconnected",
-                server = test.Server,
-                databaseName = test.Database,
-                coreTables = tables.Count
-            });
+            var healthy = await HealthProbe.IsHealthyAsync(schema, cache, ct);
+            return healthy
+                ? Results.Ok(new { status = "healthy" })
+                : Results.Json(new { status = "unhealthy" },
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
         }).AllowAnonymous();
 
         app.MapGet("/api/v1/system/me", (HttpContext context) =>
