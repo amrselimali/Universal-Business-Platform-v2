@@ -861,7 +861,7 @@
   "screen.sales_invoices": "Sales invoices",
   "screen.sales_returns": "Sales returns",
   "screen.sales_settlements": "Booking settlements",
-  "screen.service_recipes": "Service Recipes",
+  "screen.service_recipes": "Service recipes (managed in Items)",
   "screen.settings_general": "General Settings",
   "screen.stock_documents": "Stock documents",
   "screen.stock_posting": "Stock Posting Center",
@@ -1394,5 +1394,15 @@
   "report.last_reading": "Last reading",
   "report.units_total": "Total units",
   "report.deposit": "Deposit",
-  "report.remaining_total": "Total remaining value"
+  "report.remaining_total": "Total remaining value",
+  "assets.new_category": "New asset category",
+  "assets.category_saved": "Category saved",
+  "assets.method": "Depreciation method",
+  "assets.method_linear": "Linear",
+  "assets.method_units": "Units of production",
+  "assets.frequency": "Depreciation frequency",
+  "assets.frequency_monthly": "Monthly",
+  "assets.frequency_annual": "Annual",
+  "assets.useful_life": "Useful life (months)",
+  "assets.expected_units": "Expected units"
 }

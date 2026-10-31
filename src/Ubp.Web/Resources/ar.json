@@ -861,7 +861,7 @@
   "screen.sales_invoices": "فواتير المبيعات",
   "screen.sales_returns": "مرتجعات المبيعات",
   "screen.sales_settlements": "تسويات الحجوزات",
-  "screen.service_recipes": "وصفات الخدمات",
+  "screen.service_recipes": "وصفات الخدمات (من شاشة الأصناف)",
   "screen.settings_general": "الإعدادات العامة",
   "screen.stock_documents": "مستندات المخزون",
   "screen.stock_posting": "مركز قيود المخزون",
@@ -1394,5 +1394,15 @@
   "report.last_reading": "آخر قراءة",
   "report.units_total": "إجمالي الوحدات",
   "report.deposit": "الدفعة المقدمة",
-  "report.remaining_total": "إجمالي قيمة المتبقي"
+  "report.remaining_total": "إجمالي قيمة المتبقي",
+  "assets.new_category": "تصنيف أصول جديد",
+  "assets.category_saved": "تم حفظ التصنيف",
+  "assets.method": "طريقة الإهلاك",
+  "assets.method_linear": "زمني (Linear)",
+  "assets.method_units": "بالوحدات (UNITS)",
+  "assets.frequency": "معدل الإهلاك",
+  "assets.frequency_monthly": "شهري",
+  "assets.frequency_annual": "سنوي",
+  "assets.useful_life": "العمر الإنتاجي (شهر)",
+  "assets.expected_units": "الوحدات المتوقعة"
 }

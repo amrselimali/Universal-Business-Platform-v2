@@ -62,6 +62,20 @@ public partial class AssetManagement
         });
     }
 
+    private async Task CreateCategoryAsync()
+    {
+        var dialog = await DialogService.ShowAsync<CategoryDialog>(T.T("assets.new_category"));
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not AssetCategoryInput input) return;
+
+        await RunAsync(async () =>
+        {
+            await AssetsApi.CreateCategoryAsync(Actor!, input);
+            Snackbar.Add(T.T("assets.category_saved"), Severity.Success);
+            await ReloadAsync();
+        });
+    }
+
     private async Task AddReadingAsync(FixedAsset asset)
     {
         var dialog = await DialogService.ShowAsync<ReadingDialog>(T.T("assets.add_reading"));

@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## 2026-10-31 — Asset categories (seed + UI), screen smoke test, dead routes fixed
+
+### Added
+- Migration `0053`: four default **asset categories** (metered machines with expected units, furniture,
+  vehicles annual, IT equipment monthly) so the assets screen works on first run.
+- «تصنيف أصول جديد» in `/assets/management` (permission-gated) with `CategoryDialog` (code, name,
+  method LINEAR/UNITS, frequency MONTHLY/ANNUAL, life, expected units, metered toggle) → this answers
+  “where do I create asset categories?” completely from the UI.
+- `scripts/smoke-pages.sh`: logs in and opens **every route registered in AppRegistry** plus the health
+  and session APIs, printing PASS/FAIL and exiting non-zero on any non-200.
+
+### Fixed
+- Two dead menu entries the smoke test caught: `/purchasing/aging` now points to the shared aging
+  screen (which already supports suppliers), and the service-recipes entry points to the items screen
+  where recipes are edited (its permission actions now match `RecipeService`).
+
+### Verification
+- 255 unit tests pass; **smoke test: 65 checks, 0 failures** against a running instance.
+
+
 ## 2026-10-31 — Standard reports R3/R4 (customer meter usage, reservation status)
 
 ### Added

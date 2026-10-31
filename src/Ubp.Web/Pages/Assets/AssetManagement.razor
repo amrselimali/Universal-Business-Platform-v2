@@ -21,6 +21,8 @@ else
         <Actions>
             @if (Can(ActionCodes.Add))
             {
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Category"
+                           OnClick="CreateCategoryAsync">@T.T("assets.new_category")</MudButton>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
                     @T.T("common.add")
