@@ -23,6 +23,9 @@ public sealed partial class AssetService
         if (input.DepreciationMethod == DepreciationMethods.Linear
             && (input.UsefulLifeMonths is null or <= 0))
             throw new ValidationAppException("validation.category_life_required");
+        if (input.DepreciationMethod == DepreciationMethods.Units
+            && (input.ExpectedUnits is null or <= 0))
+            throw new ValidationAppException("validation.category_units_required");
 
         var id = await _assets.CreateCategoryAsync(input, actor.UserId, ct);
         await _audit.WriteAsync(actor, "asset_categories", id.ToString(), "INSERT", null,

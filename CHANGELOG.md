@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 8A (part 5): UNITS depreciation method (`0051`)
+
+### Added
+- Migration `0051`: `asset_categories.expected_units` (the denominator for the units-of-production method).
+- `RunDepreciationAsync` now supports **UNITS**: amount = units consumed in the month (from
+  `asset_meter_readings`, excluding `MAINTENANCE_RESET`) × `(cost − salvage) ÷ expected_units`,
+  still capped at the remaining depreciable base and still posted through the `DEP` journal.
+- `AssetCategory`/`AssetCategoryInput` expose `ExpectedUnits`, and category creation requires it for
+  UNITS categories (`validation.category_units_required`).
+- The depreciable query no longer hard-codes LINEAR, so both methods share one code path
+  (single source of truth for the run).
+
+### Tests
+- 249 tests pass (1 new: 100 units × (1000 ÷ 1000) = 100). Verified the whole 49-script chain applies
+  cleanly on a freshly created database (`MIGRATIONS_OK applied=49`), which also proved the earlier
+  failures were stale-database artifacts, not migration defects.
+
+
 ## 2026-10-31 — Phase 8A (part 4): maintenance and depreciation screens
 
 ### Added
