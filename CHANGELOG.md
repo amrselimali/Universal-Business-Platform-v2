@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 6B: `bi` analytics schema (read-only, refreshed)
+
+### Added
+- Migration `0043`: schema `bi` with three materialized views — `sales_daily`,
+  `stock_value_by_warehouse`, `party_balances_monthly` — each with a **unique index** (required by
+  `REFRESH … CONCURRENTLY`), plus `bi.fn_refresh_all()` for a plain refresh.
+- Role `bi_reader` (`NOLOGIN`) with `USAGE` on `bi`, `SELECT` on its objects and
+  `ALTER DEFAULT PRIVILEGES`; it has **no** rights on `public` (asserted by tests).
+- `BiRepository`: read the views, `RefreshAsync` (plain) and `RefreshConcurrentlyAsync`
+  (three statements, each in its own implicit transaction).
+- `BiRefreshWorker` (`BackgroundService`, `Bi:Enabled/IntervalMinutes`, default every 15 min) that
+  refreshes concurrently so readers are never blocked.
+
+### Tests
+- 4 new tests (220 total, 0 failures): views reflect the source after refresh, concurrent refresh
+  works and picks up new rows, the stock-value view is readable, and `bi_reader` can select inside
+  `bi` but cannot insert/update/delete there nor read `public.users`.
+- Live check: migration `0043` applied, `bi.sales_daily` matched the source row count after the
+  worker's startup refresh, and `bi_reader` privileges were `t` for `bi` and `f` for `public.users`.
+
+
 ## 2026-10-31 — Phase 6E: message outbox + retry worker
 
 ### Added

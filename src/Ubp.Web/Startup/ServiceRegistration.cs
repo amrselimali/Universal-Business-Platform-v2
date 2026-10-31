@@ -39,6 +39,8 @@ public static class ServiceRegistration
         services.AddUbpDataProtection(configuration);
         services.Configure<OutboxOptions>(configuration.GetSection("Outbox"));
         services.AddHostedService<OutboxDispatcher>();
+        services.Configure<BiOptions>(configuration.GetSection("Bi"));
+        services.AddHostedService<BiRefreshWorker>();
 
         AddRepositories(services);
         AddApplicationServices(services);
@@ -178,6 +180,7 @@ public static class ServiceRegistration
         services.AddScoped<ISavedReportFilterRepository, SavedReportFilterRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<DashboardService>();
+        services.AddScoped<IBiRepository, BiRepository>();
         services.AddScoped<IMessageOutboxRepository, MessageOutboxRepository>();
         services.AddScoped<OutboxService>();
         services.AddScoped<IMessageSender, LoggingMessageSender>();

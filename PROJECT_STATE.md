@@ -1,5 +1,22 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 6B delivered → **Phase 6 complete**
+
+- Migration `0043`: `bi` schema with three materialized views (unique-indexed for concurrent
+  refresh), `bi.fn_refresh_all()`, and the read-only `bi_reader` role with no `public` access.
+- `BiRepository` + `BiRefreshWorker` (every `Bi:IntervalMinutes`, concurrent refresh).
+- 220 tests pass (4 new). Live: the views matched the source after startup refresh and the role
+  privileges were verified (`bi` = read-only, `public` = none).
+- Phase 6 status: **6A ✅ 6B ✅ 6C ✅ 6D ✅ 6E ✅** (migrations `0039`–`0043`).
+
+### Next: Phase 7 (operations & launch)
+- 7A CI/CD migrations + direct Neon connection for `pg_advisory_xact_lock`/session locks.
+- 7B backup job + `backup_log` reader screen; 7C health checks & slow-query log.
+- 7D import tool (`OpeningBalanceService.ImportCsvAsync` + preview screen).
+- 7E load/security pass; 7F pilot & rollback plan.
+- Still owner-side: rotate the Neon password, activate `.github/workflows/ci.yml`, branch
+  protection, secrets, `ubp_app` role, and the Playwright decision (X-08/X-12).
+
 ## 2026-10-31 — Phase 6E delivered (outbox + retry worker)
 
 - Migration `0042`: `message_outbox` (dedupe unique index, due index, status/channel checks).
