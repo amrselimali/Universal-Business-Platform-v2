@@ -26,6 +26,7 @@ public static class ScreenCodes
     public const string DatabaseAdmin = "DATABASE_ADMIN";
     public const string SystemHealth = "SYSTEM_HEALTH";
     public const string ImportTool = "IMPORT_TOOL";
+    public const string Assets = "ASSETS";
     public const string QaCenter = "QA_CENTER";
     public const string Units = "UNITS";
     public const string ItemCategories = "ITEM_CATEGORIES";
@@ -127,6 +128,9 @@ public static class ActionCodes
     public const string SaveFilter = "SAVE_FILTER";
     public const string ConvertToAdvance = "CONVERT_TO_ADVANCE";
     public const string SetMain = "SET_MAIN";
+    public const string AddMeterReading = "ADD_METER_READING";
+    public const string OpenMaintenance = "OPEN_MAINTENANCE";
+    public const string CloseMaintenance = "CLOSE_MAINTENANCE";
     public const string ReleaseReservation = "RELEASE_RESERVATION";
     public const string ExtendReservation = "EXTEND_RESERVATION";
     public const string DeleteFilter = "DELETE_FILTER";
