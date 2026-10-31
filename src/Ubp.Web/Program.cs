@@ -20,6 +20,13 @@ var app = builder.Build();
 // يجب أن يسبق أي اتصال بقاعدة البيانات (الترحيل والتهيئة).
 app.Services.GetRequiredService<IStartupValidator>().Validate();
 
+// تشخيص الإعدادات بلا كشف أسرار (مضيف/منفذ/قاعدة/مستخدم + وجود user-secrets + اتصال فعلي).
+if (DiagnosticsCli.IsRequested(args))
+{
+    Environment.ExitCode = DiagnosticsCli.Run(app.Services, args);
+    return;
+}
+
 // مسار النشر: تنفيذ الترحيلات من CI/CD ثم الخروج (بلا تشغيل الويب).
 if (MigrationCli.IsRequested(args))
 {
