@@ -41,6 +41,8 @@ public static class ServiceRegistration
         services.AddHostedService<OutboxDispatcher>();
         services.Configure<BiOptions>(configuration.GetSection("Bi"));
         services.AddHostedService<BiRefreshWorker>();
+        services.Configure<AssetMeterSyncOptions>(configuration.GetSection("Assets:Sync"));
+        services.AddHostedService<SalesMeterSyncWorker>();
         services.AddUbpRateLimiting();
 
         AddRepositories(services);

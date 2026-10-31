@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-10-31 — Assets UI disposal + scheduled sales-meter sync
+
+### Added
+- «استبعاد» row action on `/assets/management` (hidden for shared/disposed assets, gated by `EDIT`)
+  opening `DisposeDialog` (sale amount + date) and calling `DisposeAsync`.
+- `SalesMeterSyncWorker` (`BackgroundService`, `Assets:Sync:Enabled/IntervalHours`, default daily):
+  converts posted sales lines of metered items into `SALES` readings without an actor
+  (`created_by = null`) and relies on the database unique index for idempotency.
+- `SyncSalesReadingsAsync` now accepts a nullable user id so system jobs can run it safely.
+
+### Tests
+- 252 tests pass; live: the three asset screens answer `200` and the host starts with the new worker
+  registered (no startup errors).
+
+
 ## 2026-10-31 — Phase 8A completed: disposal, sales meter link (`0052`)
 
 ### Added

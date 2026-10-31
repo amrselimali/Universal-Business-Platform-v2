@@ -1361,5 +1361,10 @@
   "assets.total": "الإجمالي",
   "assets.entry_no": "رقم القيد",
   "assets.run_at": "وقت التشغيل",
-  "validation.maintenance_interval_required": "حدّد مدة الصيانة (أيام أو وحدات)"
+  "validation.maintenance_interval_required": "حدّد مدة الصيانة (أيام أو وحدات)",
+  "assets.dispose": "استبعاد الأصل",
+  "assets.dispose_hint": "يُشطب الأصل ويُخرج مجمع الإهلاك؛ الفرق يُسجَّل ربحاً أو خسارة.",
+  "assets.sale_amount": "قيمة البيع/الاستبعاد",
+  "assets.dispose_date": "تاريخ الاستبعاد",
+  "assets.dispose_done": "تم استبعاد الأصل (ربح / خسارة)"
 }

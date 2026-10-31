@@ -1361,5 +1361,10 @@
   "assets.total": "Total",
   "assets.entry_no": "Entry no.",
   "assets.run_at": "Run at",
-  "validation.maintenance_interval_required": "Provide the maintenance interval (days or units)"
+  "validation.maintenance_interval_required": "Provide the maintenance interval (days or units)",
+  "assets.dispose": "Dispose asset",
+  "assets.dispose_hint": "Writes off the asset and releases accumulated depreciation; the difference is posted as gain or loss.",
+  "assets.sale_amount": "Sale / disposal amount",
+  "assets.dispose_date": "Disposal date",
+  "assets.dispose_done": "Asset disposed (gain / loss)"
 }
