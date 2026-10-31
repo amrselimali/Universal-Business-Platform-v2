@@ -3,14 +3,24 @@
 
 CREATE SCHEMA IF NOT EXISTS bi;
 
+-- بعض القواعد المُدارة (مثل Neon) تُقيّد إنشاء الأدوار؛ لا نُفشل الترحيل بسبب ذلك.
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bi_reader') THEN
-        CREATE ROLE bi_reader NOLOGIN;
+        BEGIN
+            CREATE ROLE bi_reader NOLOGIN;
+        EXCEPTION WHEN insufficient_privilege THEN
+            RAISE NOTICE 'bi_reader was not created (insufficient privilege); grants skipped';
+        END;
     END IF;
 END $$;
 
-GRANT USAGE ON SCHEMA bi TO bi_reader;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bi_reader') THEN
+        GRANT USAGE ON SCHEMA bi TO bi_reader;
+    END IF;
+END $$;
 
 -- مبيعات يومية (نسخة تحليلية من جدول الإجماليات)
 CREATE MATERIALIZED VIEW bi.sales_daily AS
@@ -57,8 +67,20 @@ BEGIN
     REFRESH MATERIALIZED VIEW bi.party_balances_monthly;
 END $$ LANGUAGE plpgsql;
 
-GRANT SELECT ON ALL TABLES IN SCHEMA bi TO bi_reader;
-ALTER DEFAULT PRIVILEGES IN SCHEMA bi GRANT SELECT ON TABLES TO bi_reader;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bi_reader') THEN
+        GRANT SELECT ON ALL TABLES IN SCHEMA bi TO bi_reader;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA bi GRANT SELECT ON TABLES TO bi_reader;
+    END IF;
+END $$;
 
 COMMENT ON SCHEMA bi IS 'مخطط تحليلات للقراءة فقط؛ المصدر هو الجداول التشغيلية ولا يُكتب فيه.';
-COMMENT ON ROLE bi_reader IS 'دور قراءة فقط لمخطط bi (لأدوات التحليل)؛ لا يملك صلاحية على public.';
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bi_reader') THEN
+        COMMENT ON ROLE bi_reader IS
+            'دور قراءة فقط لمخطط bi (لأدوات التحليل)؛ لا يملك صلاحية على public.';
+    END IF;
+END $$;
