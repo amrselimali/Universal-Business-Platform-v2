@@ -7,7 +7,7 @@ namespace Ubp.Infrastructure.Repositories;
 public sealed partial class AccountingReportRepository
 {
     public async Task<PartyStatementReport> PartyStatementAsync(char partyType, Guid partyId,
-        DateTime from, DateTime to, Guid? branchId, CancellationToken ct = default)
+        DateTime from, DateTime to, Guid[] branchIds, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
 
@@ -27,8 +27,8 @@ public sealed partial class AccountingReportRepository
             SELECT coalesce(sum(debit - credit), 0) FROM party_balances
             WHERE party_type = @partyType AND party_id = @partyId
               AND period_month < date_trunc('month', @from::date)::date
-              AND (@branchId::uuid IS NULL OR branch_id = @branchId::uuid)
-            """, new { partyType = partyType.ToString(), partyId, from, branchId },
+              AND (cardinality(@branchIds) = 0 OR branch_id = ANY(@branchIds))
+            """, new { partyType = partyType.ToString(), partyId, from, branchIds },
             cancellationToken: ct));
 
         var rows = (await connection.QueryAsync<PartyStatementRow>(new CommandDefinition("""
@@ -43,10 +43,10 @@ public sealed partial class AccountingReportRepository
               AND l.entry_date BETWEEN @from::date AND @to::date
               AND ((@partyType = 'C' AND l.customer_id = @partyId)
                    OR (@partyType = 'S' AND l.supplier_id = @partyId))
-              AND (@branchId::uuid IS NULL OR l.branch_id = @branchId::uuid)
+              AND (cardinality(@branchIds) = 0 OR l.branch_id = ANY(@branchIds))
             ORDER BY l.entry_date, l.id
             LIMIT 500
-            """, new { partyType = partyType.ToString(), partyId, from, to, branchId },
+            """, new { partyType = partyType.ToString(), partyId, from, to, branchIds },
             cancellationToken: ct))).ToList();
 
         var running = report.OpeningBalance;
@@ -63,7 +63,7 @@ public sealed partial class AccountingReportRepository
     }
 
     public async Task<IReadOnlyList<CostCenterAnalysisRow>> CostCenterAsync(DateTime from, DateTime to,
-        Guid? branchId, CancellationToken ct = default)
+        Guid[] branchIds, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         var rows = await connection.QueryAsync<CostCenterAnalysisRow>(new CommandDefinition("""
@@ -74,14 +74,14 @@ public sealed partial class AccountingReportRepository
             LEFT JOIN cost_centers c ON c.id = b.cost_center_id
             WHERE b.period_month BETWEEN date_trunc('month', @from::date)::date
                                      AND date_trunc('month', @to::date)::date
-              AND (@branchId::uuid IS NULL OR b.branch_id = @branchId::uuid)
+              AND (cardinality(@branchIds) = 0 OR b.branch_id = ANY(@branchIds))
             GROUP BY b.cost_center_id, c.code, c.name_ar, c.level
             ORDER BY c.code NULLS LAST
-            """, new { from, to, branchId }, cancellationToken: ct));
+            """, new { from, to, branchIds }, cancellationToken: ct));
         return rows.ToList();
     }
 
-    public async Task<IReadOnlyList<StockVsGlRow>> StockVsGlAsync(Guid? branchId,
+    public async Task<IReadOnlyList<StockVsGlRow>> StockVsGlAsync(Guid[] branchIds,
         CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
@@ -95,7 +95,7 @@ public sealed partial class AccountingReportRepository
                 SELECT m.category_id, sum(b.debit - b.credit) AS balance
                 FROM gl_balances b
                 JOIN item_category_accounts m ON m.inventory_account_id = b.account_id
-                WHERE (@branchId::uuid IS NULL OR b.branch_id = @branchId::uuid)
+                WHERE (cardinality(@branchIds) = 0 OR b.branch_id = ANY(@branchIds))
                 GROUP BY m.category_id
             )
             SELECT c.id AS CategoryId, c.name_ar AS CategoryName,
@@ -109,7 +109,7 @@ public sealed partial class AccountingReportRepository
             LEFT JOIN accounts a ON a.id = m.inventory_account_id
             WHERE c.is_active
             ORDER BY c.code
-            """, new { branchId }, cancellationToken: ct));
+            """, new { branchIds }, cancellationToken: ct));
         return rows.ToList();
     }
 }

@@ -1,0 +1,28 @@
+@* اختيار نطاق الفروع: لا اختيار = كل فروع المستخدم (8ج). *@
+<MudSelect T="Guid" MultiSelection="true" Label="@Label" Variant="Variant.Outlined"
+           Margin="Margin.Dense" SelectAll="true" SelectAllText="@AllText"
+           SelectedValues="_selected" SelectedValuesChanged="OnChanged" Class="ubp-branch-picker">
+    @foreach (var branch in Branches)
+    {
+        <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+    }
+</MudSelect>
+
+@code {
+    [Parameter] public IReadOnlyList<Branch> Branches { get; set; } = Array.Empty<Branch>();
+    [Parameter] public IReadOnlyList<Guid> Selected { get; set; } = Array.Empty<Guid>();
+    [Parameter] public EventCallback<IReadOnlyList<Guid>> SelectedChanged { get; set; }
+    [Parameter] public string Label { get; set; } = "الفروع";
+    [Parameter] public string AllText { get; set; } = "كل الفروع";
+
+    private IReadOnlyCollection<Guid> _selected = Array.Empty<Guid>();
+
+    protected override void OnParametersSet() => _selected = Selected;
+
+    private async Task OnChanged(IEnumerable<Guid> values)
+    {
+        var list = values?.Distinct().ToArray() ?? Array.Empty<Guid>();
+        _selected = list;
+        await SelectedChanged.InvokeAsync(list);
+    }
+}

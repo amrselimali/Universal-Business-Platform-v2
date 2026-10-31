@@ -6,14 +6,14 @@ namespace Ubp.Infrastructure.Repositories;
 
 public interface IAccountingReportRepository
 {
-    Task<TrialBalanceReport> TrialBalanceAsync(DateTime from, DateTime to, Guid? branchId,
+    Task<TrialBalanceReport> TrialBalanceAsync(DateTime from, DateTime to, Guid[] branchIds,
         CancellationToken ct = default);
     Task<LedgerPage> LedgerAsync(LedgerRequest request, CancellationToken ct = default);
     Task<PartyStatementReport> PartyStatementAsync(char partyType, Guid partyId, DateTime from,
-        DateTime to, Guid? branchId, CancellationToken ct = default);
+        DateTime to, Guid[] branchIds, CancellationToken ct = default);
     Task<IReadOnlyList<CostCenterAnalysisRow>> CostCenterAsync(DateTime from, DateTime to,
-        Guid? branchId, CancellationToken ct = default);
-    Task<IReadOnlyList<StockVsGlRow>> StockVsGlAsync(Guid? branchId, CancellationToken ct = default);
+        Guid[] branchIds, CancellationToken ct = default);
+    Task<IReadOnlyList<StockVsGlRow>> StockVsGlAsync(Guid[] branchIds, CancellationToken ct = default);
 }
 
 public sealed partial class AccountingReportRepository : IAccountingReportRepository
@@ -23,7 +23,7 @@ public sealed partial class AccountingReportRepository : IAccountingReportReposi
     public AccountingReportRepository(IDbConnectionFactory factory) => _factory = factory;
 
     /// <summary>ميزان المراجعة من الأرصدة الشهرية مباشرة — لا يلمس بنود القيود.</summary>
-    public async Task<TrialBalanceReport> TrialBalanceAsync(DateTime from, DateTime to, Guid? branchId,
+    public async Task<TrialBalanceReport> TrialBalanceAsync(DateTime from, DateTime to, Guid[] branchIds,
         CancellationToken ct = default)
     {
         const string sql = """
@@ -38,7 +38,7 @@ public sealed partial class AccountingReportRepository : IAccountingReportReposi
                        sum(CASE WHEN b.period_month >= x.month_from THEN b.credit ELSE 0 END) AS credit
                 FROM gl_balances b CROSS JOIN bounds x
                 WHERE b.period_month <= x.month_to
-                  AND (@branchId::uuid IS NULL OR b.branch_id = @branchId::uuid)
+                  AND (cardinality(@branchIds) = 0 OR b.branch_id = ANY(@branchIds))
                 GROUP BY b.account_id
             )
             SELECT a.id AS AccountId, a.code AS Code, a.name_ar AS NameAr, a.name_en AS NameEn,
@@ -56,10 +56,10 @@ public sealed partial class AccountingReportRepository : IAccountingReportReposi
 
         await using var connection = await _factory.OpenAsync(ct);
         var rows = await connection.QueryAsync<TrialBalanceRow>(new CommandDefinition(sql,
-            new { from, to, branchId }, cancellationToken: ct));
+            new { from, to, branchIds }, cancellationToken: ct));
         return new TrialBalanceReport
         {
-            From = from, To = to, BranchId = branchId, Rows = rows.ToList()
+            From = from, To = to, BranchIds = branchIds, Rows = rows.ToList()
         };
     }
 }
