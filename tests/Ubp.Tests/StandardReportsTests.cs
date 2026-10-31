@@ -105,4 +105,21 @@ public sealed class StandardReportsTests : IClassFixture<TestDb>
         Assert.Equal("0", row[4]);     // مستهلك
         Assert.Equal("100.00", row[6]); // قيمة المتبقي
     }
+
+    [Fact]
+    public async Task Operations_reports_execute_and_return_their_columns()
+    {
+        var actor = await _db.AdminActorAsync();
+        var service = _db.StandardReports();
+        foreach (var key in new[]
+                 {
+                     StandardReportKeys.ShiftVariance, StandardReportKeys.DeadStock,
+                     StandardReportKeys.SupplierPerformance
+                 })
+        {
+            var table = await service.RunAsync(actor, key,
+                new ReportFilter(DateTime.Today.AddMonths(-1), DateTime.Today));
+            Assert.NotEmpty(table.Columns);
+        }
+    }
 }

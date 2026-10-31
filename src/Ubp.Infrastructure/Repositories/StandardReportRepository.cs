@@ -18,6 +18,15 @@ public interface IStandardReportRepository
     /// <summary>حالة الحجوزات والدفعات (محجوز/مستهلك/متبقٍ + الدفعة).</summary>
     Task<ReportTable> ReservationStatusAsync(DateOnly from, DateOnly to, Guid[] branchIds,
         bool onlyRemaining = true, CancellationToken ct = default);
+    /// <summary>تسوية الورديات (فرق الصندوق).</summary>
+    Task<ReportTable> ShiftVarianceAsync(DateOnly from, DateOnly to, Guid[] branchIds,
+        CancellationToken ct = default);
+    /// <summary>المخزون الراكد (بلا حركة خلال N يوماً).</summary>
+    Task<ReportTable> DeadStockAsync(DateOnly asOf, Guid[] branchIds, int days = 90,
+        CancellationToken ct = default);
+    /// <summary>أداء الموردين (فواتير الشراء وإجمالياتها).</summary>
+    Task<ReportTable> SupplierPerformanceAsync(DateOnly from, DateOnly to, Guid[] branchIds,
+        CancellationToken ct = default);
 }
 
 /// <summary>
