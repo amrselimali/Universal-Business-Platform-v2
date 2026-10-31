@@ -98,7 +98,20 @@ DataProtection__KeyRingPath="/app/keys"
 ## 3. قاعدة البيانات والترحيلات
 
 ### عند ظهور `SocketException: actively refused`
-معناها: **لا يوجد PostgreSQL يستمع على العنوان المطلوب**. تحقق بالترتيب:
+معناها: **لا يوجد PostgreSQL يستمع على العنوان المطلوب**. أسرع حل جاهز:
+
+```powershell
+# Windows
+powershell -ExecutionPolicy Bypass -File scripts\dev-db.ps1
+```
+```bash
+# Linux / macOS
+bash scripts/dev-db.sh
+```
+السكربت يفحص المنفذ، ويشغّل حاوية `postgres:17` على `127.0.0.1:5432` (أو خدمة PostgreSQL محلية)،
+ثم ينشئ قاعدة `ubp` و`ubp_qa` — ويعطيك الأمر التالي مباشرة.
+
+وإن أردت يدوياً، الخطوات بالترتيب:
 
 1. هل الحاوية تعمل؟ `docker compose ps` ثم `docker compose up -d postgres`.
    ⚠️ **قبل أول أمر compose** يجب أن يوجد ملف `.env` (انسخه: `cp .env.example .env`
