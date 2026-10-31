@@ -14,13 +14,17 @@ public sealed partial class AssetService
 {
     private readonly IAssetRepository _assets;
     private readonly IAccountRepository _accounts;
+    private readonly IJournalRepository _journals;
+    private readonly JournalEntryService _journalEntries;
     private readonly PermissionService _permissions;
     private readonly AuditService _audit;
 
     public AssetService(IAssetRepository assets, IAccountRepository accounts,
+        IJournalRepository journals, JournalEntryService journalEntries,
         PermissionService permissions, AuditService audit)
     {
-        _assets = assets; _accounts = accounts; _permissions = permissions; _audit = audit;
+        _assets = assets; _accounts = accounts; _journals = journals;
+        _journalEntries = journalEntries; _permissions = permissions; _audit = audit;
     }
 
     private static Guid[] Scope(ActorContext actor) =>

@@ -1,5 +1,17 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 8A part 2 (depreciation engine)
+
+- Migration `0050`: system journal `DEP`.
+- `RunDepreciationAsync`: LINEAR monthly (or 12× in December for ANNUAL) per branch, capped at the
+  remaining base, posting one journal entry per run (expense/accumulated grouped by category) with
+  double-run protection at both service and database level. Shared assets are excluded from branch
+  runs.
+- 248 tests pass (3 new). Live: `0050` applied; `DEP` journal present.
+- **Remaining for 8A**: asset/depreciation/maintenance **screens**, `UNITS` method (needs an
+  `expected_units` column), disposal entry with gain/loss, and feeding `SALES` meter readings from
+  sales consumptions.
+
 ## 2026-10-31 — Phase 8A part 1 (assets · meters · maintenance)
 
 - Migration `0049`: seven tables for asset categories, assets (per branch **or shared** with

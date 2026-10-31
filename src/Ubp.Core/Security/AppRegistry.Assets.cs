@@ -12,6 +12,6 @@ public static partial class AppRegistry
     {
         new(Assets, "/assets/management", "Inventory2", "screen.assets", GroupAccounting,
             new[] { AA(View), AA(Add), AA(Edit), AA(AddMeterReading), AA(OpenMaintenance),
-                    AA(CloseMaintenance) })
+                    AA(CloseMaintenance), AA(RunDepreciation) })
     };
 }

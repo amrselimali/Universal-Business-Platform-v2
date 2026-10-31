@@ -29,6 +29,14 @@ public interface IAssetRepository
     Task<MaintenanceOrder?> GetOrderAsync(Guid orderId, CancellationToken ct = default);
     Task<bool> CloseOrderAsync(Guid orderId, decimal? resetMeterValue, Guid userId,
         CancellationToken ct = default);
+    /// <summary>الإهلاك (8أ): الأصول القابلة للإهلاك في فرع، ومنع تكرار شهر واحد.</summary>
+    Task<IReadOnlyList<DepreciableAsset>> ListDepreciableAsync(Guid branchId, DateOnly monthEnd,
+        CancellationToken ct = default);
+    Task<bool> RunExistsAsync(DateOnly periodMonth, Guid branchId, CancellationToken ct = default);
+    Task<Guid> InsertRunAsync(DateOnly periodMonth, Guid branchId, decimal total,
+        Guid? journalEntryId, Guid userId, CancellationToken ct = default);
+    Task InsertLineAsync(Guid runId, Guid assetId, DateOnly periodMonth, decimal amount,
+        decimal accumulatedAfter, CancellationToken ct = default);
 }
 
 /// <summary>
