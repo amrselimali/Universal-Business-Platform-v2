@@ -95,6 +95,10 @@ public sealed partial class TestDb
     public BranchAccountDefaultsService BranchDefaults() =>
         new(new BranchAccountDefaultsRepository(Factory), AccountRepo, Permissions());
 
+    public AssetService Assets() =>
+        new(new AssetRepository(Factory), AccountRepo, Permissions(),
+            new AuditService(AuditRepo));
+
     public SettingsService Settings() =>
         new(SettingsRepo, AuditRepo, Permissions(), Cache);
 

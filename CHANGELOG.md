@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 8A (part 1): fixed assets, meters and maintenance (`0049`)
+
+### Added
+- Migration `0049`: `asset_categories` (method LINEAR/UNITS, frequency **MONTHLY/ANNUAL**, useful
+  life, four GL accounts), `fixed_assets` (`branch_id` **nullable = shared asset**, meter type,
+  current counter, `meter_resets_on_maintenance`, disposal fields), `asset_meter_readings`
+  (MANUAL/SALES/MAINTENANCE_RESET + delta), `asset_maintenance_plans` (TIME or METER interval),
+  `asset_maintenance_orders` (OPEN/DONE/CANCELLED + cost + GL link), and the depreciation run/line
+  tables with `UNIQUE (asset_id, period_month)` to prevent double depreciation.
+- `AssetRepository` (list/get/write/status/readings/maintenance) and `AssetService`:
+  branch-scoped listing that **includes shared assets**, monotonic meter readings with automatic
+  delta, non-metered assets rejecting readings, and maintenance close that **resets the counter to
+  zero only when the asset is configured for it** (recording a `MAINTENANCE_RESET` reading), plus
+  audit entries.
+- Screen registered in `AppRegistry` (`ASSETS` with `VIEW/ADD/EDIT/ADD_METER_READING/
+  OPEN_MAINTENANCE/CLOSE_MAINTENANCE`) — the Blazor screens are the next step.
+
+### Tests
+- 4 new tests (245 total, 0 failures): branch scope with shared assets, monotonic readings and
+  current-value updates, non-metered rejection, and maintenance reset semantics (including a second
+  close being refused).
+- Live check: `--migrate` applied `0049` (exit 0) and all seven tables exist.
+
+
 ## 2026-10-31 — Phase 8C (part 2): multi-branch reporting
 
 ### Added

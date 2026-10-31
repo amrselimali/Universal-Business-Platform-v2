@@ -1,5 +1,17 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 8A part 1 (assets · meters · maintenance)
+
+- Migration `0049`: seven tables for asset categories, assets (per branch **or shared** with
+  `branch_id NULL`), meter readings, maintenance plans/orders and depreciation runs/lines
+  (`UNIQUE (asset_id, period_month)`).
+- `AssetService`: branch-scoped list incl. shared assets, monotonic meter readings with delta,
+  maintenance close resetting the counter **only for assets flagged** `meter_resets_on_maintenance`,
+  and audit logging. `ASSETS` screen registered with six actions.
+- 245 tests pass (4 new). Live: `0049` applied, 7 tables present.
+- **Next for 8A**: asset/depreciation screens, depreciation engine (monthly/annual by category with
+  GL posting), disposal entry, and meter readings fed automatically from sales consumptions.
+
 ## 2026-10-31 — Multi-branch reporting (8C part 2)
 
 - Trial balance / party statement / cost centers accept a **branch array** (empty = all visible);

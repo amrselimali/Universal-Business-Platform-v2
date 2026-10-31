@@ -191,6 +191,8 @@ public static class ServiceRegistration
         services.AddScoped<ReservationService>();
         services.AddScoped<IBranchAccountDefaultsRepository, BranchAccountDefaultsRepository>();
         services.AddScoped<BranchAccountDefaultsService>();
+        services.AddScoped<IAssetRepository, AssetRepository>();
+        services.AddScoped<AssetService>();
         services.AddScoped<IMessageOutboxRepository, MessageOutboxRepository>();
         services.AddScoped<OutboxService>();
         services.AddScoped<IMessageSender, LoggingMessageSender>();
