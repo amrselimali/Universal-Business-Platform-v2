@@ -87,7 +87,11 @@ Database__QaConnectionString="Host=...;Database=ubp_qa;Username=postgres;Passwor
 Database__AutoMigrate=false
 Jwt__Key="<64+ random chars>"
 Bootstrap__SuperAdminPassword="<strong password>"
+DataProtection__KeyRingPath="/app/keys"
 ```
+
+> للتطوير المحلي بدل متغيرات البيئة يمكن استخدام `dotnet user-secrets --project src/Ubp.Web set Jwt:Key "..."`،
+> فمشروع `Ubp.Web` يحمل `UserSecretsId` ولا يُقرأ أي سر من ملفات المستودع.
 
 ---
 
