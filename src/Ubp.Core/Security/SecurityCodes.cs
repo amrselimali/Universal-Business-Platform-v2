@@ -131,6 +131,7 @@ public static class ActionCodes
     public const string AddMeterReading = "ADD_METER_READING";
     public const string OpenMaintenance = "OPEN_MAINTENANCE";
     public const string CloseMaintenance = "CLOSE_MAINTENANCE";
+    public const string RunDepreciation = "RUN_DEPRECIATION";
     public const string ReleaseReservation = "RELEASE_RESERVATION";
     public const string ExtendReservation = "EXTEND_RESERVATION";
     public const string DeleteFilter = "DELETE_FILTER";

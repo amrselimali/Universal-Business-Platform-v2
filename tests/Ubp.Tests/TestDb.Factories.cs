@@ -96,8 +96,8 @@ public sealed partial class TestDb
         new(new BranchAccountDefaultsRepository(Factory), AccountRepo, Permissions());
 
     public AssetService Assets() =>
-        new(new AssetRepository(Factory), AccountRepo, Permissions(),
-            new AuditService(AuditRepo));
+        new(new AssetRepository(Factory), AccountRepo, JournalRepo, JournalEntryService(),
+            Permissions(), new AuditService(AuditRepo));
 
     public SettingsService Settings() =>
         new(SettingsRepo, AuditRepo, Permissions(), Cache);

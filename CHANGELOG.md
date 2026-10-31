@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 8A (part 2): depreciation engine with GL posting (`0050`)
+
+### Added
+- Migration `0050`: system journal `DEP` (depreciation) so runs post through the normal journal
+  service (balance, open-period and permission guards stay in force).
+- `AssetService.RunDepreciationAsync(actor, month, branchId)`: picks the branch's **LINEAR** assets
+  (branch-bound only — shared assets are excluded from a branch run to avoid double depreciation),
+  computes the monthly amount `(cost − salvage) / life`, posts **twelve months at once in December**
+  for `ANNUAL` categories, caps at the remaining depreciable base, and creates **one posted journal
+  entry per run** (debit depreciation expense / credit accumulated depreciation, grouped per
+  category accounts).
+- Idempotency: `RunExistsAsync` + `UNIQUE (asset_id, period_month)` and
+  `UNIQUE NULLS NOT DISTINCT (period_month, branch_id)` refuse a second run for the same month.
+- `RUN_DEPRECIATION` action added to the `ASSETS` screen.
+
+### Tests
+- 3 new tests (248 total, 0 failures): a monthly run posts one entry and records the line with its
+  accumulated value, a second run for the same month is rejected, and an annual category only
+  depreciates in December (June raises `validation.nothing_to_depreciate`).
+- Live check: `--migrate` applied `0050` (exit 0) and the `DEP` journal exists with manual posting
+  allowed for the engine.
+
+
 ## 2026-10-31 — Phase 8A (part 1): fixed assets, meters and maintenance (`0049`)
 
 ### Added
