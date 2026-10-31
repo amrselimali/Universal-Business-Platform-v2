@@ -187,6 +187,8 @@ public static class ServiceRegistration
         services.AddScoped<SystemHealthService>();
         services.AddScoped<IImportJobRepository, ImportJobRepository>();
         services.AddScoped<ImportService>();
+        services.AddScoped<IReservationRepository, ReservationRepository>();
+        services.AddScoped<ReservationService>();
         services.AddScoped<IMessageOutboxRepository, MessageOutboxRepository>();
         services.AddScoped<OutboxService>();
         services.AddScoped<IMessageSender, LoggingMessageSender>();

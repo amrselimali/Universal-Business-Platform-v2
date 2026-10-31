@@ -88,6 +88,10 @@ public sealed partial class TestDb
     public ImportService Imports() =>
         new(new ImportJobRepository(Factory), OpeningBalanceService(), Permissions());
 
+    public ReservationService Reservations() =>
+        new(new ReservationRepository(Factory), TreasuryRepo, PartnerRepo, TreasuryService(),
+            BookingService(), Permissions());
+
     public SettingsService Settings() =>
         new(SettingsRepo, AuditRepo, Permissions(), Cache);
 

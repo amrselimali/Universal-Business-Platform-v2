@@ -285,7 +285,7 @@ public static partial class AppRegistry
     };
 
     public static readonly IReadOnlyList<ScreenDefinition> Screens =
-        CoreScreens.Concat(ReportScreens).Concat(SystemScreens).ToList();
+        CoreScreens.Concat(ReportScreens).Concat(SystemScreens).Concat(SalesExtraScreens).ToList();
 
     public static readonly IReadOnlyDictionary<string, ScreenDefinition> ByCode =
         Screens.ToDictionary(s => s.Code, StringComparer.OrdinalIgnoreCase);

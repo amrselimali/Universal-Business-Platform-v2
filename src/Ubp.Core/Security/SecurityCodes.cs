@@ -64,6 +64,7 @@ public static class ScreenCodes
     public const string SalesBookings = "SALES_BOOKINGS";
     public const string SalesAppointments = "SALES_APPOINTMENTS";
     public const string SalesDeliveries = "SALES_DELIVERIES";
+    public const string Reservations = "SALES_RESERVATIONS";
     public const string SalesInvoices = "SALES_INVOICES";
     public const string SalesReturns = "SALES_RETURNS";
     public const string SalesSettlements = "SALES_SETTLEMENTS";
@@ -124,6 +125,9 @@ public static class ActionCodes
     public const string EnableAutoPost = "ENABLE_AUTO_POST";
     public const string Save = "SAVE";
     public const string SaveFilter = "SAVE_FILTER";
+    public const string ConvertToAdvance = "CONVERT_TO_ADVANCE";
+    public const string ReleaseReservation = "RELEASE_RESERVATION";
+    public const string ExtendReservation = "EXTEND_RESERVATION";
     public const string DeleteFilter = "DELETE_FILTER";
     public const string ExportCsv = "EXPORT_CSV";
     public const string ExportXlsx = "EXPORT_XLSX";
