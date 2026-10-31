@@ -1,0 +1,71 @@
+@page "/reports/standard/{Key}"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject StandardReportService ReportsSvc
+@inject BranchService Branches
+@inject IJSRuntime JS
+@inject IDisplayFormatter Fmt
+<PageTitle>@Title</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@Title" Subtitle="@T.T("report.standard_hint")">
+        <Actions>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.TableChart"
+                       OnClick="@(() => ExportAsync(ReportExportFormat.Csv))">@T.T("reports.export_csv")</MudButton>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.GridOn"
+                       OnClick="@(() => ExportAsync(ReportExportFormat.Xlsx))">@T.T("reports.export_xlsx")</MudButton>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Print"
+                       OnClick="@(() => JS.InvokeVoidAsync("print"))">@T.T("reports.print")</MudButton>
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudDatePicker @bind-Date="_from" Label="@T.T("common.from")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" />
+            <MudDatePicker @bind-Date="_to" Label="@T.T("common.to")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" />
+            <BranchScopePicker Branches="_branches" Selected="_branchIds"
+                               SelectedChanged="OnBranchScope" Label="@T.T("common.branch")"
+                               AllText="@T.T("common.all")" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAsync"
+                       Disabled="_busy">@T.T("common.search")</MudButton>
+        </div>
+
+        @if (_table is null)
+        {
+            <MudText Class="ubp-muted">@T.T("common.no_data")</MudText>
+        }
+        else if (_table.Rows.Count == 0)
+        {
+            <MudText Class="ubp-muted">@T.T("common.no_data")</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true" Class="ubp-table">
+                <thead>
+                <tr>@foreach (var column in _table.Columns) { <th>@T.T(column.TitleKey)</th> }</tr>
+                </thead>
+                <tbody>
+                @foreach (var row in _table.Rows)
+                {
+                    <tr>@foreach (var cell in row) { <td>@Cell(cell)</td> }</tr>
+                }
+                </tbody>
+            </MudSimpleTable>
+            @if (!string.IsNullOrWhiteSpace(_table.Footer))
+            {
+                <MudText Typo="Typo.caption" Class="ubp-muted mt-2">@T.T(_table.Footer!)</MudText>
+            }
+        }
+    </MudPaper>
+}

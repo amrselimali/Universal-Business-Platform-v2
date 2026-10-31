@@ -99,6 +99,9 @@ public sealed partial class TestDb
         new(new AssetRepository(Factory), AccountRepo, JournalRepo, JournalEntryService(),
             Permissions(), new AuditService(AuditRepo));
 
+    public StandardReportService StandardReports() =>
+        new(new StandardReportRepository(Factory), Permissions());
+
     public SettingsService Settings() =>
         new(SettingsRepo, AuditRepo, Permissions(), Cache);
 
