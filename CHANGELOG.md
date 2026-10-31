@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-10-31 — Standard reports R3/R4 (customer meter usage, reservation status)
+
+### Added
+- **Customer meter usage** (`assets.customer_meter_usage`): sums `SALES` meter readings per customer and
+  asset (units, reading count, last reading) joined through `source_line_id` → invoice → customer.
+- **Reservation status** (`sales.reservation_status`): open reservations with reserved/consumed/
+  remaining, remaining value and the booking deposit, from `v_customer_reservations`; footer carries
+  the total remaining value.
+- Both are dispatched by the existing `StandardReportService` and rendered by the single
+  `/reports/standard/{Key}` page (CSV/XLSX/print + branch scope + period).
+
+### Tests
+- 255 tests pass (1 new: open reservations reported with quantities and remaining value). The meter
+  report is exercised live (`200`) but has no dedicated automated test yet — noted for the backlog.
+
+
 ## 2026-10-31 — Standard report framework + VAT and item-margin reports
 
 ### Added

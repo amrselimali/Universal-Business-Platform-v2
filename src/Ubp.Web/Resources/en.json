@@ -1386,5 +1386,13 @@
   "assets.dispose_hint": "Writes off the asset and releases accumulated depreciation; the difference is posted as gain or loss.",
   "assets.sale_amount": "Sale / disposal amount",
   "assets.dispose_date": "Disposal date",
-  "assets.dispose_done": "Asset disposed (gain / loss)"
+  "assets.dispose_done": "Asset disposed (gain / loss)",
+  "report.customer": "Customer",
+  "report.asset": "Asset",
+  "report.units": "Units",
+  "report.readings": "Readings",
+  "report.last_reading": "Last reading",
+  "report.units_total": "Total units",
+  "report.deposit": "Deposit",
+  "report.remaining_total": "Total remaining value"
 }
