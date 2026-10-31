@@ -1,0 +1,87 @@
+@page "/assets/management"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject AssetService AssetsApi
+@inject BranchService Branches
+@inject IDialogService Dialogs
+@inject IDisplayFormatter Fmt
+<PageTitle>@T.T("screen.assets")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.assets")" Subtitle="@T.T("assets.hint")">
+        <Actions>
+            @if (Can(ActionCodes.Add))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
+                    @T.T("common.add")
+                </MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudTextField @bind-Value="_search" Label="@T.T("common.search")" Immediate="true"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" DebounceInterval="500" />
+            <MudSwitch T="bool" Value="_meterOnly" ValueChanged="OnMeterOnlyChanged"
+                       Label="@T.T("assets.metered_only")" Color="Color.Primary" />
+            <MudButton Variant="Variant.Outlined" OnClick="ReloadAsync">@T.T("common.refresh")</MudButton>
+            @if (Can(ActionCodes.RunDepreciation))
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                           OnClick="RunDepreciationAsync" Disabled="_busy">
+                    @T.T("assets.run_depreciation")
+                </MudButton>
+            }
+        </div>
+
+        <MudTable Items="_items" Dense="true" Hover="true" Elevation="0" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh>@T.T("common.code")</MudTh>
+                <MudTh>@T.T("common.name_ar")</MudTh>
+                <MudTh>@T.T("assets.category")</MudTh>
+                <MudTh>@T.T("common.branch")</MudTh>
+                <MudTh>@T.T("assets.cost")</MudTh>
+                <MudTh>@T.T("assets.meter")</MudTh>
+                <MudTh>@T.T("assets.status")</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@context.Code</span></MudTd>
+                <MudTd>@context.NameAr</MudTd>
+                <MudTd>@context.CategoryName</MudTd>
+                <MudTd>@(context.BranchName ?? T.T("assets.shared"))</MudTd>
+                <MudTd>@Fmt.Decimal(context.Cost)</MudTd>
+                <MudTd>
+                    @if (context.IsMetered)
+                    {
+                        <span>@Fmt.Decimal(context.CurrentMeterValue) @context.MeterType</span>
+                    }
+                    else
+                    {
+                        <span class="ubp-muted">@T.T("assets.no_meter")</span>
+                    }
+                </MudTd>
+                <MudTd>@T.T("assets.status_" + context.Status.ToLowerInvariant())</MudTd>
+                <MudTd>
+                    @if (context.IsMetered && Can(ActionCodes.AddMeterReading))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                   OnClick="@(() => AddReadingAsync(context))">@T.T("assets.add_reading")</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent><MudText Class="ubp-muted">@T.T("common.no_data")</MudText></NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}

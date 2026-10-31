@@ -1,0 +1,93 @@
+@inject UiCulture T
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("assets.new")</MudText></TitleContent>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="8">
+                <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid" @bind-Value="_input.CategoryId" Label="@T.T("assets.category")"
+                           Variant="Variant.Outlined">
+                    @foreach (var category in Categories)
+                    {
+                        <MudSelectItem T="Guid" Value="@category.Id">@category.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid?" @bind-Value="_input.BranchId" Label="@T.T("common.branch")"
+                           Variant="Variant.Outlined" Clearable="true">
+                    @foreach (var branch in Branches)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField T="decimal" @bind-Value="_input.Cost" Label="@T.T("assets.cost")"
+                                 Variant="Variant.Outlined" Min="0" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField T="decimal" @bind-Value="_input.SalvageValue"
+                                 Label="@T.T("assets.salvage")" Variant="Variant.Outlined" Min="0" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker @bind-Date="_serviceDate" Label="@T.T("assets.in_service")"
+                               Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSwitch T="bool" @bind-Value="_input.IsMetered" Label="@T.T("assets.has_meter")"
+                           Color="Color.Primary" />
+            </MudItem>
+            @if (_input.IsMetered)
+            {
+                <MudItem xs="12" md="6">
+                    <MudSelect T="string" @bind-Value="_input.MeterType" Label="@T.T("assets.meter_type")"
+                               Variant="Variant.Outlined">
+                        @foreach (var type in Ubp.Core.Models.MeterTypes.All)
+                        {
+                            <MudSelectItem T="string" Value="@type">@type</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="_input.MeterResetsOnMaintenance"
+                               Label="@T.T("assets.reset_on_maintenance")" Color="Color.Primary" />
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@T.T("common.cancel")</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public IReadOnlyList<Ubp.Core.Models.AssetCategory> Categories { get; set; } =
+        Array.Empty<Ubp.Core.Models.AssetCategory>();
+    [Parameter] public IReadOnlyList<Ubp.Core.Models.Branch> Branches { get; set; } =
+        Array.Empty<Ubp.Core.Models.Branch>();
+
+    private readonly Ubp.Core.Models.AssetInput _input = new() { MeterType = "COPIES" };
+    private DateTime? _serviceDate = DateTime.Today;
+
+    protected override void OnInitialized()
+    {
+        _input.CategoryId = Categories.FirstOrDefault()?.Id ?? Guid.Empty;
+        _input.InServiceDate = _serviceDate;
+    }
+
+    private void Save()
+    {
+        _input.InServiceDate = _serviceDate;
+        MudDialog.Close(DialogResult.Ok(_input));
+    }
+}

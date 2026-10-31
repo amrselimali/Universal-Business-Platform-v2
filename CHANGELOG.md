@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 8A (part 3): asset screens
+
+### Added
+- `/assets/management` (`ASSETS`): branch-scoped list with search and a **metered-only** filter,
+  showing category, branch (or «مشترك»), cost, current counter and status; «تشغيل الإهلاك» runs the
+  current month for the user's branch; «قراءة عدّاد» is offered only for metered assets and only
+  with `ADD_METER_READING`.
+- `AssetDialog` (code, name, category, branch or shared, cost, salvage, in-service date, metered
+  toggle → meter type + reset-on-maintenance) and `ReadingDialog` (value + note).
+- `AssetService.CategoriesAsync/CreateCategoryAsync` + repository listing/creation of asset
+  categories (linear life validation, frequency MONTHLY/ANNUAL) so the screen is usable end-to-end.
+- Page renamed `AssetManagement` to avoid the registry test's page→screen map colliding with the
+  treasury `Management.razor`.
+
+### Tests
+- 248 tests pass (the registry test caught the collision and now passes). Live: `/assets/management`
+  answers `200` after login.
+
+
 ## 2026-10-31 — Phase 8A (part 2): depreciation engine with GL posting (`0050`)
 
 ### Added

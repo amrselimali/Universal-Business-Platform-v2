@@ -94,6 +94,22 @@ public sealed class AssetInput
     public bool MeterResetsOnMaintenance { get; set; }
 }
 
+public sealed class AssetCategory
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = "";
+    public string NameAr { get; set; } = "";
+    public string DepreciationMethod { get; set; } = DepreciationMethods.Linear;
+    public string DepreciationFrequency { get; set; } = DepreciationFrequencies.Monthly;
+    public int? UsefulLifeMonths { get; set; }
+    public bool IsMetered { get; set; }
+    public Guid? AssetAccountId { get; set; }
+    public Guid? AccumAccountId { get; set; }
+    public Guid? ExpenseAccountId { get; set; }
+    public Guid? MaintenanceExpenseAccountId { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
 public sealed class AssetCategoryInput
 {
     public string Code { get; set; } = "";

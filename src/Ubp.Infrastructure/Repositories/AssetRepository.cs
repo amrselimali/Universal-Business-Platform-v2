@@ -37,6 +37,10 @@ public interface IAssetRepository
         Guid? journalEntryId, Guid userId, CancellationToken ct = default);
     Task InsertLineAsync(Guid runId, Guid assetId, DateOnly periodMonth, decimal amount,
         decimal accumulatedAfter, CancellationToken ct = default);
+    /// <summary>تصنيفات الأصول (8أ).</summary>
+    Task<IReadOnlyList<AssetCategory>> ListCategoriesAsync(CancellationToken ct = default);
+    Task<Guid> CreateCategoryAsync(AssetCategoryInput input, Guid userId,
+        CancellationToken ct = default);
 }
 
 /// <summary>
