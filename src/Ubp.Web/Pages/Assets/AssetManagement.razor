@@ -79,6 +79,11 @@ else
                         <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
                                    OnClick="@(() => AddReadingAsync(context))">@T.T("assets.add_reading")</MudButton>
                     }
+                    @if (!context.IsShared && context.Status != AssetStatuses.Disposed && Can(ActionCodes.Edit))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                                   OnClick="@(() => DisposeAsync(context))">@T.T("assets.dispose")</MudButton>
+                    }
                 </MudTd>
             </RowTemplate>
             <NoRecordsContent><MudText Class="ubp-muted">@T.T("common.no_data")</MudText></NoRecordsContent>

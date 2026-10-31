@@ -1,0 +1,24 @@
+@inject UiCulture T
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("assets.dispose")</MudText></TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.caption" Class="ubp-muted mb-3">@T.T("assets.dispose_hint")</MudText>
+        <MudNumericField T="decimal" @bind-Value="_amount" Label="@T.T("assets.sale_amount")"
+                         Variant="Variant.Outlined" Min="0" />
+        <MudDatePicker @bind-Date="_date" Label="@T.T("assets.dispose_date")"
+                       Variant="Variant.Outlined" Class="mt-3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@T.T("common.cancel")</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Save">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private decimal _amount;
+    private DateTime? _date = DateTime.Today;
+
+    private void Save() => MudDialog.Close(DialogResult.Ok(_amount));
+}

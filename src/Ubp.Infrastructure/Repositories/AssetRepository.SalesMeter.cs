@@ -10,7 +10,7 @@ public sealed partial class AssetRepository
     /// يُنشئ قراءة `SALES` مرة واحدة (فهرس فريد على source_line_id)، ثم تُحدَّث قيمة العدّاد.
     /// </summary>
     public async Task<int> SyncSalesReadingsAsync(Guid? branchId, DateOnly from, DateOnly to,
-        Guid userId, CancellationToken ct = default)
+        Guid? userId, CancellationToken ct = default)
     {
         const string sql = """
             WITH candidates AS (

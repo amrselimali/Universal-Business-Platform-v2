@@ -76,6 +76,21 @@ public partial class AssetManagement
         Snackbar.Add(T.T("assets.reading_saved"), Severity.Success);
     }
 
+    private async Task DisposeAsync(FixedAsset asset)
+    {
+        var dialog = await DialogService.ShowAsync<DisposeDialog>(T.T("assets.dispose"));
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not decimal amount) return;
+
+        await RunAsync(async () =>
+        {
+            var outcome = await AssetsApi.DisposeAsync(Actor!, asset.Id, amount, DateTime.Today);
+            await ReloadAsync();
+            Snackbar.Add($"{T.T("assets.dispose_done")} ({Fmt.Decimal(outcome.Gain)} / {Fmt.Decimal(outcome.Loss)})",
+                Severity.Success);
+        });
+    }
+
     private async Task RunDepreciationAsync()
     {
         if (_busy) return;

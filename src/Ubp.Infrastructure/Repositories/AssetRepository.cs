@@ -54,7 +54,7 @@ public interface IAssetRepository
     Task<decimal> AccumulatedAsync(Guid assetId, CancellationToken ct = default);
     Task<bool> MarkDisposedAsync(Guid assetId, decimal disposalAmount, Guid journalEntryId,
         Guid userId, CancellationToken ct = default);
-    Task<int> SyncSalesReadingsAsync(Guid? branchId, DateOnly from, DateOnly to, Guid userId,
+    Task<int> SyncSalesReadingsAsync(Guid? branchId, DateOnly from, DateOnly to, Guid? userId,
         CancellationToken ct = default);
 }
 
