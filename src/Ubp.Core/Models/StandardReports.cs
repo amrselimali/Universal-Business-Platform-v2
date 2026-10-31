@@ -25,8 +25,12 @@ public static class StandardReportKeys
     public const string ItemMargin = "sales.item_margin";
     public const string CustomerMeter = "assets.customer_meter_usage";
     public const string Reservations = "sales.reservation_status";
+    public const string ShiftVariance = "treasury.shift_variance";
+    public const string DeadStock = "stock.dead_stock";
+    public const string SupplierPerformance = "purchasing.supplier_performance";
 
-    public static readonly IReadOnlyList<string> All = [Vat, ItemMargin, CustomerMeter, Reservations];
+    public static readonly IReadOnlyList<string> All =
+        [Vat, ItemMargin, CustomerMeter, Reservations, ShiftVariance, DeadStock, SupplierPerformance];
 }
 
 /// <summary>معاملات تشغيل أي تقرير قياسي.</summary>

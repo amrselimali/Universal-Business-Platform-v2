@@ -42,7 +42,13 @@ public static class ReportCatalog
         new(StandardReportKeys.CustomerMeter, "/reports/standard/assets.customer_meter_usage",
             "report.customer_meter", ScreenCodes.ReportsCenter),
         new(StandardReportKeys.Reservations, "/reports/standard/sales.reservation_status",
-            "report.reservation_status", ScreenCodes.ReportsCenter)
+            "report.reservation_status", ScreenCodes.ReportsCenter),
+        new(StandardReportKeys.ShiftVariance, "/reports/standard/treasury.shift_variance",
+            "report.shift_variance", ScreenCodes.ReportsCenter),
+        new(StandardReportKeys.DeadStock, "/reports/standard/stock.dead_stock", "report.dead_stock",
+            ScreenCodes.ReportsCenter),
+        new(StandardReportKeys.SupplierPerformance, "/reports/standard/purchasing.supplier_performance",
+            "report.supplier_performance", ScreenCodes.ReportsCenter)
     };
 
     public static ReportDefinition? Find(string key) =>

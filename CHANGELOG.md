@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-10-31 — Standard reports R5/R7/R10 (shifts, dead stock, suppliers)
+
+### Added
+- **Shift reconciliation** (`treasury.shift_variance`): opening/expected/counted cash and the variance
+  per cashier shift with a total footer.
+- **Dead stock** (`stock.dead_stock`): items with a positive balance and no movement for the selected
+  window (90 days on the page range), showing value and last activity.
+- **Supplier performance** (`purchasing.supplier_performance`): posted purchase invoices per supplier
+  with documents count, net/tax/gross and the last document date.
+- All three are dispatched by `StandardReportService`, listed in `ReportCatalog` and rendered by the
+  single `/reports/standard/{Key}` page (CSV/XLSX/print + branch scope).
+
+### Tests
+- 256 tests pass (1 new exercising the three new reports end-to-end through the dispatcher).
+  Screen smoke test: **65 checks, 0 failures**.
+
+
 ## 2026-10-31 — Asset categories (seed + UI), screen smoke test, dead routes fixed
 
 ### Added

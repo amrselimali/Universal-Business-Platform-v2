@@ -37,6 +37,10 @@ public sealed class StandardReportService
                 branches, ct),
             StandardReportKeys.Reservations => await _reports.ReservationStatusAsync(from, to,
                 branches, ct: ct),
+            StandardReportKeys.ShiftVariance => await _reports.ShiftVarianceAsync(from, to, branches, ct),
+            StandardReportKeys.DeadStock => await _reports.DeadStockAsync(to, branches, ct: ct),
+            StandardReportKeys.SupplierPerformance => await _reports.SupplierPerformanceAsync(from,
+                to, branches, ct),
             _ => throw new ValidationAppException("validation.report_key_unknown")
         };
     }
