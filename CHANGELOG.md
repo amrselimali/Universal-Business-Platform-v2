@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2026-10-31 — All remaining standard reports (20 total)
+
+### Added
+- **Stock**: aging by lot (received/expiry/age/value), movements detail (in/out with cost),
+  receipts-issues per warehouse and branch, and stock value per warehouse.
+- **Commercial/HR**: employee commissions by month and basis, booking conversion by status,
+  unapplied customer advances, credit-limit utilisation per customer/branch, follow-ups by status
+  and assignee.
+- **Assets/BI**: depreciation schedule (cost/accumulated/book value), due maintenance (time window or
+  meter threshold), daily sales per branch from `sales_daily_totals`, and monthly party balances from
+  the `bi` schema.
+- All 20 reports share `StandardReportService` + `/reports/standard/{Key}` (branch scope, CSV/XLSX,
+  print) and are listed in `ReportCatalog` for `/reports/center`.
+
+### Tests
+- 257 tests pass (1 new: **every** key in `StandardReportKeys` executes through the dispatcher and
+  returns columns). Screen smoke test 65/65; six sampled report URLs return 200.
+
+
 ## 2026-10-31 — Standard reports R5/R7/R10 (shifts, dead stock, suppliers)
 
 ### Added

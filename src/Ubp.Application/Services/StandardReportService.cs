@@ -41,6 +41,21 @@ public sealed class StandardReportService
             StandardReportKeys.DeadStock => await _reports.DeadStockAsync(to, branches, ct: ct),
             StandardReportKeys.SupplierPerformance => await _reports.SupplierPerformanceAsync(from,
                 to, branches, ct),
+            StandardReportKeys.StockAging => await _reports.StockAgingAsync(to, branches, ct),
+            StandardReportKeys.StockMovements => await _reports.StockMovementsAsync(from, to, branches, ct),
+            StandardReportKeys.StockFlow => await _reports.StockFlowAsync(from, to, branches, ct),
+            StandardReportKeys.StockValueByWarehouse => await _reports.StockValueByWarehouseAsync(
+                branches, ct),
+            StandardReportKeys.Commissions => await _reports.CommissionsAsync(from, to, ct),
+            StandardReportKeys.BookingConversion => await _reports.BookingConversionAsync(from, to,
+                branches, ct),
+            StandardReportKeys.UnappliedAdvances => await _reports.UnappliedAdvancesAsync(branches, ct),
+            StandardReportKeys.CreditLimits => await _reports.CreditLimitsAsync(branches, ct),
+            StandardReportKeys.FollowUps => await _reports.FollowUpsAsync(from, to, ct),
+            StandardReportKeys.DepreciationSchedule => await _reports.AssetDepreciationAsync(branches, ct),
+            StandardReportKeys.DueMaintenance => await _reports.DueMaintenanceAsync(to, branches, ct: ct),
+            StandardReportKeys.DailySales => await _reports.DailySalesAsync(from, to, branches, ct),
+            StandardReportKeys.PartyBalances => await _reports.PartyBalancesMonthlyAsync(from, to, ct),
             _ => throw new ValidationAppException("validation.report_key_unknown")
         };
     }
