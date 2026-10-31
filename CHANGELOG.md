@@ -32,14 +32,17 @@
 - `.github/workflows/ci.yml` added — the previous `ci/ci.yml` was outside `.github/workflows`, so
   the pipeline never ran. It keeps the 300-line gate and adds a guard that fails on committed
   build output or committed database credentials, plus concurrency and a job timeout.
+- The same file is committed as `docs/ci-workflow.yml` because the automation token used here has
+  no `workflows` permission: copy it to `.github/workflows/ci.yml` in the GitHub UI (or push it
+  with a token that has the `workflow` scope) to activate the pipeline.
 
 ### Repository hygiene
 - `.gitattributes` added (line-ending normalisation, binary document types).
 - Removed the tracked Word lock file `0- Plan/~$Foundation.docx`.
 
 ### Tests
-- 9 new tests in `StartupOptionsTests` cover the startup guards and the Neon URL conversion
-  without needing a database (131 → 140 total).
+- 10 new tests (9 in `StartupOptionsTests` without a database + 1 asserting the `0009` default
+  password is neutralised) — 131 → 141 total.
 
 
 ## 2026-10-24 — Fix: DateTimeOffset offsets when writing timestamptz

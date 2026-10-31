@@ -18,13 +18,15 @@
   `{"status": ...}` only, `503` on failure, cached 15 s.
 - CI now exists at `.github/workflows/ci.yml` (the old `ci/ci.yml` never ran) with the 300-line
   gate plus a committed-secrets/build-output guard.
-- 140 automated tests (9 new, database-free) cover the startup guards; build is clean
-  (0 errors) and every source file stays ≤ 300 lines.
+- 141 automated tests (10 new) cover the startup guards and the removal of the default password;
+  build is clean (0 errors) and every source file stays ≤ 300 lines.
 - Documented decisions/exceptions: `docs/EXCEPTIONS.md` (X-01 … X-09), including deferring
   `must_change_password` to migration `0037` and XLSX export without `System.IO.Packaging`.
 
 ### Still open from Phase 0
 - Rotate the Neon password and create/verify the dedicated `ubp_app` runtime role.
+- Activate the pipeline: copy `docs/ci-workflow.yml` to `.github/workflows/ci.yml` (the automation
+  token has no `workflows` permission), then enable branch protection on `main`.
 - Move the server-side `pg_dump` backup job and the `backup_log` reader to Phase 7 (unchanged).
 - Branch protection on `main` is a repository setting (not code) — enable it so merges require CI.
 
