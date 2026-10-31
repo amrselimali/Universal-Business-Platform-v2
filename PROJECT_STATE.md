@@ -1,5 +1,15 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Multi-branch reporting (8C part 2)
+
+- Trial balance / party statement / cost centers accept a **branch array** (empty = all visible);
+  the single-branch overloads remain for compatibility, and the scope is intersected with the
+  actor's allowed branches inside the service.
+- `BranchScopePicker` shared component (multi-select + all) wired into the trial balance screen.
+- 241 tests pass (3 new). Live: the three report screens answer `200`.
+- Next: wire the picker into party statement & cost centers, then ledger/stock-vs-gl/aging with the
+  same pattern, then **8A** (assets, meters, maintenance, monthly/annual depreciation).
+
 ## 2026-10-31 — Phase 8C delivered (main treasury + per-branch account defaults)
 
 - Migration `0048`: `treasuries.is_main` (partial unique ⇒ one main treasury) and

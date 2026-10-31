@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 8C (part 2): multi-branch reporting
+
+### Added
+- Trial balance, party statement and cost-center reports now accept **several branches**
+  (`IReadOnlyList<Guid>`, empty = every branch the caller may see) while the old single-branch
+  signatures keep working as thin overloads — no caller or test changed behaviour.
+- `AccountingReportService.Scope(...)` intersects the requested branches with the actor's
+  `AllowedBranchIds` **server-side** (super admin = everything), so a branch manager can never ask
+  for a foreign branch even by calling the API directly.
+- SQL filters were converted to `cardinality(@branchIds) = 0 OR col = ANY(@branchIds)` in the three
+  repositories (trial balance, statements, cost centers; stock-vs-gl follows the same call path).
+- New shared component `BranchScopePicker` (MudSelect multi-select + "all branches") wired into
+  `/reports/accounting/trial-balance`; party statement and cost centers already pass the scope array
+  and receive the picker next.
+
+### Tests
+- 3 new tests (241 total, 0 failures): the trial balance sums two branches and narrows to a subset,
+  the legacy single-branch signature still works while an empty scope means "all visible", and the
+  party statement/cost centers accept the branch array.
+- Live check: `/reports/accounting/trial-balance`, `/party-statement` and `/cost-centers` all answer
+  `200` after the component swap.
+
+
 ## 2026-10-31 — Phase 8C: main treasury + branch account defaults (`0048`)
 
 ### Added

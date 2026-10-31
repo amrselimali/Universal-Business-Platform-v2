@@ -25,7 +25,8 @@ public sealed class TrialBalanceReport
 {
     public DateTime From { get; set; }
     public DateTime To { get; set; }
-    public Guid? BranchId { get; set; }
+    /// <summary>الفروع المطلوبة؛ مصفوفة فارغة = كل الفروع (8ج).</summary>
+    public Guid[] BranchIds { get; set; } = Array.Empty<Guid>();
     public IReadOnlyList<TrialBalanceRow> Rows { get; set; } = Array.Empty<TrialBalanceRow>();
     public decimal TotalOpeningDebit => Rows.Sum(r => r.OpeningDebit);
     public decimal TotalOpeningCredit => Rows.Sum(r => r.OpeningCredit);
@@ -62,6 +63,8 @@ public sealed class LedgerRequest
 {
     public Guid AccountId { get; set; }
     public Guid? BranchId { get; set; }
+    /// <summary>عدة فروع (8ج)؛ عند تعبئتها تتقدم على <see cref="BranchId"/>.</summary>
+    public Guid[] BranchIds { get; set; } = Array.Empty<Guid>();
     public DateTime From { get; set; } = new(DateTime.Today.Year, 1, 1);
     public DateTime To { get; set; } = DateTime.Today;
     public bool IncludeChildren { get; set; } = true;

@@ -29,13 +29,9 @@ else
                            Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
             <MudDatePicker @bind-Date="_to" Label="@T.T("common.to")" Variant="Variant.Outlined"
                            Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
-            <MudSelect T="Guid?" @bind-Value="_branchId" Label="@T.T("common.branch")"
-                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
-                @foreach (var branch in _branches)
-                {
-                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
-                }
-            </MudSelect>
+            <BranchScopePicker Branches="_branches" Selected="_branchIds"
+                               SelectedChanged="OnBranchScope" Label="@T.T("common.branch")"
+                               AllText="@T.T("common.all")" />
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SearchAsync"
                        Disabled="_busy">@T.T("common.search")</MudButton>
         </div>

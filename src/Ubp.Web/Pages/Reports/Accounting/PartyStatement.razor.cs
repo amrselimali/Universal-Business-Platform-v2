@@ -18,6 +18,7 @@ public partial class PartyStatement
     private Guid? _partyId;
     private DateTime? _from = new(DateTime.Today.Year, 1, 1);
     private DateTime? _to = DateTime.Today;
+    private IReadOnlyList<Guid> _branchIds = Array.Empty<Guid>();
     private bool _busy;
 
     protected override string ScreenCode => ScreenCodes.PartyStatementReport;
@@ -41,8 +42,8 @@ public partial class PartyStatement
         _busy = true;
         try
         {
-            _report = await Reports.PartyStatementAsync(Actor!, _partyType, _partyId.Value,
-                _from ?? new DateTime(DateTime.Today.Year, 1, 1), _to ?? DateTime.Today, null);
+            _report = await Reports.PartyStatementForBranchesAsync(Actor!, _partyType, _partyId.Value,
+                _from ?? new DateTime(DateTime.Today.Year, 1, 1), _to ?? DateTime.Today, _branchIds);
         }
         finally { _busy = false; }
     });

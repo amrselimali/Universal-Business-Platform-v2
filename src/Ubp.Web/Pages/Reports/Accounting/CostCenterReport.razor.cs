@@ -14,6 +14,7 @@ public partial class CostCenterReport
     private IReadOnlyList<CostCenterAnalysisRow> _rows = Array.Empty<CostCenterAnalysisRow>();
     private DateTime? _from = new(DateTime.Today.Year, 1, 1);
     private DateTime? _to = DateTime.Today;
+    private IReadOnlyList<Guid> _branchIds = Array.Empty<Guid>();
     private bool _busy;
 
     protected override string ScreenCode => ScreenCodes.CostCenterReport;
@@ -25,8 +26,8 @@ public partial class CostCenterReport
         _busy = true;
         try
         {
-            _rows = await Reports.CostCenterAsync(Actor!,
-                _from ?? new DateTime(DateTime.Today.Year, 1, 1), _to ?? DateTime.Today, null);
+            _rows = await Reports.CostCenterForBranchesAsync(Actor!,
+                _from ?? new DateTime(DateTime.Today.Year, 1, 1), _to ?? DateTime.Today, _branchIds);
         }
         finally { _busy = false; }
     });

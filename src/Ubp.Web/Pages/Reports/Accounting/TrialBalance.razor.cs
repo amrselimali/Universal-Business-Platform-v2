@@ -16,7 +16,7 @@ public partial class TrialBalance
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private DateTime? _from = new(DateTime.Today.Year, 1, 1);
     private DateTime? _to = DateTime.Today;
-    private Guid? _branchId;
+    private IReadOnlyList<Guid> _branchIds = Array.Empty<Guid>();
     private bool _busy;
     private bool IsEnglish => T.Language == "en";
 
@@ -28,13 +28,20 @@ public partial class TrialBalance
         await SearchAsync();
     }
 
+    /// <summary>نطاق الفروع: لا اختيار = كل فروع المستخدم (يقصّها السيرفر).</summary>
+    private async Task OnBranchScope(IReadOnlyList<Guid> branchIds)
+    {
+        _branchIds = branchIds;
+        await SearchAsync();
+    }
+
     private async Task SearchAsync() => await RunAsync(async () =>
     {
         _busy = true;
         try
         {
-            _report = await Reports.TrialBalanceAsync(Actor!,
-                _from ?? new DateTime(DateTime.Today.Year, 1, 1), _to ?? DateTime.Today, _branchId);
+            _report = await Reports.TrialBalanceForBranchesAsync(Actor!,
+                _from ?? new DateTime(DateTime.Today.Year, 1, 1), _to ?? DateTime.Today, _branchIds);
         }
         finally { _busy = false; }
     });
