@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2026-10-31 — Phase 8C: main treasury + branch account defaults (`0048`)
+
+### Added
+- Migration `0048`: `treasuries.is_main` with a **partial unique index** (exactly one main treasury)
+  and `branch_account_defaults (branch_id, key) → account_id` (the approved "global chart + per-branch
+  defaults" model, decision 8C-a+c).
+- `TreasuryRepository.SetMainAsync/GetMainAsync` (switch inside one transaction) and
+  `TreasuryService.SetMainTreasuryAsync` (branch scope + audit) exposed as the `SET_MAIN` action on
+  the treasuries screen; `/treasury/management` now shows a main-treasury badge/button.
+- `BranchAccountDefaultsService/Repository`: list/upsert/delete per branch with key validation
+  (`^[a-z][a-z0-9_.]{2,59}$`), **postable-account enforcement**, and `ResolveAsync(branch, key)` that
+  posting code can call before falling back to the global `posting_defaults`.
+
+### Tests
+- 4 new tests (238 total, 0 failures): only one main treasury can exist and the switch moves it,
+  an inactive treasury cannot be selected, branch defaults upsert/resolve/remove without duplicates,
+  and invalid keys or non-postable accounts are rejected.
+
+
 ## 2026-10-31 — Phase 8B: reservations as customer deposits (`0047`)
 
 ### Added

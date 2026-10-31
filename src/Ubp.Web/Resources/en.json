@@ -959,6 +959,8 @@
   "stocktake.status_posted": "Posted",
   "stocktake.total_difference": "Net difference",
   "treasury.account": "GL account",
+  "treasury.main": "Main treasury",
+  "treasury.set_main": "Set as main",
   "treasury.add_denomination": "Add denomination",
   "treasury.add_line": "Add line",
   "treasury.add_method": "Add payment method",

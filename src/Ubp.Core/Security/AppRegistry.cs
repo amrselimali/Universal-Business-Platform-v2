@@ -210,7 +210,7 @@ public static partial class AppRegistry
 
         new(ScreenCodes.Treasuries, "/treasury/management", "AccountBalanceWallet",
             "screen.treasuries", GroupAccounting,
-            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.ManageMethods) },
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.ManageMethods), A(ActionCodes.SetMain) },
             "treasury.management"),
 
         new(ScreenCodes.TreasuryVouchers, "/treasury/vouchers", "ReceiptLong",

@@ -1,5 +1,18 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-10-31 — Phase 8C delivered (main treasury + per-branch account defaults)
+
+- Migration `0048`: `treasuries.is_main` (partial unique ⇒ one main treasury) and
+  `branch_account_defaults (branch_id, key) → account_id` — the approved model: **one global chart,
+  per-branch default accounts** (8C-a+c).
+- `SET_MAIN` action on `/treasury/management` (badge + button), switching inside one transaction with
+  branch scoping and an audit entry.
+- `BranchAccountDefaultsService`: validates the key format and requires a **postable** account;
+  `ResolveAsync(branch, key)` is the hook posting code will use before the global defaults.
+- 238 tests pass (4 new). Still pending from 8C: the **multi-branch (one / several / all)** filter
+  across the six accounting reports — the next increment.
+- Phase 8 progress: 8B ✅ · 8C (treasury + defaults) ✅ · next: multi-branch reports, then 8A assets.
+
 ## 2026-10-31 — Phase 8B delivered (reservations = deposits)
 
 - Migration `0047`: `reservation_adjustments` (+ unique partial index), `v_customer_reservations`,
