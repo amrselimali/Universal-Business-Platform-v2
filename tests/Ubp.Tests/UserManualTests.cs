@@ -38,6 +38,8 @@ public sealed class UserManualTests
         Assert.Equal(Count(html, "<table"), Count(html, "</table>"));
         Assert.Equal(Count(html, "<tr>"), Count(html, "</tr>"));
         Assert.Equal(Count(html, "<td>"), Count(html, "</td>"));
+        Assert.Equal(Count(html, "<code>"), Count(html, "</code>"));
+        Assert.Equal(Count(html, "<strong>"), Count(html, "</strong>"));
         Assert.DoesNotContain("<script>", html);
     }
 
