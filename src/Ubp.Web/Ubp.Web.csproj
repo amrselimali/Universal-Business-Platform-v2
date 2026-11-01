@@ -14,7 +14,42 @@
   </ItemGroup>
   <ItemGroup>
     <Content Update="Resources\*.json" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\..\docs\USER-MANUAL-AR.md" Link="Resources\USER-MANUAL-AR.md" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\docs\USER-MANUAL-AR.md" Link="Resources\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="..\..\docs\USER-MANUAL-AR.md" Link="Resources\USER-MANUAL-AR.md" />
   </ItemGroup>
+
+  <!-- مولّد دليل المستخدم يقرأ ملفات المصدر الحالية من مجلد Code في الإخراج/النشر. -->
+  <Target Name="CopyManualSources" AfterTargets="Build">
+    <ItemGroup>
+      <ManualPageSources Include="Pages\**\*.razor" />
+      <ManualComponentSources Include="Components\**\*.razor" />
+      <ManualServiceSources Include="..\Ubp.Application\Services\*.cs" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ManualPageSources)"
+          DestinationFiles="@(ManualPageSources->'$(OutDir)Code\Pages\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(ManualComponentSources)"
+          DestinationFiles="@(ManualComponentSources->'$(OutDir)Code\Components\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(ManualServiceSources)"
+          DestinationFiles="@(ManualServiceSources->'$(OutDir)Code\Services\%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyManualSourcesToPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <ManualPageSourcesPublish Include="Pages\**\*.razor" />
+      <ManualComponentSourcesPublish Include="Components\**\*.razor" />
+      <ManualServiceSourcesPublish Include="..\Ubp.Application\Services\*.cs" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ManualPageSourcesPublish)"
+          DestinationFiles="@(ManualPageSourcesPublish->'$(PublishDir)Code\Pages\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(ManualComponentSourcesPublish)"
+          DestinationFiles="@(ManualComponentSourcesPublish->'$(PublishDir)Code\Components\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(ManualServiceSourcesPublish)"
+          DestinationFiles="@(ManualServiceSourcesPublish->'$(PublishDir)Code\Services\%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>

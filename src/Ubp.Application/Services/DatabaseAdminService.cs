@@ -12,7 +12,14 @@ public sealed record DatabaseStatus(bool Connected, string? Server, string? Data
 
 public sealed record MigrationOutcome(bool Success, string? Error, IReadOnlyList<string> Executed);
 
-public sealed partial class DatabaseAdminService
+public interface IManualSchemaProvider
+{
+    Task<IReadOnlyList<TableInfo>> GetTablesAsync(ActorContext actor, CancellationToken ct = default);
+    Task<IReadOnlyList<ColumnInfo>> GetColumnsAsync(ActorContext actor, string table,
+        CancellationToken ct = default);
+}
+
+public sealed partial class DatabaseAdminService : IManualSchemaProvider
 {
     private readonly ISchemaAdminRepository _schema;
     private readonly MigrationRunner _runner;
@@ -78,6 +85,29 @@ public sealed partial class DatabaseAdminService
     {
         RequireSuperAdmin(actor);
         await _permissions.RequireAsync(actor, ScreenCodes.DatabaseAdmin, ActionCodes.View, ct: ct);
+        return await _schema.GetColumnsAsync(table, ct);
+    }
+}
+public sealed partial class DatabaseAdminService
+{
+    async Task<IReadOnlyList<TableInfo>> IManualSchemaProvider.GetTablesAsync(ActorContext actor,
+        CancellationToken ct) => await GetManualTablesAsync(actor, ct);
+
+    async Task<IReadOnlyList<ColumnInfo>> IManualSchemaProvider.GetColumnsAsync(ActorContext actor,
+        string table, CancellationToken ct) => await GetManualColumnsAsync(actor, table, ct);
+
+    /// <summary>يُستخدم مولّد دليل المستخدم: جداول القاعدة متاحة لمن يملك USER_MANUAL/VIEW.</summary>
+    public async Task<IReadOnlyList<TableInfo>> GetManualTablesAsync(ActorContext actor,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.UserManual, ActionCodes.View, ct: ct);
+        return await _schema.GetTablesAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<ColumnInfo>> GetManualColumnsAsync(ActorContext actor, string table,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.UserManual, ActionCodes.View, ct: ct);
         return await _schema.GetColumnsAsync(table, ct);
     }
 }

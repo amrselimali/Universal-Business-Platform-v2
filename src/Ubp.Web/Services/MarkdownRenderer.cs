@@ -46,6 +46,11 @@ public static class MarkdownRenderer
                     i++;
                 }
                 if (i < lines.Length) i++;
+                if (string.Equals(language, "flow", StringComparison.OrdinalIgnoreCase))
+                {
+                    AppendFlow(html, code.ToString());
+                    continue;
+                }
                 html.Append("<pre><code");
                 if (!string.IsNullOrWhiteSpace(language))
                     html.Append(" class=\"language-").Append(WebUtility.HtmlEncode(language)).Append('"');
@@ -136,6 +141,25 @@ public static class MarkdownRenderer
         }
 
         return html.ToString();
+    }
+
+    private static void AppendFlow(StringBuilder html, string text)
+    {
+        var steps = text.Replace("\r\n", "\n")
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (steps.Length == 0) return;
+
+        html.Append("<div class=\"ubp-flow\" dir=\"rtl\">");
+        for (var i = 0; i < steps.Length; i++)
+        {
+            if (i > 0) html.Append("<span class=\"ubp-flow-arrow\" aria-hidden=\"true\">←</span>");
+            html.Append("<div class=\"ubp-flow-step\"><span class=\"ubp-flow-num\">")
+                .Append(i + 1)
+                .Append("</span><span>")
+                .Append(Inline(steps[i]))
+                .Append("</span></div>");
+        }
+        html.Append("</div>\n");
     }
 
     private static void AppendTable(StringBuilder html, IReadOnlyList<string> rows)

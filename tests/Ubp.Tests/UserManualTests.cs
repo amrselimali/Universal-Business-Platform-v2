@@ -42,6 +42,73 @@ public sealed class UserManualTests
     }
 
     [Fact]
+    public async Task Generator_reads_screens_buttons_tables_and_workflows()
+    {
+        var repo = FindRepoRoot();
+        var environment = new FakeEnvironment(Path.Combine(repo, "src", "Ubp.Web"));
+        var translator = new Translator(environment, NullLogger<Translator>.Instance);
+        var reader = new UserManualSourceReader(environment, NullLogger<UserManualSourceReader>.Instance);
+        var generator = new UserManualGenerator(reader, new FakeSchemaProvider(), translator,
+            NullLogger<UserManualGenerator>.Instance);
+        var actor = new ActorContext
+        {
+            UserId = Guid.NewGuid(), Username = "admin", IsAdmin = true,
+            Language = "ar", TraceId = "test"
+        };
+
+        var result = await generator.GenerateAsync(actor, force: true);
+
+        Assert.Contains("## 1. كيف يعمل النظام", result.Markdown);
+        Assert.Contains("## 3. دورات العمل", result.Markdown);
+        Assert.Contains("```flow", result.Markdown);
+        Assert.Contains("## 4. دليل الشاشات والأزرار", result.Markdown);
+        Assert.Contains("### الحوارات", result.Markdown);
+        Assert.Contains("AccountDialog", result.Markdown);
+        Assert.Contains("STOCK_DOCUMENTS/POST", result.Markdown);
+        Assert.Contains("#### `/inventory/items` — الأصناف", result.Markdown);
+        Assert.Contains("| الزر | الصلاحية |", result.Markdown);
+        Assert.Contains("## 5. قاعدة البيانات", result.Markdown);
+        Assert.Contains("`users`", result.Markdown);
+        Assert.Contains("## 6. قيود الأزرار واستخدامها", result.Markdown);
+        Assert.Contains("## 7. مصفوفة الصلاحيات", result.Markdown);
+        Assert.Contains("## 8. سجل التدقيق", result.Markdown);
+        Assert.True(result.ScreenCount > 50);
+        Assert.True(result.ButtonCount > 200);
+        Assert.Equal(1, result.TableCount);
+        Assert.True(result.SchemaAvailable);
+        Assert.True(result.SourceAvailable);
+
+        var html = MarkdownRenderer.Render(result.Markdown);
+        Assert.Contains("ubp-flow", html);
+        Assert.Equal(Count(html, "<table"), Count(html, "</table>"));
+    }
+
+    private sealed class FakeSchemaProvider : IManualSchemaProvider
+    {
+        public Task<IReadOnlyList<TableInfo>> GetTablesAsync(ActorContext actor,
+            CancellationToken ct = default) => Task.FromResult<IReadOnlyList<TableInfo>>(
+        [
+            new TableInfo { Schema = "public", Name = "users", RowCount = 2, ColumnCount = 2 }
+        ]);
+
+        public Task<IReadOnlyList<ColumnInfo>> GetColumnsAsync(ActorContext actor, string table,
+            CancellationToken ct = default) => Task.FromResult<IReadOnlyList<ColumnInfo>>(
+        [
+            new("id", "uuid", false),
+            new("username", "character varying", false)
+        ]);
+    }
+
+    private static string FindRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null &&
+               !File.Exists(Path.Combine(dir.FullName, "UniversalBusinessPlatform.slnx")))
+            dir = dir.Parent;
+        return dir?.FullName ?? throw new InvalidOperationException("Repository root not found.");
+    }
+
+    [Fact]
     public async Task User_manual_view_requires_permission()
     {
         var service = new PermissionService(new EmptyPermissionRepository(),

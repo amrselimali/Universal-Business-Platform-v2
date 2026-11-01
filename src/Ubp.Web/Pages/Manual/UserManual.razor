@@ -1,8 +1,11 @@
 @page "/system/user-manual"
 @attribute [Authorize]
 @inherits SecurePageBase
+@using Microsoft.Extensions.Logging
 @inject IJSRuntime JS
 @inject UserManualSource Manual
+@inject UserManualGenerator Generator
+@inject ILogger<UserManual> Logger
 <PageTitle>@T.T("screen.user_manual")</PageTitle>
 
 @if (Denied)
@@ -30,11 +33,33 @@ else
         </Actions>
     </PageHeader>
 
+    @if (_busy)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+
     @if (_updatedAt is { } updated)
     {
-        <MudText Typo="Typo.caption" Class="ubp-muted mb-3">
-            @T.T("user_manual.updated_at"): @updated.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
-        </MudText>
+        <div class="ubp-manual-meta">
+            <MudChip T="string" Size="Size.Small" Color="@(_generated ? Color.Success : Color.Default)"
+                     Variant="Variant.Outlined">
+                @T.T(_generated ? "user_manual.generated" : "user_manual.static_copy")
+            </MudChip>
+            <span>@T.T("user_manual.counts", _screenCount, _buttonCount, _tableCount)</span>
+            <span>@T.T("user_manual.updated_at"): @updated.ToString("yyyy-MM-dd HH:mm")</span>
+            @if (!_schemaAvailable)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">
+                    @T.T("user_manual.schema_unavailable")
+                </MudChip>
+            }
+            @if (!_sourceAvailable)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">
+                    @T.T("user_manual.source_unavailable")
+                </MudChip>
+            }
+        </div>
     }
 
     @if (_missing)
@@ -55,17 +80,45 @@ else
     private string _html = "";
     private bool _missing;
     private bool _busy;
+    private bool _generated;
+    private bool _schemaAvailable;
+    private bool _sourceAvailable;
+    private int _screenCount;
+    private int _buttonCount;
+    private int _tableCount;
     private DateTimeOffset? _updatedAt;
 
     protected override string ScreenCode => ScreenCodes.UserManual;
 
-    protected override async Task OnLoadAsync() => await ReloadAsync();
+    protected override async Task OnLoadAsync() => await GenerateAsync(force: false);
 
-    private async Task ReloadAsync()
+    private async Task GenerateAsync(bool force)
     {
         _busy = true;
         try
         {
+            try
+            {
+                var generation = await Generator.GenerateAsync(Actor!, force);
+                if (!string.IsNullOrWhiteSpace(generation.Markdown))
+                {
+                    _html = MarkdownRenderer.Render(generation.Markdown);
+                    _updatedAt = generation.GeneratedAt;
+                    _screenCount = generation.ScreenCount;
+                    _buttonCount = generation.ButtonCount;
+                    _tableCount = generation.TableCount;
+                    _schemaAvailable = generation.SchemaAvailable;
+                    _sourceAvailable = generation.SourceAvailable;
+                    _generated = true;
+                    _missing = false;
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "User manual generation failed; falling back to the static copy.");
+            }
+
             var content = await Manual.LoadAsync();
             if (content.IsEmpty)
             {
@@ -75,9 +128,15 @@ else
                 return;
             }
 
-            _missing = false;
             _html = MarkdownRenderer.Render(content.Markdown);
             _updatedAt = content.UpdatedAt;
+            _generated = false;
+            _schemaAvailable = false;
+            _sourceAvailable = false;
+            _screenCount = AppRegistry.Screens.Count;
+            _buttonCount = 0;
+            _tableCount = 0;
+            _missing = false;
         }
         finally
         {
@@ -88,7 +147,7 @@ else
     private async Task RefreshAsync() =>
         await RunAsync(async () =>
         {
-            await ReloadAsync();
+            await GenerateAsync(force: true);
             if (!_missing) ShowSuccess("user_manual.reloaded");
         });
 
