@@ -1,4 +1,8 @@
+using Microsoft.Extensions.Caching.Memory;
+using Ubp.Application.Services;
+using Ubp.Core.Models;
 using Ubp.Core.Security;
+using Ubp.Infrastructure.Repositories;
 using Ubp.Web.Services;
 using Xunit;
 
@@ -6,6 +10,41 @@ namespace Ubp.Tests;
 
 public sealed class UserManualTests
 {
+    private sealed class EmptyPermissionRepository : IPermissionRepository
+    {
+        public Task<IReadOnlyList<PermissionEntry>> GetRoleGrantsForUserAsync(Guid userId,
+            CancellationToken ct = default) => Task.FromResult<IReadOnlyList<PermissionEntry>>([]);
+
+        public Task<IReadOnlyList<PermissionEntry>> GetUserOverridesAsync(Guid userId,
+            CancellationToken ct = default) => Task.FromResult<IReadOnlyList<PermissionEntry>>([]);
+
+        public Task ReplaceUserPermissionsAsync(Guid userId, IEnumerable<PermissionEntry> permissions,
+            CancellationToken ct = default) => Task.CompletedTask;
+
+        public Task CopyUserPermissionsAsync(Guid sourceUserId, Guid targetUserId,
+            CancellationToken ct = default) => Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task User_manual_view_is_public_while_other_screens_stay_denied()
+    {
+        var service = new PermissionService(new EmptyPermissionRepository(),
+            new MemoryCache(new MemoryCacheOptions()));
+        var actor = new ActorContext
+        {
+            UserId = Guid.NewGuid(), Username = "user", IsAdmin = false,
+            Language = "ar", TraceId = "test"
+        };
+
+        var snapshot = await service.GetSnapshotAsync(actor.UserId, actor.IsAdmin);
+        Assert.True(snapshot[$"{ScreenCodes.UserManual}/{ActionCodes.View}"].Allowed);
+        Assert.False(snapshot[$"{ScreenCodes.Users}/{ActionCodes.View}"].Allowed);
+
+        var visible = await service.GetVisibleScreenCodesAsync(actor);
+        Assert.Contains(ScreenCodes.UserManual, visible);
+        Assert.DoesNotContain(ScreenCodes.Users, visible);
+    }
+
     [Fact]
     public void User_manual_screen_is_registered_under_system_group()
     {
