@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-11-01 — Bootstrap Super Admin works with `AutoMigrate=false`
+
+### Fixed
+- `DatabaseBootstrapper` now runs `DataSeeder` on startup even when
+  `Database:AutoMigrate=false` (after verifying the critical schema exists), so the documented
+  production flow (`--migrate` + `AutoMigrate=false`) honours `Bootstrap:SuperAdminPassword` and
+  recreates the Super Admin when none is active.
+- `DataSeeder` emits an actionable Critical log when `Bootstrap:SuperAdminUsername` already exists
+  as a non-Super-Admin user and no active Super Admin exists.
+
+### Tests
+- Build: 0 errors; `StartupOptionsTests` 9/9 pass.
+
 ## 2026-10-31 — All remaining standard reports (20 total)
 
 ### Added

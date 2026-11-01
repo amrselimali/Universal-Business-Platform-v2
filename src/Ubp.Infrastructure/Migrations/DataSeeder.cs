@@ -45,6 +45,11 @@ public sealed class DataSeeder
         if (existing is not null)
         {
             await ReplaceKnownDefaultPasswordAsync(existing, ct);
+            if (!existing.IsSuperAdmin && await _users.CountActiveSuperAdminsAsync(ct) == 0)
+                _logger.LogCritical(
+                    "Bootstrap username '{Username}' exists but is not a Super Admin, and no active " +
+                    "Super Admin exists. Set Bootstrap:SuperAdminUsername to a new unused username " +
+                    "or promote this account manually.", username);
             return;
         }
 
