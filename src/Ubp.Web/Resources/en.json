@@ -1349,6 +1349,7 @@
   "warehouses.title": "Warehouses",
   "validation.category_code_required": "Category code is required",
   "validation.category_life_required": "Useful life is required for linear categories",
+  "screen.assets": "Asset management",
   "screen.asset_maintenance": "Equipment maintenance",
   "screen.asset_depreciation": "Asset depreciation",
   "assets.maintenance_hint": "Maintenance plans and orders per device; closing resets the meter when configured on the asset.",

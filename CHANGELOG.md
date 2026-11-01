@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-11-01 — Complete Arabic user manual + asset screen title
+
+### Added
+- `docs/USER-MANUAL-AR.md`: a full screen-by-screen and button-by-button reference (65 screens,
+  62 dialogs): required permission, what each action saves/audits (`audit_log` table/action), and
+  where it navigates (page/dialog/reload/export/print).
+- Linked the manual from `README.md`.
+
+### Fixed
+- Added the missing `screen.assets` translation in `ar.json` / `en.json` (the assets screen title
+  previously rendered as a raw resource key).
+
 ## 2026-11-01 — Bootstrap Super Admin works with `AutoMigrate=false`
 
 ### Fixed

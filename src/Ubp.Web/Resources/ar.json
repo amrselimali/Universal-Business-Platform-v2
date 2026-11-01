@@ -1349,6 +1349,7 @@
   "warehouses.title": "المخازن",
   "validation.category_code_required": "رمز التصنيف مطلوب",
   "validation.category_life_required": "العمر الإنتاجي مطلوب للتصنيف الخطي",
+  "screen.assets": "إدارة الأصول",
   "screen.asset_maintenance": "صيانة الأجهزة",
   "screen.asset_depreciation": "إهلاك الأصول",
   "assets.maintenance_hint": "خطط وأوامر الصيانة لكل جهاز؛ الإغلاق يُصفّر العدّاد إن كان مُعدّاً على الأصل.",
