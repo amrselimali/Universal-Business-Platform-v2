@@ -45,17 +45,6 @@ public sealed class PermissionService
             }
         }
 
-        // دليل المستخدم مرجع عام لكل مستخدم مسجل: يظهر في تبويب النظام حتى لو لم
-        // يُمنح الدور صلاحية صريحة. بقية الشاشات تظل Default Deny.
-        map[Key(ScreenCodes.UserManual, ActionCodes.View)] = new EffectivePermission
-        {
-            ScreenCode = ScreenCodes.UserManual,
-            ActionCode = ActionCodes.View,
-            Allowed = true,
-            Scope = PermissionScope.All,
-            Source = "public"
-        };
-
         _cache.Set(key, (IReadOnlyDictionary<string, EffectivePermission>)map, TimeSpan.FromMinutes(5));
         return map;
     }

@@ -1,4 +1,8 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
 using Ubp.Application.Services;
 using Ubp.Core.Models;
 using Ubp.Core.Security;
@@ -25,8 +29,20 @@ public sealed class UserManualTests
             CancellationToken ct = default) => Task.CompletedTask;
     }
 
+    private sealed class FakeEnvironment(string root) : IWebHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = "Development";
+        public string ApplicationName { get; set; } = "Ubp.Tests";
+        public string ContentRootPath { get; set; } = root;
+        public string WebRootPath { get; set; } = root;
+        public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } =
+            new NullFileProvider();
+        public Microsoft.Extensions.FileProviders.IFileProvider WebRootFileProvider { get; set; } =
+            new NullFileProvider();
+    }
+
     [Fact]
-    public async Task User_manual_view_is_public_while_other_screens_stay_denied()
+    public async Task User_manual_view_requires_permission()
     {
         var service = new PermissionService(new EmptyPermissionRepository(),
             new MemoryCache(new MemoryCacheOptions()));
@@ -37,11 +53,11 @@ public sealed class UserManualTests
         };
 
         var snapshot = await service.GetSnapshotAsync(actor.UserId, actor.IsAdmin);
-        Assert.True(snapshot[$"{ScreenCodes.UserManual}/{ActionCodes.View}"].Allowed);
+        Assert.False(snapshot[$"{ScreenCodes.UserManual}/{ActionCodes.View}"].Allowed);
         Assert.False(snapshot[$"{ScreenCodes.Users}/{ActionCodes.View}"].Allowed);
 
         var visible = await service.GetVisibleScreenCodesAsync(actor);
-        Assert.Contains(ScreenCodes.UserManual, visible);
+        Assert.DoesNotContain(ScreenCodes.UserManual, visible);
         Assert.DoesNotContain(ScreenCodes.Users, visible);
     }
 
@@ -53,6 +69,29 @@ public sealed class UserManualTests
         Assert.Equal("/system/user-manual", screen.Route);
         Assert.Equal(AppRegistry.GroupSystem, screen.GroupKey);
         Assert.Contains(screen.Actions, action => action.Code == ActionCodes.View);
+    }
+
+    [Fact]
+    public async Task Source_reads_the_latest_file_from_disk()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "ubp-manual-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var file = Path.Combine(dir, "USER-MANUAL-AR.md");
+        await File.WriteAllTextAsync(file, "# Manual v2\n\nlatest");
+        try
+        {
+            var source = new UserManualSource(new FakeEnvironment(dir),
+                NullLogger<UserManualSource>.Instance);
+            var content = await source.LoadAsync(searchPaths: new[] { file });
+
+            Assert.Contains("Manual v2", content.Markdown);
+            Assert.Equal(file, content.SourcePath);
+            Assert.NotNull(content.UpdatedAt);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
     }
 
     [Fact]

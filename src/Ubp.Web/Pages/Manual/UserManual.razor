@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @inherits SecurePageBase
 @inject IJSRuntime JS
+@inject UserManualSource Manual
 <PageTitle>@T.T("screen.user_manual")</PageTitle>
 
 @if (Denied)
@@ -17,11 +18,24 @@ else
     <PageHeader Title="@T.T("screen.user_manual")" Subtitle="@T.T("user_manual.hint")">
         <Actions>
             <MudButton Variant="Variant.Outlined" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync">
+                       StartIcon="@Icons.Material.Filled.Refresh" OnClick="RefreshAsync"
+                       Disabled="_busy">
+                @T.T("user_manual.refresh")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync"
+                       Disabled="_busy">
                 @T.T("common.print")
             </MudButton>
         </Actions>
     </PageHeader>
+
+    @if (_updatedAt is { } updated)
+    {
+        <MudText Typo="Typo.caption" Class="ubp-muted mb-3">
+            @T.T("user_manual.updated_at"): @updated.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+        </MudText>
+    }
 
     @if (_missing)
     {
@@ -40,31 +54,43 @@ else
 @code {
     private string _html = "";
     private bool _missing;
+    private bool _busy;
+    private DateTimeOffset? _updatedAt;
 
     protected override string ScreenCode => ScreenCodes.UserManual;
 
-    protected override async Task OnLoadAsync()
+    protected override async Task OnLoadAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
     {
-        var assembly = typeof(MarkdownRenderer).Assembly;
-        var resourceName = assembly.GetManifestResourceNames()
-            .FirstOrDefault(name => name.EndsWith("USER-MANUAL-AR.md",
-                StringComparison.OrdinalIgnoreCase));
-        if (resourceName is null)
+        _busy = true;
+        try
         {
-            _missing = true;
-            return;
-        }
+            var content = await Manual.LoadAsync();
+            if (content.IsEmpty)
+            {
+                _missing = true;
+                _html = "";
+                _updatedAt = null;
+                return;
+            }
 
-        await using var stream = assembly.GetManifestResourceStream(resourceName);
-        if (stream is null)
+            _missing = false;
+            _html = MarkdownRenderer.Render(content.Markdown);
+            _updatedAt = content.UpdatedAt;
+        }
+        finally
         {
-            _missing = true;
-            return;
+            _busy = false;
         }
-
-        using var reader = new StreamReader(stream);
-        _html = MarkdownRenderer.Render(await reader.ReadToEndAsync());
     }
+
+    private async Task RefreshAsync() =>
+        await RunAsync(async () =>
+        {
+            await ReloadAsync();
+            if (!_missing) ShowSuccess("user_manual.reloaded");
+        });
 
     private async Task PrintAsync() => await JS.InvokeVoidAsync("print");
 }
