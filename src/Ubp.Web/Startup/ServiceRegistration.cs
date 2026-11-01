@@ -33,6 +33,8 @@ public static class ServiceRegistration
         services.AddSingleton<MigrationRunner>();
         services.AddSingleton<PasswordHasher>();
         services.AddScoped<UserManualSource>();
+        services.AddScoped<UserManualSourceReader>();
+        services.AddScoped<UserManualGenerator>();
         services.AddSingleton<TokenService>();
         services.AddScoped<IAccessTokenIssuer, TokenIssuerAdapter>();
         services.AddScoped<DataSeeder>();
@@ -171,6 +173,7 @@ public static class ServiceRegistration
         services.AddScoped<AuthService>();
         services.AddScoped<AuditQueryService>();
         services.AddScoped<DatabaseAdminService>();
+        services.AddScoped<IManualSchemaProvider>(sp => sp.GetRequiredService<DatabaseAdminService>());
         services.AddScoped<QaService>();
         services.AddScoped<UnitService>();
         services.AddScoped<ItemCategoryService>();
