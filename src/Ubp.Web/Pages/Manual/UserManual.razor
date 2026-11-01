@@ -1,0 +1,96 @@
+@page "/system/user-manual"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject IJSRuntime JS
+@inject UserManualSource Manual
+<PageTitle>@T.T("screen.user_manual")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.user_manual")" Subtitle="@T.T("user_manual.hint")">
+        <Actions>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh" OnClick="RefreshAsync"
+                       Disabled="_busy">
+                @T.T("user_manual.refresh")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync"
+                       Disabled="_busy">
+                @T.T("common.print")
+            </MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (_updatedAt is { } updated)
+    {
+        <MudText Typo="Typo.caption" Class="ubp-muted mb-3">
+            @T.T("user_manual.updated_at"): @updated.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+        </MudText>
+    }
+
+    @if (_missing)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+            @T.T("user_manual.missing")
+        </MudAlert>
+    }
+    else
+    {
+        <MudPaper Elevation="0" Class="ubp-card ubp-manual">
+            @((MarkupString)_html)
+        </MudPaper>
+    }
+}
+
+@code {
+    private string _html = "";
+    private bool _missing;
+    private bool _busy;
+    private DateTimeOffset? _updatedAt;
+
+    protected override string ScreenCode => ScreenCodes.UserManual;
+
+    protected override async Task OnLoadAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _busy = true;
+        try
+        {
+            var content = await Manual.LoadAsync();
+            if (content.IsEmpty)
+            {
+                _missing = true;
+                _html = "";
+                _updatedAt = null;
+                return;
+            }
+
+            _missing = false;
+            _html = MarkdownRenderer.Render(content.Markdown);
+            _updatedAt = content.UpdatedAt;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RefreshAsync() =>
+        await RunAsync(async () =>
+        {
+            await ReloadAsync();
+            if (!_missing) ShowSuccess("user_manual.reloaded");
+        });
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("print");
+}

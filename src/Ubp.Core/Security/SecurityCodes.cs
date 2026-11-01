@@ -26,6 +26,7 @@ public static class ScreenCodes
     public const string DatabaseAdmin = "DATABASE_ADMIN";
     public const string SystemHealth = "SYSTEM_HEALTH";
     public const string ImportTool = "IMPORT_TOOL";
+    public const string UserManual = "USER_MANUAL";
     public const string Assets = "ASSETS";
     public const string AssetMaintenance = "ASSET_MAINTENANCE";
     public const string AssetDepreciation = "ASSET_DEPRECIATION";

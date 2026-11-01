@@ -14,5 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Update="Resources\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\docs\USER-MANUAL-AR.md" Link="Resources\USER-MANUAL-AR.md" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="..\..\docs\USER-MANUAL-AR.md" Link="Resources\USER-MANUAL-AR.md" />
   </ItemGroup>
 </Project>

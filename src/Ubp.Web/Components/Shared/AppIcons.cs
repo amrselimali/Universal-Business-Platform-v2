@@ -15,6 +15,7 @@ public static class AppIcons
         "ManageAccounts" => Icons.Material.Filled.ManageAccounts,
         "AdminPanelSettings" => Icons.Material.Filled.AdminPanelSettings,
         "History" => Icons.Material.Filled.History,
+        "MenuBook" => Icons.Material.Filled.MenuBook,
         "Science" => Icons.Material.Filled.Science,
         "Storage" => Icons.Material.Filled.Storage,
         "Straighten" => Icons.Material.Filled.Straighten,

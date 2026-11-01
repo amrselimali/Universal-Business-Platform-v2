@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## 2026-11-01 — Complete Arabic user manual + asset screen title
+
+### Added
+- `docs/USER-MANUAL-AR.md`: a full screen-by-screen and button-by-button reference (66 screens,
+  62 dialogs): required permission, what each action saves/audits (`audit_log` table/action), and
+  where it navigates (page/dialog/reload/export/print).
+- In-app manual page **النظام → دليل المستخدم** (`/system/user-manual`, permission
+  `USER_MANUAL/VIEW`): renders the same Markdown from disk (output `Resources`) with an embedded
+  fallback, plus a **تحديث الدليل** button that re-reads the file without restarting the app, print,
+  and RTL table styling.
+- `MarkdownRenderer` (no external package) with HTML escaping, headings, tables, lists, quotes,
+  code spans/blocks and links; covered by `UserManualTests`.
+- Linked the manual from `README.md`.
+
+### Fixed
+- Added the missing `screen.assets` translation in `ar.json` / `en.json` (the assets screen title
+  previously rendered as a raw resource key).
+
+## 2026-11-01 — Bootstrap Super Admin works with `AutoMigrate=false`
+
+### Fixed
+- `DatabaseBootstrapper` now runs `DataSeeder` on startup even when
+  `Database:AutoMigrate=false` (after verifying the critical schema exists), so the documented
+  production flow (`--migrate` + `AutoMigrate=false`) honours `Bootstrap:SuperAdminPassword` and
+  recreates the Super Admin when none is active.
+- `DataSeeder` emits an actionable Critical log when `Bootstrap:SuperAdminUsername` already exists
+  as a non-Super-Admin user and no active Super Admin exists.
+
+### Tests
+- Build: 0 errors; `StartupOptionsTests` 9/9 pass.
+
 ## 2026-10-31 — All remaining standard reports (20 total)
 
 ### Added

@@ -32,6 +32,7 @@ public static class ServiceRegistration
         services.AddSingleton(sp => new QaConnectionFactory(sp.GetRequiredService<DatabaseOptions>()));
         services.AddSingleton<MigrationRunner>();
         services.AddSingleton<PasswordHasher>();
+        services.AddScoped<UserManualSource>();
         services.AddSingleton<TokenService>();
         services.AddScoped<IAccessTokenIssuer, TokenIssuerAdapter>();
         services.AddScoped<DataSeeder>();
