@@ -3,9 +3,13 @@
 ## 2026-11-01 — Complete Arabic user manual + asset screen title
 
 ### Added
-- `docs/USER-MANUAL-AR.md`: a full screen-by-screen and button-by-button reference (65 screens,
+- `docs/USER-MANUAL-AR.md`: a full screen-by-screen and button-by-button reference (66 screens,
   62 dialogs): required permission, what each action saves/audits (`audit_log` table/action), and
   where it navigates (page/dialog/reload/export/print).
+- In-app manual page **النظام → دليل المستخدم** (`/system/user-manual`, screen `USER_MANUAL/VIEW`)
+  rendering the same Markdown from an embedded resource, with print and RTL table styling.
+- `MarkdownRenderer` (no external package) with HTML escaping, headings, tables, lists, quotes,
+  code spans/blocks and links; covered by `UserManualTests`.
 - Linked the manual from `README.md`.
 
 ### Fixed

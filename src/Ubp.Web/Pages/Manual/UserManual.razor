@@ -1,0 +1,70 @@
+@page "/system/user-manual"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject IJSRuntime JS
+<PageTitle>@T.T("screen.user_manual")</PageTitle>
+
+@if (Denied)
+{
+    <ForbiddenView />
+}
+else if (Loading)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <PageHeader Title="@T.T("screen.user_manual")" Subtitle="@T.T("user_manual.hint")">
+        <Actions>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync">
+                @T.T("common.print")
+            </MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (_missing)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+            @T.T("user_manual.missing")
+        </MudAlert>
+    }
+    else
+    {
+        <MudPaper Elevation="0" Class="ubp-card ubp-manual">
+            @((MarkupString)_html)
+        </MudPaper>
+    }
+}
+
+@code {
+    private string _html = "";
+    private bool _missing;
+
+    protected override string ScreenCode => ScreenCodes.UserManual;
+
+    protected override async Task OnLoadAsync()
+    {
+        var assembly = typeof(MarkdownRenderer).Assembly;
+        var resourceName = assembly.GetManifestResourceNames()
+            .FirstOrDefault(name => name.EndsWith("USER-MANUAL-AR.md",
+                StringComparison.OrdinalIgnoreCase));
+        if (resourceName is null)
+        {
+            _missing = true;
+            return;
+        }
+
+        await using var stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream is null)
+        {
+            _missing = true;
+            return;
+        }
+
+        using var reader = new StreamReader(stream);
+        _html = MarkdownRenderer.Render(await reader.ReadToEndAsync());
+    }
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("print");
+}

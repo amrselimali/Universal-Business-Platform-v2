@@ -119,3 +119,49 @@
 }
 .ubp-pager-actions { display: flex; align-items: center; gap: 6px; }
 .ubp-pager-info { font-size: .78rem; color: var(--ubp-muted); }
+
+/* دليل المستخدم داخل التطبيق */
+.ubp-manual { line-height: 1.85; font-size: .92rem; overflow-wrap: anywhere; }
+.ubp-manual h1 { font-size: 1.6rem; margin: 0 0 18px; }
+.ubp-manual h2 {
+    font-size: 1.25rem; margin: 30px 0 12px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--ubp-line);
+}
+.ubp-manual h3 { font-size: 1.05rem; margin: 22px 0 8px; color: var(--ubp-primary-dark); }
+.ubp-manual h4 { font-size: .95rem; margin: 18px 0 6px; }
+.ubp-manual p { margin: 8px 0; }
+.ubp-manual ul, .ubp-manual ol { margin: 8px 0; padding-inline-start: 24px; }
+.ubp-manual li { margin: 4px 0; }
+.ubp-manual blockquote {
+    margin: 12px 0; padding: 10px 14px; border-inline-start: 3px solid var(--ubp-primary);
+    background: #F0FDFA; border-radius: 8px;
+}
+.ubp-manual hr { border: 0; border-top: 1px solid var(--ubp-line); margin: 26px 0; }
+.ubp-manual code {
+    font-family: "JetBrains Mono", "Consolas", monospace; font-size: .8em;
+    background: #F1F5F9; color: #334155; padding: 2px 6px; border-radius: 5px;
+    direction: ltr; unicode-bidi: embed;
+}
+.ubp-manual pre {
+    background: #0F172A; color: #E2E8F0; padding: 14px; border-radius: 10px;
+    overflow: auto; direction: ltr; text-align: left;
+}
+.ubp-manual pre code { background: transparent; color: inherit; padding: 0; }
+.ubp-manual-table-wrap { overflow-x: auto; margin: 14px 0; }
+.ubp-manual-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.ubp-manual-table th {
+    background: #F8FAFC; text-align: start; padding: 9px 10px;
+    border: 1px solid var(--ubp-line); font-weight: 700;
+}
+.ubp-manual-table td {
+    padding: 8px 10px; border: 1px solid var(--ubp-line); vertical-align: top;
+}
+.ubp-manual-table tr:nth-child(even) td { background: #FCFDFE; }
+.ubp-manual a { color: var(--ubp-primary); text-decoration: underline; }
+
+@media print {
+    .ubp-appbar, .ubp-drawer, .ubp-page-actions { display: none !important; }
+    .ubp-manual { font-size: 12px; }
+    .ubp-manual-table { font-size: 10px; }
+    .ubp-manual-table-wrap { overflow: visible; }
+}

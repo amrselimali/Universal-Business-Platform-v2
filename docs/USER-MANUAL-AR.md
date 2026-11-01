@@ -2,6 +2,9 @@
 
 > مرجع تشغيلي لكل شاشة وزر في التطبيق: ماذا يفعل الزر، ماذا يحفظ/يسجّل، وإلى أين ينتقل.
 > مبني على الكود الفعلي في `src/Ubp.Web` و`src/Ubp.Application` (وليس على وصف نظري).
+>
+> 🖥️ **نسخة داخل التطبيق:** النظام → **دليل المستخدم** — `/system/user-manual`.
+> تظهر للمدير تلقائيًا؛ ولغير المدير امنح الدور صلاحية `USER_MANUAL/VIEW` من شاشة الأدوار.
 
 ## 0. كيف تقرأ هذا الدليل
 
@@ -290,6 +293,14 @@
 |---|---|---|---|---|
 | معاينة | `PREVIEW` | يقرأ CSV ويعرض الأخطاء/الإحصاءات **دون كتابة** | لا شيء | يبقى |
 | تنفيذ الاستيراد | `IMPORT_CSV` | ينفّذ الأرصدة داخل معاملة واحدة | `import_jobs` (Imported/Failed) + `journal_entries` عند الحفظ | يبقى ويعرض النتيجة |
+
+### 3.17 دليل المستخدم داخل التطبيق — `/system/user-manual`
+
+| الزر | الصلاحية | ماذا يفعل | ماذا يسجل | إلى أين |
+|---|---|---|---|---|
+| طباعة | `VIEW` | يطبع محتوى الدليل | لا شيء | لا ينتقل |
+
+> الصفحة تقرأ نسخة Markdown المضمّنة في التطبيق وتعرضها كجداول/عناوين. تظهر للمدير تلقائيًا، ولغيره بصلاحية `USER_MANUAL/VIEW` من الأدوار.
 
 ---
 
@@ -865,6 +876,7 @@
 | `/` أو `/dashboard` | لوحة التحكم |
 | `/login` | تسجيل الدخول |
 | `/change-password` | تغيير كلمة المرور |
+| `/system/user-manual` | دليل المستخدم (داخل التطبيق) |
 | `/notifications/center` | الإشعارات |
 | `/settings/general` | الإعدادات العامة |
 | `/settings/branches` | الفروع |
@@ -994,6 +1006,7 @@
 | `/settings/price-lists` | قوائم الأسعار | `View, Create, Edit, ToggleActive, Delete, ManageItems` |
 | `/settings/taxes` | الضرائب | `View, Create, Edit, ToggleActive, Delete` |
 | `/settings/warehouses` | المخازن | `View, Add, Edit, Delete, ToggleActive, LinkBranches` |
+| `/system/user-manual` | دليل المستخدم | `View` |
 | `/treasury/management` | الخزائن وطرق الدفع | `View, Create, ManageMethods, SetMain` |
 | `/treasury/reconciliation` | تسوية الحسابات الوسيطة | `View, Post` |
 | `/treasury/shifts` | ورديات الصندوق | `View, Open, Close, Reopen` |

@@ -11,6 +11,9 @@ public static partial class AppRegistry
     // خاصية (لا حقل) حتى لا يعتمد ترتيب التهيئة الساكنة على ترتيب الملفات في partial class.
     private static IReadOnlyList<ScreenDefinition> SystemScreens => new List<ScreenDefinition>
     {
+        new(UserManual, "/system/user-manual", "MenuBook", "screen.user_manual",
+            GroupSystem, new[] { S(View) }),
+
         new(SystemHealth, "/admin/system-health", "MonitorHeart", "screen.system_health",
             GroupSystem, new[] { S(View) }),
 
