@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Ubp.Application.Services;
 using Ubp.Core.Models;
-using Ubp.Core.Paging;
 using Ubp.Core.Results;
 using Ubp.Web.Services;
 
@@ -15,7 +14,6 @@ public partial class ItemDialog
     [Inject] private ItemService Items { get; set; } = default!;
     [Inject] private UnitService Units { get; set; } = default!;
     [Inject] private ItemCategoryService Categories { get; set; } = default!;
-    [Inject] private AssetService AssetsApi { get; set; } = default!;
     [Inject] private CustomFieldService CustomFields { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
     [Inject] private UiCulture T { get; set; } = default!;
@@ -25,7 +23,6 @@ public partial class ItemDialog
     private ItemInput _input = new();
     private IReadOnlyList<Unit> _units = Array.Empty<Unit>();
     private IReadOnlyList<ItemCategory> _categories = Array.Empty<ItemCategory>();
-    private IReadOnlyList<FixedAsset> _assets = Array.Empty<FixedAsset>();
     private readonly List<ItemUnitInput> _unitRows = new();
     private readonly List<string> _barcodes = new();
     private IReadOnlyList<CustomFieldDefinition> _fields = Array.Empty<CustomFieldDefinition>();
@@ -39,12 +36,6 @@ public partial class ItemDialog
         var actor = await UserContext.RequireAsync();
         _units = await Units.OptionsAsync(actor);
         _categories = await Categories.OptionsAsync(actor);
-        try
-        {
-            _assets = (await AssetsApi.ListAsync(actor,
-                new PageRequest { PageSize = 25 }, null, null, true)).Items;
-        }
-        catch (AppException) { _assets = Array.Empty<FixedAsset>(); }
         _fields = (await CustomFields.ListActiveAsync("items")).ToList();
 
         if (Model is null)
@@ -59,7 +50,7 @@ public partial class ItemDialog
             Code = detail.Item.Code, NameAr = detail.Item.NameAr, NameEn = detail.Item.NameEn,
             CategoryId = detail.Item.CategoryId, BaseUnitId = detail.Item.BaseUnitId,
             ItemType = detail.Item.ItemType, Notes = detail.Item.Notes,
-            MeteredAssetId = detail.Item.MeteredAssetId, IsActive = detail.Item.IsActive
+            IsMetered = detail.Item.IsMetered, IsActive = detail.Item.IsActive
         };
         _unitRows.AddRange(detail.Units.Select(u => new ItemUnitInput
         {

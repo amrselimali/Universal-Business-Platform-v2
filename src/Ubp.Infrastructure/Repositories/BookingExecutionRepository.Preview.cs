@@ -22,7 +22,7 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
         CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
-        return await connection.QuerySingleOrDefaultAsync<BookingExecutionPreview>(
+        var preview = await connection.QuerySingleOrDefaultAsync<BookingExecutionPreview>(
             new CommandDefinition("""
                 SELECT b.id AS BookingId, l.id AS BookingLineId, b.doc_no AS BookingNo,
                        b.branch_id AS BranchId, b.customer_id AS CustomerId,
@@ -35,9 +35,7 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                        GREATEST(l.quantity - l.delivered_qty - l.cancelled_qty, 0) AS RemainingQty,
                        l.unit_price AS UnitPrice,
                        COALESCE(ap.employee_name, e.name_ar) AS EmployeeName,
-                       i.metered_asset_id AS MeteredAssetId, fa.name_ar AS MeteredAssetName,
-                       fa.meter_type AS MeterType,
-                       COALESCE(fa.current_meter_value, 0) AS CurrentMeterValue
+                       i.is_metered AS ItemIsMetered
                 FROM booking_lines l
                 JOIN bookings b ON b.id = l.booking_id
                 JOIN customers c ON c.id = b.customer_id
@@ -45,7 +43,6 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                 JOIN units u ON u.id = l.unit_id
                 JOIN warehouses w ON w.id = l.warehouse_id
                 LEFT JOIN employees e ON e.id = b.assigned_employee_id
-                LEFT JOIN fixed_assets fa ON fa.id = i.metered_asset_id
                 LEFT JOIN LATERAL (
                     SELECT ap.employee_id, emp.name_ar AS employee_name
                     FROM appointments ap
@@ -63,5 +60,20 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                 WHERE l.id = @bookingLineId
                 """, new { bookingLineId }, cancellationToken: ct))
             ?? throw new NotFoundAppException();
+
+        if (preview.ItemIsMetered)
+        {
+            preview.MeterAssets = (await connection.QueryAsync<ExecutionMeterAsset>(
+                new CommandDefinition("""
+                    SELECT id AS Id, code AS Code, name_ar AS NameAr, meter_type AS MeterType,
+                           current_meter_value AS CurrentMeterValue
+                    FROM fixed_assets
+                    WHERE is_metered AND status = 'ACTIVE'
+                      AND (branch_id IS NULL OR branch_id = @branchId)
+                    ORDER BY name_ar
+                    """, new { branchId = preview.BranchId }, cancellationToken: ct))).ToList();
+        }
+
+        return preview;
     }
 }

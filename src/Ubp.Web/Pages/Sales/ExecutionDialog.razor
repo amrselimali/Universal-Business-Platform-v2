@@ -28,21 +28,38 @@
                 <MudNumericField T="decimal" @bind-Value="_quantity" Label="@T.T("execution.quantity")"
                                  Variant="Variant.Outlined" Min="0.0001m"
                                  Max="@_preview.RemainingQty" Format="N4" />
-                <MudNumericField T="decimal" @bind-Value="_meterUnits"
-                                 Label="@_preview.UnitsColumnLabel" Variant="Variant.Outlined"
-                                 Min="0m" Format="N2" />
-                @if (_preview.MeteredAssetId is null)
+                @if (_preview.ItemIsMetered)
                 {
-                    <MudAlert Severity="Severity.Warning" Dense="true" Class="ubp-span-2">
-                        @T.T("execution.link_meter_first")
-                    </MudAlert>
-                }
-                else
-                {
-                    <MudText Typo="Typo.caption" Class="ubp-muted ubp-span-2">
-                        @_preview.MeteredAssetName — @T.T("execution.current_meter"):
-                        @_preview.CurrentMeterValue.ToString("N2") @_preview.MeterType
-                    </MudText>
+                    @if (_preview.MeterAssets.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="ubp-span-2">
+                            @T.T("execution.no_meter_assets")
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudSelect T="Guid?" @bind-Value="_meterAssetId"
+                                   Label="@T.T("execution.meter_asset")"
+                                   Variant="Variant.Outlined">
+                            @foreach (var asset in _preview.MeterAssets)
+                            {
+                                <MudSelectItem T="Guid?" Value="@((Guid?)asset.Id)">
+                                    @asset.Code — @asset.NameAr (@asset.MeterType)
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudNumericField T="decimal" @bind-Value="_meterUnits"
+                                         Label="@_preview.UnitsColumnLabel"
+                                         Variant="Variant.Outlined" Min="0m" Format="N2" />
+                        @if (SelectedAsset is not null)
+                        {
+                            <MudText Typo="Typo.caption" Class="ubp-muted ubp-span-2">
+                                @T.T("execution.current_meter"):
+                                @SelectedAsset.CurrentMeterValue.ToString("N2")
+                                @SelectedAsset.MeterType
+                            </MudText>
+                        }
+                    }
                 }
                 @if (_preview.ItemType == "SERVICE" &&
                      string.IsNullOrWhiteSpace(_preview.EmployeeName))
@@ -59,7 +76,9 @@
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
                    Disabled="@(_busy || _preview is null ||
                                (_preview.ItemType == "SERVICE" &&
-                                string.IsNullOrWhiteSpace(_preview.EmployeeName)))">@T.T("execution.confirm")</MudButton>
+                                string.IsNullOrWhiteSpace(_preview.EmployeeName)) ||
+                               (_preview.ItemIsMetered &&
+                                (_meterAssetId is null || _meterUnits <= 0)))">@T.T("execution.confirm")</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -69,8 +88,12 @@
 
     private BookingExecutionPreview? _preview;
     private decimal _quantity;
+    private Guid? _meterAssetId;
     private decimal _meterUnits;
     private bool _busy;
+
+    private ExecutionMeterAsset? SelectedAsset =>
+        _preview?.MeterAssets.FirstOrDefault(a => a.Id == _meterAssetId);
 
     protected override async Task OnInitializedAsync()
     {
@@ -78,7 +101,8 @@
         if (actor is null) return;
         _preview = await Executions.GetPreviewAsync(actor, BookingLineId);
         _quantity = _preview.RemainingQty;
-        _meterUnits = _preview.MeteredAssetId is null ? 0 : _preview.RemainingQty;
+        _meterAssetId = _preview.MeterAssets.FirstOrDefault()?.Id;
+        _meterUnits = 0;
     }
 
     private void Cancel() => MudDialog.Cancel();
@@ -86,13 +110,16 @@
     private async Task SaveAsync()
     {
         if (_preview is null || _quantity <= 0 || _quantity > _preview.RemainingQty) return;
+        if (_preview.ItemIsMetered && (_meterAssetId is null || _meterUnits <= 0)) return;
         _busy = true;
         try
         {
             var actor = await UserContext.RequireAsync();
             var result = await Executions.ExecuteAsync(actor, new BookingExecutionInput
             {
-                BookingLineId = BookingLineId, Quantity = _quantity, MeterUnits = _meterUnits
+                BookingLineId = BookingLineId, Quantity = _quantity,
+                MeteredAssetId = _preview.ItemIsMetered ? _meterAssetId : null,
+                MeterUnits = _preview.ItemIsMetered ? _meterUnits : 0
             });
             MudDialog.Close(DialogResult.Ok(result));
         }

@@ -62,6 +62,7 @@ public sealed class Item
     public bool PriceIncludesTax { get; set; }
     public bool TrackExpiry { get; set; }
     public bool IsConsumable { get; set; }
+    public bool IsMetered { get; set; }
     public Guid? MeteredAssetId { get; set; }
     public string? MeteredAssetName { get; set; }
     public decimal? DefaultPrice { get; set; }
@@ -85,6 +86,7 @@ public sealed class ItemInput
     public bool PriceIncludesTax { get; set; }
     public bool TrackExpiry { get; set; }
     public bool IsConsumable { get; set; }
+    public bool IsMetered { get; set; }
     public Guid? MeteredAssetId { get; set; }
     public decimal? DefaultPrice { get; set; }
     public string? Notes { get; set; }

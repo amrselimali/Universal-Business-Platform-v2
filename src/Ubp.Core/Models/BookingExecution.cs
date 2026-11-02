@@ -24,17 +24,26 @@ public sealed class BookingExecutionPreview
     public decimal RemainingQty { get; set; }
     public decimal UnitPrice { get; set; }
     public string? EmployeeName { get; set; }
-    public Guid? MeteredAssetId { get; set; }
-    public string? MeteredAssetName { get; set; }
+    public bool ItemIsMetered { get; set; }
+    public IReadOnlyList<ExecutionMeterAsset> MeterAssets { get; set; } =
+        Array.Empty<ExecutionMeterAsset>();
+    public string UnitsColumnLabel { get; set; } = "عدد الوحدات";
+}
+
+public sealed class ExecutionMeterAsset
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = "";
+    public string NameAr { get; set; } = "";
     public string? MeterType { get; set; }
     public decimal CurrentMeterValue { get; set; }
-    public string UnitsColumnLabel { get; set; } = "عدد الوحدات";
 }
 
 public sealed class BookingExecutionInput
 {
     public Guid BookingLineId { get; set; }
     public decimal Quantity { get; set; }
+    public Guid? MeteredAssetId { get; set; }
     public decimal MeterUnits { get; set; }
     public string UnitsColumnLabel { get; set; } = "";
 }

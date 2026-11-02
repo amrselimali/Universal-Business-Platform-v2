@@ -45,8 +45,8 @@ public sealed class BookingExecutionTests : IClassFixture<TestDb>
                         true, 'UNITS', 0)
                 """, new { id = assetId, category = categoryId, branch });
             await connection.ExecuteAsync(
-                "UPDATE items SET metered_asset_id = @asset WHERE id = @item",
-                new { asset = assetId, item = item.Id });
+                "UPDATE items SET is_metered = true WHERE id = @item",
+                new { item = item.Id });
         }
 
         var booking = await _db.BookingService().CreateAsync(actor, new BookingInput
@@ -68,12 +68,15 @@ public sealed class BookingExecutionTests : IClassFixture<TestDb>
 
         var preview = await _db.Executions().GetPreviewAsync(actor, line.Id);
         Assert.Equal(5m, preview.RemainingQty);
-        Assert.Equal(assetId, preview.MeteredAssetId);
+        Assert.True(preview.ItemIsMetered);
+        Assert.Contains(preview.MeterAssets, a => a.Id == assetId);
         Assert.Equal("موظف تنفيذ", preview.EmployeeName);
         Assert.Equal("عدد الوحدات", preview.UnitsColumnLabel);
 
         var result = await _db.Executions().ExecuteAsync(actor, new BookingExecutionInput
-        { BookingLineId = line.Id, Quantity = 2, MeterUnits = 3 });
+        {
+            BookingLineId = line.Id, Quantity = 2, MeteredAssetId = assetId, MeterUnits = 3
+        });
 
         Assert.Equal(2m, result.Quantity);
         Assert.Equal(3m, result.MeterValueAfter);

@@ -43,6 +43,19 @@ public sealed class BookingExecutionService
         if (input.Quantity <= 0 || input.Quantity > preview.RemainingQty)
             throw new ValidationAppException("validation.booking_quantity_exceeds_remaining");
 
+        if (preview.ItemIsMetered)
+        {
+            if (input.MeteredAssetId is null ||
+                preview.MeterAssets.All(a => a.Id != input.MeteredAssetId))
+                throw new ValidationAppException("validation.asset_meter_required");
+            if (input.MeterUnits <= 0)
+                throw new ValidationAppException("validation.meter_units_required");
+        }
+        else if (input.MeteredAssetId is not null || input.MeterUnits > 0)
+        {
+            throw new ValidationAppException("validation.item_not_metered");
+        }
+
         var settings = await _settings.GetAsync(ct);
         input.UnitsColumnLabel = settings.MeterUnitLabel;
         try

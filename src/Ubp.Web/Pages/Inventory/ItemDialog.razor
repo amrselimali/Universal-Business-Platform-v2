@@ -26,19 +26,8 @@
                                 <MudSelectItem T="Guid" Value="@unit.Id">@UnitName(unit)</MudSelectItem>
                             }
                         </MudSelect>
-                        @if (_input.ItemType == "SERVICE")
-                        {
-                            <MudSelect T="Guid?" @bind-Value="_input.MeteredAssetId"
-                                       Label="@T.T("items.metered_asset")"
-                                       Variant="Variant.Outlined" Clearable="true">
-                                @foreach (var asset in _assets)
-                                {
-                                    <MudSelectItem T="Guid?" Value="@((Guid?)asset.Id)">
-                                        @asset.Code — @asset.NameAr (@asset.MeterType)
-                                    </MudSelectItem>
-                                }
-                            </MudSelect>
-                        }
+                        <MudSwitch @bind-Value="_input.IsMetered"
+                                   Label="@T.T("items.metered")" Color="Color.Primary" />
                         <MudTextField @bind-Value="_input.Notes" Label="@T.T("common.notes")" Variant="Variant.Outlined" Lines="2" Class="ubp-span-2" />
                         <MudSwitch @bind-Value="_input.IsActive" Label="@T.T("common.active")" Color="Color.Success" />
                     </div>
