@@ -19,6 +19,7 @@ public sealed partial class AssetRepository
                 JOIN commercial_documents d ON d.id = l.document_id
                 JOIN items i ON i.id = l.item_id
                 WHERE i.metered_asset_id IS NOT NULL
+                  AND NOT i.is_metered
                   AND d.status = 'posted'
                   AND d.doc_type = 'sales_invoice'
                   AND d.doc_date >= @from AND d.doc_date <= @to

@@ -23,6 +23,14 @@
 - Added execution/meter-reset coverage and updated invoice/dashboard tests to execute bookings.
 - Build 0 errors; full suite **267/267 passed**.
 
+### Follow-up
+- Item metering is now a company-facing flag (`items.is_metered`) instead of a fixed device FK; the
+  execution modal lets the user choose any active metered asset for the booking branch, shows the
+  units column only for metered items, and hides it otherwise.
+- Employee resolution now prefers the appointment linked to the booking, then same-customer
+  appointments today/on the booking date, then the assigned employee; SERVICE execution requires it.
+- Removed booking number and warehouse from the execution modal.
+
 ## 2026-11-02 — Customer filters + employee admin role/job title
 
 ### Added

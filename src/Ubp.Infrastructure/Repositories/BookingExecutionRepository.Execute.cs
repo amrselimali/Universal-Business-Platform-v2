@@ -20,7 +20,7 @@ public sealed partial class BookingExecutionRepository
         public decimal DeliveredQty { get; set; }
         public decimal CancelledQty { get; set; }
         public decimal ReservedQty { get; set; }
-        public Guid? MeteredAssetId { get; set; }
+        public bool ItemIsMetered { get; set; }
     }
 
     public async Task<BookingExecutionResult> ExecuteAsync(BookingExecutionInput input,
@@ -39,7 +39,7 @@ public sealed partial class BookingExecutionRepository
                    l.item_id AS ItemId, i.item_type AS ItemType, l.unit_id AS UnitId,
                    l.warehouse_id AS WarehouseId, l.quantity AS Quantity,
                    l.delivered_qty AS DeliveredQty, l.cancelled_qty AS CancelledQty,
-                   l.reserved_qty AS ReservedQty, i.metered_asset_id AS MeteredAssetId
+                   l.reserved_qty AS ReservedQty, i.is_metered AS ItemIsMetered
             FROM booking_lines l
             JOIN bookings b ON b.id = l.booking_id
             JOIN items i ON i.id = l.item_id
@@ -54,8 +54,17 @@ public sealed partial class BookingExecutionRepository
         var remaining = line.Quantity - line.DeliveredQty - line.CancelledQty;
         if (input.Quantity > remaining)
             throw new ValidationAppException("validation.booking_quantity_exceeds_remaining");
-        if (input.MeterUnits > 0 && line.MeteredAssetId is null)
-            throw new ValidationAppException("validation.item_has_no_metered_asset");
+        if (line.ItemIsMetered)
+        {
+            if (input.MeteredAssetId is null)
+                throw new ValidationAppException("validation.asset_meter_required");
+            if (input.MeterUnits <= 0)
+                throw new ValidationAppException("validation.meter_units_required");
+        }
+        else if (input.MeteredAssetId is not null || input.MeterUnits > 0)
+        {
+            throw new ValidationAppException("validation.item_not_metered");
+        }
 
         var executionId = Guid.CreateVersion7();
         var executionLineId = Guid.CreateVersion7();
@@ -135,7 +144,7 @@ public sealed partial class BookingExecutionRepository
             id = executionLineId, executionId, bookingLineId = input.BookingLineId,
             itemId = line.ItemId, unitId = line.UnitId, quantity = input.Quantity,
             unitCost = input.Quantity == 0 ? 0 : Math.Round(cost / input.Quantity, 6),
-            cost, stockDocumentLineId, meteredAssetId = line.MeteredAssetId,
+            cost, stockDocumentLineId, meteredAssetId = input.MeteredAssetId,
             meterUnits = input.MeterUnits
         }, tx, cancellationToken: ct));
 
@@ -159,15 +168,16 @@ public sealed partial class BookingExecutionRepository
             """, new { bookingId = line.BookingId, userId }, tx, cancellationToken: ct));
 
         var meterValueAfter = 0m;
-        if (input.MeterUnits > 0 && line.MeteredAssetId is { } assetId)
+        if (input.MeteredAssetId is { } assetId)
         {
             var asset = await connection.QuerySingleOrDefaultAsync<(decimal Current, bool IsMetered,
-                string Status, bool Resets)>(new CommandDefinition("""
+                string Status, Guid? BranchId)>(new CommandDefinition("""
                 SELECT current_meter_value AS Current, is_metered AS IsMetered, status AS Status,
-                       meter_resets_on_maintenance AS Resets
+                       branch_id AS BranchId
                 FROM fixed_assets WHERE id = @id FOR UPDATE
                 """, new { id = assetId }, tx, cancellationToken: ct));
-            if (!asset.IsMetered || asset.Status == AssetStatuses.Disposed)
+            if (!asset.IsMetered || asset.Status != AssetStatuses.Active ||
+                (asset.BranchId is not null && asset.BranchId != line.BranchId))
                 throw new ValidationAppException("validation.asset_not_metered");
 
             meterValueAfter = asset.Current + input.MeterUnits;
