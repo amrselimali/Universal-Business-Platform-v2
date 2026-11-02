@@ -250,7 +250,7 @@
   "assets.status_idle": "Idle",
   "assets.status_disposed": "Disposed",
   "assets.no_categories": "No asset category yet — create one first",
-  "reservations.hint": "Reserved, consumed and remaining per customer; unused remainder can be converted to a deposit.",
+  "reservations.hint": "Customer quantity card: reserved, consumed and remaining per customer and item, including POS bookings; unused remainder can be converted to a deposit.",
   "reservations.only_remaining": "Remaining only",
   "reservations.extend_to": "Extend to",
   "reservations.booking": "Booking",

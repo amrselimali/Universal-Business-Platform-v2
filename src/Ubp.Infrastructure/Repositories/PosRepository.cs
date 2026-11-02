@@ -107,6 +107,7 @@ public sealed partial class PosRepository : IPosRepository
                         warehouseId = input.WarehouseId }, tx, cancellationToken: ct));
             }
 
+            // كمية العميل تُسجّل دائمًا في كارتة الحجوزات؛ حجز المخزون الفعلي يظل مشروطًا بالإعداد.
             await connection.ExecuteAsync(new CommandDefinition("""
                 INSERT INTO booking_lines (booking_id, line_no, item_id, unit_id, warehouse_id,
                     quantity, unit_price, discount_percent, tax_id, net_amount, tax_amount,
@@ -117,7 +118,7 @@ public sealed partial class PosRepository : IPosRepository
                 """, new { bookingId, line.LineNo, line.ItemId, line.UnitId, input.WarehouseId,
                     line.Quantity, line.UnitPrice, line.DiscountPercent, line.TaxId,
                     line.NetAmount, line.TaxAmount, line.TotalAmount,
-                    reserved = reserveStock ? line.Quantity : 0m }, tx, cancellationToken: ct));
+                    reserved = line.Quantity }, tx, cancellationToken: ct));
         }
 
         var receipt = new PosReceipt { BookingId = bookingId, BookingNo = bookingNo, Total = total };

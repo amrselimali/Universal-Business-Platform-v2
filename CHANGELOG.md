@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-02 — Customer quantity card records POS bookings
+
+### Changed
+- POS checkout and booking confirmation now always write the customer quantity to
+  `booking_lines.reserved_qty`, even when `reserve_stock_on_booking=false`.
+- Stock reservation remains conditional: `stock_balances.reserved_qty` changes only when the
+  setting is enabled.
+- Migration `0054`: `v_customer_reservations` now exposes the current customer remaining quantity
+  from `booking_lines.reserved_qty`, and `v_item_sellable` uses the actual stock hold
+  (`stock_balances.reserved_qty`) so customer bookings do not reduce sellable stock when stock
+  reservation is off.
+
+### Tests
+- Added `Customer_card_keeps_quantity_even_when_stock_reservation_is_off`.
+- Build 0 errors; POS/reservation tests pass.
+
 ## 2026-11-02 — POS is product-only; appointments stay in their own screen
 
 ### Changed

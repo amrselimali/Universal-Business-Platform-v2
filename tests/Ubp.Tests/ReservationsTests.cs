@@ -99,6 +99,35 @@ public sealed class ReservationsTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Customer_card_keeps_quantity_even_when_stock_reservation_is_off()
+    {
+        var f = await SetupAsync("6", quantity: 5, price: 0.5m);
+
+        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
+        await connection.OpenAsync();
+
+        // محاكاة reserve_stock_on_booking=false: لا حجز مخزون، لكن كمية العميل تبقى.
+        await connection.ExecuteAsync("""
+            UPDATE stock_balances SET reserved_qty = 0
+            WHERE item_id = @item AND warehouse_id = @wh
+            """, new { item = f.Item.Id, wh = f.Warehouse });
+
+        var line = Assert.Single(await Repo().RemainingLinesAsync(f.Booking.Id));
+        Assert.Equal(5m, line.BookedQty);
+        Assert.Equal(5m, line.ReservedQty);
+        Assert.Equal(0m, line.ConsumedQty);
+        Assert.Equal(5m, line.RemainingQty);
+        Assert.Equal(2.5m, line.RemainingValue);
+
+        var stock = await connection.QuerySingleAsync<(decimal Reserved, decimal Sellable)>("""
+            SELECT reserved_qty, sellable_qty FROM v_item_sellable
+            WHERE item_id = @item AND warehouse_id = @wh
+            """, new { item = f.Item.Id, wh = f.Warehouse });
+        Assert.Equal(0m, stock.Reserved);
+        Assert.Equal(10m, stock.Sellable);
+    }
+
+    [Fact]
     public async Task Listing_respects_the_branch_scope_of_the_caller()
     {
         var f = await SetupAsync("5", quantity: 1);
