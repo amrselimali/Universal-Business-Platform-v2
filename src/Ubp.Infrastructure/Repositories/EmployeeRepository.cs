@@ -63,7 +63,8 @@ public sealed class EmployeeRepository : IEmployeeRepository
     {
         await using var connection = await _factory.OpenAsync(ct);
         var rows = await connection.QueryAsync<Employee>(new CommandDefinition(
-            $"SELECT {Columns} FROM employees e WHERE e.is_active ORDER BY e.name_ar",
+            $"SELECT {Columns} FROM employees e " +
+            "WHERE e.is_active AND e.is_service_executor ORDER BY e.name_ar",
             cancellationToken: ct));
         return rows.ToList();
     }

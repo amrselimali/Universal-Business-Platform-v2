@@ -195,31 +195,6 @@ public sealed class SalesFinanceTests : IClassFixture<TestDb>
     }
 
     [Fact]
-    public async Task Commission_basis_three_modes()
-    {
-        var actor = await _db.AdminActorAsync();
-        var f = await SetupAsync("5");
-        await InvoiceAsync(f, 300, 100);
-        var month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-
-        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
-        await connection.OpenAsync();
-        async Task<decimal> CalculateAsync(short basis)
-        {
-            await connection.ExecuteAsync("DELETE FROM employee_commissions WHERE period_month = @m",
-                new { m = month });
-            await _db.SalesFinance().CalculateCommissionsAsync(actor,
-                new CommissionInput { Month = month, Rate = 10m, Basis = basis });
-            var rows = await _db.SalesFinance().ListCommissionsAsync(actor, month, null);
-            return rows.Sum(r => r.Amount);
-        }
-
-        Assert.Equal(18m, await CalculateAsync(1));
-        Assert.Equal(20.52m, await CalculateAsync(2));
-        Assert.Equal(10m, await CalculateAsync(3));
-    }
-
-    [Fact]
     public async Task Aging_by_invoice_and_by_quantity_list_details()
     {
         var actor = await _db.AdminActorAsync();

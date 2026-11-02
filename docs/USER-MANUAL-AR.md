@@ -445,12 +445,6 @@
 | اعتماد | `APPROVE` | يعتمد التسوية (موافقة مدير) | `booking_settlements:UPDATE` | يبقى |
 | ترحيل | `POST` | يرحّل الأثر المالي | `booking_settlements:UPDATE` + `journal_entries` | يبقى |
 
-### 7.7 عمولات الموظفين — `/sales/commissions`
-
-| الزر | الصلاحية | ماذا يفعل | ماذا يسجل | إلى أين |
-|---|---|---|---|---|
-| حساب | `CALCULATE` | يحسب عمولة الشهر حسب الأساس/النسبة | `employee_commissions:INSERT` | يبقى |
-
 ### 7.8 متابعات العملاء — `/sales/follow-ups`
 
 | الزر | الصلاحية | ماذا يفعل | ماذا يسجل | إلى أين |
@@ -907,7 +901,6 @@
 | `/sales/invoices` | فواتير المبيعات |
 | `/sales/returns` | مرتجعات المبيعات |
 | `/sales/settlements` | تسويات الحجوزات |
-| `/sales/commissions` | عمولات الموظفين |
 | `/sales/follow-ups` | متابعات العملاء |
 | `/sales/reservations` | الحجوزات والدفعات المقدمة |
 | `/treasury/management` | الخزائن وطرق الدفع |
@@ -992,7 +985,6 @@
 | `/roles` | الأدوار | `View, Add, Edit, Delete, ManagePermissions` |
 | `/sales/appointments` | المواعيد | `View, Manage` |
 | `/sales/bookings` | الحجوزات | `View, Create, Edit, Confirm, CancelEntry, AssignOthers` |
-| `/sales/commissions` | عمولات الموظفين | `View, Calculate` |
 | `/sales/deliveries` | إذون التنفيذ | `View, Execute, Post` |
 | `/sales/follow-ups` | متابعات العملاء | `View, Create, Complete` |
 | `/sales/invoices` | فواتير المبيعات | `View, Create, Edit, Post, Print` |

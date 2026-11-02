@@ -19,11 +19,6 @@ public interface ISalesFinanceRepository
         IReadOnlyCollection<Guid> branchIds, bool allBranches, DateTime asOf,
         CancellationToken ct = default);
 
-    Task<int> CalculateCommissionsAsync(CommissionInput input, Guid userId,
-        CancellationToken ct = default);
-    Task<IReadOnlyList<CommissionRow>> ListCommissionsAsync(DateTime month, Guid? employeeId,
-        CancellationToken ct = default);
-
     Task<IReadOnlyList<AgingBucketRow>> CustomerAgingAsync(Guid? branchId, DateTime asOf,
         string? search = null, CancellationToken ct = default);
     Task<IReadOnlyList<AgingBucketRow>> AdvancesAgingAsync(Guid? branchId, DateTime asOf,

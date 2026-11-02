@@ -44,6 +44,8 @@ public sealed partial class BookingRepository : IBookingRepository
         public Guid? AssignedEmployeeId { get; set; }
         public string? EmployeeName { get; set; }
         public Guid? RelatedBookingId { get; set; }
+        public Guid? CreatedBy { get; set; }
+        public string? CreatedByName { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal DepositAmount { get; set; }
         public string? Notes { get; set; }
@@ -81,12 +83,14 @@ public sealed partial class BookingRepository : IBookingRepository
                b.source AS Source, b.due_date AS DueDate, b.starts_at AS StartsAt,
                b.ends_at AS EndsAt, b.expires_at AS ExpiresAt,
                b.assigned_employee_id AS AssignedEmployeeId, e.name_ar AS EmployeeName,
-               b.related_booking_id AS RelatedBookingId, b.total_amount AS TotalAmount,
+               b.related_booking_id AS RelatedBookingId, b.created_by AS CreatedBy,
+               u.username AS CreatedByName, b.total_amount AS TotalAmount,
                b.deposit_amount AS DepositAmount, b.notes AS Notes, b.version AS Version,
                b.created_at AS CreatedAt
         FROM bookings b
         JOIN customers c ON c.id = b.customer_id
         LEFT JOIN employees e ON e.id = b.assigned_employee_id
+        LEFT JOIN users u ON u.id = b.created_by
         """;
 
     public async Task<Booking?> GetAsync(Guid id, CancellationToken ct = default)
@@ -125,7 +129,9 @@ public sealed partial class BookingRepository : IBookingRepository
             date = filter.Date?.Date, take = request.SafePageSize, offset = request.Offset };
 
         var items = await connection.QueryAsync<BookingRow>(new CommandDefinition(
-            HeadSelect + " " + whereSql + " ORDER BY b.booking_date DESC, b.id DESC LIMIT @take OFFSET @offset",
+            HeadSelect + " " + whereSql +
+            " ORDER BY b.booking_date ASC, COALESCE(e.name_ar, '') ASC," +
+            " b.starts_at ASC NULLS LAST, b.id ASC LIMIT @take OFFSET @offset",
             args, cancellationToken: ct));
         var total = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
             "SELECT count(*) FROM bookings b JOIN customers c ON c.id = b.customer_id " + whereSql,
@@ -154,7 +160,8 @@ public sealed partial class BookingRepository : IBookingRepository
         Source = row.Source, DueDate = row.DueDate, StartsAt = row.StartsAt,
         EndsAt = row.EndsAt, ExpiresAt = row.ExpiresAt,
         AssignedEmployeeId = row.AssignedEmployeeId, EmployeeName = row.EmployeeName,
-        RelatedBookingId = row.RelatedBookingId, TotalAmount = row.TotalAmount,
+        RelatedBookingId = row.RelatedBookingId, CreatedBy = row.CreatedBy,
+        CreatedByName = row.CreatedByName, TotalAmount = row.TotalAmount,
         DepositAmount = row.DepositAmount, Notes = row.Notes, Version = row.Version,
         CreatedAt = row.CreatedAt
     };

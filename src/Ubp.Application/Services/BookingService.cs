@@ -102,7 +102,9 @@ public sealed class BookingService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings,
             ActionCodes.AssignOthers, ct: ct);
-        var booking = await _bookings.AssignEmployeeAsync(id, employeeId, role, actor.UserId, ct);
+        Booking booking;
+        try { booking = await _bookings.AssignEmployeeAsync(id, employeeId, role, actor.UserId, ct); }
+        catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
         await _audit.WriteAsync(actor, "booking_assignments", id.ToString(), "INSERT", null,
             new { employeeId, role }, ct);
         return booking;

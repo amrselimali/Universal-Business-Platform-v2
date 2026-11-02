@@ -81,33 +81,6 @@ public sealed class SettlementInput
     public string? Notes { get; set; }
 }
 
-public sealed class CommissionRow
-{
-    public Guid Id { get; set; }
-    public Guid? EmployeeId { get; set; }
-    public Guid? UserId { get; set; }
-    public string? UserName { get; set; }
-    public string? EmployeeName { get; set; }
-    public string CommissionKind { get; set; } = "booking";
-    public Guid DocumentId { get; set; }
-    public string? DocNo { get; set; }
-    public short Basis { get; set; }
-    public decimal BaseAmount { get; set; }
-    public decimal Rate { get; set; }
-    public decimal Amount { get; set; }
-    public DateTime PeriodMonth { get; set; }
-}
-
-public sealed class CommissionInput
-{
-    public DateTime Month { get; set; } = new(DateTime.Today.Year, DateTime.Today.Month, 1);
-    /// <summary>نسبة عمولة من سجّل الحجز.</summary>
-    public decimal Rate { get; set; }
-    /// <summary>نسبة عمولة من نفّذ الجلسة.</summary>
-    public decimal ExecutionRate { get; set; }
-    public short? Basis { get; set; }
-}
-
 public sealed class AgingBucketRow
 {
     public Guid PartyId { get; set; }

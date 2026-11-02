@@ -32,7 +32,6 @@ public static class StandardReportKeys
     public const string StockMovements = "stock.movements";
     public const string StockFlow = "stock.flow";
     public const string StockValueByWarehouse = "stock.value_by_warehouse";
-    public const string Commissions = "hr.commissions";
     public const string BookingConversion = "sales.booking_conversion";
     public const string UnappliedAdvances = "sales.unapplied_advances";
     public const string CreditLimits = "sales.credit_limits";
@@ -44,7 +43,7 @@ public static class StandardReportKeys
 
     public static readonly IReadOnlyList<string> All =
         [Vat, ItemMargin, CustomerMeter, Reservations, ShiftVariance, DeadStock, SupplierPerformance,
-         StockAging, StockMovements, StockFlow, StockValueByWarehouse, Commissions, BookingConversion,
+         StockAging, StockMovements, StockFlow, StockValueByWarehouse, BookingConversion,
          UnappliedAdvances, CreditLimits, FollowUps, DepreciationSchedule, DueMaintenance, DailySales,
          PartyBalances];
 }

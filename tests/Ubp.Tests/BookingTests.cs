@@ -150,6 +150,36 @@ public sealed class BookingTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Booking_session_overlap_for_the_same_employee_is_rejected()
+    {
+        var actor = await _db.AdminActorAsync();
+        var service = _db.BookingService();
+        var (branch, warehouse, item, customer, employee) = await SetupAsync("9");
+        var start = DateTimeOffset.UtcNow.Date.AddHours(9);
+
+        var first = await service.CreateAsync(actor, new BookingInput
+        {
+            BranchId = branch, BookingDate = DateTime.Today, CustomerId = customer.Id,
+            AssignedEmployeeId = employee.Id, StartsAt = start,
+            EndsAt = start.AddMinutes(30),
+            Lines = { new BookingLineInput { ItemId = item.Id, UnitId = item.BaseUnitId,
+                WarehouseId = warehouse, Quantity = 1, UnitPrice = 100 } }
+        });
+        Assert.Equal(actor.Username, first.CreatedByName);
+
+        var error = await Assert.ThrowsAsync<ValidationAppException>(() =>
+            service.CreateAsync(actor, new BookingInput
+            {
+                BranchId = branch, BookingDate = DateTime.Today, CustomerId = customer.Id,
+                AssignedEmployeeId = employee.Id, StartsAt = start.AddMinutes(15),
+                EndsAt = start.AddMinutes(45),
+                Lines = { new BookingLineInput { ItemId = item.Id, UnitId = item.BaseUnitId,
+                    WarehouseId = warehouse, Quantity = 1, UnitPrice = 100 } }
+            }));
+        Assert.Equal("validation.booking_session_overlap", error.Code);
+    }
+
+    [Fact]
     public async Task Cancelled_booking_releases_reservation()
     {
         var actor = await _db.AdminActorAsync();

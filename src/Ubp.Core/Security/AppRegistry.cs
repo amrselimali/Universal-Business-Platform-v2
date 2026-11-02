@@ -253,10 +253,6 @@ public static partial class AppRegistry
                     A(ActionCodes.Post) }, "sales.settlements"),
         new(ScreenCodes.SalesExpiredBookings, "/sales/expired-bookings", "EventBusy", "screen.sales_expired_bookings", GroupSales,
             new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Approve), A(ActionCodes.Post) }, "sales.expired_bookings"),
-        new(ScreenCodes.SalesCommissions, "/sales/commissions", "Percent",
-            "screen.sales_commissions", GroupSales,
-            new[] { A(ActionCodes.View), A(ActionCodes.Calculate) }, "sales.commissions"),
-
         new(ScreenCodes.AgingReport, "/reports/aging", "HourglassBottom",
             "screen.aging", GroupReports,
             new[] { A(ActionCodes.View), A(ActionCodes.Export) }, "reports.aging"),
