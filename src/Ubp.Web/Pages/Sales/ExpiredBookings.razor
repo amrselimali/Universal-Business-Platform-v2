@@ -1,0 +1,187 @@
+@page "/sales/expired-bookings"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject SalesFinanceService Finance
+@inject BranchService Branches
+@inject IDialogService Dialogs
+@inject IDisplayFormatter Fmt
+<PageTitle>@T.T("screen.sales_expired_bookings")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.sales_expired_bookings")"
+                Subtitle="@T.T("sales.expired_bookings_hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="@(() => RunAsync(ReloadAsync))">@T.T("common.refresh")</MudButton>
+        </div>
+
+        @if (_items.Count == 0)
+        {
+            <MudAlert Severity="Severity.Success" Dense="true" Class="ma-3">
+                @T.T("sales.no_expired_bookings")
+            </MudAlert>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="ma-3">
+                @T.T("sales.expired_settlement_hint")
+            </MudAlert>
+            <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
+                      RowsPerPage="25" Class="ubp-table">
+                <HeaderContent>
+                    <MudTh>@T.T("sales.booking_no")</MudTh>
+                    <MudTh>@T.T("sales.customer")</MudTh>
+                    <MudTh>@T.T("sales.booking_date")</MudTh>
+                    <MudTh>@T.T("sales.booking_expiry")</MudTh>
+                    <MudTh Align="Right">@T.T("sales.expired_late_days")</MudTh>
+                    <MudTh Align="Right">@T.T("sales.remaining_qty")</MudTh>
+                    <MudTh Align="Right">@T.T("reservations.remaining_value")</MudTh>
+                    <MudTh>@T.T("common.status")</MudTh>
+                    <MudTh>@T.T("sales.settlement_type")</MudTh>
+                    <MudTh Align="Right">@T.T("common.actions")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><span class="ubp-code">@(context.BookingNo ?? "—")</span></MudTd>
+                    <MudTd>@context.CustomerName</MudTd>
+                    <MudTd>@context.BookingDate.ToString("yyyy-MM-dd")</MudTd>
+                    <MudTd>@(context.ExpiresAt is null ? "—" : Fmt.Date(context.ExpiresAt))</MudTd>
+                    <MudTd Align="Right">@context.LateDays</MudTd>
+                    <MudTd Align="Right">@Fmt.Decimal(context.RemainingQty)</MudTd>
+                    <MudTd Align="Right">@Fmt.Decimal(context.RemainingValue)</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                 Color="@StatusColor(context.Status)">
+                            @T.T("sales.status_" + StatusKey(context.Status))
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        @if (context.SettlementStatus is null)
+                        {
+                            <span>—</span>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     Color="@(context.SettlementStatus == CommercialStatuses.Draft ? Color.Warning : Color.Success)">
+                                @T.T("sales.settlement_" + context.SettlementType)
+                                · @T.T("accounting.status_" + context.SettlementStatus)
+                            </MudChip>
+                        }
+                    </MudTd>
+                    <MudTd Align="Right">
+                        @if (context.SettlementStatus != CommercialStatuses.Draft && Can(ActionCodes.Create))
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                       OnClick="@(() => OpenSettlementAsync(context))">
+                                @T.T("sales.settle_expired")
+                            </MudButton>
+                        }
+                        @if (context.SettlementId is { } settlementId &&
+                             context.SettlementStatus == CommercialStatuses.Draft)
+                        {
+                            @if (!context.SettlementApproved && Can(ActionCodes.Approve))
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning"
+                                           OnClick="@(() => ApproveAsync(settlementId))">
+                                    @T.T("sales.approve")
+                                </MudButton>
+                            }
+                            @if (Can(ActionCodes.Post))
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success"
+                                           OnClick="@(() => PostAsync(settlementId))">
+                                    @T.T("accounting.post")
+                                </MudButton>
+                            }
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new[] { 25, 50 }" />
+                </PagerContent>
+            </MudTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<ExpiredBookingRow> _items = Array.Empty<ExpiredBookingRow>();
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private Guid? _branchId;
+
+    protected override string ScreenCode => ScreenCodes.SalesExpiredBookings;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync() =>
+        _items = await Finance.ListExpiredBookingsAsync(Actor!, _branchId, DateTime.UtcNow);
+
+    private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+
+    private async Task OpenSettlementAsync(ExpiredBookingRow row)
+    {
+        var dialog = await Dialogs.ShowAsync<SettlementDialog>(T.T("sales.new_settlement"),
+            new DialogParameters
+            {
+                ["Branches"] = _branches,
+                ["DefaultBranchId"] = row.BranchId,
+                ["DefaultBookingId"] = row.BookingId,
+                ["DefaultSettlementType"] = SettlementTypes.CancelQty,
+                ["DefaultAmount"] = 0m
+            });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task ApproveAsync(Guid settlementId) => await RunAsync(async () =>
+    {
+        await Finance.ApproveSettlementAsync(Actor!, settlementId);
+        await ReloadAsync();
+        ShowSuccess("sales.approved");
+    });
+
+    private async Task PostAsync(Guid settlementId) => await RunAsync(async () =>
+    {
+        await Finance.PostSettlementAsync(Actor!, settlementId);
+        await ReloadAsync();
+        ShowSuccess("accounting.posted");
+    });
+
+    private static Color StatusColor(string status) => status switch
+    {
+        BookingStatuses.PartiallyDelivered => Color.Info,
+        BookingStatuses.Cancelled => Color.Error,
+        BookingStatuses.Completed => Color.Success,
+        _ => Color.Warning
+    };
+
+    private static string StatusKey(string status) => status switch
+    {
+        BookingStatuses.Confirmed => "confirmed",
+        BookingStatuses.PartiallyDelivered => "partial",
+        BookingStatuses.Completed => "completed",
+        BookingStatuses.Cancelled => "cancelled",
+        _ => "draft"
+    };
+}
+

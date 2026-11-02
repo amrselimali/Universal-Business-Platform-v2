@@ -15,6 +15,9 @@ public interface ISalesFinanceRepository
         CancellationToken ct = default);
     Task<Settlement> ApproveSettlementAsync(Guid id, Guid userId, CancellationToken ct = default);
     Task<Settlement> PostSettlementAsync(Guid id, Guid userId, CancellationToken ct = default);
+    Task<IReadOnlyList<ExpiredBookingRow>> ListExpiredBookingsAsync(
+        IReadOnlyCollection<Guid> branchIds, bool allBranches, DateTime asOf,
+        CancellationToken ct = default);
 
     Task<int> CalculateCommissionsAsync(CommissionInput input, Guid userId,
         CancellationToken ct = default);

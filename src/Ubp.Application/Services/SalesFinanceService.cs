@@ -28,6 +28,22 @@ public sealed class SalesFinanceService
         return await _finance.ListSettlementsAsync(branchId, status, limit, ct);
     }
 
+    /// <summary>الحجوزات المنتهية التي ما زال لها كمية غير مستهلكة.</summary>
+    public async Task<IReadOnlyList<ExpiredBookingRow>> ListExpiredBookingsAsync(
+        ActorContext actor, Guid? branchId, DateTime? asOf = null, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.SalesExpiredBookings, ActionCodes.View,
+            ct: ct);
+        if (branchId is { } requested) BranchScope.Ensure(actor, requested);
+
+        var branches = actor.IsSuperAdmin
+            ? (branchId is { } b ? new[] { b } : Array.Empty<Guid>())
+            : (branchId is { } b2 ? new[] { b2 } : actor.AllowedBranchIds.Distinct().ToArray());
+        var allBranches = actor.IsSuperAdmin && branchId is null;
+        return await _finance.ListExpiredBookingsAsync(branches, allBranches,
+            asOf ?? DateTime.UtcNow, ct);
+    }
+
     public async Task<Settlement> GetSettlementAsync(ActorContext actor, Guid id,
         CancellationToken ct = default)
     {

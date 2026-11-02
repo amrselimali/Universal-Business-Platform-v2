@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-11-02 — Booking expiry on POS + expired-bookings settlement screen
+
+### Added
+- POS checkout now has an editable **تاريخ نهاية الحجز** field, defaulting to **today + 6 months**,
+  and rejects past dates. The date is stored in `bookings.expires_at`, shown on the POS receipt and
+  in the bookings table.
+- Booking dialog also exposes the same expiry field (default +6 months).
+- `/sales/expired-bookings` screen lists active bookings whose `expires_at` date has passed and
+  still have remaining quantity/value, with latest settlement status, **تسوية**,
+  **اعتماد** and **ترحيل** actions.
+- `SettlementDialog` accepts a preselected booking and default settlement type, enabling
+  expired-booking settlement without re-selecting the booking.
+- Migration `0055`: partial index on `bookings.expires_at`.
+
+### Tests
+- Build 0 errors; POS, expired-bookings, reservations and accounting-registry tests pass.
+
 ## 2026-11-02 — Customer quantity card records POS bookings
 
 ### Changed

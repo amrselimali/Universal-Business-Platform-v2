@@ -72,6 +72,7 @@ public static class ScreenCodes
     public const string SalesInvoices = "SALES_INVOICES";
     public const string SalesReturns = "SALES_RETURNS";
     public const string SalesSettlements = "SALES_SETTLEMENTS";
+    public const string SalesExpiredBookings = "SALES_EXPIRED_BOOKINGS";
     public const string SalesCommissions = "SALES_COMMISSIONS";
     public const string AgingReport = "AGING_REPORT";
     public const string PostingCenter = "POSTING_CENTER";
