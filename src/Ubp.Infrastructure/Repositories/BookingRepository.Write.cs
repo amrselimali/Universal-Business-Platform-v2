@@ -105,9 +105,9 @@ public sealed partial class BookingRepository
         if (lines.Count == 0)
             throw new ValidationAppException("validation.document_has_no_lines");
 
-        if (reserveStock)
+        foreach (var line in lines)
         {
-            foreach (var line in lines)
+            if (reserveStock)
             {
                 var available = await connection.ExecuteScalarAsync<decimal>(new CommandDefinition(
                     "SELECT COALESCE(fn_stock_available(@itemId, @warehouseId), 0)",
@@ -127,10 +127,14 @@ public sealed partial class BookingRepository
                     WHERE item_id = @itemId AND warehouse_id = @warehouseId
                     """, new { quantity = line.Quantity, itemId = line.ItemId,
                         warehouseId = line.WarehouseId }, tx, cancellationToken: ct));
-                await connection.ExecuteAsync(new CommandDefinition(
-                    "UPDATE booking_lines SET reserved_qty = quantity WHERE id = @lineId",
-                    new { lineId = line.Id }, tx, cancellationToken: ct));
             }
+
+            // كمية العميل تُسجّل دائمًا في كارتة الحجوزات؛ حجز المخزون الفعلي مشروط بالإعداد.
+            await connection.ExecuteAsync(new CommandDefinition("""
+                UPDATE booking_lines
+                   SET reserved_qty = GREATEST(quantity - delivered_qty - cancelled_qty, 0)
+                 WHERE id = @lineId
+                """, new { lineId = line.Id }, tx, cancellationToken: ct));
         }
 
         var docNo = await connection.ExecuteScalarAsync<string>(new CommandDefinition("""

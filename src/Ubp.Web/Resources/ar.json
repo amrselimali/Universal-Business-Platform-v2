@@ -250,7 +250,7 @@
   "assets.status_idle": "متوقف",
   "assets.status_disposed": "مستبعد",
   "assets.no_categories": "لا يوجد تصنيف أصول — أنشئ تصنيفاً أولاً",
-  "reservations.hint": "المحجوز والمستهلك والمتبقي لكل عميل؛ والمتبقي غير المستخدم يُحوَّل إلى دفعة مقدمة.",
+  "reservations.hint": "كارتة كميات العملاء: المحجوز والمستهلك والمتبقي لكل عميل وصنف، بما فيها حجوزات نقطة البيع؛ والمتبقي غير المستخدم يُحوَّل إلى دفعة مقدمة.",
   "reservations.only_remaining": "المتبقي فقط",
   "reservations.extend_to": "تمديد إلى",
   "reservations.booking": "الحجز",
