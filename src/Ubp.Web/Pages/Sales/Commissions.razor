@@ -15,7 +15,11 @@ else
             <MudDatePicker Date="_month" Label="@T.T("sales.month")"
                            Variant="Variant.Outlined" Margin="Margin.Dense"
                            DateChanged="OnMonthChanged" />
-            <MudNumericField @bind-Value="_rate" Label="@T.T("sales.commission_rate")"
+            <MudNumericField @bind-Value="_rate" Label="@T.T("sales.commission_rate_booking")"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" Min="0m" Max="100m"
+                             Format="N2" />
+            <MudNumericField @bind-Value="_executionRate"
+                             Label="@T.T("sales.commission_rate_execution")"
                              Variant="Variant.Outlined" Margin="Margin.Dense" Min="0m" Max="100m"
                              Format="N2" />
             @if (Can(ActionCodes.Calculate))
@@ -29,13 +33,15 @@ else
                   RowsPerPage="25" Class="ubp-table">
             <HeaderContent>
                 <MudTh>@T.T("sales.employee")</MudTh>
+                <MudTh>@T.T("sales.commission_kind")</MudTh>
                 <MudTh>@T.T("sales.invoice_no")</MudTh>
                 <MudTh Align="Right">@T.T("sales.commission_base")</MudTh>
                 <MudTh Align="Right">@T.T("sales.commission_rate")</MudTh>
                 <MudTh Align="Right">@T.T("sales.commission_amount")</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd>@context.EmployeeName</MudTd>
+                <MudTd>@(context.EmployeeName ?? context.UserName ?? "—")</MudTd>
+                <MudTd>@T.T("sales.commission_kind_" + context.CommissionKind)</MudTd>
                 <MudTd><span class="ubp-code">@context.DocNo</span></MudTd>
                 <MudTd Align="Right">@context.BaseAmount.ToString("N2")</MudTd>
                 <MudTd Align="Right">@context.Rate.ToString("N2")</MudTd>
@@ -53,6 +59,7 @@ else
     private IReadOnlyList<CommissionRow> _rows = Array.Empty<CommissionRow>();
     private DateTime? _month = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private decimal _rate = 5m;
+    private decimal _executionRate = 5m;
     private bool _busy;
 
     protected override string ScreenCode => ScreenCodes.SalesCommissions;
@@ -70,7 +77,7 @@ else
         try
         {
             var count = await Finance.CalculateCommissionsAsync(Actor!, new CommissionInput
-            { Month = _month ?? DateTime.Today, Rate = _rate });
+            { Month = _month ?? DateTime.Today, Rate = _rate, ExecutionRate = _executionRate });
             await ReloadAsync();
             ShowSuccess("sales.commissions_calculated");
             _ = count;

@@ -37,7 +37,17 @@ public sealed partial class MasterDataService
     public async Task<IReadOnlyList<Employee>> EmployeeOptionsAsync(ActorContext actor,
         CancellationToken ct = default)
     {
-        await _permissions.RequireAsync(actor, ScreenCodes.Employees, ActionCodes.View, ct: ct);
+        var allowed = await _permissions.HasAsync(actor, ScreenCodes.Employees, ActionCodes.View,
+                          ct)
+                      || await _permissions.HasAsync(actor, ScreenCodes.SalesBookings,
+                          ActionCodes.View, ct)
+                      || await _permissions.HasAsync(actor, ScreenCodes.SalesAppointments,
+                          ActionCodes.View, ct)
+                      || await _permissions.HasAsync(actor, ScreenCodes.Reservations,
+                          ActionCodes.View, ct)
+                      || await _permissions.HasAsync(actor, ScreenCodes.PosTerminal,
+                          ActionCodes.View, ct);
+        if (!allowed) throw new ForbiddenException();
         return await _employees.ListOptionsAsync(ct);
     }
 

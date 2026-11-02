@@ -109,7 +109,7 @@ public sealed class SalesFinanceService
             ActionCodes.Calculate, ct: ct);
         var count = await _finance.CalculateCommissionsAsync(input, actor.UserId, ct);
         await _audit.WriteAsync(actor, "employee_commissions", input.Month.ToString("yyyy-MM"),
-            "INSERT", null, new { input.Month, input.Rate, input.Basis, count }, ct);
+            "INSERT", null, new { input.Month, input.Rate, input.ExecutionRate, input.Basis, count }, ct);
         return count;
     }
 

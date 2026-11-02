@@ -11,13 +11,16 @@ public sealed partial class StandardReportRepository
         CancellationToken ct = default)
     {
         const string sql = """
-            SELECT e.name_ar AS EmployeeName, c.period_month::date AS PeriodMonth,
+            SELECT COALESCE(e.name_ar, u.username, '-') AS EmployeeName,
+                   c.commission_kind AS CommissionKind, c.period_month::date AS PeriodMonth,
                    c.basis AS Basis, SUM(c.base_amount) AS BaseAmount,
                    SUM(c.amount) AS Amount, COUNT(*)::int AS Lines
             FROM employee_commissions c
-            JOIN employees e ON e.id = c.employee_id
+            LEFT JOIN employees e ON e.id = c.employee_id
+            LEFT JOIN users u ON u.id = c.user_id
             WHERE c.period_month::date BETWEEN @from AND @to
-            GROUP BY e.name_ar, c.period_month, c.basis
+            GROUP BY COALESCE(e.name_ar, u.username, '-'), c.commission_kind,
+                     c.period_month, c.basis
             ORDER BY c.period_month DESC, SUM(c.amount) DESC
             LIMIT 300
             """;
@@ -27,15 +30,17 @@ public sealed partial class StandardReportRepository
         }, ct);
         return new ReportTable(
         [
-            new("employee", "report.employee"), new("period", "report.period", ReportValueType.Date),
+            new("employee", "report.employee"),
+            new("kind", "report.commission_kind"),
+            new("period", "report.period", ReportValueType.Date),
             new("basis", "report.commission_basis"),
             new("base", "report.base_amount", ReportValueType.Money),
             new("amount", "report.commission_amount", ReportValueType.Money),
             new("lines", "report.documents", ReportValueType.Number)
         ],
         rows.Select(r => (IReadOnlyList<string?>)
-        [r.EmployeeName, Fmt(r.PeriodMonth), r.Basis, Money(r.BaseAmount), Money(r.Amount),
-            r.Lines.ToString()]).ToList(),
+        [r.EmployeeName, r.CommissionKind, Fmt(r.PeriodMonth), r.Basis, Money(r.BaseAmount),
+            Money(r.Amount), r.Lines.ToString()]).ToList(),
         $"report.commission_total={Money(rows.Sum(r => r.Amount))}");
     }
 
@@ -155,6 +160,7 @@ public sealed partial class StandardReportRepository
     private sealed class CommissionRow
     {
         public string EmployeeName { get; set; } = "";
+        public string CommissionKind { get; set; } = "";
         public DateTime PeriodMonth { get; set; }
         public string Basis { get; set; } = "";
         public decimal BaseAmount { get; set; }
