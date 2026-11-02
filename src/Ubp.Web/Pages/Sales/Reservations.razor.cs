@@ -10,6 +10,7 @@ namespace Ubp.Web.Pages.Sales;
 
 public partial class Reservations
 {
+    [Inject] private IDialogService Dialogs { get; set; } = default!;
     private MudTable<ReservationRow> _table = default!;
     private ReservationRow? _selected;
     private bool _onlyRemaining = true;
@@ -41,18 +42,15 @@ public partial class Reservations
 
     private void OnSelected(ReservationRow? row) => _selected = row;
 
-    private async Task ConvertAsync(ReservationRow row)
+    private async Task ExecuteAsync(ReservationRow row)
     {
-        if (_busy) return;
-        _busy = true;
-        try
+        var dialog = await Dialogs.ShowAsync<ExecutionDialog>(T.T("execution.title"),
+            new DialogParameters { ["BookingLineId"] = row.BookingLineId });
+        if ((await dialog.Result) is { Canceled: false })
         {
-            var result = await ReservationsApi.ConvertToAdvanceAsync(Actor!, row.BookingId);
-            Snackbar.Add(T.T("reservations.converted") + $" ({result.LinesConverted})", Severity.Success);
             await RefreshAsync();
+            Snackbar.Add(T.T("execution.done"), Severity.Success);
         }
-        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
-        finally { _busy = false; }
     }
 
     private async Task ExtendAsync(ReservationRow row)

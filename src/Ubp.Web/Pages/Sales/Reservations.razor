@@ -55,9 +55,9 @@ else
                 <MudTd>@Fmt.Decimal(context.RemainingValue)</MudTd>
                 <MudTd>@(context.ExpiresAt is null ? "—" : Fmt.Date(context.ExpiresAt))</MudTd>
                 <MudTd>
-                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
-                               Disabled="@(_busy || context.RemainingQty <= 0 || !Can(ActionCodes.ConvertToAdvance))"
-                               OnClick="@(() => ConvertAsync(context))">@T.T("reservations.to_advance")</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success"
+                               Disabled="@(_busy || context.RemainingQty <= 0 || !Can(ActionCodes.Execute))"
+                               OnClick="@(() => ExecuteAsync(context))">@T.T("reservations.execute")</MudButton>
                     <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning"
                                Disabled="@(_busy || !Can(ActionCodes.ExtendReservation))"
                                OnClick="@(() => ExtendAsync(context))">@T.T("reservations.extend")</MudButton>

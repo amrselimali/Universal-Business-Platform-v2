@@ -1,0 +1,91 @@
+@inherits ComponentBase
+@inject BookingExecutionService Executions
+@inject UserContext UserContext
+@inject UiCulture T
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("execution.title")</MudText></TitleContent>
+    <DialogContent>
+        @if (_preview is null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <div class="ubp-form-grid">
+                <MudTextField Value="_preview.BookingNo" Label="@T.T("sales.booking_no")"
+                              Variant="Variant.Outlined" ReadOnly="true" />
+                <MudTextField Value="_preview.CustomerName" Label="@T.T("sales.customer")"
+                              Variant="Variant.Outlined" ReadOnly="true" />
+                <MudTextField Value="@(_preview.ItemCode + " — " + _preview.ItemName)"
+                              Label="@T.T("execution.service")" Variant="Variant.Outlined"
+                              ReadOnly="true" />
+                <MudTextField Value="@(_preview.EmployeeName ?? "—")"
+                              Label="@T.T("execution.employee")" Variant="Variant.Outlined"
+                              ReadOnly="true" />
+                <MudTextField Value="@(_preview.WarehouseName)" Label="@T.T("inventory.warehouse")"
+                              Variant="Variant.Outlined" ReadOnly="true" />
+                <MudTextField Value="@_preview.RemainingQty.ToString("N4")"
+                              Label="@T.T("execution.remaining")" Variant="Variant.Outlined"
+                              ReadOnly="true" />
+                <MudNumericField T="decimal" @bind-Value="_quantity" Label="@T.T("execution.quantity")"
+                                 Variant="Variant.Outlined" Min="0.0001m"
+                                 Max="@_preview.RemainingQty" Format="N4" />
+                <MudNumericField T="decimal" @bind-Value="_meterUnits"
+                                 Label="@_preview.UnitsColumnLabel" Variant="Variant.Outlined"
+                                 Min="0m" Format="N2" Disabled="@(_preview.MeteredAssetId is null)" />
+                @if (_preview.MeteredAssetId is not null)
+                {
+                    <MudText Typo="Typo.caption" Class="ubp-muted">
+                        @_preview.MeteredAssetName — @T.T("execution.current_meter"):
+                        @_preview.CurrentMeterValue.ToString("N2") @_preview.MeterType
+                    </MudText>
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="@(_busy || _preview is null)">@T.T("execution.confirm")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid BookingLineId { get; set; }
+
+    private BookingExecutionPreview? _preview;
+    private decimal _quantity;
+    private decimal _meterUnits;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = await UserContext.GetAsync();
+        if (actor is null) return;
+        _preview = await Executions.GetPreviewAsync(actor, BookingLineId);
+        _quantity = _preview.RemainingQty;
+        _meterUnits = _preview.MeteredAssetId is null ? 0 : _preview.RemainingQty;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        if (_preview is null || _quantity <= 0 || _quantity > _preview.RemainingQty) return;
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var result = await Executions.ExecuteAsync(actor, new BookingExecutionInput
+            {
+                BookingLineId = BookingLineId, Quantity = _quantity, MeterUnits = _meterUnits
+            });
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

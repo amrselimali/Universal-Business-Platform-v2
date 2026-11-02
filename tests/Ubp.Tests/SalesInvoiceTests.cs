@@ -13,7 +13,7 @@ public sealed class SalesInvoiceTests : IClassFixture<TestDb>
     public SalesInvoiceTests(TestDb db) => _db = db;
 
     private sealed record Fixture(Dictionary<string, Account> Chart, Guid Branch, Guid Warehouse,
-        Item Item, Partner Customer, Booking Booking, DeliveryNote Delivery, Guid BookingLineId);
+        Item Item, Partner Customer, Booking Booking, Guid BookingLineId);
 
     private async Task SetAutoInvoiceAsync(bool enabled)
     {
@@ -55,15 +55,10 @@ public sealed class SalesInvoiceTests : IClassFixture<TestDb>
         var confirmed = await _db.BookingService().GetAsync(actor, booking.Id);
         var bookingLineId = confirmed.Lines.Single().Id;
 
-        var note = await _db.Fulfillment().CreateDeliveryAsync(actor, new DeliveryInput
-        {
-            BookingId = booking.Id, BranchId = branch, DocDate = DateTime.Today,
-            WarehouseId = warehouse,
-            Lines = { new DeliveryLineInput { BookingLineId = bookingLineId, Quantity = 2 } }
-        });
-        var delivery = await _db.Fulfillment().PostDeliveryAsync(actor, note.Id);
+        await _db.Executions().ExecuteAsync(actor, new BookingExecutionInput
+        { BookingLineId = bookingLineId, Quantity = 2 });
 
-        return new Fixture(chart, branch, warehouse, item, customer, confirmed, delivery,
+        return new Fixture(chart, branch, warehouse, item, customer, confirmed,
             bookingLineId);
     }
 
@@ -226,23 +221,6 @@ public sealed class SalesInvoiceTests : IClassFixture<TestDb>
                 """, new { returnLineId = originalLine.Id, originalLineId = originalLine.Id }));
         Assert.Equal("23514", error.SqlState);
         Assert.Contains("RETURN_QTY_EXCEEDED", error.MessageText);
-    }
-
-    [Fact]
-    public async Task Auto_invoice_on_delivery_creates_linked_invoice()
-    {
-        var f = await SetupAsync("4", true);
-
-        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
-        await connection.OpenAsync();
-        var invoiceId = await connection.ExecuteScalarAsync<Guid?>(
-            "SELECT invoice_id FROM delivery_notes WHERE id = @id", new { id = f.Delivery.Id });
-        Assert.NotNull(invoiceId);
-
-        var invoice = await _db.CommercialRepo.GetAsync(invoiceId!.Value);
-        Assert.Equal(CommercialStatuses.Posted, invoice!.Status);
-        Assert.Equal(200m, invoice.Total);
-        Assert.StartsWith("SI-", invoice.DocNo);
     }
 
     [Fact]

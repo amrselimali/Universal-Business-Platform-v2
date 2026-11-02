@@ -92,9 +92,9 @@ public sealed partial class SalesInvoiceRepository
                    l.net_amount AS NetAmount, l.tax_amount AS TaxAmount,
                    l.total_amount AS TotalAmount, r.original_line_id AS OriginalLineId,
                    COALESCE(b.warehouse_id, '00000000-0000-0000-0000-000000000000'::uuid) AS WarehouseId,
-                   COALESCE((SELECT SUM(dnl.cost_total) / NULLIF(SUM(dnl.quantity), 0)
-                             FROM delivery_note_lines dnl
-                             WHERE dnl.booking_line_id = l.booking_line_id), 0) AS UnitCost
+                   COALESCE((SELECT SUM(cost_total) / NULLIF(SUM(quantity), 0)
+                             FROM booking_execution_lines
+                             WHERE booking_line_id = l.booking_line_id), 0) AS UnitCost
             FROM commercial_document_lines l
             LEFT JOIN sales_return_links r ON r.return_line_id = l.id
             LEFT JOIN booking_lines b ON b.id = l.booking_line_id

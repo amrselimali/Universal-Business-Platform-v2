@@ -23,6 +23,7 @@ public sealed class AppSettings
     public bool AutoInvoiceOnDelivery { get; set; } = true;
     public short InvoiceGroupingMode { get; set; }
     public short AppointmentSlotMinutes { get; set; } = 15;
+    public string MeterUnitLabel { get; set; } = "عدد الوحدات";
     public string? PosReceiptFooter { get; set; }
     public bool AutoFollowUpOverdue { get; set; }
     public DateTimeOffset CreatedAt { get; set; }

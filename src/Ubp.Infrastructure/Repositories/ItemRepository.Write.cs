@@ -12,10 +12,10 @@ public sealed partial class ItemRepository
         const string sql = """
             INSERT INTO items (code, name_ar, name_en, category_id, base_unit_id, item_type, notes,
                                is_active, custom_fields, tax_id, price_includes_tax, track_expiry,
-                               is_consumable, default_price)
+                               is_consumable, metered_asset_id, default_price)
             VALUES (@Code, @NameAr, @NameEn, @CategoryId, @BaseUnitId, @ItemType, @Notes,
                     @IsActive, CAST(@CustomFields AS jsonb), @TaxId, @PriceIncludesTax,
-                    @TrackExpiry, @IsConsumable, @DefaultPrice)
+                    @TrackExpiry, @IsConsumable, @MeteredAssetId, @DefaultPrice)
             RETURNING id
             """;
         await using var connection = await _factory.OpenAsync(ct);
@@ -24,7 +24,7 @@ public sealed partial class ItemRepository
         {
             input.Code, input.NameAr, input.NameEn, input.CategoryId, input.BaseUnitId,
             input.ItemType, input.Notes, input.IsActive, input.TaxId, input.PriceIncludesTax,
-            input.TrackExpiry, input.IsConsumable, input.DefaultPrice,
+            input.TrackExpiry, input.IsConsumable, input.MeteredAssetId, input.DefaultPrice,
             CustomFields = JsonSerializer.Serialize(input.CustomFields)
         }, tx, cancellationToken: ct));
 
@@ -42,7 +42,8 @@ public sealed partial class ItemRepository
                              item_type = @ItemType, notes = @Notes, is_active = @IsActive,
                              custom_fields = CAST(@CustomFields AS jsonb), tax_id = @TaxId,
                              price_includes_tax = @PriceIncludesTax, track_expiry = @TrackExpiry,
-                             is_consumable = @IsConsumable, default_price = @DefaultPrice
+                             is_consumable = @IsConsumable, metered_asset_id = @MeteredAssetId,
+                             default_price = @DefaultPrice
             WHERE id = @id AND version = @version
             RETURNING id
             """;
@@ -51,8 +52,9 @@ public sealed partial class ItemRepository
         var updated = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(sql, new
         {
             id, version, input.Code, input.NameAr, input.NameEn, input.CategoryId,
-            input.BaseUnitId, input.ItemType, input.Notes, input.IsActive,
-            CustomFields = JsonSerializer.Serialize(input.CustomFields)
+            input.BaseUnitId, input.ItemType, input.Notes, input.IsActive, input.TaxId,
+            input.PriceIncludesTax, input.TrackExpiry, input.IsConsumable, input.MeteredAssetId,
+            input.DefaultPrice, CustomFields = JsonSerializer.Serialize(input.CustomFields)
         }, tx, cancellationToken: ct));
 
         if (updated is null)

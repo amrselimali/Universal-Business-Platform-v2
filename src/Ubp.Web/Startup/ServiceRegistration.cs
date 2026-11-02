@@ -150,7 +150,7 @@ public static class ServiceRegistration
         services.AddScoped<ITreasuryRepository, TreasuryRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IAppointmentRepository, AppointmentRepository>();
-        services.AddScoped<IDeliveryRepository, DeliveryRepository>();
+        services.AddScoped<IBookingExecutionRepository, BookingExecutionRepository>();
         services.AddScoped<ISalesInvoiceRepository, SalesInvoiceRepository>();
         services.AddScoped<ISalesFinanceRepository, SalesFinanceRepository>();
         services.AddScoped<IPosRepository, PosRepository>();
@@ -197,6 +197,7 @@ public static class ServiceRegistration
         services.AddScoped<ImportService>();
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<ReservationService>();
+        services.AddScoped<BookingExecutionService>();
         services.AddScoped<IBranchAccountDefaultsRepository, BranchAccountDefaultsRepository>();
         services.AddScoped<BranchAccountDefaultsService>();
         services.AddScoped<IAssetRepository, AssetRepository>();

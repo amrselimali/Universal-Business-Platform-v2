@@ -32,13 +32,6 @@ public static class AppointmentStatuses
         value is Scheduled or Confirmed or InProgress or Done or Cancelled or NoShow;
 }
 
-public static class DeliveryStatuses
-{
-    public const string Draft = "draft";
-    public const string Posted = "posted";
-    public const string Cancelled = "cancelled";
-}
-
 public sealed class Booking
 {
     public Guid Id { get; set; }
@@ -175,54 +168,4 @@ public sealed class AppointmentInput
     public DateTimeOffset StartsAt { get; set; }
     public DateTimeOffset EndsAt { get; set; }
     public string? Notes { get; set; }
-}
-
-public sealed class DeliveryNote
-{
-    public Guid Id { get; set; }
-    public Guid BranchId { get; set; }
-    public string? DocNo { get; set; }
-    public DateTime DocDate { get; set; }
-    public string Status { get; set; } = DeliveryStatuses.Draft;
-    public Guid BookingId { get; set; }
-    public string? BookingNo { get; set; }
-    public Guid WarehouseId { get; set; }
-    public string? WarehouseName { get; set; }
-    public Guid? StockDocumentId { get; set; }
-    public Guid? JournalEntryId { get; set; }
-    public string? Notes { get; set; }
-    public int Version { get; set; } = 1;
-    public List<DeliveryNoteLine> Lines { get; set; } = new();
-
-    public bool IsDraft => Status == DeliveryStatuses.Draft;
-    public decimal CostTotal => Lines.Sum(l => l.CostTotal);
-}
-
-public sealed class DeliveryNoteLine
-{
-    public Guid Id { get; set; }
-    public int LineNo { get; set; }
-    public Guid BookingLineId { get; set; }
-    public Guid ItemId { get; set; }
-    public string? ItemName { get; set; }
-    public Guid UnitId { get; set; }
-    public decimal Quantity { get; set; }
-    public decimal UnitCost { get; set; }
-    public decimal CostTotal { get; set; }
-}
-
-public sealed class DeliveryInput
-{
-    public Guid BookingId { get; set; }
-    public Guid BranchId { get; set; }
-    public DateTime DocDate { get; set; } = DateTime.Today;
-    public Guid WarehouseId { get; set; }
-    public string? Notes { get; set; }
-    public List<DeliveryLineInput> Lines { get; set; } = new();
-}
-
-public sealed class DeliveryLineInput
-{
-    public Guid BookingLineId { get; set; }
-    public decimal Quantity { get; set; }
 }

@@ -7,11 +7,11 @@ using Xunit;
 namespace Ubp.Tests;
 
 /// <summary>تحويل متبقي الحجز إلى دفعة مقدمة: سند قبض مرحَّل + سجل تحويل + منع التكرار، والتحرير.</summary>
-public sealed class ReservationConversionTests : IClassFixture<TestDb>
+public sealed class ReservationReleaseTests : IClassFixture<TestDb>
 {
     private readonly TestDb _db;
 
-    public ReservationConversionTests(TestDb db) => _db = db;
+    public ReservationReleaseTests(TestDb db) => _db = db;
 
     private async Task<(Guid BookingId, Guid TreasuryId)> SetupAsync(string suffix,
         decimal quantity = 2, decimal price = 100)
@@ -51,36 +51,6 @@ public sealed class ReservationConversionTests : IClassFixture<TestDb>
         });
         await _db.BookingService().ConfirmAsync(actor, booking.Id);
         return (booking.Id, treasuryId);
-    }
-
-    [Fact]
-    public async Task Converting_posts_one_deposit_and_refuses_the_second_attempt()
-    {
-        var actor = await _db.AdminActorAsync();
-        var (bookingId, _) = await SetupAsync("1");
-        var service = _db.Reservations();
-
-        var conversion = await service.ConvertToAdvanceAsync(actor, bookingId);
-
-        Assert.Equal(200m, conversion.Amount);
-        Assert.Equal(2m, conversion.Quantity);
-        Assert.Equal(1, conversion.LinesConverted);
-
-        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
-        await connection.OpenAsync();
-        var voucher = await connection.QuerySingleAsync<(string Status, decimal Total, Guid? Entry)>("""
-            SELECT status, total_amount, journal_entry_id FROM vouchers WHERE id = @id
-            """, new { id = conversion.VoucherId });
-        Assert.Equal(VoucherStatuses.Posted, voucher.Status);
-        Assert.Equal(200m, voucher.Total);
-        Assert.NotNull(voucher.Entry);
-
-        Assert.Equal(1, await connection.ExecuteScalarAsync<int>(
-            "SELECT count(*)::int FROM reservation_adjustments WHERE booking_id = @id AND kind = 'TO_ADVANCE'",
-            new { id = bookingId }));
-
-        await Assert.ThrowsAsync<ConflictException>(async () =>
-            await service.ConvertToAdvanceAsync(actor, bookingId));
     }
 
     [Fact]

@@ -11,7 +11,7 @@ public sealed partial class UserManualGenerator
         "users", "roles", "role_permissions", "user_permissions", "branches", "warehouses",
         "items", "stock_documents", "stock_document_lines", "partners", "commercial_documents",
         "commercial_document_lines", "journal_entries", "journal_entry_lines", "gl_balances",
-        "treasuries", "vouchers", "voucher_lines", "bookings", "booking_lines", "delivery_notes",
+        "treasuries", "vouchers", "voucher_lines", "bookings", "booking_lines", "booking_executions",
         "fixed_assets", "audit_log", "app_settings", "fiscal_periods", "period_scope_closures",
         "saved_report_filters"
     };
@@ -39,7 +39,7 @@ public sealed partial class UserManualGenerator
             ["voucher_lines"] = "بنود السندات وطرق الدفع/المبالغ.",
             ["bookings"] = "الحجوزات كالتزامات وكمياتها.",
             ["booking_lines"] = "بنود الحجز والأسعار والكميات.",
-            ["delivery_notes"] = "إذون التنفيذ وصرف المخزون.",
+            ["booking_executions"] = "تنفيذ الحجوزات وصرف المخزون ووحدات العدّاد.",
             ["fixed_assets"] = "الأصول الثابتة والعدّادات والإهلاك.",
             ["audit_log"] = "سجل غير قابل للتعديل لكل العمليات.",
             ["app_settings"] = "إعدادات الشركة والأمان والترحيل الافتراضي.",

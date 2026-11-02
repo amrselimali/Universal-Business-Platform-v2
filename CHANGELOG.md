@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## 2026-11-02 — Execute booking from reservations + asset meter usage
+
+### Changed
+- Removed **إلى دفعة مقدمة** from `/sales/reservations`; kept **تمديد** and **تحرير** and added
+  **تنفيذ**.
+- Execution opens a read-only modal (service, customer, employee, warehouse, remaining quantity)
+  where only quantity (max remaining) and the configurable meter-unit column are editable.
+- Execution posts stock/COGS for goods, updates delivered/reserved quantities and booking status,
+  and adds meter units to the linked fixed asset atomically.
+- Asset meters now support incremental usage readings (`EXECUTION`), manual reset from the assets
+  screen, and a company-configurable meter-unit column label (`app_settings.meter_unit_label`).
+- Removed the deliveries screen/dialog and its application service/repository/model code; invoices
+  use `booking_execution_lines` for cost.
+- Migration `0057`: `booking_executions`, `booking_execution_lines`, meter label, and the
+  `EXECUTION` journal/meter sources.
+
+### Tests
+- Added execution/meter-reset coverage and updated invoice/dashboard tests to execute bookings.
+- Build 0 errors; full suite **267/267 passed**.
+
 ## 2026-11-02 — Customer filters + employee admin role/job title
 
 ### Added

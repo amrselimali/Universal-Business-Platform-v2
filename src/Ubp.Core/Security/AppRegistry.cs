@@ -238,10 +238,6 @@ public static partial class AppRegistry
             "screen.sales_appointments", GroupSales,
             new[] { A(ActionCodes.View), A(ActionCodes.Manage) }, "sales.appointments"),
 
-        new(ScreenCodes.SalesDeliveries, "/sales/deliveries", "LocalShipping",
-            "screen.sales_deliveries", GroupSales,
-            new[] { A(ActionCodes.View), A(ActionCodes.Execute), A(ActionCodes.Post) },
-            "sales.deliveries"),
         new(ScreenCodes.SalesInvoices, "/sales/invoices", "Receipt", "screen.sales_invoices",
             GroupSales,
             new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Edit),

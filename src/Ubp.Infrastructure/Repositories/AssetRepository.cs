@@ -16,6 +16,10 @@ public interface IAssetRepository
     Task<bool> SetStatusAsync(Guid id, string status, Guid userId, CancellationToken ct = default);
     Task<Guid> AddReadingAsync(Guid assetId, decimal value, decimal delta, string source,
         string? note, Guid userId, CancellationToken ct = default);
+    Task<decimal> AddUsageAsync(Guid assetId, decimal units, Guid? sourceLineId, string? note,
+        Guid userId, CancellationToken ct = default);
+    Task<decimal> ResetMeterAsync(Guid assetId, string? note, Guid userId,
+        CancellationToken ct = default);
     Task<IReadOnlyList<AssetMeterReading>> ListReadingsAsync(Guid assetId, int take = 50,
         CancellationToken ct = default);
     Task SetMeterValueAsync(Guid assetId, decimal value, Guid userId, CancellationToken ct = default);

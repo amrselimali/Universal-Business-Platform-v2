@@ -130,7 +130,6 @@ public static class ActionCodes
     public const string EnableAutoPost = "ENABLE_AUTO_POST";
     public const string Save = "SAVE";
     public const string SaveFilter = "SAVE_FILTER";
-    public const string ConvertToAdvance = "CONVERT_TO_ADVANCE";
     public const string SetMain = "SET_MAIN";
     public const string AddMeterReading = "ADD_METER_READING";
     public const string OpenMaintenance = "OPEN_MAINTENANCE";

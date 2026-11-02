@@ -35,6 +35,7 @@ public sealed class SettingsRepository : ISettingsRepository
                auto_invoice_on_delivery AS AutoInvoiceOnDelivery,
                invoice_grouping_mode AS InvoiceGroupingMode,
                appointment_slot_minutes AS AppointmentSlotMinutes,
+               meter_unit_label AS MeterUnitLabel,
                pos_receipt_footer AS PosReceiptFooter,
                auto_follow_up_overdue AS AutoFollowUpOverdue,
                created_at AS CreatedAt, updated_at AS UpdatedAt, version AS Version
@@ -78,6 +79,7 @@ public sealed class SettingsRepository : ISettingsRepository
                 auto_invoice_on_delivery = @AutoInvoiceOnDelivery,
                 invoice_grouping_mode = @InvoiceGroupingMode,
                 appointment_slot_minutes = @AppointmentSlotMinutes,
+                meter_unit_label = @MeterUnitLabel,
                 pos_receipt_footer = @PosReceiptFooter,
                 auto_follow_up_overdue = @AutoFollowUpOverdue
             WHERE id = @Id AND version = @Version
@@ -97,6 +99,7 @@ public sealed class SettingsRepository : ISettingsRepository
                       auto_invoice_on_delivery AS AutoInvoiceOnDelivery,
                       invoice_grouping_mode AS InvoiceGroupingMode,
                       appointment_slot_minutes AS AppointmentSlotMinutes,
+                      meter_unit_label AS MeterUnitLabel,
                       pos_receipt_footer AS PosReceiptFooter,
                       auto_follow_up_overdue AS AutoFollowUpOverdue,
                       created_at AS CreatedAt, updated_at AS UpdatedAt, version AS Version

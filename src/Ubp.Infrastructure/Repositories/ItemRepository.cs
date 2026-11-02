@@ -31,7 +31,9 @@ public sealed partial class ItemRepository : IItemRepository
         i.item_type AS ItemType, i.notes AS Notes, i.is_active AS IsActive,
         i.tax_id AS TaxId, (SELECT t.name_ar FROM taxes t WHERE t.id = i.tax_id) AS TaxName,
         i.price_includes_tax AS PriceIncludesTax, i.track_expiry AS TrackExpiry,
-        i.is_consumable AS IsConsumable, i.default_price AS DefaultPrice,
+        i.is_consumable AS IsConsumable, i.metered_asset_id AS MeteredAssetId,
+        (SELECT a.name_ar FROM fixed_assets a WHERE a.id = i.metered_asset_id) AS MeteredAssetName,
+        i.default_price AS DefaultPrice,
         i.custom_fields::text AS CustomFieldsJson,
         i.created_at AS CreatedAt, i.updated_at AS UpdatedAt, i.version AS Version
         """;
@@ -122,6 +124,7 @@ public sealed partial class ItemRepository : IItemRepository
         CategoryId = row.CategoryId, CategoryName = row.CategoryName,
         BaseUnitId = row.BaseUnitId, BaseUnitName = row.BaseUnitName,
         ItemType = row.ItemType, Notes = row.Notes, IsActive = row.IsActive,
+        MeteredAssetId = row.MeteredAssetId, MeteredAssetName = row.MeteredAssetName,
         CustomFields = string.IsNullOrWhiteSpace(row.CustomFieldsJson)
             ? new() : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(row.CustomFieldsJson) ?? new(),
         CreatedAt = row.CreatedAt, UpdatedAt = row.UpdatedAt, Version = row.Version
@@ -140,6 +143,8 @@ public sealed partial class ItemRepository : IItemRepository
         public string ItemType { get; set; } = "GOODS";
         public string? Notes { get; set; }
         public bool IsActive { get; set; }
+        public Guid? MeteredAssetId { get; set; }
+        public string? MeteredAssetName { get; set; }
         public string? CustomFieldsJson { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset UpdatedAt { get; set; }

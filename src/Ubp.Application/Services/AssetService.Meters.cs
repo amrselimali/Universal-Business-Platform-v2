@@ -36,6 +36,31 @@ public sealed partial class AssetService
         };
     }
 
+    /// <summary>إضافة وحدات استهلاك للعدّاد (يومية/تنفيذ) مع منع تكرار نفس سطر المصدر.</summary>
+    public async Task<decimal> AddUsageAsync(ActorContext actor, Guid assetId, decimal units,
+        Guid? sourceLineId = null, string? note = null, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.Assets, ActionCodes.AddMeterReading, ct: ct);
+        var asset = await _assets.GetAsync(assetId, ct) ?? throw new NotFoundAppException();
+        EnsureVisible(actor, asset);
+        if (!asset.IsMetered) throw new ValidationAppException("validation.asset_not_metered");
+        if (asset.Status == AssetStatuses.Disposed)
+            throw new ValidationAppException("validation.asset_disposed");
+        if (units <= 0) throw new ValidationAppException("validation.quantity_invalid");
+        return await _assets.AddUsageAsync(assetId, units, sourceLineId, note, actor.UserId, ct);
+    }
+
+    /// <summary>تصفير عدّاد الأصل مع تسجيل قراءة تصفير.</summary>
+    public async Task<decimal> ResetMeterAsync(ActorContext actor, Guid assetId,
+        string? note = null, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.Assets, ActionCodes.AddMeterReading, ct: ct);
+        var asset = await _assets.GetAsync(assetId, ct) ?? throw new NotFoundAppException();
+        EnsureVisible(actor, asset);
+        if (!asset.IsMetered) throw new ValidationAppException("validation.asset_not_metered");
+        return await _assets.ResetMeterAsync(assetId, note, actor.UserId, ct);
+    }
+
     public async Task<IReadOnlyList<AssetMeterReading>> ReadingsAsync(ActorContext actor,
         Guid assetId, CancellationToken ct = default)
     {

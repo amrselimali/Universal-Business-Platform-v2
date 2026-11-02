@@ -50,13 +50,8 @@ public sealed class DashboardTests : IClassFixture<TestDb>
         await _db.BookingService().ConfirmAsync(actor, booking.Id);
         var bookingLineId = (await _db.BookingService().GetAsync(actor, booking.Id)).Lines.Single().Id;
 
-        var note = await _db.Fulfillment().CreateDeliveryAsync(actor, new DeliveryInput
-        {
-            BookingId = booking.Id, BranchId = branch, DocDate = DateTime.Today,
-            WarehouseId = warehouse,
-            Lines = { new DeliveryLineInput { BookingLineId = bookingLineId, Quantity = 2 } }
-        });
-        await _db.Fulfillment().PostDeliveryAsync(actor, note.Id);
+        await _db.Executions().ExecuteAsync(actor, new BookingExecutionInput
+        { BookingLineId = bookingLineId, Quantity = 2 });
         return new Fixture(branch, warehouse, item, customer, booking, bookingLineId);
     }
 

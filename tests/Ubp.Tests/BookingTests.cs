@@ -121,30 +121,20 @@ public sealed class BookingTests : IClassFixture<TestDb>
     }
 
     [Fact]
-    public async Task Delivery_posts_stock_and_cogs_and_completes_booking()
+    public async Task Execution_posts_stock_and_cogs_and_completes_booking()
     {
         var actor = await _db.AdminActorAsync();
-        var fulfillment = _db.Fulfillment();
         var (branch, warehouse, item, customer, _) = await SetupAsync("2");
 
         var booking = await CreateBookingAsync(branch, warehouse, customer, item, 10);
         await _db.BookingService().ConfirmAsync(actor, booking.Id);
-        var line = booking.Lines.Single();
+        var line = (await _db.BookingService().GetAsync(actor, booking.Id)).Lines.Single();
 
-        var note = await fulfillment.CreateDeliveryAsync(actor, new DeliveryInput
-        {
-            BookingId = booking.Id, BranchId = branch, DocDate = DateTime.Today,
-            WarehouseId = warehouse,
-            Lines = { new DeliveryLineInput { BookingLineId = line.Id, Quantity = 10 } }
-        });
+        var result = await _db.Executions().ExecuteAsync(actor, new BookingExecutionInput
+        { BookingLineId = line.Id, Quantity = 10 });
 
-        var posted = await fulfillment.PostDeliveryAsync(actor, note.Id);
-
-        Assert.Equal(DeliveryStatuses.Posted, posted.Status);
-        Assert.StartsWith("DN-", posted.DocNo);
-        Assert.NotNull(posted.StockDocumentId);
-        Assert.NotNull(posted.JournalEntryId);
-        Assert.Equal(500m, posted.CostTotal);
+        Assert.Equal(10m, result.Quantity);
+        Assert.Equal(500m, result.CostTotal);
         Assert.Equal(0m, await _db.OnHandAsync(item.Id, warehouse));
         Assert.Equal(BookingStatuses.Completed,
             (await _db.BookingService().GetAsync(actor, booking.Id)).Status);
@@ -152,8 +142,8 @@ public sealed class BookingTests : IClassFixture<TestDb>
         await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
         await connection.OpenAsync();
         var entry = await connection.QuerySingleAsync<(decimal Debit, decimal Credit, string Status)>(
-            "SELECT total_debit, total_credit, status FROM journal_entries WHERE id = @id",
-            new { id = posted.JournalEntryId });
+            "SELECT total_debit, total_credit, status FROM journal_entries " +
+            "WHERE source_type = 'execution' AND source_id = @id", new { id = result.ExecutionId });
         Assert.Equal(500m, entry.Debit);
         Assert.Equal(entry.Debit, entry.Credit);
         Assert.Equal("posted", entry.Status);

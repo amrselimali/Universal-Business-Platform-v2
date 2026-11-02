@@ -74,6 +74,9 @@ else
                     <MudSelectItem T="short" Value="1">@T.T("settings.grouping_on_close")</MudSelectItem>
                     <MudSelectItem T="short" Value="2">@T.T("settings.grouping_manual")</MudSelectItem>
                 </MudSelect>
+                <MudTextField @bind-Value="_model.MeterUnitLabel" Label="@T.T("settings.meter_unit_label")"
+                              Variant="Variant.Outlined" MaxLength="100"
+                              Disabled="@(!Can(ActionCodes.Edit))" />
                 <MudTextField @bind-Value="_model.PosReceiptFooter" Label="@T.T("settings.pos_footer")"
                               Variant="Variant.Outlined" MaxLength="300"
                               Disabled="@(!Can(ActionCodes.Edit))" />
