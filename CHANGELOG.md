@@ -12,7 +12,8 @@
   `is_service_executor = true`.
 - Added a database trigger rejecting overlapping booking sessions for the same employee
   (`booking_session_overlap`), independent of the appointments table.
-- Migration `0061` drops commission artifacts; migration `0062` adds the overlap guard.
+- Migration `0061` drops commission artifacts; migration `0062` adds the overlap guard; migration
+  `0063` removes stale commission permission rows and saved report filters.
 
 ## 2026-11-02 — Split booking/execution commissions + employee visibility
 
