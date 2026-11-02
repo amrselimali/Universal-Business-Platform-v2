@@ -182,7 +182,7 @@ public sealed class BookingTests : IClassFixture<TestDb>
         var overlap = await Assert.ThrowsAsync<ValidationAppException>(() =>
             service.CreateAppointmentAsync(actor, new AppointmentInput
             {
-                BranchId = branch, EmployeeId = employee.Id,
+                BranchId = branch, EmployeeId = employee.Id, CustomerId = customer.Id,
                 StartsAt = start.AddMinutes(15), EndsAt = start.AddMinutes(45)
             }));
         Assert.Equal("validation.appointment_overlap", overlap.Code);
@@ -192,7 +192,7 @@ public sealed class BookingTests : IClassFixture<TestDb>
 
         var again = await service.CreateAppointmentAsync(actor, new AppointmentInput
         {
-            BranchId = branch, EmployeeId = employee.Id,
+            BranchId = branch, EmployeeId = employee.Id, CustomerId = customer.Id,
             StartsAt = start.AddMinutes(15), EndsAt = start.AddMinutes(45)
         });
         Assert.NotEqual(Guid.Empty, again.Id);

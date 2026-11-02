@@ -30,6 +30,9 @@
 - Employee resolution now prefers the appointment linked to the booking, then same-customer
   appointments today/on the booking date, then the assigned employee; SERVICE execution requires it.
 - Removed booking number and warehouse from the execution modal.
+- Appointment customer is now mandatory; appointment dates are matched in the configured company
+  time zone (not the database UTC date), and migration `0059` backfills the customer on legacy
+  appointments linked to a booking.
 
 ## 2026-11-02 — Customer filters + employee admin role/job title
 
