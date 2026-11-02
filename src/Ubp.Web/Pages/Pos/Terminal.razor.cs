@@ -44,6 +44,7 @@ public partial class Terminal : SecurePageBase
     private Guid _customerId;
     private string? _customerName;
     private string? _customerPhone;
+    private string? _customerSearch;
     private Guid _warehouseId;
     private Guid _treasuryId;
     private DateTime? _expiryDate = DateTime.Today.AddMonths(6);
@@ -86,9 +87,7 @@ public partial class Terminal : SecurePageBase
     {
         _branches = await Branches.OptionsAsync(Actor!);
         _branchId = _branches.FirstOrDefault()?.Id ?? Guid.Empty;
-        _customers = (await Partners.ListAsync(Actor!, PartnerKind.Customer,
-            new PageRequest { Page = 1, PageSize = 25 }, null)).Items;
-        OnCustomerChanged(_customers.FirstOrDefault()?.Id ?? Guid.Empty);
+        await SearchCustomersAsync();
         await LoadBranchAsync();
     }
 
@@ -107,6 +106,15 @@ public partial class Terminal : SecurePageBase
         _products = await Items.OptionsAsync(Actor!, _search, true);
 
     private static decimal PriceOf(ItemOption product) => product.DefaultPrice;
+
+    private async Task SearchCustomersAsync()
+    {
+        _customers = (await Partners.ListAsync(Actor!, PartnerKind.Customer,
+            new PageRequest { Page = 1, PageSize = 25, Search = _customerSearch }, null)).Items;
+        if (_customers.All(c => c.Id != _customerId))
+            OnCustomerChanged(_customers.FirstOrDefault()?.Id ?? Guid.Empty);
+        StateHasChanged();
+    }
 
     private void OnCustomerChanged(Guid customerId)
     {

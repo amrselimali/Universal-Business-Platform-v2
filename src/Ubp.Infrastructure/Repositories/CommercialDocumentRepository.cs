@@ -19,7 +19,7 @@ public interface ICommercialDocumentRepository
         CancellationToken ct = default);
     Task<bool> DeleteDraftAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<SupplierAgingRow>> SupplierAgingAsync(Guid? branchId, DateTime asOf,
-        CancellationToken ct = default);
+        string? search = null, CancellationToken ct = default);
 }
 
 public sealed partial class CommercialDocumentRepository : ICommercialDocumentRepository

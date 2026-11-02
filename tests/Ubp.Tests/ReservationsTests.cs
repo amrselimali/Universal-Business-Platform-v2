@@ -128,6 +128,33 @@ public sealed class ReservationsTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Customer_filter_searches_name_phone_and_code()
+    {
+        var f = await SetupAsync("7", quantity: 2);
+        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
+        await connection.OpenAsync();
+        await connection.ExecuteAsync(
+            "UPDATE customers SET phone = '01012345678' WHERE id = @id",
+            new { id = f.Customer.Id });
+
+        var byCode = await Repo().ListAsync(new PageRequest(), [f.Branch], null, false,
+            "RS-C-7");
+        Assert.Contains(byCode.Items, r => r.BookingId == f.Booking.Id);
+
+        var byName = await Repo().ListAsync(new PageRequest(), [f.Branch], null, false,
+            "عميل الحجز 7");
+        Assert.Contains(byName.Items, r => r.BookingId == f.Booking.Id);
+
+        var byPhone = await Repo().ListAsync(new PageRequest(), [f.Branch], null, false,
+            "010123");
+        Assert.Contains(byPhone.Items, r => r.BookingId == f.Booking.Id);
+
+        var none = await Repo().ListAsync(new PageRequest(), [f.Branch], null, false,
+            "لا-يوجد-عميل");
+        Assert.Empty(none.Items);
+    }
+
+    [Fact]
     public async Task Listing_respects_the_branch_scope_of_the_caller()
     {
         var f = await SetupAsync("5", quantity: 1);

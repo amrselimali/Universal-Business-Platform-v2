@@ -22,6 +22,12 @@ else
                 <MudSelectItem T="string" Value="@("bookings")">@T.T("reports.aging_bookings")</MudSelectItem>
                 <MudSelectItem T="string" Value="@("suppliers")">@T.T("reports.aging_suppliers")</MudSelectItem>
             </MudSelect>
+            <MudTextField @bind-Value="_customerSearch" Label="@T.T("reports.party_search")"
+                          Placeholder="@T.T("reports.party_search_hint")"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
+                          DebounceInterval="350" OnDebounceIntervalElapsed="ReloadAsync"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Class="ubp-search" />
             <MudDatePicker Date="_asOf" Label="@T.T("reports.as_of")"
                            Variant="Variant.Outlined" Margin="Margin.Dense"
                            DateChanged="OnDateChanged" />
@@ -119,6 +125,7 @@ else
     private string _kind = "customers";
     private DateTime? _asOf = DateTime.Today;
     private Guid? _branchId;
+    private string? _customerSearch;
 
     protected override string ScreenCode => ScreenCodes.AgingReport;
 
@@ -136,11 +143,12 @@ else
         _quantities = Array.Empty<AgingQuantityRow>();
 
         if (_kind == "customer_invoices")
-            _invoices = await Finance.AgingInvoicesAsync(Actor!, _branchId, asOf);
+            _invoices = await Finance.AgingInvoicesAsync(Actor!, _branchId, asOf, _customerSearch);
         else if (_kind == "booking_quantities")
-            _quantities = await Finance.AgingQuantitiesAsync(Actor!, _branchId, asOf);
+            _quantities = await Finance.AgingQuantitiesAsync(Actor!, _branchId, asOf,
+                _customerSearch);
         else
-            _rows = await Finance.AgingAsync(Actor!, _kind, _branchId, asOf);
+            _rows = await Finance.AgingAsync(Actor!, _kind, _branchId, asOf, _customerSearch);
     }
 
     private Task OnKindChanged(string value) { _kind = value; return RunAsync(ReloadAsync); }

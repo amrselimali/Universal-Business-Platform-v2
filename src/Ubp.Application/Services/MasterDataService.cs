@@ -14,15 +14,16 @@ public sealed partial class MasterDataService
     private readonly ITaxRepository _taxes;
     private readonly IPaymentTermRepository _terms;
     private readonly IPriceListRepository _priceLists;
+    private readonly IRoleRepository _roles;
     private readonly PermissionService _permissions;
     private readonly AuditService _audit;
 
     public MasterDataService(IEmployeeRepository employees, ITaxRepository taxes,
-        IPaymentTermRepository terms, IPriceListRepository priceLists, PermissionService permissions,
-        AuditService audit)
+        IPaymentTermRepository terms, IPriceListRepository priceLists, IRoleRepository roles,
+        PermissionService permissions, AuditService audit)
     {
         _employees = employees; _taxes = taxes; _terms = terms; _priceLists = priceLists;
-        _permissions = permissions; _audit = audit;
+        _roles = roles; _permissions = permissions; _audit = audit;
     }
 
     // ---------------- الموظفون (D8/D9) ----------------
@@ -40,6 +41,17 @@ public sealed partial class MasterDataService
         return await _employees.ListOptionsAsync(ct);
     }
 
+    /// <summary>الأدوار المتاحة للموظف (دور إداري/استقبال حجوزات...).</summary>
+    public async Task<IReadOnlyList<Role>> EmployeeRoleOptionsAsync(ActorContext actor,
+        CancellationToken ct = default)
+    {
+        var allowed = await _permissions.HasAsync(actor, ScreenCodes.Employees, ActionCodes.View,
+                          ct)
+                      || await _permissions.HasAsync(actor, ScreenCodes.Users, ActionCodes.View, ct);
+        if (!allowed) throw new ForbiddenException();
+        return await _roles.ListOptionsAsync(ct);
+    }
+
     public async Task<Employee> SaveEmployeeAsync(ActorContext actor, Guid? id, int version,
         EmployeeInput input, CancellationToken ct = default)
     {
@@ -51,7 +63,8 @@ public sealed partial class MasterDataService
         input.NameEn = string.IsNullOrWhiteSpace(input.NameEn) ? null : input.NameEn.Trim();
         if (input.Code.Length is 0 or > 30) throw new ValidationAppException("validation.code_required");
         if (input.NameAr.Length is 0 or > 200) throw new ValidationAppException("validation.name_required");
-        if (!input.IsBookingReceiver && !input.IsSeller && !input.IsServiceExecutor)
+        if (!input.IsBookingReceiver && !input.IsSeller && !input.IsServiceExecutor &&
+            input.RoleId is null)
             throw new ValidationAppException("validation.employee_role_required");
 
         try

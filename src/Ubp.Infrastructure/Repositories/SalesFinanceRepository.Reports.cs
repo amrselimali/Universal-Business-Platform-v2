@@ -50,7 +50,7 @@ public sealed partial class SalesFinanceRepository
 
     /// <summary>أعمار فواتير العملاء: الرصيد المفتوح موزّعاً على 5 سلال حسب تاريخ الاستحقاق.</summary>
     public async Task<IReadOnlyList<AgingBucketRow>> CustomerAgingAsync(Guid? branchId,
-        DateTime asOf, CancellationToken ct = default)
+        DateTime asOf, string? search = null, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         return (await connection.QueryAsync<AgingBucketRow>(new CommandDefinition("""
@@ -70,15 +70,17 @@ public sealed partial class SalesFinanceRepository
             WHERE d.doc_type = 'sales_invoice' AND d.status = 'posted'
               AND d.total > d.allocated_total
               AND (@branchId::uuid IS NULL OR d.branch_id = @branchId::uuid)
+              AND (@search IS NULL OR @search = ''
+                   OR c.search_text LIKE '%' || normalize_search(@search) || '%')
             GROUP BY c.id, c.name_ar
             HAVING SUM(d.total - d.allocated_total) <> 0
             ORDER BY c.name_ar
-            """, new { branchId, asOf }, cancellationToken: ct))).ToList();
+            """, new { branchId, asOf, search }, cancellationToken: ct))).ToList();
     }
 
     /// <summary>أعمار الدفعات المقدمة: أرصدة سندات القبض غير المخصصة حسب عمر السند.</summary>
     public async Task<IReadOnlyList<AgingBucketRow>> AdvancesAgingAsync(Guid? branchId,
-        DateTime asOf, CancellationToken ct = default)
+        DateTime asOf, string? search = null, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         return (await connection.QueryAsync<AgingBucketRow>(new CommandDefinition("""
@@ -100,14 +102,16 @@ public sealed partial class SalesFinanceRepository
                 HAVING v.total_amount - COALESCE(SUM(a.amount), 0) > 0
             ) x
             JOIN customers c ON c.id = x.party_id
+            WHERE (@search IS NULL OR @search = ''
+                   OR c.search_text LIKE '%' || normalize_search(@search) || '%')
             GROUP BY x.party_id, c.name_ar
             ORDER BY c.name_ar
-            """, new { branchId, asOf }, cancellationToken: ct))).ToList();
+            """, new { branchId, asOf, search }, cancellationToken: ct))).ToList();
     }
 
     /// <summary>أعمار الحجوزات المفتوحة: قيمة الحجز ناقص ما فُوتر منه، حسب عمر الحجز.</summary>
     public async Task<IReadOnlyList<AgingBucketRow>> BookingAgingAsync(Guid? branchId,
-        DateTime asOf, CancellationToken ct = default)
+        DateTime asOf, string? search = null, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         return (await connection.QueryAsync<AgingBucketRow>(new CommandDefinition("""
@@ -128,13 +132,15 @@ public sealed partial class SalesFinanceRepository
             ) o
             WHERE b.status IN ('confirmed', 'partially_delivered')
               AND (@branchId::uuid IS NULL OR b.branch_id = @branchId::uuid)
+              AND (@search IS NULL OR @search = ''
+                   OR c.search_text LIKE '%' || normalize_search(@search) || '%')
             GROUP BY b.id, b.doc_no, b.booking_date, c.name_ar
             HAVING GREATEST(b.total_amount - COALESCE((
                 SELECT SUM(d.total) FROM commercial_documents d
                 WHERE d.booking_id = b.id AND d.doc_type = 'sales_invoice'
                   AND d.status = 'posted'), 0), 0) > 0
             ORDER BY b.booking_date
-            """, new { branchId, asOf }, cancellationToken: ct))).ToList();
+            """, new { branchId, asOf, search }, cancellationToken: ct))).ToList();
     }
 
     public async Task<IReadOnlyList<UnpostedDocument>> ListUnpostedAsync(Guid? branchId,

@@ -81,6 +81,24 @@ public sealed class Phase4SetupTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Employee_can_take_an_existing_admin_role_and_job_title()
+    {
+        var actor = await _db.AdminActorAsync();
+        var service = _db.MasterData();
+        var role = (await _db.RoleRepo.ListOptionsAsync()).First();
+
+        var created = await service.SaveEmployeeAsync(actor, null, 0, new EmployeeInput
+        {
+            Code = "E-ROLE", NameAr = "موظف استقبال", RoleId = role.Id,
+            JobTitle = "مشرف استقبال"
+        });
+
+        Assert.Equal(role.Id, created.RoleId);
+        Assert.Equal(role.NameAr, created.RoleName);
+        Assert.Equal("مشرف استقبال", created.JobTitle);
+    }
+
+    [Fact]
     public async Task Tax_and_payment_term_validation()
     {
         var actor = await _db.AdminActorAsync();

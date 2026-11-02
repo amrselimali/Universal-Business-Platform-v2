@@ -17,6 +17,17 @@
                               Variant="Variant.Outlined" MaxLength="30" />
                 <MudTextField @bind-Value="_input.Email" Label="@T.T("settings.email")"
                               Variant="Variant.Outlined" MaxLength="200" />
+                <MudTextField @bind-Value="_input.JobTitle" Label="@T.T("settings.job_title")"
+                              Variant="Variant.Outlined" MaxLength="100" />
+                <MudSelect T="Guid?" @bind-Value="_input.RoleId" Label="@T.T("settings.admin_role")"
+                           Variant="Variant.Outlined" Clearable="true">
+                    @foreach (var role in _roles)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)role.Id)">
+                            @RoleName(role)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
                 <MudDatePicker @bind-Date="_hireDate" Label="@T.T("settings.hire_date")"
                                Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" Editable="true" />
                 <div style="grid-column: 1 / -1;">
@@ -50,21 +61,30 @@
 
     private MudForm _form = default!;
     private EmployeeInput _input = new();
+    private IReadOnlyList<Role> _roles = Array.Empty<Role>();
     private DateTime? _hireDate;
     private bool _busy;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        var actor = await UserContext.GetAsync();
+        if (actor is not null)
+            _roles = await MasterData.EmployeeRoleOptionsAsync(actor);
+
         if (Model is null) return;
         _input = new EmployeeInput
         {
             Code = Model.Code, NameAr = Model.NameAr, NameEn = Model.NameEn, Phone = Model.Phone,
-            Email = Model.Email, UserId = Model.UserId, HireDate = Model.HireDate,
+            Email = Model.Email, UserId = Model.UserId, RoleId = Model.RoleId,
+            JobTitle = Model.JobTitle, HireDate = Model.HireDate,
             IsBookingReceiver = Model.IsBookingReceiver, IsSeller = Model.IsSeller,
             IsServiceExecutor = Model.IsServiceExecutor, Notes = Model.Notes, IsActive = Model.IsActive
         };
         _hireDate = Model.HireDate;
     }
+
+    private string RoleName(Role role) =>
+        T.Language == "en" && !string.IsNullOrWhiteSpace(role.NameEn) ? role.NameEn! : role.NameAr;
 
     private void Cancel() => MudDialog.Cancel();
 

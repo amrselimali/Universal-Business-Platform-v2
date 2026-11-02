@@ -8,7 +8,8 @@ namespace Ubp.Infrastructure.Repositories;
 public interface IReservationRepository
 {
     Task<PagedResult<ReservationRow>> ListAsync(PageRequest request, IReadOnlyCollection<Guid> branchIds,
-        Guid? customerId, bool onlyRemaining, CancellationToken ct = default);
+        Guid? customerId, bool onlyRemaining, string? customerSearch = null,
+        CancellationToken ct = default);
     Task<IReadOnlyList<ReservationRow>> RemainingLinesAsync(Guid bookingId,
         CancellationToken ct = default);
     Task<bool> AdvanceExistsAsync(Guid bookingId, CancellationToken ct = default);
@@ -37,6 +38,10 @@ public sealed class ReservationRepository : IReservationRepository
     private const string Filter = """
         (@allBranches OR branch_id = ANY(@branchIds))
         AND (@customerId IS NULL OR customer_id = @customerId)
+        AND (@customerSearch IS NULL OR @customerSearch = ''
+             OR EXISTS (SELECT 1 FROM customers c
+                        WHERE c.id = customer_id
+                          AND c.search_text LIKE '%' || normalize_search(@customerSearch) || '%'))
         AND (NOT @onlyRemaining OR remaining_qty > 0)
         """;
 
@@ -46,7 +51,7 @@ public sealed class ReservationRepository : IReservationRepository
 
     public async Task<PagedResult<ReservationRow>> ListAsync(PageRequest request,
         IReadOnlyCollection<Guid> branchIds, Guid? customerId, bool onlyRemaining,
-        CancellationToken ct = default)
+        string? customerSearch = null, CancellationToken ct = default)
     {
         var sql = $"""
             SELECT {Columns} FROM v_customer_reservations
@@ -61,6 +66,7 @@ public sealed class ReservationRepository : IReservationRepository
             branchIds = branchIds.ToArray(),
             allBranches = branchIds.Count == 0,
             customerId,
+            customerSearch,
             onlyRemaining,
             take = request.SafePageSize,
             offset = request.Offset
