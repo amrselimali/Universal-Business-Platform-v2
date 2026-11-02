@@ -43,6 +43,12 @@ else
                 <MudSelectItem T="string?" Value="@BookingStatuses.Completed">@T.T("sales.status_completed")</MudSelectItem>
                 <MudSelectItem T="string?" Value="@BookingStatuses.Cancelled">@T.T("sales.status_cancelled")</MudSelectItem>
             </MudSelect>
+            <MudSelect T="string?" Value="_source" Label="@T.T("sales.booking_source")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                       ValueChanged="OnSourceChanged">
+                <MudSelectItem T="string?" Value="@BookingSources.Manual">@T.T("sales.source_manual")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@BookingSources.Pos">@T.T("sales.source_pos")</MudSelectItem>
+            </MudSelect>
         </div>
 
         <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
@@ -111,6 +117,7 @@ else
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private Guid? _branchId;
     private string? _status;
+    private string? _source = BookingSources.Manual;
     private DateTime? _date = DateTime.Today;
 
     protected override string ScreenCode => ScreenCodes.SalesBookings;
@@ -123,13 +130,14 @@ else
     private async Task<TableData<Booking>> LoadServerData(TableState state, CancellationToken ct)
     {
         var result = await BookingApi.ListAsync(Actor!, new BookingFilter
-        { BranchId = _branchId, Status = _status, Date = _date }, new PageRequest
-        { Page = state.Page + 1, PageSize = 25 }, ct);
+        { BranchId = _branchId, Status = _status, Source = _source, Date = _date },
+        new PageRequest { Page = state.Page + 1, PageSize = 25 }, ct);
         return new TableData<Booking> { Items = result.Items, TotalItems = result.Total };
     }
 
     private Task OnBranchChanged(Guid? value) { _branchId = value; return _table.ReloadServerData(); }
     private Task OnStatusChanged(string? value) { _status = value; return _table.ReloadServerData(); }
+    private Task OnSourceChanged(string? value) { _source = value; return _table.ReloadServerData(); }
     private Task OnDateChanged(DateTime? value) { _date = value; return _table.ReloadServerData(); }
 
     private static Color StatusColor(string status) => status switch

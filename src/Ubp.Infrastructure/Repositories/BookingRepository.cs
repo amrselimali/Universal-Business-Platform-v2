@@ -116,11 +116,12 @@ public sealed partial class BookingRepository : IBookingRepository
         if (!string.IsNullOrWhiteSpace(filter.Status)) where.Add("b.status = @status");
         if (filter.CustomerId.HasValue) where.Add("b.customer_id = @customerId");
         if (filter.Date.HasValue) where.Add("b.booking_date = @date");
+        if (!string.IsNullOrWhiteSpace(filter.Source)) where.Add("b.source = @source");
         if (!string.IsNullOrWhiteSpace(filter.Search))
             where.Add("(b.doc_no ILIKE '%' || @search || '%' OR c.name_ar ILIKE '%' || @search || '%')");
         var whereSql = where.Count == 0 ? "WHERE true" : "WHERE " + string.Join(" AND ", where);
         var args = new { branchId = filter.BranchId, status = filter.Status,
-            customerId = filter.CustomerId, search = filter.Search,
+            customerId = filter.CustomerId, search = filter.Search, source = filter.Source,
             date = filter.Date?.Date, take = request.SafePageSize, offset = request.Offset };
 
         var items = await connection.QueryAsync<BookingRow>(new CommandDefinition(
