@@ -145,7 +145,7 @@ public sealed partial class TestDb
     public AccountingReportService AccountingReports() => new(AccountingReportRepo, Permissions());
 
     public MasterDataService MasterData() => new(EmployeeRepo, TaxRepo, PaymentTermRepo,
-        PriceListRepo, Permissions(), new AuditService(AuditRepo));
+        PriceListRepo, RoleRepo, Permissions(), new AuditService(AuditRepo));
 
     public RecipeService RecipeService() => new(RecipeRepo, ItemRepo, BranchSettingsRepo,
         WarehouseRepo, Permissions(), new AuditService(AuditRepo));

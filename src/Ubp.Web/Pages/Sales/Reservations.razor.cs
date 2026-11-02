@@ -14,6 +14,7 @@ public partial class Reservations
     private ReservationRow? _selected;
     private bool _onlyRemaining = true;
     private bool _busy;
+    private string? _customerSearch;
     private DateTime? _extendTo = DateTime.Today.AddDays(30);
 
     protected override string ScreenCode => ScreenCodes.Reservations;
@@ -26,7 +27,7 @@ public partial class Reservations
         {
             Page = state.Page + 1,
             PageSize = state.PageSize <= 25 ? 25 : 50
-        }, null, _onlyRemaining, ct);
+        }, null, _onlyRemaining, _customerSearch, ct);
         return new TableData<ReservationRow> { Items = page.Items, TotalItems = page.Total };
     }
 

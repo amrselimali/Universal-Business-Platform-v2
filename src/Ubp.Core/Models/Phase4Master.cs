@@ -37,6 +37,9 @@ public sealed class Employee
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public Guid? UserId { get; set; }
+    public Guid? RoleId { get; set; }
+    public string? RoleName { get; set; }
+    public string? JobTitle { get; set; }
     public bool IsBookingReceiver { get; set; }
     public bool IsSeller { get; set; }
     public bool IsServiceExecutor { get; set; }
@@ -58,6 +61,8 @@ public sealed class EmployeeInput
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public Guid? UserId { get; set; }
+    public Guid? RoleId { get; set; }
+    public string? JobTitle { get; set; }
     public bool IsBookingReceiver { get; set; }
     public bool IsSeller { get; set; }
     public bool IsServiceExecutor { get; set; }

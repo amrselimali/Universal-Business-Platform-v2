@@ -7,7 +7,7 @@ public sealed partial class SalesFinanceRepository
 {
     /// <summary>أعمار بالفاتورة: كل فاتورة مفتوحة بعمرها وسلتها حسب تاريخ الاستحقاق.</summary>
     public async Task<IReadOnlyList<AgingInvoiceRow>> CustomerInvoiceAgingAsync(Guid? branchId,
-        DateTime asOf, CancellationToken ct = default)
+        DateTime asOf, string? search = null, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         return (await connection.QueryAsync<AgingInvoiceRow>(new CommandDefinition("""
@@ -25,14 +25,16 @@ public sealed partial class SalesFinanceRepository
             WHERE d.doc_type = 'sales_invoice' AND d.status = 'posted'
               AND d.total > d.allocated_total
               AND (@branchId::uuid IS NULL OR d.branch_id = @branchId::uuid)
+              AND (@search IS NULL OR @search = ''
+                   OR c.search_text LIKE '%' || normalize_search(@search) || '%')
             ORDER BY AgeDays DESC, d.doc_date
             LIMIT 500
-            """, new { branchId, asOf }, cancellationToken: ct))).ToList();
+            """, new { branchId, asOf, search }, cancellationToken: ct))).ToList();
     }
 
     /// <summary>أعمار بالكمية: الكميات المحجوزة غير المنفذة لكل بند حجز وعمرها.</summary>
     public async Task<IReadOnlyList<AgingQuantityRow>> BookingQuantityAgingAsync(Guid? branchId,
-        DateTime asOf, CancellationToken ct = default)
+        DateTime asOf, string? search = null, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         return (await connection.QueryAsync<AgingQuantityRow>(new CommandDefinition("""
@@ -52,8 +54,10 @@ public sealed partial class SalesFinanceRepository
             WHERE b.status IN ('confirmed', 'partially_delivered')
               AND (l.quantity - l.delivered_qty - l.cancelled_qty) > 0
               AND (@branchId::uuid IS NULL OR b.branch_id = @branchId::uuid)
+              AND (@search IS NULL OR @search = ''
+                   OR c.search_text LIKE '%' || normalize_search(@search) || '%')
             ORDER BY AgeDays DESC, b.doc_no, l.line_no
             LIMIT 500
-            """, new { branchId, asOf }, cancellationToken: ct))).ToList();
+            """, new { branchId, asOf, search }, cancellationToken: ct))).ToList();
     }
 }

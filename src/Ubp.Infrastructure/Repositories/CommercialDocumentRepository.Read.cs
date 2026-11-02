@@ -81,7 +81,7 @@ public sealed partial class CommercialDocumentRepository
 
     /// <summary>أعمار الموردين على مستوى الشركة: رصيد كل فاتورة غير مسددة موزّعاً على الفترات.</summary>
     public async Task<IReadOnlyList<SupplierAgingRow>> SupplierAgingAsync(Guid? branchId, DateTime asOf,
-        CancellationToken ct = default)
+        string? search = null, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         var rows = await connection.QueryAsync<SupplierAgingRow>(new CommandDefinition("""
@@ -100,10 +100,12 @@ public sealed partial class CommercialDocumentRepository
             LEFT JOIN suppliers s ON s.id = d.supplier_id
             WHERE d.doc_type = 'purchase_invoice' AND d.status = 'posted'
               AND (@branchId::uuid IS NULL OR d.branch_id = @branchId::uuid)
+              AND (@search IS NULL OR @search = ''
+                   OR s.search_text LIKE '%' || normalize_search(@search) || '%')
             GROUP BY d.supplier_id, s.name_ar
             HAVING sum(d.total - d.allocated_total) <> 0
             ORDER BY s.name_ar
-            """, new { branchId, asOf }, cancellationToken: ct));
+            """, new { branchId, asOf, search }, cancellationToken: ct));
         return rows.ToList();
     }
 }

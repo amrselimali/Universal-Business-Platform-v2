@@ -22,6 +22,8 @@ public sealed class EmployeeRepository : IEmployeeRepository
     private const string Columns = """
         e.id AS Id, e.code AS Code, e.name_ar AS NameAr, e.name_en AS NameEn,
         e.phone AS Phone, e.email AS Email, e.user_id AS UserId,
+        e.role_id AS RoleId, (SELECT r.name_ar FROM roles r WHERE r.id = e.role_id) AS RoleName,
+        e.job_title AS JobTitle,
         e.is_booking_receiver AS IsBookingReceiver, e.is_seller AS IsSeller,
         e.is_service_executor AS IsServiceExecutor, e.hire_date AS HireDate,
         e.notes AS Notes, e.is_active AS IsActive, e.version AS Version
@@ -85,13 +87,15 @@ public sealed class EmployeeRepository : IEmployeeRepository
         await using var connection = await _factory.OpenAsync(ct);
         return await connection.ExecuteScalarAsync<Guid>(new CommandDefinition("""
             INSERT INTO employees (id, code, name_ar, name_en, phone, email, user_id,
-                is_booking_receiver, is_seller, is_service_executor, hire_date, notes, is_active, created_by)
-            VALUES (@id, @Code, @NameAr, @NameEn, @Phone, @Email, @UserId, @IsBookingReceiver,
-                    @IsSeller, @IsServiceExecutor, @HireDate, @Notes, @IsActive, @userId)
+                role_id, job_title, is_booking_receiver, is_seller, is_service_executor, hire_date,
+                notes, is_active, created_by)
+            VALUES (@id, @Code, @NameAr, @NameEn, @Phone, @Email, @UserId, @RoleId, @JobTitle,
+                    @IsBookingReceiver, @IsSeller, @IsServiceExecutor, @HireDate, @Notes, @IsActive,
+                    @userId)
             RETURNING id
-            """, new { id, i.Code, i.NameAr, i.NameEn, i.Phone, i.Email, i.UserId, i.IsBookingReceiver,
-                i.IsSeller, i.IsServiceExecutor, i.HireDate, i.Notes, i.IsActive, userId },
-            cancellationToken: ct));
+            """, new { id, i.Code, i.NameAr, i.NameEn, i.Phone, i.Email, i.UserId, i.RoleId,
+                i.JobTitle, i.IsBookingReceiver, i.IsSeller, i.IsServiceExecutor, i.HireDate,
+                i.Notes, i.IsActive, userId }, cancellationToken: ct));
     }
 
     public async Task<Employee?> UpdateAsync(Guid id, int version, EmployeeInput i, Guid userId,
@@ -100,13 +104,14 @@ public sealed class EmployeeRepository : IEmployeeRepository
         await using var connection = await _factory.OpenAsync(ct);
         var updated = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition("""
             UPDATE employees SET code = @Code, name_ar = @NameAr, name_en = @NameEn, phone = @Phone,
-                email = @Email, user_id = @UserId, is_booking_receiver = @IsBookingReceiver,
-                is_seller = @IsSeller, is_service_executor = @IsServiceExecutor,
-                hire_date = @HireDate, notes = @Notes, is_active = @IsActive, updated_by = @userId
+                email = @Email, user_id = @UserId, role_id = @RoleId, job_title = @JobTitle,
+                is_booking_receiver = @IsBookingReceiver, is_seller = @IsSeller,
+                is_service_executor = @IsServiceExecutor, hire_date = @HireDate, notes = @Notes,
+                is_active = @IsActive, updated_by = @userId
             WHERE id = @id AND version = @version RETURNING id
             """, new { id, version, i.Code, i.NameAr, i.NameEn, i.Phone, i.Email, i.UserId,
-                i.IsBookingReceiver, i.IsSeller, i.IsServiceExecutor, i.HireDate, i.Notes,
-                i.IsActive, userId }, cancellationToken: ct));
+                i.RoleId, i.JobTitle, i.IsBookingReceiver, i.IsSeller, i.IsServiceExecutor,
+                i.HireDate, i.Notes, i.IsActive, userId }, cancellationToken: ct));
         return updated is null ? null : await GetAsync(id, ct);
     }
 

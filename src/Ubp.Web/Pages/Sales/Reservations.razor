@@ -19,6 +19,12 @@ else
 
     <MudPaper Elevation="0" Class="ubp-card">
         <div class="d-flex flex-wrap align-center gap-2 mb-3">
+            <MudTextField @bind-Value="_customerSearch" Label="@T.T("reservations.customer_search")"
+                          Placeholder="@T.T("reservations.customer_search_hint")"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
+                          DebounceInterval="350" OnDebounceIntervalElapsed="RefreshAsync"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Class="ubp-search" />
             <MudSwitch T="bool" Value="_onlyRemaining" ValueChanged="OnRemainingChanged"
                        Label="@T.T("reservations.only_remaining")" Color="Color.Primary" />
             <MudDatePicker @bind-Date="_extendTo" Label="@T.T("reservations.extend_to")"

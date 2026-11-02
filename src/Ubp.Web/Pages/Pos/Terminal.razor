@@ -69,13 +69,19 @@ else
 
         <MudItem xs="12" md="5">
             <MudPaper Elevation="0" Class="ubp-card">
+                <MudTextField @bind-Value="_customerSearch" Label="@T.T("sales.customer_search")"
+                              Placeholder="@T.T("sales.customer_search_hint")"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
+                              DebounceInterval="350" OnDebounceIntervalElapsed="SearchCustomersAsync"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-2" />
                 <MudSelect T="Guid" Value="_customerId" Label="@T.T("sales.customer")"
                            Variant="Variant.Outlined" ValueChanged="OnCustomerChanged"
                            Class="mb-2">
                     @foreach (var customer in _customers)
                     {
                         <MudSelectItem T="Guid" Value="@customer.Id">
-                            @customer.NameAr @(string.IsNullOrWhiteSpace(customer.Phone) ? "" : $" — {customer.Phone}")
+                            @customer.Code — @customer.NameAr @(string.IsNullOrWhiteSpace(customer.Phone) ? "" : $" — {customer.Phone}")
                         </MudSelectItem>
                     }
                 </MudSelect>

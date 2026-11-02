@@ -123,37 +123,37 @@ public sealed class SalesFinanceService
 
     /// <summary>الأعمار الأربعة: عملاء، دفعات مقدمة، حجوزات، وموردون (المورد من 4B).</summary>
     public async Task<IReadOnlyList<AgingBucketRow>> AgingAsync(ActorContext actor, string kind,
-        Guid? branchId, DateTime asOf, CancellationToken ct = default)
+        Guid? branchId, DateTime asOf, string? search = null, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.AgingReport, ActionCodes.View, ct: ct);
         return kind switch
         {
-            "advances" => await _finance.AdvancesAgingAsync(branchId, asOf, ct),
-            "bookings" => await _finance.BookingAgingAsync(branchId, asOf, ct),
-            "suppliers" => (await _documents.SupplierAgingAsync(branchId, asOf, ct))
+            "advances" => await _finance.AdvancesAgingAsync(branchId, asOf, search, ct),
+            "bookings" => await _finance.BookingAgingAsync(branchId, asOf, search, ct),
+            "suppliers" => (await _documents.SupplierAgingAsync(branchId, asOf, search, ct))
                 .Select(r => new AgingBucketRow
                 {
                     PartyId = r.SupplierId, PartyName = r.SupplierName, Current = r.Current,
                     Days30 = r.Days30, Days60 = r.Days60, Days90 = r.Days90, Over90 = r.Over90
                 }).ToList(),
-            _ => await _finance.CustomerAgingAsync(branchId, asOf, ct)
+            _ => await _finance.CustomerAgingAsync(branchId, asOf, search, ct)
         };
     }
 
     /// <summary>أعمار بالفاتورة: تفصيل كل فاتورة مفتوحة بعمرها.</summary>
     public async Task<IReadOnlyList<AgingInvoiceRow>> AgingInvoicesAsync(ActorContext actor,
-        Guid? branchId, DateTime asOf, CancellationToken ct = default)
+        Guid? branchId, DateTime asOf, string? search = null, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.AgingReport, ActionCodes.View, ct: ct);
-        return await _finance.CustomerInvoiceAgingAsync(branchId, asOf, ct);
+        return await _finance.CustomerInvoiceAgingAsync(branchId, asOf, search, ct);
     }
 
     /// <summary>أعمار بالكمية: كميات الحجوزات غير المنفذة وعمرها.</summary>
     public async Task<IReadOnlyList<AgingQuantityRow>> AgingQuantitiesAsync(ActorContext actor,
-        Guid? branchId, DateTime asOf, CancellationToken ct = default)
+        Guid? branchId, DateTime asOf, string? search = null, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.AgingReport, ActionCodes.View, ct: ct);
-        return await _finance.BookingQuantityAgingAsync(branchId, asOf, ct);
+        return await _finance.BookingQuantityAgingAsync(branchId, asOf, search, ct);
     }
 
     public async Task<IReadOnlyList<UnpostedDocument>> ListUnpostedAsync(ActorContext actor,

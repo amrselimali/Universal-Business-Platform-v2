@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-02 — Customer filters + employee admin role/job title
+
+### Added
+- `/sales/reservations` and `/reports/aging` now have an empty-by-default party search
+  (name, phone or code), applied server-side for customers, advances, bookings, quantities,
+  invoices and suppliers.
+- POS customer selector now has the same search field; results come from the normalized
+  customer search text (code/name/phone/email).
+- Employees can be linked to an existing administrative role (`employees.role_id`) and carry a
+  job title (`employees.job_title`); the employee dialog/table expose both.
+- Migration `0056_employee_role_and_job_title.sql`.
+
+### Tests
+- Added customer-filter tests for reservations and aging, and an employee role/job-title test.
+- Build 0 errors; full suite **268/268 passed**.
+
 ## 2026-11-02 — Booking expiry on POS + expired-bookings settlement screen
 
 ### Added

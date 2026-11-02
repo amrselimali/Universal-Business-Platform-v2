@@ -14,7 +14,7 @@ public sealed partial class PurchaseInvoiceService
                       || await _permissions.HasAsync(actor, ScreenCodes.PurchaseAging,
                             ActionCodes.View, ct);
         if (!allowed) throw new ForbiddenException();
-        return await _documents.SupplierAgingAsync(branchId, asOf, ct);
+        return await _documents.SupplierAgingAsync(branchId, asOf, null, ct);
     }
 
     /// <summary>تحقق الحقول قبل الحفظ (المسودة تُقبل بلا توازن، والترحيل يفحص الفترة والحسابات).</summary>

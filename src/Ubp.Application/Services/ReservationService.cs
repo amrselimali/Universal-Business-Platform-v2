@@ -28,14 +28,16 @@ public sealed partial class ReservationService
     }
 
     public async Task<PagedResult<ReservationRow>> ListAsync(ActorContext actor, PageRequest request,
-        Guid? customerId = null, bool onlyRemaining = false, CancellationToken ct = default)
+        Guid? customerId = null, bool onlyRemaining = false, string? customerSearch = null,
+        CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.Reservations, ActionCodes.View, ct: ct);
         // المدير العام يرى الكل، وغيره يرى فروعه فقط (القص في الخدمة لا في الواجهة).
         var branchIds = actor.IsSuperAdmin
             ? Array.Empty<Guid>()
             : actor.AllowedBranchIds.Distinct().ToArray();
-        return await _reservations.ListAsync(request, branchIds, customerId, onlyRemaining, ct);
+        return await _reservations.ListAsync(request, branchIds, customerId, onlyRemaining,
+            customerSearch, ct);
     }
 
     /// <summary>يحوّل المتبقي غير المستخدم إلى دفعة مقدمة (سند قبض) مرة واحدة فقط لكل حجز.</summary>
