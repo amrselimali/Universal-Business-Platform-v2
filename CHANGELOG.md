@@ -7,8 +7,9 @@
   reservations view, expired-bookings screen/report and the whole "extend" action/permission.
   `booking_date` (plus the session time) is the single date used for reports and execution.
 - Expired bookings now use the session date (`starts_at`, else `booking_date`) instead of expiry.
-- Manual bookings with a session time require an active **service-executor** employee whose
-  appointment in the appointments screen fully covers the booking window.
+- **Draft** bookings need no schedule: the employee is optional and only must be active.
+- **Confirming** a booking with a session time requires an active **service-executor** employee
+  whose appointment in the appointments screen fully covers the booking window.
 - POS quick sales (no session time) stay exempt from the employee/schedule rule.
 - Migrations: `0064` drops `expires_at` + its index, rebuilds `v_customer_reservations` without it,
   and purges `EXTEND` adjustments.

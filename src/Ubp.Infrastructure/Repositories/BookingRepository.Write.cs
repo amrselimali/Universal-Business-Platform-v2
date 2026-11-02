@@ -20,7 +20,7 @@ public sealed partial class BookingRepository
         var lines = await BuildLinesAsync(input, ct);
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
-        await EnsureScheduledEmployeeAsync(connection, tx, input, ct);
+        await EnsureDraftEmployeeAsync(connection, tx, input.AssignedEmployeeId, ct);
 
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO bookings (id, branch_id, booking_date, status, customer_id, source, due_date,
@@ -57,7 +57,7 @@ public sealed partial class BookingRepository
         var lines = await BuildLinesAsync(input, ct);
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
-        await EnsureScheduledEmployeeAsync(connection, tx, input, ct);
+        await EnsureDraftEmployeeAsync(connection, tx, input.AssignedEmployeeId, ct);
 
         var updated = await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE bookings SET booking_date = @BookingDate, customer_id = @CustomerId,
@@ -96,6 +96,9 @@ public sealed partial class BookingRepository
         if (head.Id == Guid.Empty) throw new NotFoundAppException();
         if (head.Status != BookingStatuses.Draft)
             throw new ValidationAppException("validation.booking_not_draft");
+
+        // التأكيد يتطلب موظفاً منفذاً له موعد يغطي فترة الحجز.
+        await EnsureScheduledEmployeeAsync(connection, tx, id, ct);
 
         var lines = (await connection.QueryAsync<(Guid Id, Guid ItemId, Guid WarehouseId,
             decimal Quantity, string? ItemCode)>(new CommandDefinition("""

@@ -29,7 +29,7 @@
                                Variant="Variant.Outlined" />
                 <MudSelect T="Guid?" @bind-Value="_input.AssignedEmployeeId"
                            Label="@T.T("sales.assigned_employee")" Variant="Variant.Outlined"
-                           Required="true" Clearable="false">
+                           Clearable="true">
                     @foreach (var employee in _employees)
                     {
                         <MudSelectItem T="Guid?" Value="@((Guid?)employee.Id)">
@@ -158,7 +158,6 @@
         var warehouseId = _warehouses.FirstOrDefault()?.Id ?? Guid.Empty;
         if (!_form.IsValid || _input.CustomerId == Guid.Empty || _lines.Count == 0 ||
             warehouseId == Guid.Empty || _lines.Any(l => l.ItemId == Guid.Empty) ||
-            _input.AssignedEmployeeId is null || _input.AssignedEmployeeId == Guid.Empty ||
             _date is null || _startTime is null || _endTime is null)
         {
             Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
