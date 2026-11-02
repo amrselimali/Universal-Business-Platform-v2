@@ -80,6 +80,10 @@ else
                     }
                 </MudSelect>
 
+                <MudDatePicker @bind-Date="_expiryDate" Label="@T.T("sales.booking_expiry")"
+                               Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" Editable="true"
+                               Class="mb-2" />
+
                 <MudTable Items="_cart" Dense="true" Elevation="0" Class="ubp-table">
                     <HeaderContent>
                         <MudTh>@T.T("sales.item")</MudTh>
@@ -185,6 +189,10 @@ else
                     <div><b>@T.T("pos.receipt")</b></div>
                     <div>@_receipt.BookingNo · @DateTime.Now.ToString("yyyy-MM-dd HH:mm")</div>
                     <div>@_customerName</div>
+                    @if (_receipt.ExpiresAt is not null)
+                    {
+                        <div>@T.T("sales.booking_expiry"): @_receipt.ExpiresAt.Value.ToLocalTime().ToString("yyyy-MM-dd")</div>
+                    }
                 </div>
                 <table>
                     <tbody>

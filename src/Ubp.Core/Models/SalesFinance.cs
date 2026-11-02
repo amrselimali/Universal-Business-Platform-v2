@@ -44,6 +44,30 @@ public sealed class Settlement
     public bool IsApproved => ApprovedAt is not null;
 }
 
+/// <summary>صف شاشة الحجوزات المنتهية: المتبقي والقيمة وآخر تسوية.</summary>
+public sealed class ExpiredBookingRow
+{
+    public Guid BookingId { get; set; }
+    public Guid BranchId { get; set; }
+    public string? BookingNo { get; set; }
+    public Guid CustomerId { get; set; }
+    public string CustomerName { get; set; } = "";
+    public DateTime BookingDate { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
+    public int LateDays { get; set; }
+    public string Status { get; set; } = "";
+    public string Source { get; set; } = "";
+    public decimal TotalAmount { get; set; }
+    public decimal DepositAmount { get; set; }
+    public decimal RemainingQty { get; set; }
+    public decimal RemainingValue { get; set; }
+    public Guid? SettlementId { get; set; }
+    public string? SettlementStatus { get; set; }
+    public bool SettlementApproved { get; set; }
+    public string? SettlementType { get; set; }
+    public decimal? SettlementAmount { get; set; }
+}
+
 public sealed class SettlementInput
 {
     public Guid BranchId { get; set; }

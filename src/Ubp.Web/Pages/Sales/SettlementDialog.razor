@@ -76,6 +76,9 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public IReadOnlyList<Branch> Branches { get; set; } = Array.Empty<Branch>();
     [Parameter] public Guid? DefaultBranchId { get; set; }
+    [Parameter] public Guid? DefaultBookingId { get; set; }
+    [Parameter] public decimal? DefaultAmount { get; set; }
+    [Parameter] public string? DefaultSettlementType { get; set; }
 
     [Inject] private SalesFinanceService Finance { get; set; } = default!;
     [Inject] private BookingService Bookings { get; set; } = default!;
@@ -105,11 +108,27 @@
         var actor = await UserContext.RequireAsync();
         var page = await Bookings.ListAsync(actor, new BookingFilter { BranchId = _branchId },
             new PageRequest { Page = 1, PageSize = 25 });
-        _bookings = page.Items
+        var active = page.Items
             .Where(b => b.Status is BookingStatuses.Confirmed or BookingStatuses.PartiallyDelivered
                         or BookingStatuses.Draft)
             .ToList();
-        _input.BookingId = _bookings.FirstOrDefault()?.Id ?? Guid.Empty;
+
+        if (DefaultBookingId is { } defaultBookingId &&
+            active.All(b => b.Id != defaultBookingId))
+        {
+            var selected = await Bookings.GetAsync(actor, defaultBookingId);
+            if (selected is not null &&
+                selected.Status is BookingStatuses.Confirmed or BookingStatuses.PartiallyDelivered
+                    or BookingStatuses.Draft)
+                active.Insert(0, selected);
+        }
+
+        _bookings = active;
+        _input.BookingId = DefaultBookingId ?? _bookings.FirstOrDefault()?.Id ?? Guid.Empty;
+        if (!string.IsNullOrWhiteSpace(DefaultSettlementType))
+            _input.SettlementType = DefaultSettlementType;
+        if (DefaultAmount is { } amount)
+            _input.Amount = amount;
         _treasuries = await Treasury.ListTreasuriesAsync(actor, _branchId);
         _input.TreasuryId = _treasuries.FirstOrDefault()?.Id;
     }
