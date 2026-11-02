@@ -210,7 +210,7 @@ public sealed class SalesFinanceTests : IClassFixture<TestDb>
                 new { m = month });
             await _db.SalesFinance().CalculateCommissionsAsync(actor,
                 new CommissionInput { Month = month, Rate = 10m, Basis = basis });
-            var rows = await _db.SalesFinance().ListCommissionsAsync(actor, month, f.Employee.Id);
+            var rows = await _db.SalesFinance().ListCommissionsAsync(actor, month, null);
             return rows.Sum(r => r.Amount);
         }
 

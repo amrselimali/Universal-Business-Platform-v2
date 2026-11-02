@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-02 — Split booking/execution commissions + employee visibility
+
+### Changed
+- `employee_commissions` now distinguishes `booking` (the user who created the booking) from
+  `execution` (the user who executed the session), via `commission_kind` + `user_id`.
+- The commissions screen has separate percentages for the booking registrar and session executor;
+  the monthly report shows the commission type.
+- Commission calculation uses `bookings.created_by` and the latest
+  `booking_executions.created_by` for the booking line; it no longer requires an assigned employee.
+- Employee options used by booking/appointment screens are readable with booking, appointment,
+  reservation or POS view permission (not only Employees/View).
+
+### Tests
+- Added a test proving separate booking and execution commission rows; migration `0060` adds
+  `commission_kind`/`user_id` and the per-line/kind uniqueness index.
+
 ## 2026-11-02 — Execute booking from reservations + asset meter usage
 
 ### Changed
