@@ -90,6 +90,16 @@ public partial class AssetManagement
         Snackbar.Add(T.T("assets.reading_saved"), Severity.Success);
     }
 
+    private async Task ResetMeterAsync(FixedAsset asset)
+    {
+        await RunAsync(async () =>
+        {
+            await AssetsApi.ResetMeterAsync(Actor!, asset.Id, "تصفير يدوي من شاشة الأصول");
+            await ReloadAsync();
+            Snackbar.Add(T.T("assets.meter_reset_done"), Severity.Success);
+        });
+    }
+
     private async Task DisposeAsync(FixedAsset asset)
     {
         var dialog = await DialogService.ShowAsync<DisposeDialog>(T.T("assets.dispose"));

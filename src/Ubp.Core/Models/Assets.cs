@@ -26,6 +26,7 @@ public static class MeterSources
     public const string Manual = "MANUAL";
     public const string Sales = "SALES";
     public const string MaintenanceReset = "MAINTENANCE_RESET";
+    public const string Execution = "EXECUTION";
 }
 
 public static class MaintenanceKinds

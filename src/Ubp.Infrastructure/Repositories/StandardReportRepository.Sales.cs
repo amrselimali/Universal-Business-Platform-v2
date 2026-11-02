@@ -14,9 +14,9 @@ public sealed partial class StandardReportRepository
             SELECT i.code AS ItemCode, i.name_ar AS ItemName,
                    SUM(l.net_amount) AS Revenue,
                    SUM(l.quantity * COALESCE((
-                       SELECT SUM(dnl.cost_total) / NULLIF(SUM(dnl.quantity), 0)
-                       FROM delivery_note_lines dnl
-                       WHERE dnl.booking_line_id = l.booking_line_id), 0)) AS Cogs,
+                       SELECT SUM(cost_total) / NULLIF(SUM(quantity), 0)
+                       FROM booking_execution_lines
+                       WHERE booking_line_id = l.booking_line_id), 0)) AS Cogs,
                    SUM(l.quantity) AS Quantity
             FROM commercial_document_lines l
             JOIN commercial_documents d ON d.id = l.document_id

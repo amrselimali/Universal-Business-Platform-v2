@@ -87,17 +87,8 @@ public sealed class SalesFinanceTests : IClassFixture<TestDb>
         decimal allocate)
     {
         var actor = await _db.AdminActorAsync();
-        var settings = await _db.Settings().GetAsync();
-        settings.AutoInvoiceOnDelivery = false;
-        await _db.Settings().UpdateAsync(actor, settings);
-
-        var note = await _db.Fulfillment().CreateDeliveryAsync(actor, new DeliveryInput
-        {
-            BookingId = f.Booking.Id, BranchId = f.Branch, DocDate = DateTime.Today,
-            WarehouseId = f.Warehouse,
-            Lines = { new DeliveryLineInput { BookingLineId = f.BookingLineId, Quantity = 2 } }
-        });
-        await _db.Fulfillment().PostDeliveryAsync(actor, note.Id);
+        await _db.Executions().ExecuteAsync(actor, new BookingExecutionInput
+        { BookingLineId = f.BookingLineId, Quantity = 2 });
 
         var draft = await _db.SalesInvoices().CreateAsync(actor, new CommercialDocumentInput
         {

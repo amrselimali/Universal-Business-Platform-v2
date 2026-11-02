@@ -12,7 +12,6 @@ public interface IReservationRepository
         CancellationToken ct = default);
     Task<IReadOnlyList<ReservationRow>> RemainingLinesAsync(Guid bookingId,
         CancellationToken ct = default);
-    Task<bool> AdvanceExistsAsync(Guid bookingId, CancellationToken ct = default);
     Task<Guid?> InsertAdjustmentAsync(Guid bookingId, Guid? bookingLineId, string kind,
         decimal quantity, decimal amount, Guid? voucherId, Guid? journalEntryId, string? note,
         Guid userId, CancellationToken ct = default);
@@ -89,15 +88,6 @@ public sealed class ReservationRepository : IReservationRepository
             "WHERE booking_id = @bookingId AND remaining_qty > 0 ORDER BY booking_line_id",
             new { bookingId }, cancellationToken: ct));
         return rows.ToList();
-    }
-
-    public async Task<bool> AdvanceExistsAsync(Guid bookingId, CancellationToken ct = default)
-    {
-        await using var connection = await _factory.OpenAsync(ct);
-        return await connection.ExecuteScalarAsync<bool>(new CommandDefinition("""
-            SELECT EXISTS (SELECT 1 FROM reservation_adjustments
-                           WHERE booking_id = @bookingId AND kind = 'TO_ADVANCE')
-            """, new { bookingId }, cancellationToken: ct));
     }
 
     public async Task<Guid?> InsertAdjustmentAsync(Guid bookingId, Guid? bookingLineId, string kind,

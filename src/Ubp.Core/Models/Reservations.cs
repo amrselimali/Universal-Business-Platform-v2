@@ -31,7 +31,3 @@ public sealed class ReservationRow
     public decimal UnitPrice { get; set; }
     public decimal RemainingValue { get; set; }
 }
-
-/// <summary>ناتج تحويل المتبقي إلى دفعة مقدمة: سند قبض مرحَّل + المبلغ المحوَّل.</summary>
-public sealed record ReservationConversion(Guid VoucherId, decimal Amount, decimal Quantity,
-    int LinesConverted);

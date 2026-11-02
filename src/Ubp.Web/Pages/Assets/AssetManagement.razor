@@ -80,6 +80,8 @@ else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
                                    OnClick="@(() => AddReadingAsync(context))">@T.T("assets.add_reading")</MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning"
+                                   OnClick="@(() => ResetMeterAsync(context))">@T.T("assets.reset_meter")</MudButton>
                     }
                     @if (!context.IsShared && context.Status != AssetStatuses.Disposed && Can(ActionCodes.Edit))
                     {

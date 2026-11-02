@@ -49,7 +49,7 @@ public sealed partial class TestDb
     public TreasuryRepository TreasuryRepo => new(Factory);
     public BookingRepository BookingRepo => new(Factory);
     public AppointmentRepository AppointmentRepo => new(Factory);
-    public DeliveryRepository DeliveryRepo => new(Factory);
+    public BookingExecutionRepository ExecutionRepo => new(Factory);
     public SalesInvoiceRepository SalesRepo => new(Factory);
     public SalesFinanceRepository SalesFinanceRepo => new(Factory);
     public PosRepository PosRepo => new(Factory);
@@ -62,7 +62,10 @@ public sealed partial class TestDb
         BookingRepo, Settings(), Permissions(), new AuditService(AuditRepo));
 
     public SalesFulfillmentService Fulfillment() => new(
-        DeliveryRepo, AppointmentRepo, Settings(), Permissions(), new AuditService(AuditRepo));
+        AppointmentRepo, Permissions(), new AuditService(AuditRepo));
+
+    public BookingExecutionService Executions() => new(
+        ExecutionRepo, Settings(), Permissions(), new AuditService(AuditRepo));
 
     public SalesInvoiceService SalesInvoices() => new(
         SalesRepo, CommercialRepo, Permissions(), new AuditService(AuditRepo));
@@ -89,8 +92,7 @@ public sealed partial class TestDb
         new(new ImportJobRepository(Factory), OpeningBalanceService(), Permissions());
 
     public ReservationService Reservations() =>
-        new(new ReservationRepository(Factory), TreasuryRepo, PartnerRepo, TreasuryService(),
-            BookingService(), Permissions());
+        new(new ReservationRepository(Factory), BookingService(), Permissions());
 
     public BranchAccountDefaultsService BranchDefaults() =>
         new(new BranchAccountDefaultsRepository(Factory), AccountRepo, Permissions());

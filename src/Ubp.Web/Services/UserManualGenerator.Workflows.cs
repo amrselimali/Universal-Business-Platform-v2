@@ -23,8 +23,8 @@ public sealed partial class UserManualGenerator
         [
             new("إنشاء حجز", "/sales/bookings", ActionCodes.Create),
             new("تأكيد الحجز", "/sales/bookings", ActionCodes.Confirm),
-            new("إنشاء إذن تنفيذ", "/sales/deliveries", ActionCodes.Execute),
-            new("ترحيل إذن التنفيذ", "/sales/deliveries", ActionCodes.Post),
+            new("تنفيذ الحجز", "/sales/reservations", ActionCodes.Execute),
+            new("متابعة الحجوزات المنتهية", "/sales/expired-bookings", ActionCodes.View),
             new("إنشاء فاتورة مبيعات", "/sales/invoices", ActionCodes.Create),
             new("ترحيل الفاتورة", "/sales/invoices", ActionCodes.Post),
             new("تسوية الحجز", "/sales/settlements", ActionCodes.Create),
@@ -170,7 +170,6 @@ public sealed partial class UserManualGenerator
             [ActionCodes.EditRows] = ("تعديل الصفوف", "تعديل/حذف صف قاعدة بيانات مباشرة.", "Super Admin؛ أعمدة محمية؛ audit إلزامي.", "UPDATE/DELETE"),
             [ActionCodes.ResetPassword] = ("إعادة تعيين كلمة المرور", "يضبط كلمة مرور جديدة.", "سياسة كلمة المرور؛ يلغي كل الجلسات.", "PASSWORD_RESET"),
             [ActionCodes.Unlock] = ("فك القفل", "يصفّر المحاولات الفاشلة.", "لا يغيّر كلمة المرور.", "UPDATE"),
-            [ActionCodes.ConvertToAdvance] = ("إلى دفعة مقدمة", "ينشئ سند قبض مرحّلًا للمتبقي.", "مرة واحدة لكل حجز؛ يتطلب خزينة/طريقة دفع.", "vouchers + قيود"),
             [ActionCodes.ReleaseReservation] = ("تحرير الحجز", "يلغي الحجز ويحرر الكميات.", "سبب مطلوب؛ لا يمس القيود المرحّلة.", "bookings:UPDATE"),
             [ActionCodes.ExtendReservation] = ("تمديد الحجز", "يمد صلاحية الحجز.", "تاريخ جديد > الحالي؛ لا يمس الكميات.", "reservation_adjustments"),
             [ActionCodes.RunDepreciation] = ("تشغيل الإهلاك", "يحسب إهلاك الشهر/السنة.", "الأصل نشط وغير مستبعد؛ يمنع التكرار لنفس الفترة.", "INSERT + قيود"),

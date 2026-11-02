@@ -15,9 +15,9 @@ public sealed partial class SalesInvoiceRepository
         const string sql = """
             WITH costs AS (
                 SELECT COALESCE(SUM(l.quantity * COALESCE(
-                    (SELECT SUM(dnl.cost_total) / NULLIF(SUM(dnl.quantity), 0)
-                     FROM delivery_note_lines dnl
-                     WHERE dnl.booking_line_id = l.booking_line_id), 0)), 0)::numeric(18,4) AS cogs
+                    (SELECT SUM(cost_total) / NULLIF(SUM(quantity), 0)
+                     FROM booking_execution_lines
+                     WHERE booking_line_id = l.booking_line_id), 0)), 0)::numeric(18,4) AS cogs
                 FROM commercial_document_lines l
                 WHERE l.document_id = @id
             )
