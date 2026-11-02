@@ -33,6 +33,9 @@
 - Appointment customer is now mandatory; appointment dates are matched in the configured company
   time zone (not the database UTC date), and migration `0059` backfills the customer on legacy
   appointments linked to a booking.
+- Execution employee resolution no longer requires the same service, booking link, or date: any
+  non-cancelled appointment for the same customer and branch is considered (linked/today first),
+  then the booking's assigned employee.
 
 ## 2026-11-02 — Customer filters + employee admin role/job title
 
