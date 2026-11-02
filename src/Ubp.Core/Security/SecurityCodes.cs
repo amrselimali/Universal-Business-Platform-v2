@@ -67,7 +67,6 @@ public static class ScreenCodes
     public const string TreasuryReconciliation = "TREASURY_RECONCILIATION";
     public const string SalesBookings = "SALES_BOOKINGS";
     public const string SalesAppointments = "SALES_APPOINTMENTS";
-    public const string SalesDeliveries = "SALES_DELIVERIES";
     public const string Reservations = "SALES_RESERVATIONS";
     public const string SalesInvoices = "SALES_INVOICES";
     public const string SalesReturns = "SALES_RETURNS";

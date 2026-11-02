@@ -38,6 +38,8 @@ public sealed class BookingExecutionService
         await _permissions.RequireAsync(actor, ScreenCodes.Reservations, ActionCodes.Execute, ct: ct);
         var preview = await _executions.GetPreviewAsync(input.BookingLineId, ct);
         BranchScope.Ensure(actor, preview.BranchId);
+        if (preview.ItemType == "SERVICE" && string.IsNullOrWhiteSpace(preview.EmployeeName))
+            throw new ValidationAppException("validation.execution_employee_required");
         if (input.Quantity <= 0 || input.Quantity > preview.RemainingQty)
             throw new ValidationAppException("validation.booking_quantity_exceeds_remaining");
 
