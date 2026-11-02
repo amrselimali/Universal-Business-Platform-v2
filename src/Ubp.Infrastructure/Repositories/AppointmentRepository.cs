@@ -56,7 +56,8 @@ public sealed class AppointmentRepository : IAppointmentRepository
     public async Task<Guid> CreateAsync(Guid id, AppointmentInput input, Guid userId,
         CancellationToken ct = default)
     {
-        if (input.BranchId == Guid.Empty || input.EmployeeId == Guid.Empty)
+        if (input.BranchId == Guid.Empty || input.EmployeeId == Guid.Empty ||
+            input.CustomerId is null || input.CustomerId == Guid.Empty)
             throw new ValidationAppException("validation.required_fields");
         if (input.EndsAt <= input.StartsAt)
             throw new ValidationAppException("validation.appointment_range");

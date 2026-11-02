@@ -22,7 +22,7 @@
                     }
                 </MudSelect>
                 <MudSelect T="Guid?" @bind-Value="_customerId" Label="@T.T("sales.customer")"
-                           Variant="Variant.Outlined" Clearable="true">
+                           Variant="Variant.Outlined" Required="true" Clearable="false">
                     @foreach (var customer in _customers)
                     {
                         <MudSelectItem T="Guid?" Value="@((Guid?)customer.Id)">
@@ -94,8 +94,8 @@
     private async Task SaveAsync()
     {
         await _form.Validate();
-        if (!_form.IsValid || _employeeId == Guid.Empty || _date is null ||
-            _start is null || _end is null)
+        if (!_form.IsValid || _employeeId == Guid.Empty || _customerId is null ||
+            _date is null || _start is null || _end is null)
         {
             Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
             return;

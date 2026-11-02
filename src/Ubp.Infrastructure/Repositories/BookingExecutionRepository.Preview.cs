@@ -43,6 +43,7 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                 JOIN units u ON u.id = l.unit_id
                 JOIN warehouses w ON w.id = l.warehouse_id
                 LEFT JOIN employees e ON e.id = b.assigned_employee_id
+                LEFT JOIN (SELECT time_zone FROM app_settings LIMIT 1) st ON true
                 LEFT JOIN LATERAL (
                     SELECT ap.employee_id, emp.name_ar AS employee_name
                     FROM appointments ap
@@ -50,9 +51,11 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                     WHERE ap.status <> 'cancelled'
                       AND (ap.booking_id = b.id
                            OR (ap.customer_id = b.customer_id
-                               AND (ap.starts_at::date = CURRENT_DATE
-                                    OR ap.starts_at::date =
-                                       COALESCE(b.starts_at::date, b.booking_date))))
+                               AND ((ap.starts_at AT TIME ZONE COALESCE(st.time_zone, 'UTC'))::date =
+                                    (now() AT TIME ZONE COALESCE(st.time_zone, 'UTC'))::date
+                                    OR (ap.starts_at AT TIME ZONE COALESCE(st.time_zone, 'UTC'))::date =
+                                       COALESCE((b.starts_at AT TIME ZONE COALESCE(st.time_zone, 'UTC'))::date,
+                                                b.booking_date))))
                     ORDER BY CASE WHEN ap.booking_id = b.id THEN 0 ELSE 1 END,
                              ap.starts_at DESC
                     LIMIT 1
