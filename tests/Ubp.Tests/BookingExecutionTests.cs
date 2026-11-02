@@ -62,7 +62,7 @@ public sealed class BookingExecutionTests : IClassFixture<TestDb>
         var start = new DateTimeOffset(DateTime.UtcNow.Date.AddHours(10), TimeSpan.Zero);
         await _db.AppointmentRepo.CreateAsync(Guid.CreateVersion7(), new AppointmentInput
         {
-            BranchId = branch, EmployeeId = employeeId, BookingId = booking.Id,
+            BranchId = branch, EmployeeId = employeeId,
             CustomerId = customer.Id, StartsAt = start, EndsAt = start.AddMinutes(30)
         }, actor.UserId);
 

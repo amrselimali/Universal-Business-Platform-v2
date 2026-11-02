@@ -49,14 +49,12 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                     FROM appointments ap
                     JOIN employees emp ON emp.id = ap.employee_id
                     WHERE ap.status <> 'cancelled'
-                      AND (ap.booking_id = b.id
-                           OR (ap.customer_id = b.customer_id
-                               AND ((ap.starts_at AT TIME ZONE COALESCE(st.time_zone, 'UTC'))::date =
-                                    (now() AT TIME ZONE COALESCE(st.time_zone, 'UTC'))::date
-                                    OR (ap.starts_at AT TIME ZONE COALESCE(st.time_zone, 'UTC'))::date =
-                                       COALESCE((b.starts_at AT TIME ZONE COALESCE(st.time_zone, 'UTC'))::date,
-                                                b.booking_date))))
+                      AND ap.customer_id = b.customer_id
+                      AND ap.branch_id = b.branch_id
                     ORDER BY CASE WHEN ap.booking_id = b.id THEN 0 ELSE 1 END,
+                             CASE WHEN (ap.starts_at AT TIME ZONE COALESCE(st.time_zone, 'UTC'))::date =
+                                       (now() AT TIME ZONE COALESCE(st.time_zone, 'UTC'))::date
+                                  THEN 0 ELSE 1 END,
                              ap.starts_at DESC
                     LIMIT 1
                 ) ap ON true
