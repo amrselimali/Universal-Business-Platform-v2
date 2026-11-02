@@ -52,12 +52,19 @@ public sealed class BookingExecutionTests : IClassFixture<TestDb>
         var booking = await _db.BookingService().CreateAsync(actor, new BookingInput
         {
             BranchId = branch, BookingDate = DateTime.Today, CustomerId = customer.Id,
-            AssignedEmployeeId = employeeId, ExpiresAt = DateTimeOffset.UtcNow.AddMonths(6),
+            ExpiresAt = DateTimeOffset.UtcNow.AddMonths(6),
             Lines = { new BookingLineInput { ItemId = item.Id, UnitId = item.BaseUnitId,
                 WarehouseId = warehouse, Quantity = 5, UnitPrice = 100 } }
         });
         await _db.BookingService().ConfirmAsync(actor, booking.Id);
         var line = (await _db.BookingService().GetAsync(actor, booking.Id)).Lines.Single();
+
+        var start = new DateTimeOffset(DateTime.UtcNow.Date.AddHours(10), TimeSpan.Zero);
+        await _db.AppointmentRepo.CreateAsync(Guid.CreateVersion7(), new AppointmentInput
+        {
+            BranchId = branch, EmployeeId = employeeId, BookingId = booking.Id,
+            CustomerId = customer.Id, StartsAt = start, EndsAt = start.AddMinutes(30)
+        }, actor.UserId);
 
         var preview = await _db.Executions().GetPreviewAsync(actor, line.Id);
         Assert.Equal(5m, preview.RemainingQty);

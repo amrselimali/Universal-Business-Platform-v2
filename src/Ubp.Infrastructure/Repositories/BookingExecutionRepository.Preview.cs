@@ -50,10 +50,14 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                     SELECT ap.employee_id, emp.name_ar AS employee_name
                     FROM appointments ap
                     JOIN employees emp ON emp.id = ap.employee_id
-                    WHERE ap.customer_id = b.customer_id
-                      AND ap.status <> 'cancelled'
-                      AND ap.starts_at::date = COALESCE(b.starts_at::date, b.booking_date)
-                    ORDER BY ap.starts_at DESC
+                    WHERE ap.status <> 'cancelled'
+                      AND (ap.booking_id = b.id
+                           OR (ap.customer_id = b.customer_id
+                               AND (ap.starts_at::date = CURRENT_DATE
+                                    OR ap.starts_at::date =
+                                       COALESCE(b.starts_at::date, b.booking_date))))
+                    ORDER BY CASE WHEN ap.booking_id = b.id THEN 0 ELSE 1 END,
+                             ap.starts_at DESC
                     LIMIT 1
                 ) ap ON true
                 WHERE l.id = @bookingLineId

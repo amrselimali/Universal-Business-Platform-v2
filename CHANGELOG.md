@@ -5,8 +5,11 @@
 ### Changed
 - Removed **إلى دفعة مقدمة** from `/sales/reservations`; kept **تمديد** and **تحرير** and added
   **تنفيذ**.
-- Execution opens a read-only modal (service, customer, employee, warehouse, remaining quantity)
-  where only quantity (max remaining) and the configurable meter-unit column are editable.
+- Execution opens a read-only modal (service, customer, employee, remaining quantity) where only
+  quantity (max remaining) and the configurable meter-unit column are editable; warehouse and
+  booking number were removed, and the meter column is always editable.
+- Executing a **SERVICE** booking now requires an employee, resolved from the linked appointment
+  (or assigned employee); the confirm button is disabled and the server rejects it otherwise.
 - Execution posts stock/COGS for goods, updates delivered/reserved quantities and booking status,
   and adds meter units to the linked fixed asset atomically.
 - Asset meters now support incremental usage readings (`EXECUTION`), manual reset from the assets

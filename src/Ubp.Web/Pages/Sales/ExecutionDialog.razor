@@ -14,18 +14,14 @@
         else
         {
             <div class="ubp-form-grid">
-                <MudTextField Value="_preview.BookingNo" Label="@T.T("sales.booking_no")"
-                              Variant="Variant.Outlined" ReadOnly="true" />
                 <MudTextField Value="_preview.CustomerName" Label="@T.T("sales.customer")"
                               Variant="Variant.Outlined" ReadOnly="true" />
                 <MudTextField Value="@(_preview.ItemCode + " — " + _preview.ItemName)"
                               Label="@T.T("execution.service")" Variant="Variant.Outlined"
                               ReadOnly="true" />
-                <MudTextField Value="@(_preview.EmployeeName ?? "—")"
+                <MudTextField Value="@(_preview.EmployeeName ?? T.T("execution.no_employee"))"
                               Label="@T.T("execution.employee")" Variant="Variant.Outlined"
                               ReadOnly="true" />
-                <MudTextField Value="@(_preview.WarehouseName)" Label="@T.T("inventory.warehouse")"
-                              Variant="Variant.Outlined" ReadOnly="true" />
                 <MudTextField Value="@_preview.RemainingQty.ToString("N4")"
                               Label="@T.T("execution.remaining")" Variant="Variant.Outlined"
                               ReadOnly="true" />
@@ -34,13 +30,26 @@
                                  Max="@_preview.RemainingQty" Format="N4" />
                 <MudNumericField T="decimal" @bind-Value="_meterUnits"
                                  Label="@_preview.UnitsColumnLabel" Variant="Variant.Outlined"
-                                 Min="0m" Format="N2" Disabled="@(_preview.MeteredAssetId is null)" />
-                @if (_preview.MeteredAssetId is not null)
+                                 Min="0m" Format="N2" />
+                @if (_preview.MeteredAssetId is null)
                 {
-                    <MudText Typo="Typo.caption" Class="ubp-muted">
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="ubp-span-2">
+                        @T.T("execution.link_meter_first")
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Class="ubp-muted ubp-span-2">
                         @_preview.MeteredAssetName — @T.T("execution.current_meter"):
                         @_preview.CurrentMeterValue.ToString("N2") @_preview.MeterType
                     </MudText>
+                }
+                @if (_preview.ItemType == "SERVICE" &&
+                     string.IsNullOrWhiteSpace(_preview.EmployeeName))
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="ubp-span-2">
+                        @T.T("validation.execution_employee_required")
+                    </MudAlert>
                 }
             </div>
         }
@@ -48,7 +57,9 @@
     <DialogActions>
         <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
-                   Disabled="@(_busy || _preview is null)">@T.T("execution.confirm")</MudButton>
+                   Disabled="@(_busy || _preview is null ||
+                               (_preview.ItemType == "SERVICE" &&
+                                string.IsNullOrWhiteSpace(_preview.EmployeeName)))">@T.T("execution.confirm")</MudButton>
     </DialogActions>
 </MudDialog>
 
