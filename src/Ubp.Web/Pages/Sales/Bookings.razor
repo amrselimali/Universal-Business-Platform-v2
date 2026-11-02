@@ -59,6 +59,7 @@ else
                 <MudTh>@T.T("sales.appointment_time")</MudTh>
                 <MudTh>@T.T("sales.booking_expiry")</MudTh>
                 <MudTh>@T.T("sales.customer")</MudTh>
+                <MudTh>@T.T("sales.booking_created_by")</MudTh>
                 <MudTh>@T.T("sales.assigned_employee")</MudTh>
                 <MudTh Align="Right">@T.T("accounting.total")</MudTh>
                 <MudTh>@T.T("common.status")</MudTh>
@@ -78,6 +79,7 @@ else
                 </MudTd>
                 <MudTd>@(context.ExpiresAt is null ? "—" : Fmt.Date(context.ExpiresAt))</MudTd>
                 <MudTd>@context.CustomerName</MudTd>
+                <MudTd>@(context.CreatedByName ?? "—")</MudTd>
                 <MudTd>@(context.EmployeeName ?? "—")</MudTd>
                 <MudTd Align="Right">@context.TotalAmount.ToString("N2")</MudTd>
                 <MudTd>

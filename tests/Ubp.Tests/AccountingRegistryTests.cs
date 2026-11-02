@@ -47,7 +47,6 @@ public sealed class AccountingRegistryTests : IClassFixture<TestDb>
             ["SalesReturns.razor"] = ScreenCodes.SalesReturns,
             ["Settlements.razor"] = ScreenCodes.SalesSettlements,
             ["ExpiredBookings.razor"] = ScreenCodes.SalesExpiredBookings,
-            ["Commissions.razor"] = ScreenCodes.SalesCommissions,
             ["Aging.razor"] = ScreenCodes.AgingReport,
             ["PostingCenter.razor"] = ScreenCodes.PostingCenter,
             ["Terminal.razor"] = ScreenCodes.PosTerminal,

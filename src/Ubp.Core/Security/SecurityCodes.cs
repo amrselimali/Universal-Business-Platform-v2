@@ -72,7 +72,6 @@ public static class ScreenCodes
     public const string SalesReturns = "SALES_RETURNS";
     public const string SalesSettlements = "SALES_SETTLEMENTS";
     public const string SalesExpiredBookings = "SALES_EXPIRED_BOOKINGS";
-    public const string SalesCommissions = "SALES_COMMISSIONS";
     public const string AgingReport = "AGING_REPORT";
     public const string PostingCenter = "POSTING_CENTER";
     public const string PosTerminal = "POS_TERMINAL";
@@ -150,7 +149,6 @@ public static class ActionCodes
     public const string Execute = "EXECUTE";
     public const string Manage = "MANAGE";
     public const string Approve = "APPROVE";
-    public const string Calculate = "CALCULATE";
     public const string Export = "EXPORT";
     public const string ViewUnposted = "VIEW_UNPOSTED";
     public const string Reconcile = "RECONCILE";

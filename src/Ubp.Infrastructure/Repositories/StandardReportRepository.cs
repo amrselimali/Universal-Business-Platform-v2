@@ -33,7 +33,6 @@ public interface IStandardReportRepository
     Task<ReportTable> StockFlowAsync(DateOnly from, DateOnly to, Guid[] branchIds,
         CancellationToken ct = default);
     Task<ReportTable> StockValueByWarehouseAsync(Guid[] branchIds, CancellationToken ct = default);
-    Task<ReportTable> CommissionsAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
     Task<ReportTable> BookingConversionAsync(DateOnly from, DateOnly to, Guid[] branchIds,
         CancellationToken ct = default);
     Task<ReportTable> UnappliedAdvancesAsync(Guid[] branchIds, CancellationToken ct = default);

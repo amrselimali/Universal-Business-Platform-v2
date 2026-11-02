@@ -102,25 +102,6 @@ public sealed class SalesFinanceService
         return settlement;
     }
 
-    public async Task<int> CalculateCommissionsAsync(ActorContext actor, CommissionInput input,
-        CancellationToken ct = default)
-    {
-        await _permissions.RequireAsync(actor, ScreenCodes.SalesCommissions,
-            ActionCodes.Calculate, ct: ct);
-        var count = await _finance.CalculateCommissionsAsync(input, actor.UserId, ct);
-        await _audit.WriteAsync(actor, "employee_commissions", input.Month.ToString("yyyy-MM"),
-            "INSERT", null, new { input.Month, input.Rate, input.ExecutionRate, input.Basis, count }, ct);
-        return count;
-    }
-
-    public async Task<IReadOnlyList<CommissionRow>> ListCommissionsAsync(ActorContext actor,
-        DateTime month, Guid? employeeId, CancellationToken ct = default)
-    {
-        await _permissions.RequireAsync(actor, ScreenCodes.SalesCommissions, ActionCodes.View,
-            ct: ct);
-        return await _finance.ListCommissionsAsync(month, employeeId, ct);
-    }
-
     /// <summary>الأعمار الأربعة: عملاء، دفعات مقدمة، حجوزات، وموردون (المورد من 4B).</summary>
     public async Task<IReadOnlyList<AgingBucketRow>> AgingAsync(ActorContext actor, string kind,
         Guid? branchId, DateTime asOf, string? search = null, CancellationToken ct = default)

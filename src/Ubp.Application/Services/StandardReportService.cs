@@ -46,7 +46,6 @@ public sealed class StandardReportService
             StandardReportKeys.StockFlow => await _reports.StockFlowAsync(from, to, branches, ct),
             StandardReportKeys.StockValueByWarehouse => await _reports.StockValueByWarehouseAsync(
                 branches, ct),
-            StandardReportKeys.Commissions => await _reports.CommissionsAsync(from, to, ct),
             StandardReportKeys.BookingConversion => await _reports.BookingConversionAsync(from, to,
                 branches, ct),
             StandardReportKeys.UnappliedAdvances => await _reports.UnappliedAdvancesAsync(branches, ct),

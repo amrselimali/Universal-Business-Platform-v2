@@ -6,44 +6,6 @@ namespace Ubp.Infrastructure.Repositories;
 
 public sealed partial class StandardReportRepository
 {
-    /// <summary>عمولات الموظفين مجمّعة بالشهر والموظف (مصدرها employee_commissions).</summary>
-    public async Task<ReportTable> CommissionsAsync(DateOnly from, DateOnly to,
-        CancellationToken ct = default)
-    {
-        const string sql = """
-            SELECT COALESCE(e.name_ar, u.username, '-') AS EmployeeName,
-                   c.commission_kind AS CommissionKind, c.period_month::date AS PeriodMonth,
-                   c.basis AS Basis, SUM(c.base_amount) AS BaseAmount,
-                   SUM(c.amount) AS Amount, COUNT(*)::int AS Lines
-            FROM employee_commissions c
-            LEFT JOIN employees e ON e.id = c.employee_id
-            LEFT JOIN users u ON u.id = c.user_id
-            WHERE c.period_month::date BETWEEN @from AND @to
-            GROUP BY COALESCE(e.name_ar, u.username, '-'), c.commission_kind,
-                     c.period_month, c.basis
-            ORDER BY c.period_month DESC, SUM(c.amount) DESC
-            LIMIT 300
-            """;
-        var rows = await QueryAsync<CommissionRow>(sql, new
-        {
-            from = from.ToDateTime(TimeOnly.MinValue), to = to.ToDateTime(TimeOnly.MinValue)
-        }, ct);
-        return new ReportTable(
-        [
-            new("employee", "report.employee"),
-            new("kind", "report.commission_kind"),
-            new("period", "report.period", ReportValueType.Date),
-            new("basis", "report.commission_basis"),
-            new("base", "report.base_amount", ReportValueType.Money),
-            new("amount", "report.commission_amount", ReportValueType.Money),
-            new("lines", "report.documents", ReportValueType.Number)
-        ],
-        rows.Select(r => (IReadOnlyList<string?>)
-        [r.EmployeeName, r.CommissionKind, Fmt(r.PeriodMonth), r.Basis, Money(r.BaseAmount),
-            Money(r.Amount), r.Lines.ToString()]).ToList(),
-        $"report.commission_total={Money(rows.Sum(r => r.Amount))}");
-    }
-
     /// <summary>تحويل الحجوزات: عدد وقيمة الحجوزات حسب الحالة والشهر.</summary>
     public async Task<ReportTable> BookingConversionAsync(DateOnly from, DateOnly to,
         Guid[] branchIds, CancellationToken ct = default)
@@ -155,17 +117,6 @@ public sealed partial class StandardReportRepository
         rows.Select(r => (IReadOnlyList<string?>)
         [r.Status, r.Assignee, r.Items.ToString(), Fmt(r.OldestDue), Fmt(r.LastCompleted)])
             .ToList());
-    }
-
-    private sealed class CommissionRow
-    {
-        public string EmployeeName { get; set; } = "";
-        public string CommissionKind { get; set; } = "";
-        public DateTime PeriodMonth { get; set; }
-        public string Basis { get; set; } = "";
-        public decimal BaseAmount { get; set; }
-        public decimal Amount { get; set; }
-        public int Lines { get; set; }
     }
 
     private sealed class ConversionRow

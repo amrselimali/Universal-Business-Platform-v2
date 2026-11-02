@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-11-02 — Remove commissions + booking registrar column and session overlap
+
+### Changed
+- Removed the employee commissions screen, service/repository code, report catalog entry, model,
+  permission/action codes, translations, tests, the `employee_commissions` table and
+  `app_settings.commission_basis`.
+- Bookings list shows the user who registered the booking (`bookings.created_by`).
+- Booking list order is day, then responsible employee name, then booking time.
+- The responsible-employee picker lists only active employees with
+  `is_service_executor = true`.
+- Added a database trigger rejecting overlapping booking sessions for the same employee
+  (`booking_session_overlap`), independent of the appointments table.
+- Migration `0061` drops commission artifacts; migration `0062` adds the overlap guard.
+
 ## 2026-11-02 — Split booking/execution commissions + employee visibility
 
 ### Changed

@@ -57,8 +57,6 @@ public static class ReportCatalog
             ScreenCodes.ReportsCenter),
         new(StandardReportKeys.StockValueByWarehouse, "/reports/standard/stock.value_by_warehouse",
             "report.stock_value", ScreenCodes.ReportsCenter),
-        new(StandardReportKeys.Commissions, "/reports/standard/hr.commissions", "report.commissions",
-            ScreenCodes.ReportsCenter),
         new(StandardReportKeys.BookingConversion, "/reports/standard/sales.booking_conversion",
             "report.booking_conversion", ScreenCodes.ReportsCenter),
         new(StandardReportKeys.UnappliedAdvances, "/reports/standard/sales.unapplied_advances",

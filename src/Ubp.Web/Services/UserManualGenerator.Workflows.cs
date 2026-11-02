@@ -179,7 +179,6 @@ public sealed partial class UserManualGenerator
             [ActionCodes.Checkout] = ("تحصيل POS", "ينشئ حجزًا/فاتورة وسندات دفع.", "سلة غير فارغة؛ طرق دفع كافية؛ مخزون متاح.", "bookings:INSERT"),
             [ActionCodes.Complete] = ("إنهاء متابعة", "يغلق متابعة العميل.", "المتابعة مفتوحة.", "UPDATE"),
             [ActionCodes.Approve] = ("اعتماد", "يعتمد تسوية/مستند.", "صلاحية مدير؛ الحالة مسودة.", "UPDATE"),
-            [ActionCodes.Calculate] = ("حساب", "يحسب عمولات الشهر.", "فترة/أساس محدد؛ يمنع التكرار.", "INSERT"),
             [ActionCodes.SetMain] = ("تعيين رئيسية", "يجعل الخزينة رئيسية.", "خزينة نشطة؛ رئيسية واحدة.", "UPDATE"),
             [ActionCodes.ManageMethods] = ("إدارة الطرق", "إضافة طرق دفع/عمولات.", "الخزينة نشطة؛ طريقة واحدة على الأقل.", "INSERT"),
             [ActionCodes.ManageItems] = ("إدارة الأسعار", "إضافة أصناف/شرائح لقائمة الأسعار.", "الأسعار غير سالبة؛ القائمة نشطة.", "UPDATE"),

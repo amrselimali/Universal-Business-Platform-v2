@@ -49,6 +49,8 @@ public sealed class Booking
     public Guid? AssignedEmployeeId { get; set; }
     public string? EmployeeName { get; set; }
     public Guid? RelatedBookingId { get; set; }
+    public Guid? CreatedBy { get; set; }
+    public string? CreatedByName { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal DepositAmount { get; set; }
     public string? Notes { get; set; }

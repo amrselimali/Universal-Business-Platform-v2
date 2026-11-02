@@ -52,6 +52,9 @@ public static class DbErrorMapper
                 return new ValidationAppException("validation.stocktake_reason_required");
         }
 
+        if (ex.SqlState == "23P01")
+            return new ValidationAppException("validation.booking_session_overlap");
+
         if (ex.SqlState == PostgresErrorCodes.NotNullViolation)
             return new ValidationAppException("validation.required_fields");
 
