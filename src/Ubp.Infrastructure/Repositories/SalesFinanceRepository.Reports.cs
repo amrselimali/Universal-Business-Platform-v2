@@ -14,8 +14,10 @@ public sealed partial class SalesFinanceRepository
         return (await connection.QueryAsync<ExpiredBookingRow>(new CommandDefinition("""
             SELECT b.id AS BookingId, b.branch_id AS BranchId, b.doc_no AS BookingNo,
                    b.customer_id AS CustomerId, c.name_ar AS CustomerName,
-                   b.booking_date AS BookingDate, b.expires_at AS ExpiresAt,
-                   GREATEST((@asOf::date - b.expires_at::date), 0) AS LateDays,
+                   b.booking_date AS BookingDate,
+                   COALESCE(b.starts_at, b.booking_date::timestamptz) AS SessionAt,
+                   GREATEST((@asOf::date -
+                             COALESCE(b.starts_at::date, b.booking_date)), 0) AS LateDays,
                    b.status AS Status, b.source AS Source, b.total_amount AS TotalAmount,
                    b.deposit_amount AS DepositAmount,
                    COALESCE(q.remaining_qty, 0) AS RemainingQty,
@@ -39,10 +41,10 @@ public sealed partial class SalesFinanceRepository
                 LIMIT 1
             ) s ON true
             WHERE b.status IN ('confirmed', 'partially_delivered')
-              AND b.expires_at IS NOT NULL AND b.expires_at::date < @asOf::date
+              AND COALESCE(b.starts_at::date, b.booking_date) < @asOf::date
               AND (@allBranches OR b.branch_id = ANY(@branchIds))
               AND COALESCE(q.remaining_qty, 0) > 0
-            ORDER BY b.expires_at, b.doc_no
+            ORDER BY COALESCE(b.starts_at, b.booking_date::timestamptz), b.doc_no
             LIMIT 500
             """, new { branchIds = branchIds.ToArray(), allBranches, asOf },
             cancellationToken: ct))).ToList();

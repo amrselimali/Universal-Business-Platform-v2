@@ -26,11 +26,6 @@ public sealed class PosService
         await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.Checkout,
             ct: ct);
 
-        // تاريخ نهاية الحجز: افتراضي 6 أشهر، ويُرفض التاريخ الماضي.
-        input.ExpiresAt ??= DateTimeOffset.UtcNow.AddMonths(6);
-        if (input.ExpiresAt.Value.UtcDateTime.Date < DateTimeOffset.UtcNow.Date)
-            throw new ValidationAppException("validation.booking_expiry_invalid");
-
         var settings = await _settings.GetAsync(ct);
         BranchScope.Ensure(actor, input.BranchId);
         PosReceipt receipt;

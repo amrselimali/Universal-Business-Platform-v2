@@ -171,7 +171,6 @@ public sealed partial class UserManualGenerator
             [ActionCodes.ResetPassword] = ("إعادة تعيين كلمة المرور", "يضبط كلمة مرور جديدة.", "سياسة كلمة المرور؛ يلغي كل الجلسات.", "PASSWORD_RESET"),
             [ActionCodes.Unlock] = ("فك القفل", "يصفّر المحاولات الفاشلة.", "لا يغيّر كلمة المرور.", "UPDATE"),
             [ActionCodes.ReleaseReservation] = ("تحرير الحجز", "يلغي الحجز ويحرر الكميات.", "سبب مطلوب؛ لا يمس القيود المرحّلة.", "bookings:UPDATE"),
-            [ActionCodes.ExtendReservation] = ("تمديد الحجز", "يمد صلاحية الحجز.", "تاريخ جديد > الحالي؛ لا يمس الكميات.", "reservation_adjustments"),
             [ActionCodes.RunDepreciation] = ("تشغيل الإهلاك", "يحسب إهلاك الشهر/السنة.", "الأصل نشط وغير مستبعد؛ يمنع التكرار لنفس الفترة.", "INSERT + قيود"),
             [ActionCodes.AddMeterReading] = ("قراءة عدّاد", "يضيف قراءة تصاعدية.", "الأصل بعدّاد وغير مستبعد؛ القراءة لا تقل عن السابقة.", "asset_meter_readings"),
             [ActionCodes.OpenMaintenance] = ("فتح صيانة", "ينشئ أمر/خطة صيانة.", "الأصل نشط؛ التكلفة اختيارية.", "INSERT"),

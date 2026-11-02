@@ -45,7 +45,7 @@ else
                     <MudTh>@T.T("sales.booking_no")</MudTh>
                     <MudTh>@T.T("sales.customer")</MudTh>
                     <MudTh>@T.T("sales.booking_date")</MudTh>
-                    <MudTh>@T.T("sales.booking_expiry")</MudTh>
+                    <MudTh>@T.T("sales.session_at")</MudTh>
                     <MudTh Align="Right">@T.T("sales.expired_late_days")</MudTh>
                     <MudTh Align="Right">@T.T("sales.remaining_qty")</MudTh>
                     <MudTh Align="Right">@T.T("reservations.remaining_value")</MudTh>
@@ -57,7 +57,7 @@ else
                     <MudTd><span class="ubp-code">@(context.BookingNo ?? "—")</span></MudTd>
                     <MudTd>@context.CustomerName</MudTd>
                     <MudTd>@context.BookingDate.ToString("yyyy-MM-dd")</MudTd>
-                    <MudTd>@(context.ExpiresAt is null ? "—" : Fmt.Date(context.ExpiresAt))</MudTd>
+                    <MudTd>@(context.SessionAt is null ? "—" : Fmt.DateTime(context.SessionAt))</MudTd>
                     <MudTd Align="Right">@context.LateDays</MudTd>
                     <MudTd Align="Right">@Fmt.Decimal(context.RemainingQty)</MudTd>
                     <MudTd Align="Right">@Fmt.Decimal(context.RemainingValue)</MudTd>

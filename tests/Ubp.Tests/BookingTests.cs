@@ -79,14 +79,21 @@ public sealed class BookingTests : IClassFixture<TestDb>
     {
         var actor = await _db.AdminActorAsync();
         var service = _db.BookingService();
-        var (branch, warehouse, item, customer, _) = await SetupAsync("8");
+        var (branch, warehouse, item, customer, employee) = await SetupAsync("8");
         var localStart = new DateTimeOffset(
             DateTime.SpecifyKind(DateTime.Today.AddHours(10), DateTimeKind.Unspecified),
             TimeSpan.FromHours(3));
+        var utcStart = localStart.ToUniversalTime();
+        await _db.AppointmentRepo.CreateAsync(Guid.CreateVersion7(), new AppointmentInput
+        {
+            BranchId = branch, EmployeeId = employee.Id, CustomerId = customer.Id,
+            StartsAt = utcStart.AddHours(-1), EndsAt = utcStart.AddHours(1)
+        }, actor.UserId);
 
         var booking = await service.CreateAsync(actor, new BookingInput
         {
             BranchId = branch, CustomerId = customer.Id, BookingDate = DateTime.Today,
+            AssignedEmployeeId = employee.Id,
             StartsAt = localStart, EndsAt = localStart.AddMinutes(30),
             Lines = { new BookingLineInput { ItemId = item.Id, UnitId = item.BaseUnitId,
                 WarehouseId = warehouse, Quantity = 1, UnitPrice = 0 } }
@@ -156,6 +163,11 @@ public sealed class BookingTests : IClassFixture<TestDb>
         var service = _db.BookingService();
         var (branch, warehouse, item, customer, employee) = await SetupAsync("9");
         var start = DateTimeOffset.UtcNow.Date.AddHours(9);
+        await _db.AppointmentRepo.CreateAsync(Guid.CreateVersion7(), new AppointmentInput
+        {
+            BranchId = branch, EmployeeId = employee.Id, CustomerId = customer.Id,
+            StartsAt = start.AddHours(-1), EndsAt = start.AddHours(2)
+        }, actor.UserId);
 
         var first = await service.CreateAsync(actor, new BookingInput
         {

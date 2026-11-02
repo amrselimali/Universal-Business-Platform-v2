@@ -74,19 +74,13 @@ public sealed class PosTests : IClassFixture<TestDb>
         Assert.Equal(0m, receipt.Paid);
         Assert.Empty(receipt.Vouchers);
         Assert.StartsWith("BK-", receipt.BookingNo);
-        Assert.NotNull(receipt.ExpiresAt);
 
         await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
         await connection.OpenAsync();
-        var booking = await connection.QuerySingleAsync<(string Status, string Source,
-            DateTime? ExpiresAt)>(
-            "SELECT status, source, expires_at FROM bookings WHERE id = @id",
-            new { id = receipt.BookingId });
+        var booking = await connection.QuerySingleAsync<(string Status, string Source)>(
+            "SELECT status, source FROM bookings WHERE id = @id", new { id = receipt.BookingId });
         Assert.Equal(BookingStatuses.Confirmed, booking.Status);
         Assert.Equal(BookingSources.Pos, booking.Source);
-        Assert.NotNull(booking.ExpiresAt);
-        Assert.InRange(booking.ExpiresAt!.Value,
-            DateTime.UtcNow.AddMonths(6).AddDays(-1), DateTime.UtcNow.AddMonths(6).AddDays(1));
 
         var schedule = await connection.QuerySingleAsync<(DateTime? Starts, DateTime? Ends,
             Guid? EmployeeId)>(
@@ -115,45 +109,6 @@ public sealed class PosTests : IClassFixture<TestDb>
         var pos = await _db.BookingService().ListAsync(actor, new BookingFilter
         { BranchId = f.Branch, Source = BookingSources.Pos }, page);
         Assert.Contains(pos.Items, b => b.Id == receipt.BookingId);
-    }
-
-    [Fact]
-    public async Task Pos_checkout_uses_the_selected_expiry_date()
-    {
-        var actor = await _db.AdminActorAsync();
-        var f = await SetupAsync("8");
-        var expiry = DateTimeOffset.UtcNow.AddMonths(2);
-
-        var receipt = await _db.Pos().CheckoutAsync(actor, new PosCheckoutInput
-        {
-            BranchId = f.Branch, CustomerId = f.Customer.Id, WarehouseId = f.Warehouse,
-            DocDate = DateTime.Today, ExpiresAt = expiry,
-            Lines = { new PosLineInput { ItemId = f.Item.Id, UnitId = f.Item.BaseUnitId,
-                Quantity = 1, UnitPrice = 100 } }
-        });
-
-        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
-        await connection.OpenAsync();
-        var saved = await connection.ExecuteScalarAsync<DateTime>(
-            "SELECT expires_at FROM bookings WHERE id = @id", new { id = receipt.BookingId });
-        Assert.Equal(expiry.UtcDateTime.Date, saved.Date);
-    }
-
-    [Fact]
-    public async Task Pos_checkout_rejects_a_past_expiry_date()
-    {
-        var actor = await _db.AdminActorAsync();
-        var f = await SetupAsync("9");
-
-        var error = await Assert.ThrowsAsync<ValidationAppException>(() =>
-            _db.Pos().CheckoutAsync(actor, new PosCheckoutInput
-            {
-                BranchId = f.Branch, CustomerId = f.Customer.Id, WarehouseId = f.Warehouse,
-                DocDate = DateTime.Today, ExpiresAt = DateTimeOffset.UtcNow.AddDays(-1),
-                Lines = { new PosLineInput { ItemId = f.Item.Id, UnitId = f.Item.BaseUnitId,
-                    Quantity = 1, UnitPrice = 100 } }
-            }));
-        Assert.Equal("validation.booking_expiry_invalid", error.Code);
     }
 
     [Fact]

@@ -4,7 +4,6 @@ public static class ReservationAdjustmentKinds
 {
     public const string ToAdvance = "TO_ADVANCE";
     public const string Release = "RELEASE";
-    public const string Extend = "EXTEND";
 }
 
 /// <summary>سطر من عرض الحجوزات: ما حُجز وما استُهلك وما بقِي غير مستخدم (الترحيل 0047).</summary>
@@ -16,7 +15,6 @@ public sealed class ReservationRow
     public string BookingStatus { get; set; } = "";
     public string? BookingNo { get; set; }
     public decimal DepositAmount { get; set; }
-    public DateTimeOffset? ExpiresAt { get; set; }
     public Guid BookingLineId { get; set; }
     public string CustomerName { get; set; } = "";
     public Guid ItemId { get; set; }

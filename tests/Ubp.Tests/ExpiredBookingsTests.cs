@@ -22,10 +22,21 @@ public sealed class ExpiredBookingsTests : IClassFixture<TestDb>
         var customer = await _db.PartnerRepo.CreateAsync(PartnerKind.Customer, new PartnerInput
         { Code = "EXP-C-1", NameAr = "عميل المنتهية" });
 
+        var employeeId = Guid.CreateVersion7();
+        await _db.EmployeeRepo.CreateAsync(employeeId, new EmployeeInput
+        { Code = "EXP-E-1", NameAr = "موظف المنتهية", IsServiceExecutor = true }, actor.UserId);
+        var pastStart = DateTimeOffset.UtcNow.AddDays(-11);
+        await _db.AppointmentRepo.CreateAsync(Guid.CreateVersion7(), new AppointmentInput
+        {
+            BranchId = branch, EmployeeId = employeeId, CustomerId = customer.Id,
+            StartsAt = pastStart.AddHours(-1), EndsAt = pastStart.AddHours(1)
+        }, actor.UserId);
+
         var booking = await _db.BookingService().CreateAsync(actor, new BookingInput
         {
-            BranchId = branch, BookingDate = DateTime.Today, CustomerId = customer.Id,
-            ExpiresAt = DateTimeOffset.UtcNow.AddMonths(1),
+            BranchId = branch, BookingDate = pastStart.UtcDateTime.Date, CustomerId = customer.Id,
+            AssignedEmployeeId = employeeId, StartsAt = pastStart,
+            EndsAt = pastStart.AddMinutes(30),
             Lines =
             {
                 new BookingLineInput
@@ -37,13 +48,6 @@ public sealed class ExpiredBookingsTests : IClassFixture<TestDb>
         });
         await _db.BookingService().ConfirmAsync(actor, booking.Id);
 
-        await using (var connection = new NpgsqlConnection(TestDb.AdminConnection))
-        {
-            await connection.OpenAsync();
-            await connection.ExecuteAsync(
-                "UPDATE bookings SET expires_at = now() - interval '10 days' WHERE id = @id",
-                new { id = booking.Id });
-        }
 
         var rows = await _db.SalesFinance().ListExpiredBookingsAsync(actor, branch, DateTime.UtcNow);
         var row = Assert.Single(rows);

@@ -15,7 +15,6 @@ public interface IReservationRepository
     Task<Guid?> InsertAdjustmentAsync(Guid bookingId, Guid? bookingLineId, string kind,
         decimal quantity, decimal amount, Guid? voucherId, Guid? journalEntryId, string? note,
         Guid userId, CancellationToken ct = default);
-    Task<bool> ExtendAsync(Guid bookingId, DateTimeOffset newExpiry, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -27,7 +26,7 @@ public sealed class ReservationRepository : IReservationRepository
     private const string Columns = """
         booking_id AS BookingId, branch_id AS BranchId, customer_id AS CustomerId,
         customer_name AS CustomerName, booking_status AS BookingStatus, booking_no AS BookingNo,
-        deposit_amount AS DepositAmount, expires_at AS ExpiresAt, booking_line_id AS BookingLineId,
+        deposit_amount AS DepositAmount, booking_line_id AS BookingLineId,
         item_id AS ItemId, item_code AS ItemCode, item_name AS ItemName,
         warehouse_id AS WarehouseId, warehouse_name AS WarehouseName, booked_qty AS BookedQty,
         reserved_qty AS ReservedQty, consumed_qty AS ConsumedQty, remaining_qty AS RemainingQty,
@@ -105,16 +104,5 @@ public sealed class ReservationRepository : IReservationRepository
             RETURNING id
             """, new { bookingId, bookingLineId, kind, quantity, amount, voucherId,
                 journalEntryId, note, userId }, cancellationToken: ct));
-    }
-
-    public async Task<bool> ExtendAsync(Guid bookingId, DateTimeOffset newExpiry,
-        CancellationToken ct = default)
-    {
-        await using var connection = await _factory.OpenAsync(ct);
-        return await connection.ExecuteAsync(new CommandDefinition("""
-            UPDATE bookings SET expires_at = @newExpiry
-            WHERE id = @bookingId
-              AND status IN ('draft', 'confirmed', 'partially_delivered')
-            """, new { bookingId, newExpiry }, cancellationToken: ct)) > 0;
     }
 }

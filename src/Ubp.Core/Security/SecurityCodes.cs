@@ -134,7 +134,6 @@ public static class ActionCodes
     public const string CloseMaintenance = "CLOSE_MAINTENANCE";
     public const string RunDepreciation = "RUN_DEPRECIATION";
     public const string ReleaseReservation = "RELEASE_RESERVATION";
-    public const string ExtendReservation = "EXTEND_RESERVATION";
     public const string DeleteFilter = "DELETE_FILTER";
     public const string ExportCsv = "EXPORT_CSV";
     public const string ExportXlsx = "EXPORT_XLSX";
