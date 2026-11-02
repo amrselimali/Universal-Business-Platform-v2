@@ -45,7 +45,6 @@ public sealed class Booking
     public DateTime? DueDate { get; set; }
     public DateTimeOffset? StartsAt { get; set; }
     public DateTimeOffset? EndsAt { get; set; }
-    public DateTimeOffset? ExpiresAt { get; set; }
     public Guid? AssignedEmployeeId { get; set; }
     public string? EmployeeName { get; set; }
     public Guid? RelatedBookingId { get; set; }
@@ -124,7 +123,6 @@ public sealed class BookingInput
     public DateTime? DueDate { get; set; }
     public DateTimeOffset? StartsAt { get; set; }
     public DateTimeOffset? EndsAt { get; set; }
-    public DateTimeOffset? ExpiresAt { get; set; }
     public Guid? AssignedEmployeeId { get; set; }
     public Guid? RelatedBookingId { get; set; }
     public string? Notes { get; set; }

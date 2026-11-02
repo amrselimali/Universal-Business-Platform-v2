@@ -42,7 +42,6 @@ public sealed class BookingService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings, ActionCodes.Create, ct: ct);
         BranchScope.Ensure(actor, input.BranchId);
-        ValidateExpiry(input);
         var id = Guid.CreateVersion7();
         try { await _bookings.CreateDraftAsync(id, input, actor.UserId, ct); }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
@@ -57,7 +56,6 @@ public sealed class BookingService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings, ActionCodes.Edit, ct: ct);
         BranchScope.Ensure(actor, input.BranchId);
-        ValidateExpiry(input);
         Booking booking;
         try { booking = await _bookings.UpdateDraftAsync(id, version, input, actor.UserId, ct); }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
@@ -115,12 +113,5 @@ public sealed class BookingService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings, ActionCodes.View, ct: ct);
         return await _bookings.AvailableAsync(itemId, warehouseId, ct);
-    }
-
-    private static void ValidateExpiry(BookingInput input)
-    {
-        if (input.ExpiresAt is { } expiry &&
-            expiry.UtcDateTime.Date < DateTimeOffset.UtcNow.Date)
-            throw new ValidationAppException("validation.booking_expiry_invalid");
     }
 }

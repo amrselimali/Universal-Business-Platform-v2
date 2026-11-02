@@ -40,7 +40,6 @@ public sealed partial class BookingRepository : IBookingRepository
         public DateTime? DueDate { get; set; }
         public DateTimeOffset? StartsAt { get; set; }
         public DateTimeOffset? EndsAt { get; set; }
-        public DateTimeOffset? ExpiresAt { get; set; }
         public Guid? AssignedEmployeeId { get; set; }
         public string? EmployeeName { get; set; }
         public Guid? RelatedBookingId { get; set; }
@@ -81,7 +80,7 @@ public sealed partial class BookingRepository : IBookingRepository
         SELECT b.id AS Id, b.branch_id AS BranchId, b.doc_no AS DocNo, b.booking_date AS BookingDate,
                b.status AS Status, b.customer_id AS CustomerId, c.name_ar AS CustomerName,
                b.source AS Source, b.due_date AS DueDate, b.starts_at AS StartsAt,
-               b.ends_at AS EndsAt, b.expires_at AS ExpiresAt,
+               b.ends_at AS EndsAt,
                b.assigned_employee_id AS AssignedEmployeeId, e.name_ar AS EmployeeName,
                b.related_booking_id AS RelatedBookingId, b.created_by AS CreatedBy,
                u.username AS CreatedByName, b.total_amount AS TotalAmount,
@@ -158,7 +157,7 @@ public sealed partial class BookingRepository : IBookingRepository
         Id = row.Id, BranchId = row.BranchId, DocNo = row.DocNo, BookingDate = row.BookingDate,
         Status = row.Status, CustomerId = row.CustomerId, CustomerName = row.CustomerName,
         Source = row.Source, DueDate = row.DueDate, StartsAt = row.StartsAt,
-        EndsAt = row.EndsAt, ExpiresAt = row.ExpiresAt,
+        EndsAt = row.EndsAt,
         AssignedEmployeeId = row.AssignedEmployeeId, EmployeeName = row.EmployeeName,
         RelatedBookingId = row.RelatedBookingId, CreatedBy = row.CreatedBy,
         CreatedByName = row.CreatedByName, TotalAmount = row.TotalAmount,

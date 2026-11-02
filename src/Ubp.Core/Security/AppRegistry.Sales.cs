@@ -12,7 +12,7 @@ public static partial class AppRegistry
     private static IReadOnlyList<ScreenDefinition> SalesExtraScreens => new List<ScreenDefinition>
     {
         new(Reservations, "/sales/reservations", "BookmarkAdded", "screen.reservations", GroupSales,
-            new[] { SA(View), SA(Execute), SA(ReleaseReservation), SA(ExtendReservation),
+            new[] { SA(View), SA(Execute), SA(ReleaseReservation),
                     SA(ExportCsv), SA(Print) })
     };
 }

@@ -20,19 +20,20 @@ public sealed partial class BookingRepository
         var lines = await BuildLinesAsync(input, ct);
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
+        await EnsureScheduledEmployeeAsync(connection, tx, input, ct);
 
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO bookings (id, branch_id, booking_date, status, customer_id, source, due_date,
-                starts_at, ends_at, expires_at, assigned_employee_id, related_booking_id,
+                starts_at, ends_at, assigned_employee_id, related_booking_id,
                 total_amount, notes, created_by)
             VALUES (@id, @BranchId, @BookingDate, 'draft', @CustomerId, 'manual', @DueDate,
-                    @StartsAt, @EndsAt, @ExpiresAt, @AssignedEmployeeId, @RelatedBookingId,
+                    @StartsAt, @EndsAt, @AssignedEmployeeId, @RelatedBookingId,
                     @total, @Notes, @userId)
             """, new
         {
             id, input.BranchId, bookingDate = input.BookingDate.Date, input.CustomerId,
             input.DueDate, StartsAt = DbTime.Utc(input.StartsAt),
-            EndsAt = DbTime.Utc(input.EndsAt), ExpiresAt = DbTime.Utc(input.ExpiresAt),
+            EndsAt = DbTime.Utc(input.EndsAt),
             input.AssignedEmployeeId, input.RelatedBookingId, total = lines.Sum(l => l.TotalAmount),
             input.Notes, userId
         }, tx, cancellationToken: ct));
@@ -56,18 +57,18 @@ public sealed partial class BookingRepository
         var lines = await BuildLinesAsync(input, ct);
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
+        await EnsureScheduledEmployeeAsync(connection, tx, input, ct);
 
         var updated = await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE bookings SET booking_date = @BookingDate, customer_id = @CustomerId,
-                due_date = @DueDate, starts_at = @StartsAt, ends_at = @EndsAt,
-                expires_at = @ExpiresAt, notes = @Notes,
+                due_date = @DueDate, starts_at = @StartsAt, ends_at = @EndsAt, notes = @Notes,
                 related_booking_id = @RelatedBookingId, total_amount = @total, updated_by = @userId
             WHERE id = @id AND version = @version AND status = 'draft'
             """, new
         {
             id, version, bookingDate = input.BookingDate.Date, input.CustomerId, input.DueDate,
             StartsAt = DbTime.Utc(input.StartsAt), EndsAt = DbTime.Utc(input.EndsAt),
-            ExpiresAt = DbTime.Utc(input.ExpiresAt), input.Notes, input.RelatedBookingId,
+            input.Notes, input.RelatedBookingId,
             total = lines.Sum(l => l.TotalAmount), userId
         }, tx, cancellationToken: ct));
 

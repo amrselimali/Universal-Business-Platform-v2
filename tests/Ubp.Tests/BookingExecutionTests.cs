@@ -52,7 +52,6 @@ public sealed class BookingExecutionTests : IClassFixture<TestDb>
         var booking = await _db.BookingService().CreateAsync(actor, new BookingInput
         {
             BranchId = branch, BookingDate = DateTime.Today, CustomerId = customer.Id,
-            ExpiresAt = DateTimeOffset.UtcNow.AddMonths(6),
             Lines = { new BookingLineInput { ItemId = item.Id, UnitId = item.BaseUnitId,
                 WarehouseId = warehouse, Quantity = 5, UnitPrice = 100 } }
         });
