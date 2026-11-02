@@ -1,6 +1,7 @@
 using Dapper;
 using Npgsql;
 using Ubp.Core.Models;
+using Ubp.Core.Paging;
 using Ubp.Core.Results;
 using Xunit;
 
@@ -81,12 +82,33 @@ public sealed class PosTests : IClassFixture<TestDb>
         Assert.Equal(BookingStatuses.Confirmed, booking.Status);
         Assert.Equal(BookingSources.Pos, booking.Source);
 
+        var schedule = await connection.QuerySingleAsync<(DateTime? Starts, DateTime? Ends,
+            Guid? EmployeeId)>(
+            "SELECT starts_at, ends_at, assigned_employee_id FROM bookings WHERE id = @id",
+            new { id = receipt.BookingId });
+        Assert.Null(schedule.Starts);
+        Assert.Null(schedule.Ends);
+        Assert.Null(schedule.EmployeeId);
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
+            "SELECT count(*) FROM appointments WHERE booking_id = @id",
+            new { id = receipt.BookingId }));
+
         Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
             "SELECT count(*) FROM vouchers WHERE branch_id = @b", new { b = f.Branch }));
         Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
             "SELECT count(*) FROM commercial_documents WHERE branch_id = @b", new { b = f.Branch }));
         Assert.Equal(8m, await _db.BookingService().AvailableAsync(await _db.AdminActorAsync(),
             f.Item.Id, f.Warehouse));
+
+        var actor = await _db.AdminActorAsync();
+        var page = new PageRequest { Page = 1, PageSize = 25 };
+        var manual = await _db.BookingService().ListAsync(actor, new BookingFilter
+        { BranchId = f.Branch, Source = BookingSources.Manual }, page);
+        Assert.DoesNotContain(manual.Items, b => b.Id == receipt.BookingId);
+
+        var pos = await _db.BookingService().ListAsync(actor, new BookingFilter
+        { BranchId = f.Branch, Source = BookingSources.Pos }, page);
+        Assert.Contains(pos.Items, b => b.Id == receipt.BookingId);
     }
 
     [Fact]
@@ -116,77 +138,6 @@ public sealed class PosTests : IClassFixture<TestDb>
         Assert.Contains(entries, l => l.Code == "1130" && l.Debit == 39.2m);
         Assert.Contains(entries, l => l.Code == "5200" && l.Debit == 0.8m);
         Assert.Contains(entries, l => l.Code == "1110" && l.Credit == 100m);
-    }
-
-    [Fact]
-    public async Task Pos_appointment_booking_saves_time_without_price_or_quantity()
-    {
-        var actor = await _db.AdminActorAsync();
-        var f = await SetupAsync("6");
-        var unit = f.Item.BaseUnitId;
-        var service = await _db.ItemRepo.CreateAsync(new ItemInput
-        {
-            Code = "POS-APPT-6", NameAr = "خدمة موعد", BaseUnitId = unit, ItemType = "SERVICE",
-            Units = { new ItemUnitInput { UnitId = unit, ConversionFactor = 1 } }
-        });
-        var start = new DateTimeOffset(DateTime.Today.AddHours(10));
-
-        var receipt = await _db.Pos().BookAppointmentAsync(actor, new PosAppointmentInput
-        {
-            BranchId = f.Branch, CustomerId = f.Customer.Id, WarehouseId = f.Warehouse,
-            ItemId = service.Id, StartsAt = start, EndsAt = start.AddMinutes(30)
-        });
-
-        Assert.Equal(0m, receipt.Total);
-        Assert.StartsWith("BK-", receipt.BookingNo);
-
-        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
-        await connection.OpenAsync();
-        var booking = await connection.QuerySingleAsync<(DateTime Starts, DateTime Ends,
-            decimal Total)>( "SELECT starts_at, ends_at, total_amount FROM bookings WHERE id = @id",
-            new { id = receipt.BookingId });
-        Assert.Equal(start.ToUniversalTime().DateTime, booking.Starts);
-        Assert.Equal(start.AddMinutes(30).ToUniversalTime().DateTime, booking.Ends);
-        Assert.Equal(0m, booking.Total);
-
-        var line = await connection.QuerySingleAsync<(decimal Quantity, decimal Price) >(
-            "SELECT quantity, unit_price FROM booking_lines WHERE booking_id = @id",
-            new { id = receipt.BookingId });
-        Assert.Equal(1m, line.Quantity);
-        Assert.Equal(0m, line.Price);
-
-        Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
-            "SELECT count(*) FROM vouchers WHERE branch_id = @b", new { b = f.Branch }));
-    }
-
-    [Fact]
-    public async Task Pos_appointment_rejects_goods_and_invalid_range()
-    {
-        var actor = await _db.AdminActorAsync();
-        var f = await SetupAsync("7");
-        var start = new DateTimeOffset(DateTime.Today.AddHours(10));
-
-        var goods = await Assert.ThrowsAsync<ValidationAppException>(() =>
-            _db.Pos().BookAppointmentAsync(actor, new PosAppointmentInput
-            {
-                BranchId = f.Branch, CustomerId = f.Customer.Id, WarehouseId = f.Warehouse,
-                ItemId = f.Item.Id, StartsAt = start, EndsAt = start.AddMinutes(30)
-            }));
-        Assert.Equal("validation.item_not_service", goods.Code);
-
-        var unit = f.Item.BaseUnitId;
-        var service = await _db.ItemRepo.CreateAsync(new ItemInput
-        {
-            Code = "POS-APPT-7", NameAr = "خدمة", BaseUnitId = unit, ItemType = "SERVICE",
-            Units = { new ItemUnitInput { UnitId = unit, ConversionFactor = 1 } }
-        });
-        var range = await Assert.ThrowsAsync<ValidationAppException>(() =>
-            _db.Pos().BookAppointmentAsync(actor, new PosAppointmentInput
-            {
-                BranchId = f.Branch, CustomerId = f.Customer.Id, WarehouseId = f.Warehouse,
-                ItemId = service.Id, StartsAt = start, EndsAt = start.AddMinutes(-30)
-            }));
-        Assert.Equal("validation.booking_time_range", range.Code);
     }
 
     [Fact]

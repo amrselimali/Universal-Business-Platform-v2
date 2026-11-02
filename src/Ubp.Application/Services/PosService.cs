@@ -6,7 +6,7 @@ using Ubp.Infrastructure.Repositories;
 
 namespace Ubp.Application.Services;
 
-/// <summary>نقطة البيع: حجز + تنفيذ + فاتورة + قبض في معاملة واحدة (4G).</summary>
+/// <summary>نقطة البيع: حجز منتجات + تحصيل اختياري في معاملة واحدة؛ لا مواعيد.</summary>
 public sealed class PosService
 {
     private readonly IPosRepository _pos;
@@ -41,22 +41,6 @@ public sealed class PosService
                 receipt.BookingNo, receipt.Total, receipt.Paid,
                 Vouchers = receipt.Vouchers.Select(v => v.VoucherNo).ToArray()
             }, ct);
-        return receipt;
-    }
-
-    /// <summary>حجز موعد خدمة بوقت من/إلى دون أسعار أو كميات أو تحصيل.</summary>
-    public async Task<PosReceipt> BookAppointmentAsync(ActorContext actor,
-        PosAppointmentInput input, CancellationToken ct = default)
-    {
-        await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.Checkout,
-            ct: ct);
-        PosReceipt receipt;
-        BranchScope.Ensure(actor, input.BranchId);
-        try { receipt = await _pos.BookAppointmentAsync(input, actor.UserId, ct); }
-        catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
-
-        await _audit.WriteAsync(actor, "bookings", receipt.BookingId.ToString(), "INSERT", null,
-            new { receipt.BookingNo, Appointment = true, input.StartsAt, input.EndsAt }, ct);
         return receipt;
     }
 

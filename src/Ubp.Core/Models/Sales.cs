@@ -116,6 +116,9 @@ public sealed class BookingFilter
     public string? Status { get; set; }
     public Guid? CustomerId { get; set; }
     public string? Search { get; set; }
+
+    /// <summary>مصدر الحجز: manual للحجوزات/المواعيد، pos لمبيعات نقطة البيع.</summary>
+    public string? Source { get; set; }
 }
 
 public sealed class BookingInput

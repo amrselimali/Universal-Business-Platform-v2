@@ -12,13 +12,12 @@ public interface IPosRepository
         CancellationToken ct = default);
     Task<IReadOnlyList<CommercialDocument>> ListReceiptsAsync(Guid? branchId, int limit,
         CancellationToken ct = default);
-    Task<PosReceipt> BookAppointmentAsync(PosAppointmentInput input, Guid userId,
-        CancellationToken ct = default);
 }
 
 /// <summary>
-/// نقطة البيع السريعة = إنشاء حجز فقط (source = pos) مع تحصيل اختياري
-/// بأكثر من وسيلة دفع، وقد لا يوجد تحصيل أصلاً. لا تنشئ تنفيذاً ولا فاتورة.
+/// نقطة البيع السريعة = حجز منتجات فقط (source = pos) مع تحصيل اختياري
+/// بأكثر من وسيلة دفع، وقد لا يوجد تحصيل أصلاً. لا تنشئ تنفيذاً ولا فاتورة
+/// ولا موعداً؛ المواعيد تُدار حصراً من شاشة المواعيد.
 /// </summary>
 public sealed partial class PosRepository : IPosRepository
 {
@@ -83,9 +82,9 @@ public sealed partial class PosRepository : IPosRepository
             input.DocDate, "BK", ct);
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO bookings (id, branch_id, doc_no, booking_date, status, customer_id, source,
-                due_date, total_amount, notes, created_by)
+                due_date, starts_at, ends_at, assigned_employee_id, total_amount, notes, created_by)
             VALUES (@bookingId, @BranchId, @bookingNo, @docDate, 'confirmed', @CustomerId, 'pos',
-                    @docDate, @total, @Notes, @userId)
+                    @docDate, NULL, NULL, NULL, @total, @Notes, @userId)
             """, new { bookingId, input.BranchId, bookingNo, docDate = input.DocDate.Date,
                 input.CustomerId, total, input.Notes, userId }, tx, cancellationToken: ct));
 

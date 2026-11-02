@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-11-02 — POS is product-only; appointments stay in their own screen
+
+### Changed
+- Removed **حجز موعد** from `/pos/terminal`: no mode toggle, no appointment form, and no
+  `PosService.BookAppointmentAsync` / `IPosRepository.BookAppointmentAsync` / `PosAppointmentInput`.
+- POS checkout now writes a product booking only: `source='pos'` with explicit
+  `starts_at = ends_at = assigned_employee_id = NULL`, so it can never be an appointment.
+- `/sales/bookings` has a **مصدر الحجز** filter and defaults to `manual` (bookings/appointments);
+  POS product bookings are hidden by default and can be viewed by selecting **مبيعات نقطة البيع**.
+- Added `BookingFilter.Source` and repository filtering by `bookings.source`.
+
+### Tests
+- Removed the two POS appointment tests that no longer apply.
+- Updated `Pos_checkout_creates_booking_only_when_no_payment` to assert no time/employee,
+  no `appointments` row, and separation from the `manual` booking filter.
+- Build 0 errors; full suite 260 passed + QA end-to-end passed after provisioning `ubp_qa`.
+
 ## 2026-11-01 — Complete Arabic user manual + asset screen title
 
 ### Added
