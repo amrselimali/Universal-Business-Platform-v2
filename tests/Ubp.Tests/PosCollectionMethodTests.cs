@@ -135,6 +135,40 @@ public sealed class PosCollectionMethodTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Branch_whatsapp_settings_enable_sending_without_global_config()
+    {
+        var actor = await _db.AdminActorAsync();
+        var f = await SetupAsync("7", 0m);
+        var settings = await _db.BranchWhatsApp().SaveAsync(actor, new BranchWhatsAppSettingsInput
+        {
+            BranchId = f.Branch, IsEnabled = true, PhoneNumberId = "111111111111111",
+            MessagingAccountId = "222222222222222", AccessToken = "dummy-token"
+        });
+        Assert.True(settings.IsEnabled);
+
+        await using (var connection = new NpgsqlConnection(TestDb.AdminConnection))
+        {
+            await connection.OpenAsync();
+            await connection.ExecuteAsync(
+                "UPDATE customers SET phone = '201001234567' WHERE id = @id",
+                new { id = f.Customer.Id });
+        }
+
+        var notifier = new WhatsAppReceiptNotifier(new MessageOutboxRepository(_db.Factory),
+            _db.PartnerRepo, new BranchWhatsAppSettingsRepository(_db.Factory),
+            Options.Create(new WhatsAppOptions { Enabled = false }));
+        Assert.True(await notifier.NotifyAsync(f.Branch, f.Customer.Id, "RCV-000123", 100m, 100m,
+            null));
+
+        await using var check = new NpgsqlConnection(TestDb.AdminConnection);
+        await check.OpenAsync();
+        var payload = await check.ExecuteScalarAsync<string>(
+            "SELECT payload::text FROM message_outbox WHERE dedupe_key = 'receipt:RCV-000123'");
+        Assert.NotNull(payload);
+        Assert.Contains(f.Branch.ToString(), payload);
+    }
+
+    [Fact]
     public async Task WhatsApp_uses_the_designated_contact_number()
     {
         var f = await SetupAsync("6", 0m);
@@ -149,8 +183,9 @@ public sealed class PosCollectionMethodTests : IClassFixture<TestDb>
         }
 
         var notifier = new WhatsAppReceiptNotifier(new MessageOutboxRepository(_db.Factory),
-            _db.PartnerRepo, Options.Create(new WhatsAppOptions { Enabled = true }));
-        Assert.True(await notifier.NotifyAsync(f.Customer.Id, "RCV-000099", 100m, 100m, null));
+            _db.PartnerRepo, new BranchWhatsAppSettingsRepository(_db.Factory),
+            Options.Create(new WhatsAppOptions { Enabled = true }));
+        Assert.True(await notifier.NotifyAsync(f.Branch, f.Customer.Id, "RCV-000099", 100m, 100m, null));
 
         await using var check = new NpgsqlConnection(TestDb.AdminConnection);
         await check.OpenAsync();
@@ -171,10 +206,11 @@ public sealed class PosCollectionMethodTests : IClassFixture<TestDb>
         }
 
         var notifier = new WhatsAppReceiptNotifier(new MessageOutboxRepository(_db.Factory),
-            _db.PartnerRepo, Options.Create(new WhatsAppOptions { Enabled = true }));
+            _db.PartnerRepo, new BranchWhatsAppSettingsRepository(_db.Factory),
+            Options.Create(new WhatsAppOptions { Enabled = true }));
 
-        await notifier.NotifyAsync(f.Customer.Id, "RCV-000042", 200m, 100m, 100m);
-        await notifier.NotifyAsync(f.Customer.Id, "RCV-000042", 200m, 100m, 100m);
+        await notifier.NotifyAsync(f.Branch, f.Customer.Id, "RCV-000042", 200m, 100m, 100m);
+        await notifier.NotifyAsync(f.Branch, f.Customer.Id, "RCV-000042", 200m, 100m, 100m);
 
         await using var check = new NpgsqlConnection(TestDb.AdminConnection);
         await check.OpenAsync();

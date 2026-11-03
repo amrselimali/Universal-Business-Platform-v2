@@ -48,8 +48,9 @@ public sealed partial class MessageOutboxRepository : IMessageOutboxRepository
     public async Task<Guid?> EnqueueAsync(OutboxMessageInput input, CancellationToken ct = default)
     {
         const string sql = """
-            INSERT INTO message_outbox (channel, recipient, template_key, body, dedupe_key)
-            VALUES (@Channel, @Recipient, @TemplateKey, @Body, @DedupeKey)
+            INSERT INTO message_outbox (channel, recipient, template_key, body, dedupe_key, payload)
+            VALUES (@Channel, @Recipient, @TemplateKey, @Body, @DedupeKey,
+                    CAST(@PayloadJson AS jsonb))
             ON CONFLICT (dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING
             RETURNING id
             """;
@@ -62,7 +63,8 @@ public sealed partial class MessageOutboxRepository : IMessageOutboxRepository
                 Recipient = input.Recipient.Trim(),
                 input.TemplateKey,
                 Body = input.Body.Trim(),
-                DedupeKey = Normalize(input.DedupeKey)
+                DedupeKey = Normalize(input.DedupeKey),
+                PayloadJson = string.IsNullOrWhiteSpace(input.PayloadJson) ? "{}" : input.PayloadJson
             }, cancellationToken: ct));
         }
         catch (PostgresException ex) when (ex.SqlState == "23514")

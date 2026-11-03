@@ -52,7 +52,7 @@ public sealed class PosService
 
         // إشعار العميل بالإيصال (واتساب) عند وجود مبلغ محصّل.
         if (receipt.Paid > 0)
-            await _notifier.NotifyAsync(input.CustomerId, receipt.BookingNo ?? "",
+            await _notifier.NotifyAsync(input.BranchId, input.CustomerId, receipt.BookingNo ?? "",
                 receipt.Total + receipt.FeeTotal, receipt.Paid,
                 Math.Max(receipt.Total + receipt.FeeTotal - receipt.Paid, 0), ct);
 
@@ -81,8 +81,8 @@ public sealed class PosService
             throw new NotFoundAppException();
         BranchScope.Ensure(actor, head.BranchId);
 
-        var sent = await _notifier.NotifyAsync(head.CustomerId.Value, head.DocNo, head.Total,
-            head.Total, null, ct);
+        var sent = await _notifier.NotifyAsync(head.BranchId, head.CustomerId.Value, head.DocNo,
+            head.Total, head.Total, null, ct);
         await _audit.WriteAsync(actor, "message_outbox", voucherId.ToString(), "INSERT", null,
             new { Channel = MessageChannels.WhatsApp, head.DocNo, Sent = sent }, ct);
         return sent;

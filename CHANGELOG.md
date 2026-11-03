@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-03 — Per-branch WhatsApp settings
+
+### Added
+- `branch_whatsapp_settings` (migration `0069`): every branch stores its own WhatsApp Cloud API
+  settings (enabled, API URL, Phone Number ID, Messaging Account ID, access token), managed from
+  «الفروع» → «إعدادات واتساب» (permission `ManageDefaults`, branch-scoped).
+- Receipt messages carry the branch id in the outbox payload; the dispatcher sends with the branch
+  credentials and falls back to the global `WhatsApp` options when the branch is disabled. The
+  token lives only in the database, is never logged, and an empty value keeps the current token.
+- Tests: branch settings enable sending without global configuration and the payload carries the
+  branch. Full suite (296) passes.
+
+### Security
+- Tokens must be entered from the branch dialog, never committed to the repository. Any token
+  shared outside the app should be rotated from the Meta dashboard.
+
 ## 2026-11-03 — Receipt viewing, save-and-send WhatsApp and contact numbers
 
 ### Added

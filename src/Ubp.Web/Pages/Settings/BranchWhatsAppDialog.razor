@@ -1,0 +1,78 @@
+@inject BranchWhatsAppSettingsService WhatsApp
+@inject UserContext UserContext
+@inject UiCulture T
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("branches.whatsapp") — @BranchName</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudSwitch T="bool" @bind-Value="_input.IsEnabled" Color="Color.Success"
+                           Label="@T.T("branches.whatsapp_enabled")" Class="ubp-span-2" />
+                <MudTextField @bind-Value="_input.ApiUrl" Label="@T.T("branches.whatsapp_api_url")"
+                              Variant="Variant.Outlined" MaxLength="300" Class="ubp-span-2" />
+                <MudTextField @bind-Value="_input.PhoneNumberId"
+                              Label="@T.T("branches.whatsapp_phone_number_id")"
+                              Variant="Variant.Outlined" MaxLength="60" />
+                <MudTextField @bind-Value="_input.MessagingAccountId"
+                              Label="@T.T("branches.whatsapp_account_id")"
+                              Variant="Variant.Outlined" MaxLength="60" />
+                <MudTextField @bind-Value="_input.AccessToken" Label="@T.T("branches.whatsapp_token")"
+                              Variant="Variant.Outlined" InputType="InputType.Password"
+                              MaxLength="600" Class="ubp-span-2" />
+                <MudText Typo="Typo.caption" Class="ubp-muted ubp-span-2">
+                    @T.T("branches.whatsapp_token_hint")
+                </MudText>
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid BranchId { get; set; }
+    [Parameter] public string? BranchName { get; set; }
+
+    private MudForm _form = default!;
+    private BranchWhatsAppSettingsInput _input = new();
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _input.BranchId = BranchId;
+        var actor = await UserContext.GetAsync();
+        if (actor is null) return;
+        var settings = await WhatsApp.GetAsync(actor, BranchId);
+        _input = new BranchWhatsAppSettingsInput
+        {
+            BranchId = BranchId, IsEnabled = settings.IsEnabled, ApiUrl = settings.ApiUrl,
+            PhoneNumberId = settings.PhoneNumberId,
+            MessagingAccountId = settings.MessagingAccountId, AccessToken = settings.AccessToken
+        };
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var saved = await WhatsApp.SaveAsync(actor, _input);
+            MudDialog.Close(DialogResult.Ok(saved));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

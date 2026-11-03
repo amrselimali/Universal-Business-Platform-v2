@@ -59,6 +59,12 @@ else
                                 @T.T("common.edit")
                             </MudMenuItem>
                         }
+                        @if (Can(ActionCodes.ManageDefaults))
+                        {
+                            <MudMenuItem OnClick="@(() => WhatsAppAsync(context))" Icon="@Icons.Material.Filled.Chat">
+                                @T.T("branches.whatsapp")
+                            </MudMenuItem>
+                        }
                         @if (Can(ActionCodes.Delete))
                         {
                             <MudMenuItem OnClick="@(() => DeleteAsync(context))" Icon="@Icons.Material.Filled.Delete">

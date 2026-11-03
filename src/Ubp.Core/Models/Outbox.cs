@@ -45,4 +45,6 @@ public sealed class OutboxMessageInput
     public string? TemplateKey { get; set; }
     public string Body { get; set; } = "";
     public string? DedupeKey { get; set; }
+    /// <summary>حمولة JSON إضافية (مثل branch_id) تُستخدم عند الإرسال.</summary>
+    public string PayloadJson { get; set; } = "{}";
 }

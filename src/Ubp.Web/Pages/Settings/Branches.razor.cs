@@ -38,6 +38,13 @@ public partial class Branches
     private async Task ReloadAsync() => await _table.ReloadServerData();
     private async Task OnFilterChanged(bool value) { _includeInactive = value; await ReloadAsync(); }
 
+    private async Task WhatsAppAsync(Branch branch)
+    {
+        var dialog = await DialogService.ShowAsync<BranchWhatsAppDialog>(T.T("branches.whatsapp"),
+            new DialogParameters { ["BranchId"] = branch.Id, ["BranchName"] = branch.NameAr });
+        if ((await dialog.Result) is { Canceled: false }) ShowSuccess("common.saved");
+    }
+
     private async Task AddAsync()
     {
         var dialog = await DialogService.ShowAsync<BranchDialog>(T.T("branches.add"), new DialogParameters());

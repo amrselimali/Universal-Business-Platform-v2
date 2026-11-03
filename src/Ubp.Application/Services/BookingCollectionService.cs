@@ -51,8 +51,8 @@ public sealed class BookingCollectionService
                 Lines = input.Lines.Select(l => new { l.BookingId, l.Amount }).ToArray()
             }, ct);
 
-        await _notifier.NotifyAsync(input.CustomerId, result.VoucherNo ?? "", result.Total,
-            result.Total, null, ct);
+        await _notifier.NotifyAsync(input.BranchId, input.CustomerId, result.VoucherNo ?? "",
+            result.Total, result.Total, null, ct);
         return result;
     }
 }
