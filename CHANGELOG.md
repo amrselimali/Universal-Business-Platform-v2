@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-11-03 — Sidebar order and sales screen names
+
+### Changed
+- Sidebar sales group now starts with **حجز موعد** (bookings), then **متابعات العملاء**
+  (follow-ups), then **نقطة البيع** (POS terminal), then **الخدمات المحجوزة** (reserved
+  services / reservations); the remaining screens keep their existing registry order.
+- Renamed screen titles: `screen.sales_bookings` → «حجز موعد» / “Appointment booking”, and
+  `screen.reservations` → «الخدمات المحجوزة» / “Reserved services” (sidebar, page title and
+  header share the same keys).
+- Ordering is presentation-only, isolated in `NavOrder` (no change to `AppRegistry` screen
+  definitions, permissions, routes or data).
+
 ## 2026-11-03 — Booking end date removed from booking creation
 
 ### Changed

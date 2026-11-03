@@ -48,7 +48,9 @@
                 var group = groups.FirstOrDefault(g => g.TitleKey == screen.GroupKey);
                 group?.Screens.Add(screen);
             }
-            return groups;
+            return groups
+                .Select(g => g with { Screens = NavOrder.Apply(g.Screens).ToList() })
+                .ToList();
         }
     }
 }
