@@ -50,6 +50,7 @@ public sealed partial class PosRepository : IPosRepository
         public string TreasuryType { get; set; } = TreasuryTypes.Cash;
         public Guid AccountId { get; set; }
         public Guid? ClearingAccountId { get; set; }
+        public Guid? FeeAccountId { get; set; }
         public decimal FeePercent { get; set; }
         public decimal FeeFixed { get; set; }
         public bool RequiresReference { get; set; }
@@ -167,8 +168,8 @@ public sealed partial class PosRepository : IPosRepository
                 gl.Add(new EntryLine(payment.ClearingAccountId ?? payment.AccountId,
                     payment.Amount - fee, 0));
                 if (fee > 0)
-                    gl.Add(new EntryLine(await NeedAsync(connection, tx, PostingKeys.PaymentFees, ct),
-                        fee, 0));
+                    gl.Add(new EntryLine(payment.FeeAccountId ??
+                        await NeedAsync(connection, tx, PostingKeys.PaymentFees, ct), fee, 0));
             }
 
             gl.Add(new EntryLine(
@@ -228,7 +229,8 @@ public sealed partial class PosRepository : IPosRepository
                 new CommandDefinition("""
                 SELECT t.id AS TreasuryId, m.id AS TreasuryMethodId, t.branch_id AS BranchId,
                        t.treasury_type AS TreasuryType, t.account_id AS AccountId,
-                       m.clearing_account_id AS ClearingAccountId, m.fee_percent AS FeePercent,
+                       m.clearing_account_id AS ClearingAccountId, m.fee_account_id AS FeeAccountId,
+                       m.fee_percent AS FeePercent,
                        m.fee_fixed AS FeeFixed, m.requires_reference AS RequiresReference
                 FROM treasury_methods m JOIN treasuries t ON t.id = m.treasury_id
                 WHERE m.id = @methodId AND m.treasury_id = @treasuryId

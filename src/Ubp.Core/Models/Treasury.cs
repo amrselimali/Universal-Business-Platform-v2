@@ -91,6 +91,7 @@ public sealed class TreasuryMethod
     public string NameAr { get; set; } = "";
     public string MethodType { get; set; } = PaymentMethodTypes.Cash;
     public Guid? ClearingAccountId { get; set; }
+    public Guid? FeeAccountId { get; set; }
     public decimal FeePercent { get; set; }
     public decimal FeeFixed { get; set; }
     public bool RequiresReference { get; set; }
@@ -105,6 +106,7 @@ public sealed class TreasuryMethodInput
     public string? NameEn { get; set; }
     public string MethodType { get; set; } = PaymentMethodTypes.Cash;
     public Guid? ClearingAccountId { get; set; }
+    public Guid? FeeAccountId { get; set; }
     public decimal FeePercent { get; set; }
     public decimal FeeFixed { get; set; }
     public bool RequiresReference { get; set; }

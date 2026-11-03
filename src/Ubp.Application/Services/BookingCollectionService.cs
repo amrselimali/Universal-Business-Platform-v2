@@ -15,11 +15,13 @@ public sealed class BookingCollectionService
     private readonly IBookingCollectionRepository _collections;
     private readonly PermissionService _permissions;
     private readonly AuditService _audit;
+    private readonly IReceiptNotifier _notifier;
 
     public BookingCollectionService(IBookingCollectionRepository collections,
-        PermissionService permissions, AuditService audit)
+        PermissionService permissions, AuditService audit, IReceiptNotifier notifier)
     {
         _collections = collections; _permissions = permissions; _audit = audit;
+        _notifier = notifier;
     }
 
     public async Task<IReadOnlyList<BookingCollectionRow>> ListOutstandingAsync(
@@ -48,6 +50,9 @@ public sealed class BookingCollectionService
                 input.CustomerId, result.VoucherNo, result.Total, result.Fee,
                 Lines = input.Lines.Select(l => new { l.BookingId, l.Amount }).ToArray()
             }, ct);
+
+        await _notifier.NotifyAsync(input.CustomerId, result.VoucherNo ?? "", result.Total,
+            result.Total, null, ct);
         return result;
     }
 }

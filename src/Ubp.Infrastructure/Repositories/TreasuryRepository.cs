@@ -15,6 +15,9 @@ public interface ITreasuryRepository
     Task<bool> SetMainAsync(Guid treasuryId, Guid userId, CancellationToken ct = default);
     Task<Guid?> GetMainAsync(CancellationToken ct = default);
     Task<IReadOnlyList<TreasuryMethod>> ListMethodsAsync(Guid treasuryId, CancellationToken ct = default);
+    /// <summary>كل طرق التحصيل المكوَّدة في خزائن الفرع (لقراءتها من شاشة POS).</summary>
+    Task<IReadOnlyList<TreasuryMethod>> ListBranchMethodsAsync(Guid branchId,
+        CancellationToken ct = default);
 
     Task<Guid> CreateVoucherAsync(Guid id, VoucherInput input, Guid userId, CancellationToken ct = default);
     Task<Voucher?> GetVoucherAsync(Guid id, CancellationToken ct = default);
@@ -76,13 +79,14 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
         await using var connection = await _factory.OpenAsync(ct);
         return await connection.ExecuteScalarAsync<Guid>(new CommandDefinition("""
             INSERT INTO treasury_methods (id, treasury_id, code, name_ar, name_en, method_type,
-                clearing_account_id, fee_percent, fee_fixed, requires_reference, created_by)
+                clearing_account_id, fee_account_id, fee_percent, fee_fixed, requires_reference,
+                created_by)
             VALUES (@id, @TreasuryId, @Code, @NameAr, @NameEn, @MethodType, @ClearingAccountId,
-                    @FeePercent, @FeeFixed, @RequiresReference, @userId)
+                    @FeeAccountId, @FeePercent, @FeeFixed, @RequiresReference, @userId)
             RETURNING id
             """, new { id, input.TreasuryId, input.Code, input.NameAr, input.NameEn,
-                input.MethodType, input.ClearingAccountId, input.FeePercent, input.FeeFixed,
-                input.RequiresReference, userId }, cancellationToken: ct));
+                input.MethodType, input.ClearingAccountId, input.FeeAccountId, input.FeePercent,
+                input.FeeFixed, input.RequiresReference, userId }, cancellationToken: ct));
     }
 
     public async Task<IReadOnlyList<Treasury>> ListTreasuriesAsync(Guid? branchId,
@@ -108,10 +112,28 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
         return (await connection.QueryAsync<TreasuryMethod>(new CommandDefinition("""
             SELECT m.id AS Id, m.treasury_id AS TreasuryId, m.code AS Code, m.name_ar AS NameAr,
                    m.method_type AS MethodType, m.clearing_account_id AS ClearingAccountId,
+                   m.fee_account_id AS FeeAccountId,
                    m.fee_percent AS FeePercent, m.fee_fixed AS FeeFixed,
                    m.requires_reference AS RequiresReference, m.is_active AS IsActive
             FROM treasury_methods m WHERE m.treasury_id = @treasuryId AND m.is_active
             ORDER BY m.code
             """, new { treasuryId }, cancellationToken: ct))).ToList();
+    }
+
+    public async Task<IReadOnlyList<TreasuryMethod>> ListBranchMethodsAsync(Guid branchId,
+        CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return (await connection.QueryAsync<TreasuryMethod>(new CommandDefinition("""
+            SELECT m.id AS Id, m.treasury_id AS TreasuryId, m.code AS Code, m.name_ar AS NameAr,
+                   m.method_type AS MethodType, m.clearing_account_id AS ClearingAccountId,
+                   m.fee_account_id AS FeeAccountId,
+                   m.fee_percent AS FeePercent, m.fee_fixed AS FeeFixed,
+                   m.requires_reference AS RequiresReference, m.is_active AS IsActive
+            FROM treasury_methods m
+            JOIN treasuries t ON t.id = m.treasury_id
+            WHERE t.branch_id = @branchId AND t.is_active AND m.is_active
+            ORDER BY t.code, m.code
+            """, new { branchId }, cancellationToken: ct))).ToList();
     }
 }

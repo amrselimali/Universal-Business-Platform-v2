@@ -36,6 +36,7 @@ public partial class Terminal : SecurePageBase
 
     private sealed class PaymentModel
     {
+        public Guid TreasuryId { get; set; }
         public Guid TreasuryMethodId { get; set; }
         public decimal Amount { get; set; }
     }
@@ -97,8 +98,7 @@ public partial class Terminal : SecurePageBase
         _warehouseId = _warehouses.FirstOrDefault()?.Id ?? Guid.Empty;
         var treasuries = await Treasury.ListTreasuriesAsync(Actor!, _branchId);
         _treasuryId = treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
-        _methods = _treasuryId == Guid.Empty ? Array.Empty<TreasuryMethod>()
-            : await Treasury.ListMethodsAsync(Actor!, _treasuryId);
+        _methods = await Treasury.ListBranchMethodsAsync(Actor!, _branchId);
         await SearchAsync();
     }
 
@@ -156,13 +156,21 @@ public partial class Terminal : SecurePageBase
                 MidpointRounding.AwayFromZero);
     }
 
+    private void PickMethod(PaymentModel payment, Guid methodId)
+    {
+        payment.TreasuryMethodId = methodId;
+        var method = _methods.FirstOrDefault(m => m.Id == methodId);
+        if (method is not null) payment.TreasuryId = method.TreasuryId;
+        StateHasChanged();
+    }
+
     private void AddPayment()
     {
         var method = _methods.FirstOrDefault();
         if (method is null) return;
         _payments.Add(new PaymentModel
         {
-            TreasuryMethodId = method.Id,
+            TreasuryId = method.TreasuryId, TreasuryMethodId = method.Id,
             Amount = Math.Max(Total - Paid, 0)
         });
         StateHasChanged();
@@ -171,9 +179,9 @@ public partial class Terminal : SecurePageBase
     private async Task CollectBookingsAsync()
     {
         if (_customerId == Guid.Empty || _branchId == Guid.Empty) return;
-        if (_treasuryId == Guid.Empty || _methods.Count == 0)
+        if (_methods.Count == 0)
         {
-            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            Snackbar.Add(T.T("pos.no_collection_methods"), Severity.Warning);
             return;
         }
 
@@ -181,8 +189,7 @@ public partial class Terminal : SecurePageBase
             new DialogParameters
             {
                 ["BranchId"] = _branchId, ["CustomerId"] = _customerId,
-                ["CustomerName"] = _customerName, ["TreasuryId"] = _treasuryId,
-                ["Methods"] = _methods
+                ["CustomerName"] = _customerName, ["Methods"] = _methods
             });
         if ((await dialog.Result) is { Canceled: false }) StateHasChanged();
     }
@@ -213,7 +220,7 @@ public partial class Terminal : SecurePageBase
                 }).ToList(),
                 Payments = _payments.Where(p => p.Amount > 0).Select(p => new PosPaymentInput
                 {
-                    TreasuryId = _treasuryId, TreasuryMethodId = p.TreasuryMethodId,
+                    TreasuryId = p.TreasuryId, TreasuryMethodId = p.TreasuryMethodId,
                     Amount = p.Amount
                 }).ToList()
             });

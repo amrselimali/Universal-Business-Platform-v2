@@ -11,6 +11,7 @@
                 <MudTh>@T.T("common.name_ar")</MudTh>
                 <MudTh>@T.T("treasury.method_type")</MudTh>
                 <MudTh>@T.T("treasury.clearing_account")</MudTh>
+                <MudTh>@T.T("treasury.fee_account")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.fee_percent")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.fee_fixed")</MudTh>
                 <MudTh>@T.T("treasury.requires_reference")</MudTh>
@@ -20,6 +21,7 @@
                 <MudTd>@context.NameAr</MudTd>
                 <MudTd>@T.T("treasury.method_" + context.MethodType)</MudTd>
                 <MudTd>@AccountLabel(context.ClearingAccountId)</MudTd>
+                <MudTd>@AccountLabel(context.FeeAccountId)</MudTd>
                 <MudTd Align="Right">@context.FeePercent.ToString("N2")</MudTd>
                 <MudTd Align="Right">@context.FeeFixed.ToString("N2")</MudTd>
                 <MudTd>@(context.RequiresReference ? "✓" : "—")</MudTd>
@@ -44,6 +46,16 @@
                 </MudSelect>
                 <MudSelect T="Guid?" @bind-Value="_input.ClearingAccountId"
                            Label="@T.T("treasury.clearing_account")" Variant="Variant.Outlined"
+                           Clearable="true">
+                    @foreach (var account in _accounts)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)account.Id)">
+                            @account.Code — @account.DisplayName(_english)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid?" @bind-Value="_input.FeeAccountId"
+                           Label="@T.T("treasury.fee_account")" Variant="Variant.Outlined"
                            Clearable="true">
                     @foreach (var account in _accounts)
                     {

@@ -75,12 +75,13 @@ public sealed partial class TestDb
         SalesFinanceRepo, CommercialRepo, Permissions(), new AuditService(AuditRepo));
 
     public PosService Pos() => new(
-        PosRepo, Settings(), Permissions(), new AuditService(AuditRepo));
+        PosRepo, Settings(), Permissions(), new AuditService(AuditRepo), new NullReceiptNotifier());
 
     public BookingCollectionRepository BookingCollectionsRepo => new(Factory);
 
     public BookingCollectionService BookingCollections() => new(
-        BookingCollectionsRepo, Permissions(), new AuditService(AuditRepo));
+        BookingCollectionsRepo, Permissions(), new AuditService(AuditRepo),
+        new NullReceiptNotifier());
 
     public FollowUpService FollowUps() => new(
         FollowUpRepo, Permissions(), new AuditService(AuditRepo));

@@ -80,7 +80,6 @@
     [Parameter] public Guid BranchId { get; set; }
     [Parameter] public Guid CustomerId { get; set; }
     [Parameter] public string? CustomerName { get; set; }
-    [Parameter] public Guid TreasuryId { get; set; }
     [Parameter] public IReadOnlyList<TreasuryMethod> Methods { get; set; } =
         Array.Empty<TreasuryMethod>();
 
@@ -120,7 +119,8 @@
         var lines = _rows.Where(r => r.Selected && r.Amount > 0)
             .Select(r => new BookingCollectionLineInput { BookingId = r.BookingId, Amount = r.Amount })
             .ToList();
-        if (lines.Count == 0 || _methodId == Guid.Empty) return;
+        var method = Method;
+        if (lines.Count == 0 || method is null) return;
 
         _busy = true;
         try
@@ -128,8 +128,8 @@
             var actor = await UserContext.RequireAsync();
             var result = await Collections.CollectAsync(actor, new BookingCollectionInput
             {
-                BranchId = BranchId, CustomerId = CustomerId, TreasuryId = TreasuryId,
-                TreasuryMethodId = _methodId, DocDate = DateTime.Today, Lines = lines
+                BranchId = BranchId, CustomerId = CustomerId, TreasuryId = method.TreasuryId,
+                TreasuryMethodId = method.Id, DocDate = DateTime.Today, Lines = lines
             });
             Snackbar.Add(T.T("pos.collected") + $" — {result.VoucherNo}", Severity.Success);
             MudDialog.Close(DialogResult.Ok(result));

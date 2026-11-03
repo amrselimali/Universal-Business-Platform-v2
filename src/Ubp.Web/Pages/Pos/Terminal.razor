@@ -148,7 +148,7 @@ else
                     <RowTemplate>
                         <MudTd>
                             <MudSelect T="Guid" Value="context.TreasuryMethodId" Dense="true"
-                                       ValueChanged="@(v => context.TreasuryMethodId = v)">
+                                       ValueChanged="@(v => PickMethod(context, v))">
                                 @foreach (var method in _methods)
                                 {
                                     <MudSelectItem T="Guid" Value="@method.Id">

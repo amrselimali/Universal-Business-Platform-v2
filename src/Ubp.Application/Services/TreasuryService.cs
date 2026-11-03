@@ -69,6 +69,15 @@ public sealed partial class TreasuryService
         return await _treasury.ListMethodsAsync(treasuryId, ct);
     }
 
+    /// <summary>طرق التحصيل المكوَّدة في خزائن الفرع، تُقرأ من شاشة POS بصلاحية البيع.</summary>
+    public async Task<IReadOnlyList<TreasuryMethod>> ListBranchMethodsAsync(ActorContext actor,
+        Guid branchId, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.View, ct: ct);
+        BranchScope.Ensure(actor, branchId);
+        return await _treasury.ListBranchMethodsAsync(branchId, ct);
+    }
+
     public async Task<TreasuryMethod> CreateMethodAsync(ActorContext actor,
         TreasuryMethodInput input, CancellationToken ct = default)
     {
@@ -83,6 +92,12 @@ public sealed partial class TreasuryService
             throw new ValidationAppException("validation.clearing_account_required");
         if (input.FeePercent is < 0 or > 100 || input.FeeFixed < 0)
             throw new ValidationAppException("validation.payment_fee");
+        if (input.FeeAccountId is { } feeAccountId)
+        {
+            var postable = await _accounts.ListPostableAsync(ct);
+            if (postable.All(a => a.Id != feeAccountId))
+                throw new ValidationAppException("validation.account_not_postable");
+        }
 
         var id = Guid.CreateVersion7();
         try

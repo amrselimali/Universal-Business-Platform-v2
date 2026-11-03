@@ -27,10 +27,12 @@ public sealed partial class BookingCollectionRepository
         await using var tx = await connection.BeginTransactionAsync(ct);
 
         var treasury = await connection.QuerySingleOrDefaultAsync<(Guid AccountId, string Type,
-            Guid? ClearingAccountId, decimal FeePercent, decimal FeeFixed)>(new CommandDefinition("""
+            Guid? ClearingAccountId, Guid? FeeAccountId, decimal FeePercent, decimal FeeFixed)>(
+            new CommandDefinition("""
             SELECT t.account_id AS AccountId, t.treasury_type AS Type,
-                   m.clearing_account_id AS ClearingAccountId, m.fee_percent AS FeePercent,
-                   m.fee_fixed AS FeeFixed
+                   m.clearing_account_id AS ClearingAccountId,
+                   m.fee_account_id AS FeeAccountId,
+                   m.fee_percent AS FeePercent, m.fee_fixed AS FeeFixed
             FROM treasuries t
             JOIN treasury_methods m ON m.treasury_id = t.id
             WHERE t.id = @treasuryId AND t.branch_id = @branchId AND t.is_active
@@ -97,7 +99,8 @@ public sealed partial class BookingCollectionRepository
             new(treasury.ClearingAccountId ?? treasury.AccountId, total - fee, 0)
         };
         if (fee > 0)
-            gl.Add(new EntryLine(await NeedAsync(connection, tx, PostingKeys.PaymentFees, ct), fee, 0));
+            gl.Add(new EntryLine(treasury.FeeAccountId ??
+                await NeedAsync(connection, tx, PostingKeys.PaymentFees, ct), fee, 0));
         gl.Add(new EntryLine(await NeedAsync(connection, tx, PostingKeys.CustomerAdvances, ct),
             0, total, input.CustomerId));
 

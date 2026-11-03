@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-11-03 — POS collection methods, per-method fee accounts and WhatsApp receipts
+
+### Added
+- POS reads the collection methods coded in the treasuries screen for the branch (all active
+  treasuries), each carrying its treasury, clearing account, fee % and fee account.
+- `treasury_methods.fee_account_id` (migration `0067`): the payment-method fee is posted to its own
+  chart account (validated as postable when coding the method) and falls back to the global
+  `payment_fees` default when empty; applied to POS checkout and reserved-service collections.
+- WhatsApp receipt notification: receipts enqueue a WHATSAPP message in `message_outbox`
+  (deduplicated per receipt) and the outbox dispatcher sends it via Meta Cloud API when
+  `WhatsApp:Enabled`, `WhatsApp:PhoneNumberId` and `WhatsApp:Token` are configured; otherwise the
+  message is logged without failing the sale. The existing wa.me link remains as a manual fallback.
+- Tests: per-method fee account posting, branch-wide method listing, and one WhatsApp outbox row
+  per receipt. No changes to other screens or APIs.
+
 ## 2026-11-03 — POS collection of reserved services
 
 ### Added

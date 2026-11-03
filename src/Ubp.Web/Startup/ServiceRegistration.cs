@@ -14,6 +14,7 @@ using Ubp.Web.Endpoints;
 using Ubp.Web.Middleware;
 using Ubp.Web.Security;
 using Ubp.Web.Services;
+using Ubp.Web.Startup.Integrations;
 
 namespace Ubp.Web.Startup;
 
@@ -41,6 +42,8 @@ public static class ServiceRegistration
         services.AddMemoryCache();
         services.AddUbpDataProtection(configuration);
         services.Configure<OutboxOptions>(configuration.GetSection("Outbox"));
+        services.Configure<WhatsAppOptions>(configuration.GetSection("WhatsApp"));
+        services.AddHttpClient("whatsapp");
         services.AddHostedService<OutboxDispatcher>();
         services.Configure<BiOptions>(configuration.GetSection("Bi"));
         services.AddHostedService<BiRefreshWorker>();
@@ -206,7 +209,8 @@ public static class ServiceRegistration
         services.AddScoped<AssetService>();
         services.AddScoped<IMessageOutboxRepository, MessageOutboxRepository>();
         services.AddScoped<OutboxService>();
-        services.AddScoped<IMessageSender, LoggingMessageSender>();
+        services.AddScoped<IMessageSender, WhatsAppMessageSender>();
+        services.AddScoped<IReceiptNotifier, WhatsAppReceiptNotifier>();
         services.AddSingleton<NotificationBroadcaster>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<NotificationService>();

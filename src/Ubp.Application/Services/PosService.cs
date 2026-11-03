@@ -13,11 +13,13 @@ public sealed class PosService
     private readonly ISettingsService _settings;
     private readonly PermissionService _permissions;
     private readonly AuditService _audit;
+    private readonly IReceiptNotifier _notifier;
 
     public PosService(IPosRepository pos, ISettingsService settings, PermissionService permissions,
-        AuditService audit)
+        AuditService audit, IReceiptNotifier notifier)
     {
         _pos = pos; _settings = settings; _permissions = permissions; _audit = audit;
+        _notifier = notifier;
     }
 
     public async Task<PosReceipt> CheckoutAsync(ActorContext actor, PosCheckoutInput input,
@@ -47,6 +49,12 @@ public sealed class PosService
                 receipt.BookingNo, receipt.ExpiresAt, receipt.Total, receipt.Paid,
                 Vouchers = receipt.Vouchers.Select(v => v.VoucherNo).ToArray()
             }, ct);
+
+        // إشعار العميل بالإيصال (واتساب) عند وجود مبلغ محصّل.
+        if (receipt.Paid > 0)
+            await _notifier.NotifyAsync(input.CustomerId, receipt.BookingNo ?? "", receipt.Total,
+                receipt.Paid, Math.Max(receipt.Total - receipt.Paid, 0), ct);
+
         return receipt;
     }
 
