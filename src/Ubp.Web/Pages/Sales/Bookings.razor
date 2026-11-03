@@ -57,6 +57,7 @@ else
                 <MudTh>@T.T("sales.booking_no")</MudTh>
                 <MudTh>@T.T("sales.booking_date")</MudTh>
                 <MudTh>@T.T("sales.appointment_time")</MudTh>
+                <MudTh>@T.T("sales.booking_expiry")</MudTh>
                 <MudTh>@T.T("sales.customer")</MudTh>
                 <MudTh>@T.T("sales.booking_created_by")</MudTh>
                 <MudTh>@T.T("sales.assigned_employee")</MudTh>
@@ -76,6 +77,7 @@ else
                     }
                     else { <text>—</text> }
                 </MudTd>
+                <MudTd>@(context.ExpiresAt is null ? "—" : Fmt.Date(context.ExpiresAt))</MudTd>
                 <MudTd>@context.CustomerName</MudTd>
                 <MudTd>@(context.CreatedByName ?? "—")</MudTd>
                 <MudTd>@(context.EmployeeName ?? "—")</MudTd>
@@ -97,7 +99,12 @@ else
                         @if (!context.IsClosed && Can(ActionCodes.AssignOthers))
                         {
                             <MudMenuItem OnClick="@(() => AssignAsync(context))"
-                                         Icon="@Icons.Material.Filled.PersonAdd">@T.T("sales.assign")</MudMenuItem>
+                                         Icon="@Icons.Material.Filled.PersonAdd">@T.T("sales.assign_responsible")</MudMenuItem>
+                        }
+                        @if (!context.IsClosed && Can(ActionCodes.ExtendReservation))
+                        {
+                            <MudMenuItem OnClick="@(() => ExtendAsync(context))"
+                                         Icon="@Icons.Material.Filled.EventRepeat">@T.T("sales.extend_expiry")</MudMenuItem>
                         }
                         @if (!context.IsClosed && Can(ActionCodes.CancelEntry))
                         {
@@ -179,7 +186,7 @@ else
 
     private async Task AssignAsync(Booking booking)
     {
-        var dialog = await Dialogs.ShowAsync<AssignBookingDialog>(T.T("sales.assign"),
+        var dialog = await Dialogs.ShowAsync<AssignBookingDialog>(T.T("sales.assign_responsible"),
             new DialogParameters { ["Booking"] = booking });
         if ((await dialog.Result) is { Canceled: false })
         {
@@ -196,6 +203,21 @@ else
         {
             await _table.ReloadServerData();
             ShowSuccess("common.deleted");
+        }
+    }
+
+    private async Task ExtendAsync(Booking booking)
+    {
+        var dialog = await Dialogs.ShowAsync<ExtendBookingDialog>(T.T("sales.extend_expiry"),
+            new DialogParameters
+            {
+                ["BookingId"] = booking.Id, ["BookingNo"] = booking.DocNo,
+                ["CurrentExpiry"] = booking.ExpiresAt
+            });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await _table.ReloadServerData();
+            ShowSuccess("sales.expiry_extended");
         }
     }
 }

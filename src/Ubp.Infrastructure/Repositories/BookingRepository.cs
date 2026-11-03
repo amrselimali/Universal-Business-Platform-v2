@@ -18,7 +18,12 @@ public interface IBookingRepository
     Task<Booking> CancelAsync(Guid id, string reason, Guid userId, CancellationToken ct = default);
     Task<Booking> AssignEmployeeAsync(Guid id, Guid employeeId, string role, Guid userId,
         CancellationToken ct = default);
+    /// <summary>إسناد الموظف المسؤول افتراضياً بلا دور (إجراء تعديل الحجز).</summary>
+    Task<Booking> AssignResponsibleEmployeeAsync(Guid id, Guid employeeId, Guid userId,
+        CancellationToken ct = default);
     Task<decimal> AvailableAsync(Guid itemId, Guid warehouseId, CancellationToken ct = default);
+    Task<bool> ExtendAsync(Guid id, DateTimeOffset newExpiry, Guid userId,
+        CancellationToken ct = default);
 }
 
 /// <summary>الحجوزات: مسودة ← تأكيد (حجز المتاح) ← تنفيذ يحدّث الكميات المنجزة.</summary>
@@ -40,6 +45,7 @@ public sealed partial class BookingRepository : IBookingRepository
         public DateTime? DueDate { get; set; }
         public DateTimeOffset? StartsAt { get; set; }
         public DateTimeOffset? EndsAt { get; set; }
+        public DateTimeOffset? ExpiresAt { get; set; }
         public Guid? AssignedEmployeeId { get; set; }
         public string? EmployeeName { get; set; }
         public Guid? RelatedBookingId { get; set; }
@@ -80,7 +86,7 @@ public sealed partial class BookingRepository : IBookingRepository
         SELECT b.id AS Id, b.branch_id AS BranchId, b.doc_no AS DocNo, b.booking_date AS BookingDate,
                b.status AS Status, b.customer_id AS CustomerId, c.name_ar AS CustomerName,
                b.source AS Source, b.due_date AS DueDate, b.starts_at AS StartsAt,
-               b.ends_at AS EndsAt,
+               b.ends_at AS EndsAt, b.expires_at AS ExpiresAt,
                b.assigned_employee_id AS AssignedEmployeeId, e.name_ar AS EmployeeName,
                b.related_booking_id AS RelatedBookingId, b.created_by AS CreatedBy,
                u.username AS CreatedByName, b.total_amount AS TotalAmount,
@@ -157,7 +163,7 @@ public sealed partial class BookingRepository : IBookingRepository
         Id = row.Id, BranchId = row.BranchId, DocNo = row.DocNo, BookingDate = row.BookingDate,
         Status = row.Status, CustomerId = row.CustomerId, CustomerName = row.CustomerName,
         Source = row.Source, DueDate = row.DueDate, StartsAt = row.StartsAt,
-        EndsAt = row.EndsAt,
+        EndsAt = row.EndsAt, ExpiresAt = row.ExpiresAt,
         AssignedEmployeeId = row.AssignedEmployeeId, EmployeeName = row.EmployeeName,
         RelatedBookingId = row.RelatedBookingId, CreatedBy = row.CreatedBy,
         CreatedByName = row.CreatedByName, TotalAmount = row.TotalAmount,

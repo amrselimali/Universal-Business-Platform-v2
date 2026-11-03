@@ -1,5 +1,58 @@
 # CHANGELOG
 
+## 2026-11-03 — Responsible-employee assignment without a role
+
+### Changed (additive)
+- The booking action now assigns the **responsible employee** directly: the role selector
+  (owner/executor) is removed from `AssignBookingDialog`, and the chosen employee becomes the
+  booking's responsible employee by default (the historical `owner` value is kept only in the
+  `booking_assignments` record).
+- Added `AssignResponsibleEmployeeAsync` in the booking repository/service (isolated, additive):
+  it closes the previous open responsible assignment, records the new one, and updates
+  `bookings.assigned_employee_id` in one transaction. The legacy
+  `AssignAsync(actor, id, employeeId, role)` API and role data remain untouched for backward
+  compatibility.
+- UI labels: “إسناد الموظف المسؤول” with a hint that the employee becomes responsible by default.
+
+## 2026-11-03 — Booking expiry restored + executed quantities posted
+
+### Added
+- `bookings.expires_at` is back (migration `0065` + index + rebuilt `v_customer_reservations`):
+  recorded from POS (default 6 months, past dates rejected), printed on the booking receipt, edited
+  in the booking dialog, and shown on the bookings, reservations and expired-bookings screens.
+- `EXTEND_RESERVATION` action on both the bookings and reservations screens; extending updates
+  `expires_at`, logs an `EXTEND` adjustment, and leaves quantities/entries untouched.
+- Executing a SERVICE line posts revenue: Dr customer receivable / Cr sales revenue (+ VAT output)
+  valued at the executed share of the line, so the customer value statement and party balance show it.
+- Executing a stock line posts its cost from the item category accounts
+  (`cogs_account_id → inventory_account_id`) with the global posting defaults as fallback; executed
+  quantities keep flowing to the customer quantity card (`v_customer_reservations`).
+- Tests: expiry save/extend from both screens, past-expiry rejection, service revenue + customer
+  statements, and category-based cost entry.
+
+## 2026-11-03 — Meter reading is optional at booking execution
+
+### Fixed
+- «تأكيد التنفيذ» no longer stays disabled for metered items: the meter asset and unit reading are
+  optional and only recorded for later maintenance follow-up, so a sale with an executable
+  remaining quantity always goes through without linking a meter.
+- The asset select is now clearable and starts empty; units/current reading appear only when an
+  asset is chosen, and units are required only in that case (server and repository enforce the
+  same rule).
+- Added a remaining-quantity guard with a clear message instead of an enabled button that silently
+  does nothing, and clarified the «no metered assets» note as informational.
+
+## 2026-11-03 — Execution employee requires a confirmed customer appointment
+
+### Changed
+- The booking execution screen resolves the responsible employee only from a **confirmed**
+  appointment of the same customer and branch. Scheduled, in-progress, done and no-show
+  appointments no longer count, and the booking's assigned employee is no longer used as a
+  fallback; SERVICE execution stays blocked (`validation.execution_employee_required`) until the
+  customer's appointment is confirmed.
+- Added coverage proving a scheduled appointment blocks execution and that confirming it releases
+  the responsible employee.
+
 ## 2026-11-02 — Employee shifts screen (appointments)
 
 ### Changed

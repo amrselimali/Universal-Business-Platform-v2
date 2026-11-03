@@ -1,11 +1,11 @@
 @inherits ComponentBase
 
 <MudDialog>
-    <TitleContent><MudText Typo="Typo.h6">@T.T("sales.assign") — @Booking.DocNo</MudText></TitleContent>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("sales.assign_responsible") — @Booking.DocNo</MudText></TitleContent>
     <DialogContent>
         <MudForm @ref="_form">
             <div class="ubp-form-grid">
-                <MudSelect T="Guid" @bind-Value="_employeeId" Label="@T.T("sales.employee")"
+                <MudSelect T="Guid" @bind-Value="_employeeId" Label="@T.T("sales.assigned_employee")"
                            Variant="Variant.Outlined" Required="true">
                     @foreach (var employee in _employees)
                     {
@@ -14,12 +14,10 @@
                         </MudSelectItem>
                     }
                 </MudSelect>
-                <MudSelect T="string" @bind-Value="_role" Label="@T.T("sales.role")"
-                           Variant="Variant.Outlined">
-                    <MudSelectItem T="string" Value="@("owner")">@T.T("sales.role_owner")</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("executor")">@T.T("sales.role_executor")</MudSelectItem>
-                </MudSelect>
             </div>
+            <MudText Typo="Typo.caption" Class="ubp-muted">
+                @T.T("sales.responsible_hint")
+            </MudText>
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -42,7 +40,6 @@
     private MudForm _form = default!;
     private IReadOnlyList<Employee> _employees = Array.Empty<Employee>();
     private Guid _employeeId;
-    private string _role = "owner";
     private bool _busy;
 
     protected override async Task OnInitializedAsync()
@@ -67,7 +64,7 @@
         try
         {
             var actor = await UserContext.RequireAsync();
-            var booking = await Bookings.AssignAsync(actor, Booking.Id, _employeeId, _role);
+            var booking = await Bookings.AssignResponsibleEmployeeAsync(actor, Booking.Id, _employeeId);
             MudDialog.Close(DialogResult.Ok(booking));
         }
         catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }

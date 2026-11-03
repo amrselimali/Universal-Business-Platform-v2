@@ -34,7 +34,7 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                        l.reserved_qty AS ReservedQty,
                        GREATEST(l.quantity - l.delivered_qty - l.cancelled_qty, 0) AS RemainingQty,
                        l.unit_price AS UnitPrice,
-                       COALESCE(ap.employee_name, e.name_ar) AS EmployeeName,
+                       ap.employee_name AS EmployeeName,
                        i.is_metered AS ItemIsMetered
                 FROM booking_lines l
                 JOIN bookings b ON b.id = l.booking_id
@@ -42,13 +42,14 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                 JOIN items i ON i.id = l.item_id
                 JOIN units u ON u.id = l.unit_id
                 JOIN warehouses w ON w.id = l.warehouse_id
-                LEFT JOIN employees e ON e.id = b.assigned_employee_id
                 LEFT JOIN (SELECT time_zone FROM app_settings LIMIT 1) st ON true
+                -- الموظف المسؤول يُحل فقط من موعد مؤكد للعميل (لا يُعتمد أي موعد بحالة أخرى
+                -- ولا الموظف المسند على الحجز بلا موعد مؤكد).
                 LEFT JOIN LATERAL (
                     SELECT ap.employee_id, emp.name_ar AS employee_name
                     FROM appointments ap
                     JOIN employees emp ON emp.id = ap.employee_id
-                    WHERE ap.status <> 'cancelled'
+                    WHERE ap.status = 'confirmed'
                       AND ap.customer_id = b.customer_id
                       AND ap.branch_id = b.branch_id
                     ORDER BY CASE WHEN ap.booking_id = b.id THEN 0 ELSE 1 END,

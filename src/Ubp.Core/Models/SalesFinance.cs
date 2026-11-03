@@ -53,7 +53,7 @@ public sealed class ExpiredBookingRow
     public Guid CustomerId { get; set; }
     public string CustomerName { get; set; } = "";
     public DateTime BookingDate { get; set; }
-    public DateTimeOffset? SessionAt { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
     public int LateDays { get; set; }
     public string Status { get; set; } = "";
     public string Source { get; set; } = "";

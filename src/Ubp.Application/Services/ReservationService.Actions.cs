@@ -20,4 +20,22 @@ public sealed partial class ReservationService
         await _reservations.InsertAdjustmentAsync(bookingId, null, ReservationAdjustmentKinds.Release,
             0, 0, null, null, reason, actor.UserId, ct);
     }
+
+    /// <summary>تمديد صلاحية الحجز دون لمس الكميات أو القيود.</summary>
+    public async Task ExtendAsync(ActorContext actor, Guid bookingId, DateTimeOffset newExpiry,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.Reservations,
+            ActionCodes.ExtendReservation, ct: ct);
+        if (newExpiry.UtcDateTime.Date < DateTimeOffset.UtcNow.Date)
+            throw new ValidationAppException("validation.booking_expiry_invalid");
+        var booking = await _bookings.GetAsync(actor, bookingId, ct) ?? throw new NotFoundAppException();
+        BranchScope.Ensure(actor, booking.BranchId);
+
+        if (!await _reservations.ExtendAsync(bookingId, newExpiry, ct))
+            throw new ValidationAppException("validation.booking_not_extendable");
+
+        await _reservations.InsertAdjustmentAsync(bookingId, null, ReservationAdjustmentKinds.Extend,
+            0, 0, null, null, $"تمديد إلى {newExpiry:yyyy-MM-dd}", actor.UserId, ct);
+    }
 }

@@ -59,7 +59,8 @@ public sealed partial class TestDb
         TreasuryRepo, AccountRepo, PartnerRepo, Permissions(), new AuditService(AuditRepo));
 
     public BookingService BookingService() => new(
-        BookingRepo, Settings(), Permissions(), new AuditService(AuditRepo));
+        BookingRepo, Settings(), Permissions(), new AuditService(AuditRepo),
+        new ReservationRepository(Factory));
 
     public SalesFulfillmentService Fulfillment() => new(
         AppointmentRepo, Permissions(), new AuditService(AuditRepo));

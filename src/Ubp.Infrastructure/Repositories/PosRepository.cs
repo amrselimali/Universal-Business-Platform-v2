@@ -80,14 +80,15 @@ public sealed partial class PosRepository : IPosRepository
         var bookingId = Guid.CreateVersion7();
         var bookingNo = await NextNumberAsync(connection, tx, "BOOK", input.BranchId,
             input.DocDate, "BK", ct);
+        var expiresAt = DbTime.Utc(input.ExpiresAt) ?? DateTimeOffset.UtcNow.AddMonths(6);
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO bookings (id, branch_id, doc_no, booking_date, status, customer_id, source,
-                due_date, starts_at, ends_at, assigned_employee_id, total_amount,
+                due_date, starts_at, ends_at, assigned_employee_id, expires_at, total_amount,
                 notes, created_by)
             VALUES (@bookingId, @BranchId, @bookingNo, @docDate, 'confirmed', @CustomerId, 'pos',
-                    @docDate, NULL, NULL, NULL, @total, @Notes, @userId)
+                    @docDate, NULL, NULL, NULL, @expiresAt, @total, @Notes, @userId)
             """, new { bookingId, input.BranchId, bookingNo, docDate = input.DocDate.Date,
-                input.CustomerId, total, input.Notes,
+                input.CustomerId, total, expiresAt, input.Notes,
                 userId }, tx, cancellationToken: ct));
 
         foreach (var line in lines)
@@ -125,7 +126,8 @@ public sealed partial class PosRepository : IPosRepository
 
         var receipt = new PosReceipt
         {
-            BookingId = bookingId, BookingNo = bookingNo, Total = total
+            BookingId = bookingId, BookingNo = bookingNo, ExpiresAt = expiresAt,
+            Total = total
         };
         foreach (var group in payments.GroupBy(p => p.TreasuryId))
         {

@@ -16,6 +16,7 @@ public partial class Reservations
     private bool _onlyRemaining = true;
     private bool _busy;
     private string? _customerSearch;
+    private DateTime? _extendTo = DateTime.Today.AddDays(30);
 
     protected override string ScreenCode => ScreenCodes.Reservations;
 
@@ -50,6 +51,21 @@ public partial class Reservations
             await RefreshAsync();
             Snackbar.Add(T.T("execution.done"), Severity.Success);
         }
+    }
+
+    private async Task ExtendAsync(ReservationRow row)
+    {
+        if (_busy || _extendTo is null) return;
+        _busy = true;
+        try
+        {
+            await ReservationsApi.ExtendAsync(Actor!, row.BookingId,
+                new DateTimeOffset(_extendTo.Value.Date));
+            Snackbar.Add(T.T("reservations.extended"), Severity.Success);
+            await RefreshAsync();
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
     }
 
     private async Task ReleaseAsync(ReservationRow row)

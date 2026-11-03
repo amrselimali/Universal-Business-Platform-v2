@@ -1,0 +1,57 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("sales.extend_expiry")</MudText></TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            @T.T("sales.booking_no"): <b>@(BookingNo ?? "—")</b>
+        </MudText>
+        <MudDatePicker @bind-Date="_expiry" Label="@T.T("sales.booking_expiry")"
+                       Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" Editable="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="@(_busy || _expiry is null)">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid BookingId { get; set; }
+    [Parameter] public string? BookingNo { get; set; }
+    [Parameter] public DateTimeOffset? CurrentExpiry { get; set; }
+
+    [Inject] private BookingService Bookings { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private IDisplayFormatter Fmt { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private DateTime? _expiry;
+    private bool _busy;
+
+    protected override void OnInitialized()
+    {
+        _expiry = CurrentExpiry is null
+            ? DateTime.Today.AddMonths(6)
+            : Fmt.ToUserTime(CurrentExpiry.Value).Date;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        if (_expiry is null) return;
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var booking = await Bookings.ExtendExpiryAsync(actor, BookingId,
+                new DateTimeOffset(_expiry.Value.Date));
+            MudDialog.Close(DialogResult.Ok(booking));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

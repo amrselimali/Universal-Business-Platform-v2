@@ -24,16 +24,16 @@ public sealed partial class BookingRepository
 
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO bookings (id, branch_id, booking_date, status, customer_id, source, due_date,
-                starts_at, ends_at, assigned_employee_id, related_booking_id,
+                starts_at, ends_at, assigned_employee_id, related_booking_id, expires_at,
                 total_amount, notes, created_by)
             VALUES (@id, @BranchId, @BookingDate, 'draft', @CustomerId, 'manual', @DueDate,
-                    @StartsAt, @EndsAt, @AssignedEmployeeId, @RelatedBookingId,
+                    @StartsAt, @EndsAt, @AssignedEmployeeId, @RelatedBookingId, @ExpiresAt,
                     @total, @Notes, @userId)
             """, new
         {
             id, input.BranchId, bookingDate = input.BookingDate.Date, input.CustomerId,
             input.DueDate, StartsAt = DbTime.Utc(input.StartsAt),
-            EndsAt = DbTime.Utc(input.EndsAt),
+            EndsAt = DbTime.Utc(input.EndsAt), ExpiresAt = DbTime.Utc(input.ExpiresAt),
             input.AssignedEmployeeId, input.RelatedBookingId, total = lines.Sum(l => l.TotalAmount),
             input.Notes, userId
         }, tx, cancellationToken: ct));
@@ -61,14 +61,15 @@ public sealed partial class BookingRepository
 
         var updated = await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE bookings SET booking_date = @BookingDate, customer_id = @CustomerId,
-                due_date = @DueDate, starts_at = @StartsAt, ends_at = @EndsAt, notes = @Notes,
+                due_date = @DueDate, starts_at = @StartsAt, ends_at = @EndsAt,
+                expires_at = @ExpiresAt, notes = @Notes,
                 related_booking_id = @RelatedBookingId, total_amount = @total, updated_by = @userId
             WHERE id = @id AND version = @version AND status = 'draft'
             """, new
         {
             id, version, bookingDate = input.BookingDate.Date, input.CustomerId, input.DueDate,
             StartsAt = DbTime.Utc(input.StartsAt), EndsAt = DbTime.Utc(input.EndsAt),
-            input.Notes, input.RelatedBookingId,
+            ExpiresAt = DbTime.Utc(input.ExpiresAt), input.Notes, input.RelatedBookingId,
             total = lines.Sum(l => l.TotalAmount), userId
         }, tx, cancellationToken: ct));
 
@@ -227,5 +228,55 @@ public sealed partial class BookingRepository
 
         await tx.CommitAsync(ct);
         return (await GetAsync(id, ct))!;
+    }
+
+    /// <summary>
+    /// إسناد الموظف المسؤول للحجز بلا دور ظاهر: يُغلق إسناد «المسؤول» السابق ويضيف إسناداً
+    /// جديداً بالدور الافتراضي التاريخي <c>owner</c> (نفس معنى الموظف المسؤول)، ويثبّت
+    /// <c>bookings.assigned_employee_id</c> في نفس المعاملة. لا يمس إسنادات الأدوار الأخرى
+    /// (مثل executor) حفاظاً على التوافقية العكسية.
+    /// </summary>
+    public async Task<Booking> AssignResponsibleEmployeeAsync(Guid id, Guid employeeId,
+        Guid userId, CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        await using var tx = await connection.BeginTransactionAsync(ct);
+
+        var status = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
+            "SELECT status FROM bookings WHERE id = @id FOR UPDATE", new { id }, tx,
+            cancellationToken: ct));
+        if (status is null) throw new NotFoundAppException();
+        if (status is BookingStatuses.Completed or BookingStatuses.Cancelled)
+            throw new ValidationAppException("validation.booking_closed");
+
+        await EnsureDraftEmployeeAsync(connection, tx, employeeId, ct);
+
+        await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE booking_assignments SET unassigned_at = now()
+            WHERE booking_id = @id AND role = 'owner' AND unassigned_at IS NULL
+            """, new { id }, tx, cancellationToken: ct));
+        await connection.ExecuteAsync(new CommandDefinition("""
+            INSERT INTO booking_assignments (booking_id, employee_id, role, assigned_by)
+            VALUES (@id, @employeeId, 'owner', @userId)
+            """, new { id, employeeId, userId }, tx, cancellationToken: ct));
+        await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE bookings SET assigned_employee_id = @employeeId, updated_by = @userId
+            WHERE id = @id
+            """, new { employeeId, userId, id }, tx, cancellationToken: ct));
+
+        await tx.CommitAsync(ct);
+        return (await GetAsync(id, ct))!;
+    }
+
+    public async Task<bool> ExtendAsync(Guid id, DateTimeOffset newExpiry, Guid userId,
+        CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE bookings SET expires_at = @newExpiry, updated_by = @userId
+            WHERE id = @id
+              AND status IN ('draft', 'confirmed', 'partially_delivered', 'expired')
+            """, new { id, newExpiry = DbTime.Utc(newExpiry), userId },
+            cancellationToken: ct)) > 0;
     }
 }

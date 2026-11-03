@@ -47,6 +47,7 @@ public partial class Terminal : SecurePageBase
     private string? _customerSearch;
     private Guid _warehouseId;
     private Guid _treasuryId;
+    private DateTime? _expiryDate = DateTime.Today.AddMonths(6);
     private string? _search;
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private IReadOnlyList<Partner> _customers = Array.Empty<Partner>();
@@ -169,7 +170,8 @@ public partial class Terminal : SecurePageBase
 
     private async Task CheckoutAsync() => await RunAsync(async () =>
     {
-        if (_customerId == Guid.Empty || _branchId == Guid.Empty || _cart.Count == 0)
+        if (_customerId == Guid.Empty || _branchId == Guid.Empty || _cart.Count == 0 ||
+            _expiryDate is null)
         {
             Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
             return;
@@ -184,6 +186,7 @@ public partial class Terminal : SecurePageBase
             {
                 BranchId = _branchId, CustomerId = _customerId, WarehouseId = _warehouseId,
                 DocDate = DateTime.Today,
+                ExpiresAt = new DateTimeOffset(_expiryDate.Value.Date),
                 Lines = _cart.Select(l => new PosLineInput
                 {
                     ItemId = l.ItemId, UnitId = l.UnitId, Quantity = l.Quantity,

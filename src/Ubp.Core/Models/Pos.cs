@@ -27,6 +27,9 @@ public sealed class PosCheckoutInput
     public DateTime DocDate { get; set; } = DateTime.Today;
     public string? Notes { get; set; }
 
+    /// <summary>تاريخ نهاية صلاحية العرض؛ الافتراضي 6 أشهر من اليوم.</summary>
+    public DateTimeOffset? ExpiresAt { get; set; }
+
     public List<PosLineInput> Lines { get; set; } = new();
     public List<PosPaymentInput> Payments { get; set; } = new();
 }
@@ -45,6 +48,7 @@ public sealed class PosReceipt
 {
     public Guid BookingId { get; set; }
     public string? BookingNo { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
     public decimal Total { get; set; }
     public decimal TaxTotal { get; set; }
     public decimal Paid { get; set; }

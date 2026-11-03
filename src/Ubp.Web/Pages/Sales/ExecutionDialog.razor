@@ -30,15 +30,9 @@
                                  Max="@_preview.RemainingQty" Format="N4" />
                 @if (_preview.ItemIsMetered)
                 {
-                    @if (_preview.MeterAssets.Count == 0)
+                    @if (_preview.MeterAssets.Count > 0)
                     {
-                        <MudAlert Severity="Severity.Warning" Dense="true" Class="ubp-span-2">
-                            @T.T("execution.no_meter_assets")
-                        </MudAlert>
-                    }
-                    else
-                    {
-                        <MudSelect T="Guid?" @bind-Value="_meterAssetId"
+                        <MudSelect T="Guid?" @bind-Value="_meterAssetId" Clearable="true"
                                    Label="@T.T("execution.meter_asset")"
                                    Variant="Variant.Outlined">
                             @foreach (var asset in _preview.MeterAssets)
@@ -48,9 +42,24 @@
                                 </MudSelectItem>
                             }
                         </MudSelect>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="ubp-span-2">
+                            @T.T("execution.no_meter_assets")
+                        </MudAlert>
+                    }
+                    @if (_meterAssetId is not null)
+                    {
                         <MudNumericField T="decimal" @bind-Value="_meterUnits"
                                          Label="@_preview.UnitsColumnLabel"
                                          Variant="Variant.Outlined" Min="0m" Format="N2" />
+                        @if (_meterUnits <= 0)
+                        {
+                            <MudText Typo="Typo.caption" Class="ubp-muted ubp-span-2">
+                                @T.T("validation.meter_units_required")
+                            </MudText>
+                        }
                         @if (SelectedAsset is not null)
                         {
                             <MudText Typo="Typo.caption" Class="ubp-muted ubp-span-2">
@@ -60,6 +69,15 @@
                             </MudText>
                         }
                     }
+                    <MudText Typo="Typo.caption" Class="ubp-muted ubp-span-2">
+                        @T.T("execution.meter_optional")
+                    </MudText>
+                }
+                @if (_preview.RemainingQty <= 0)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="ubp-span-2">
+                        @T.T("execution.no_remaining")
+                    </MudAlert>
                 }
                 @if (_preview.ItemType == "SERVICE" &&
                      string.IsNullOrWhiteSpace(_preview.EmployeeName))
@@ -74,11 +92,12 @@
     <DialogActions>
         <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
-                   Disabled="@(_busy || _preview is null ||
+                   Disabled="@(_busy || _preview is null || _preview.RemainingQty <= 0 ||
+                               _quantity <= 0 ||
                                (_preview.ItemType == "SERVICE" &&
                                 string.IsNullOrWhiteSpace(_preview.EmployeeName)) ||
-                               (_preview.ItemIsMetered &&
-                                (_meterAssetId is null || _meterUnits <= 0)))">@T.T("execution.confirm")</MudButton>
+                               (_preview.ItemIsMetered && _meterAssetId is not null &&
+                                _meterUnits <= 0))">@T.T("execution.confirm")</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -101,7 +120,8 @@
         if (actor is null) return;
         _preview = await Executions.GetPreviewAsync(actor, BookingLineId);
         _quantity = _preview.RemainingQty;
-        _meterAssetId = _preview.MeterAssets.FirstOrDefault()?.Id;
+        // قراءة العدّاد اختيارية (متابعة صيانة فقط): لا تُحدَّد أصلًا افتراضيًا ولا تمنع البيع.
+        _meterAssetId = null;
         _meterUnits = 0;
     }
 
@@ -109,8 +129,9 @@
 
     private async Task SaveAsync()
     {
-        if (_preview is null || _quantity <= 0 || _quantity > _preview.RemainingQty) return;
-        if (_preview.ItemIsMetered && (_meterAssetId is null || _meterUnits <= 0)) return;
+        if (_preview is null || _preview.RemainingQty <= 0) return;
+        if (_quantity <= 0 || _quantity > _preview.RemainingQty) return;
+        if (_preview.ItemIsMetered && _meterAssetId is not null && _meterUnits <= 0) return;
         _busy = true;
         try
         {
@@ -119,7 +140,7 @@
             {
                 BookingLineId = BookingLineId, Quantity = _quantity,
                 MeteredAssetId = _preview.ItemIsMetered ? _meterAssetId : null,
-                MeterUnits = _preview.ItemIsMetered ? _meterUnits : 0
+                MeterUnits = _preview.ItemIsMetered && _meterAssetId is not null ? _meterUnits : 0
             });
             MudDialog.Close(DialogResult.Ok(result));
         }

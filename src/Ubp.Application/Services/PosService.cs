@@ -26,6 +26,11 @@ public sealed class PosService
         await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.Checkout,
             ct: ct);
 
+        // تاريخ نهاية العرض: افتراضي 6 أشهر، ويُرفض التاريخ الماضي.
+        input.ExpiresAt ??= DateTimeOffset.UtcNow.AddMonths(6);
+        if (input.ExpiresAt.Value.UtcDateTime.Date < DateTimeOffset.UtcNow.Date)
+            throw new ValidationAppException("validation.booking_expiry_invalid");
+
         var settings = await _settings.GetAsync(ct);
         BranchScope.Ensure(actor, input.BranchId);
         PosReceipt receipt;
@@ -39,7 +44,7 @@ public sealed class PosService
         await _audit.WriteAsync(actor, "bookings", receipt.BookingId.ToString(), "INSERT", null,
             new
             {
-                receipt.BookingNo, receipt.Total, receipt.Paid,
+                receipt.BookingNo, receipt.ExpiresAt, receipt.Total, receipt.Paid,
                 Vouchers = receipt.Vouchers.Select(v => v.VoucherNo).ToArray()
             }, ct);
         return receipt;

@@ -11,8 +11,10 @@ public sealed partial class BookingExecutionRepository
     {
         public Guid BookingId { get; set; }
         public Guid BranchId { get; set; }
+        public Guid CustomerId { get; set; }
         public string BookingStatus { get; set; } = "";
         public Guid ItemId { get; set; }
+        public Guid? CategoryId { get; set; }
         public string ItemType { get; set; } = "GOODS";
         public Guid UnitId { get; set; }
         public Guid WarehouseId { get; set; }
@@ -20,6 +22,9 @@ public sealed partial class BookingExecutionRepository
         public decimal DeliveredQty { get; set; }
         public decimal CancelledQty { get; set; }
         public decimal ReservedQty { get; set; }
+        public decimal NetAmount { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal TotalAmount { get; set; }
         public bool ItemIsMetered { get; set; }
     }
 
@@ -35,11 +40,14 @@ public sealed partial class BookingExecutionRepository
         await using var tx = await connection.BeginTransactionAsync(ct);
 
         var line = await connection.QuerySingleOrDefaultAsync<ExecutionLine>(new CommandDefinition("""
-            SELECT l.booking_id AS BookingId, b.branch_id AS BranchId, b.status AS BookingStatus,
-                   l.item_id AS ItemId, i.item_type AS ItemType, l.unit_id AS UnitId,
+            SELECT l.booking_id AS BookingId, b.branch_id AS BranchId, b.customer_id AS CustomerId,
+                   b.status AS BookingStatus, l.item_id AS ItemId, i.category_id AS CategoryId,
+                   i.item_type AS ItemType, l.unit_id AS UnitId,
                    l.warehouse_id AS WarehouseId, l.quantity AS Quantity,
                    l.delivered_qty AS DeliveredQty, l.cancelled_qty AS CancelledQty,
-                   l.reserved_qty AS ReservedQty, i.is_metered AS ItemIsMetered
+                   l.reserved_qty AS ReservedQty, l.net_amount AS NetAmount,
+                   l.tax_amount AS TaxAmount, l.total_amount AS TotalAmount,
+                   i.is_metered AS ItemIsMetered
             FROM booking_lines l
             JOIN bookings b ON b.id = l.booking_id
             JOIN items i ON i.id = l.item_id
@@ -56,10 +64,11 @@ public sealed partial class BookingExecutionRepository
             throw new ValidationAppException("validation.booking_quantity_exceeds_remaining");
         if (line.ItemIsMetered)
         {
-            if (input.MeteredAssetId is null)
-                throw new ValidationAppException("validation.asset_meter_required");
-            if (input.MeterUnits <= 0)
+            // قراءة العدّاد اختيارية: تُطبَّق فقط عند اختيار أصل وتحديد وحدات.
+            if (input.MeteredAssetId is not null && input.MeterUnits <= 0)
                 throw new ValidationAppException("validation.meter_units_required");
+            if (input.MeteredAssetId is null && input.MeterUnits > 0)
+                throw new ValidationAppException("validation.asset_meter_required");
         }
         else if (input.MeteredAssetId is not null || input.MeterUnits > 0)
         {
@@ -117,9 +126,16 @@ public sealed partial class BookingExecutionRepository
                 new { id = stockDocumentLineId }, tx, cancellationToken: ct));
         }
 
+        // تكلفة الأصناف المخزنية: من حساب تكلفة المخزن (تصنيف الصنف) إلى حساب المخزن.
         var journalEntryId = cost > 0
-            ? await PostCogsAsync(connection, tx, line.BranchId, docNo, cost, executionId, userId, ct)
+            ? await PostCogsAsync(connection, tx, line.CategoryId, line.BranchId, docNo, cost,
+                executionId, userId, ct)
             : (Guid?)null;
+
+        // الخدمة البيعية: إثبات الإيراد عند التنفيذ (مدين العميل / دائن الإيراد).
+        if (line.ItemType == "SERVICE")
+            journalEntryId = await PostServiceRevenueAsync(connection, tx, line, input.Quantity,
+                docNo, executionLineId, executionId, userId, ct) ?? journalEntryId;
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO booking_executions
                 (id, branch_id, doc_no, execution_date, booking_id, status, stock_document_id,
@@ -206,57 +222,5 @@ public sealed partial class BookingExecutionRepository
             Quantity = input.Quantity, MeterUnits = input.MeterUnits,
             MeterValueAfter = meterValueAfter, CostTotal = cost
         };
-    }
-
-    private static async Task<Guid> PostCogsAsync(NpgsqlConnection connection,
-        NpgsqlTransaction tx, Guid branchId, string docNo, decimal amount, Guid executionId,
-        Guid userId, CancellationToken ct)
-    {
-        var defaults = (await connection.QueryAsync<(string Key, Guid? AccountId)>(
-            new CommandDefinition("SELECT setting_key, account_id FROM posting_defaults",
-                transaction: tx, cancellationToken: ct)))
-            .Where(r => r.AccountId.HasValue)
-            .ToDictionary(r => r.Key, r => r.AccountId!.Value, StringComparer.OrdinalIgnoreCase);
-        Guid Need(string key) => defaults.TryGetValue(key, out var account) ? account
-            : throw new ValidationAppException("validation.posting_account_missing",
-                new Dictionary<string, string> { ["key"] = key, ["module"] = "sales" });
-
-        var journalId = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
-            "SELECT id FROM journals WHERE journal_type = 'stock' AND is_active " +
-            "ORDER BY sort_order LIMIT 1", transaction: tx, cancellationToken: ct))
-            ?? throw new ValidationAppException("validation.journal_not_found");
-
-        var entryId = Guid.CreateVersion7();
-        await connection.ExecuteAsync(new CommandDefinition("""
-            INSERT INTO journal_entries
-                (id, journal_id, branch_id, entry_date, reference, description, status, source_type,
-                 source_id, total_debit, total_credit, created_by)
-            VALUES (@entryId, @journalId, @branchId, @date, @docNo, @description, 'draft',
-                    'execution', @executionId, @amount, @amount, @userId)
-            """, new
-        {
-            entryId, journalId, branchId, date = DateTime.UtcNow.Date, docNo,
-            description = $"تكلفة تنفيذ {docNo}", executionId, amount, userId
-        }, tx, cancellationToken: ct));
-
-        var cogs = Need(PostingKeys.StockCogs);
-        var inventory = Need(PostingKeys.StockInventory);
-        await connection.ExecuteAsync(new CommandDefinition("""
-            INSERT INTO journal_entry_lines
-                (id, entry_id, line_no, account_id, description, debit, credit, branch_id,
-                 entry_date)
-            VALUES (@id, @entryId, 1, @account, @description, @amount, 0, @branchId, @date),
-                   (@id2, @entryId, 2, @account2, @description, 0, @amount, @branchId, @date)
-            """, new
-        {
-            id = Guid.CreateVersion7(), id2 = Guid.CreateVersion7(), entryId,
-            account = cogs, account2 = inventory, description = $"تكلفة تنفيذ {docNo}",
-            amount, branchId, date = DateTime.UtcNow.Date
-        }, tx, cancellationToken: ct));
-
-        await connection.ExecuteAsync(new CommandDefinition(
-            "SELECT fn_gl_post_entry(@entryId, @userId)", new { entryId, userId }, tx,
-            cancellationToken: ct));
-        return entryId;
     }
 }

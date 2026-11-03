@@ -14,14 +14,16 @@ namespace Ubp.Application.Services;
 public sealed class BookingService
 {
     private readonly IBookingRepository _bookings;
+    private readonly IReservationRepository _reservations;
     private readonly ISettingsService _settings;
     private readonly PermissionService _permissions;
     private readonly AuditService _audit;
 
     public BookingService(IBookingRepository bookings, ISettingsService settings,
-        PermissionService permissions, AuditService audit)
+        PermissionService permissions, AuditService audit, IReservationRepository reservations)
     {
         _bookings = bookings; _settings = settings; _permissions = permissions; _audit = audit;
+        _reservations = reservations;
     }
 
     public async Task<PagedResult<Booking>> ListAsync(ActorContext actor, BookingFilter filter,
@@ -42,6 +44,7 @@ public sealed class BookingService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings, ActionCodes.Create, ct: ct);
         BranchScope.Ensure(actor, input.BranchId);
+        ValidateExpiry(input);
         var id = Guid.CreateVersion7();
         try { await _bookings.CreateDraftAsync(id, input, actor.UserId, ct); }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
@@ -56,6 +59,7 @@ public sealed class BookingService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings, ActionCodes.Edit, ct: ct);
         BranchScope.Ensure(actor, input.BranchId);
+        ValidateExpiry(input);
         Booking booking;
         try { booking = await _bookings.UpdateDraftAsync(id, version, input, actor.UserId, ct); }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
@@ -108,10 +112,66 @@ public sealed class BookingService
         return booking;
     }
 
+    /// <summary>
+    /// إسناد الموظف المسؤول من إجراءات تعديل الحجز: بلا دور ظاهر — الموظف المختار يصبح
+    /// الموظف المسؤول افتراضياً. تُحفظ القيمة التاريخية <c>owner</c> في سجل الإسناد فقط.
+    /// </summary>
+    public async Task<Booking> AssignResponsibleEmployeeAsync(ActorContext actor, Guid id,
+        Guid employeeId, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings,
+            ActionCodes.AssignOthers, ct: ct);
+        var booking = await _bookings.GetAsync(id, ct) ?? throw new NotFoundAppException();
+        BranchScope.Ensure(actor, booking.BranchId);
+
+        Booking updated;
+        try
+        {
+            updated = await _bookings.AssignResponsibleEmployeeAsync(id, employeeId, actor.UserId, ct);
+        }
+        catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
+
+        await _audit.WriteAsync(actor, "booking_assignments", id.ToString(), "INSERT",
+            new { employeeId = booking.AssignedEmployeeId },
+            new { employeeId, role = "owner", responsible = true }, ct);
+        return updated;
+    }
+
     public async Task<decimal> AvailableAsync(ActorContext actor, Guid itemId, Guid warehouseId,
         CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings, ActionCodes.View, ct: ct);
         return await _bookings.AvailableAsync(itemId, warehouseId, ct);
+    }
+
+    /// <summary>تمديد صلاحية العرض من شاشة الحجوزات (بلا لمس الكميات أو القيود).</summary>
+    public async Task<Booking> ExtendExpiryAsync(ActorContext actor, Guid id,
+        DateTimeOffset newExpiry, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings,
+            ActionCodes.ExtendReservation, ct: ct);
+        if (newExpiry.UtcDateTime.Date < DateTimeOffset.UtcNow.Date)
+            throw new ValidationAppException("validation.booking_expiry_invalid");
+        var booking = await _bookings.GetAsync(id, ct) ?? throw new NotFoundAppException();
+        BranchScope.Ensure(actor, booking.BranchId);
+        if (booking.Status is BookingStatuses.Completed or BookingStatuses.Cancelled)
+            throw new ValidationAppException("validation.booking_not_extendable");
+
+        try { await _bookings.ExtendAsync(id, newExpiry, actor.UserId, ct); }
+        catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
+
+        var updated = await _bookings.GetAsync(id, ct) ?? throw new NotFoundAppException();
+        await _reservations.InsertAdjustmentAsync(id, null, ReservationAdjustmentKinds.Extend,
+            0, 0, null, null, $"تمديد إلى {newExpiry:yyyy-MM-dd}", actor.UserId, ct);
+        await _audit.WriteAsync(actor, "bookings", id.ToString(), "UPDATE",
+            new { expiresAt = booking.ExpiresAt }, new { expiresAt = updated.ExpiresAt }, ct);
+        return updated;
+    }
+
+    private static void ValidateExpiry(BookingInput input)
+    {
+        if (input.ExpiresAt is { } expiry &&
+            expiry.UtcDateTime.Date < DateTimeOffset.UtcNow.Date)
+            throw new ValidationAppException("validation.booking_expiry_invalid");
     }
 }
