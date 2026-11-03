@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-11-02 — Employee shifts screen (appointments)
+
+### Changed
+- `/sales/appointments` renamed to **مواعيد الموظفين** (Employee shifts) with new hint text.
+- A shift no longer needs a customer: it is purely the employee working window (from/to) plus
+  notes. Customer column and booking number column were removed; a day column was added first and
+  the shift notes are shown.
+- Shift confirmation is not required for bookings: any non-cancelled shift covering the booking
+  window is accepted.
+- Cancelling a shift reverts the employee's overlapping, not-yet-delivered bookings to **draft**,
+  clears the responsible employee and releases their reserved quantities.
+- Overlapping sessions for the same responsible employee remain blocked by the database trigger.
+
+
 ## 2026-11-02 — Single booking date + employee schedule enforcement
 
 ### Changed

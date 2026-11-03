@@ -20,7 +20,7 @@ public interface IAppointmentRepository
 /// <summary>
 /// المواعيد: منع تداخل موظف واحد بقيد EXCLUDE في القاعدة (D10)، وإلغاء الموعد يحرّر الفترة.
 /// </summary>
-public sealed class AppointmentRepository : IAppointmentRepository
+public sealed partial class AppointmentRepository : IAppointmentRepository
 {
     private readonly IDbConnectionFactory _factory;
     public AppointmentRepository(IDbConnectionFactory factory) => _factory = factory;
@@ -56,8 +56,7 @@ public sealed class AppointmentRepository : IAppointmentRepository
     public async Task<Guid> CreateAsync(Guid id, AppointmentInput input, Guid userId,
         CancellationToken ct = default)
     {
-        if (input.BranchId == Guid.Empty || input.EmployeeId == Guid.Empty ||
-            input.CustomerId is null || input.CustomerId == Guid.Empty)
+        if (input.BranchId == Guid.Empty || input.EmployeeId == Guid.Empty)
             throw new ValidationAppException("validation.required_fields");
         if (input.EndsAt <= input.StartsAt)
             throw new ValidationAppException("validation.appointment_range");
@@ -91,16 +90,32 @@ public sealed class AppointmentRepository : IAppointmentRepository
             throw new ValidationAppException("validation.appointment_status");
 
         await using var connection = await _factory.OpenAsync(ct);
+        await using var tx = await connection.BeginTransactionAsync(ct);
         try
         {
+            var shift = await connection.QuerySingleOrDefaultAsync<(Guid? EmployeeId,
+                DateTimeOffset StartsAt, DateTimeOffset EndsAt)>(new CommandDefinition("""
+                SELECT employee_id AS EmployeeId, starts_at AS StartsAt, ends_at AS EndsAt
+                FROM appointments WHERE id = @id FOR UPDATE
+                """, new { id }, tx, cancellationToken: ct));
+            if (shift.EmployeeId is null) throw new NotFoundAppException();
+
             var updated = await connection.ExecuteAsync(new CommandDefinition("""
                 UPDATE appointments SET status = @status, updated_by = @userId
                 WHERE id = @id AND version = @version
-                """, new { status, userId, id, version }, cancellationToken: ct));
+                """, new { status, userId, id, version }, tx, cancellationToken: ct));
             if (updated == 0) throw new ConflictException();
+
+            // إلغاء الدوام: حجوزات الموظف في تلك الفترة تعود مسودة بلا موظف مسؤول.
+            if (status == AppointmentStatuses.Cancelled)
+                await RevertEmployeeBookingsAsync(connection, tx, shift.EmployeeId.Value,
+                    shift.StartsAt, shift.EndsAt, userId, ct);
+
+            await tx.CommitAsync(ct);
         }
         catch (PostgresException ex) when (ex.SqlState == "23P01")
         {
+            await tx.RollbackAsync(ct);
             throw new ValidationAppException("validation.appointment_overlap");
         }
 
