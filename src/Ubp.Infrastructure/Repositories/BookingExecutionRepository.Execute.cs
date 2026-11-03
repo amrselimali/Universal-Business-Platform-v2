@@ -16,6 +16,7 @@ public sealed partial class BookingExecutionRepository
         public Guid ItemId { get; set; }
         public Guid? CategoryId { get; set; }
         public string ItemType { get; set; } = "GOODS";
+        public string ExecutionMode { get; set; } = ItemExecutionModes.Reserved;
         public Guid UnitId { get; set; }
         public Guid WarehouseId { get; set; }
         public decimal Quantity { get; set; }
@@ -47,7 +48,7 @@ public sealed partial class BookingExecutionRepository
                    l.delivered_qty AS DeliveredQty, l.cancelled_qty AS CancelledQty,
                    l.reserved_qty AS ReservedQty, l.net_amount AS NetAmount,
                    l.tax_amount AS TaxAmount, l.total_amount AS TotalAmount,
-                   i.is_metered AS ItemIsMetered
+                   i.is_metered AS ItemIsMetered, i.execution_mode AS ExecutionMode
             FROM booking_lines l
             JOIN bookings b ON b.id = l.booking_id
             JOIN items i ON i.id = l.item_id
@@ -56,13 +57,16 @@ public sealed partial class BookingExecutionRepository
             """, new { lineId = input.BookingLineId }, tx, cancellationToken: ct))
             ?? throw new NotFoundAppException();
 
-        if (line.BookingStatus is not (BookingStatuses.Confirmed or BookingStatuses.PartiallyDelivered))
+        var direct = string.Equals(line.ExecutionMode, ItemExecutionModes.Direct,
+            StringComparison.OrdinalIgnoreCase);
+        if (!direct &&
+            line.BookingStatus is not (BookingStatuses.Confirmed or BookingStatuses.PartiallyDelivered))
             throw new ValidationAppException("validation.booking_not_confirmed");
 
         var remaining = line.Quantity - line.DeliveredQty - line.CancelledQty;
         if (input.Quantity > remaining)
             throw new ValidationAppException("validation.booking_quantity_exceeds_remaining");
-        if (line.ItemIsMetered)
+        if (line.ItemIsMetered && !direct)
         {
             // الأصناف المرتبطة بعدّاد: الأصل والوحدات إجباريان (حصرًا على المرتبط بعدّاد).
             if (input.MeteredAssetId is null)
@@ -70,7 +74,7 @@ public sealed partial class BookingExecutionRepository
             if (input.MeterUnits <= 0)
                 throw new ValidationAppException("validation.meter_units_required");
         }
-        else if (input.MeteredAssetId is not null || input.MeterUnits > 0)
+        else if (!line.ItemIsMetered && (input.MeteredAssetId is not null || input.MeterUnits > 0))
         {
             throw new ValidationAppException("validation.item_not_metered");
         }
@@ -132,8 +136,8 @@ public sealed partial class BookingExecutionRepository
                 executionId, userId, ct)
             : (Guid?)null;
 
-        // الخدمة البيعية: إثبات الإيراد عند التنفيذ (مدين العميل / دائن الإيراد).
-        if (line.ItemType == "SERVICE")
+        // إيراد التنفيذ: للخدمة دائمًا، وللصنف المباشر أيًا كان نوعه (ذمم مباشرة).
+        if (line.ItemType == "SERVICE" || direct)
             journalEntryId = await PostServiceRevenueAsync(connection, tx, line, input.Quantity,
                 docNo, executionLineId, executionId, userId, ct) ?? journalEntryId;
         await connection.ExecuteAsync(new CommandDefinition("""

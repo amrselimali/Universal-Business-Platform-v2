@@ -46,6 +46,16 @@ public sealed class ItemCategoryInput
     public bool IsActive { get; set; } = true;
 }
 
+public static class ItemExecutionModes
+{
+    /// <summary>يُحجز ثم يُنفَّذ بشكل مستقل (الافتراضي) بقيود الموظف/الموعد/العدّاد.</summary>
+    public const string Reserved = "reserved";
+    /// <summary>يُ نفَّذ مباشرة: يتجاوز قيود التنفيذ ويُرحّل الإيراد والذمم وحركة المخزون.</summary>
+    public const string Direct = "direct";
+
+    public static bool IsValid(string? value) => value is Reserved or Direct;
+}
+
 public sealed class Item
 {
     public Guid Id { get; set; }
@@ -65,6 +75,7 @@ public sealed class Item
     public bool IsMetered { get; set; }
     public Guid? MeteredAssetId { get; set; }
     public string? MeteredAssetName { get; set; }
+    public string ExecutionMode { get; set; } = ItemExecutionModes.Reserved;
     public decimal? DefaultPrice { get; set; }
     public string? Notes { get; set; }
     public bool IsActive { get; set; } = true;
@@ -88,6 +99,7 @@ public sealed class ItemInput
     public bool IsConsumable { get; set; }
     public bool IsMetered { get; set; }
     public Guid? MeteredAssetId { get; set; }
+    public string ExecutionMode { get; set; } = ItemExecutionModes.Reserved;
     public decimal? DefaultPrice { get; set; }
     public string? Notes { get; set; }
     public bool IsActive { get; set; } = true;

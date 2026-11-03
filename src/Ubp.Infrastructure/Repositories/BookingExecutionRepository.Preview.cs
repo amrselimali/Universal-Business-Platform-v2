@@ -28,6 +28,7 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                        b.branch_id AS BranchId, b.customer_id AS CustomerId,
                        c.name_ar AS CustomerName, l.item_id AS ItemId, i.code AS ItemCode,
                        i.name_ar AS ItemName, i.item_type AS ItemType, l.unit_id AS UnitId,
+                       i.execution_mode AS ExecutionMode,
                        u.name_ar AS UnitName, l.warehouse_id AS WarehouseId,
                        w.name_ar AS WarehouseName, l.quantity AS Quantity,
                        l.delivered_qty AS DeliveredQty, l.cancelled_qty AS CancelledQty,

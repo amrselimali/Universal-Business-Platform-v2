@@ -12,10 +12,12 @@ public sealed partial class ItemRepository
         const string sql = """
             INSERT INTO items (code, name_ar, name_en, category_id, base_unit_id, item_type, notes,
                                is_active, custom_fields, tax_id, price_includes_tax, track_expiry,
-                               is_consumable, is_metered, metered_asset_id, default_price)
+                               is_consumable, is_metered, metered_asset_id, default_price,
+                               execution_mode)
             VALUES (@Code, @NameAr, @NameEn, @CategoryId, @BaseUnitId, @ItemType, @Notes,
                     @IsActive, CAST(@CustomFields AS jsonb), @TaxId, @PriceIncludesTax,
-                    @TrackExpiry, @IsConsumable, @IsMetered, @MeteredAssetId, @DefaultPrice)
+                    @TrackExpiry, @IsConsumable, @IsMetered, @MeteredAssetId, @DefaultPrice,
+                    @ExecutionMode)
             RETURNING id
             """;
         await using var connection = await _factory.OpenAsync(ct);
@@ -25,7 +27,7 @@ public sealed partial class ItemRepository
             input.Code, input.NameAr, input.NameEn, input.CategoryId, input.BaseUnitId,
             input.ItemType, input.Notes, input.IsActive, input.TaxId, input.PriceIncludesTax,
             input.TrackExpiry, input.IsConsumable, input.IsMetered, input.MeteredAssetId,
-            input.DefaultPrice,
+            input.DefaultPrice, input.ExecutionMode,
             CustomFields = JsonSerializer.Serialize(input.CustomFields)
         }, tx, cancellationToken: ct));
 
@@ -44,7 +46,8 @@ public sealed partial class ItemRepository
                              custom_fields = CAST(@CustomFields AS jsonb), tax_id = @TaxId,
                              price_includes_tax = @PriceIncludesTax, track_expiry = @TrackExpiry,
                              is_consumable = @IsConsumable, is_metered = @IsMetered,
-                             metered_asset_id = @MeteredAssetId, default_price = @DefaultPrice
+                             metered_asset_id = @MeteredAssetId, default_price = @DefaultPrice,
+                             execution_mode = @ExecutionMode
             WHERE id = @id AND version = @version
             RETURNING id
             """;
@@ -55,7 +58,7 @@ public sealed partial class ItemRepository
             id, version, input.Code, input.NameAr, input.NameEn, input.CategoryId,
             input.BaseUnitId, input.ItemType, input.Notes, input.IsActive, input.TaxId,
             input.PriceIncludesTax, input.TrackExpiry, input.IsConsumable, input.IsMetered,
-            input.MeteredAssetId, input.DefaultPrice,
+            input.MeteredAssetId, input.DefaultPrice, input.ExecutionMode,
             CustomFields = JsonSerializer.Serialize(input.CustomFields)
         }, tx, cancellationToken: ct));
 

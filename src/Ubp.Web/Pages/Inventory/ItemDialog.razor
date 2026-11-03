@@ -28,6 +28,18 @@
                         </MudSelect>
                         <MudSwitch @bind-Value="_input.IsMetered"
                                    Label="@T.T("items.metered")" Color="Color.Primary" />
+                        <MudSelect T="string" @bind-Value="_input.ExecutionMode"
+                                   Label="@T.T("items.execution_mode")" Variant="Variant.Outlined">
+                            <MudSelectItem T="string" Value="@ItemExecutionModes.Reserved">
+                                @T.T("items.execution_reserved")
+                            </MudSelectItem>
+                            <MudSelectItem T="string" Value="@ItemExecutionModes.Direct">
+                                @T.T("items.execution_direct")
+                            </MudSelectItem>
+                        </MudSelect>
+                        <MudText Typo="Typo.caption" Class="ubp-muted ubp-span-2">
+                            @T.T("items.execution_mode_hint")
+                        </MudText>
                         <MudTextField @bind-Value="_input.Notes" Label="@T.T("common.notes")" Variant="Variant.Outlined" Lines="2" Class="ubp-span-2" />
                         <MudSwitch @bind-Value="_input.IsActive" Label="@T.T("common.active")" Color="Color.Success" />
                     </div>

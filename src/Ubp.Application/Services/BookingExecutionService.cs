@@ -38,12 +38,15 @@ public sealed class BookingExecutionService
         await _permissions.RequireAsync(actor, ScreenCodes.Reservations, ActionCodes.Execute, ct: ct);
         var preview = await _executions.GetPreviewAsync(input.BookingLineId, ct);
         BranchScope.Ensure(actor, preview.BranchId);
-        if (preview.ItemType == "SERVICE" && string.IsNullOrWhiteSpace(preview.EmployeeName))
+        var direct = string.Equals(preview.ExecutionMode, ItemExecutionModes.Direct,
+            StringComparison.OrdinalIgnoreCase);
+        if (!direct && preview.ItemType == "SERVICE" &&
+            string.IsNullOrWhiteSpace(preview.EmployeeName))
             throw new ValidationAppException("validation.execution_employee_required");
         if (input.Quantity <= 0 || input.Quantity > preview.RemainingQty)
             throw new ValidationAppException("validation.booking_quantity_exceeds_remaining");
 
-        if (preview.ItemIsMetered)
+        if (preview.ItemIsMetered && !direct)
         {
             // الأصناف المرتبطة بعدّاد: اختيار الأصل وعدد وحدات أكبر من صفر إجباري، وإلا لا يُقبل التنفيذ.
             if (input.MeteredAssetId is null ||
@@ -52,7 +55,7 @@ public sealed class BookingExecutionService
             if (input.MeterUnits <= 0)
                 throw new ValidationAppException("validation.meter_units_required");
         }
-        else if (input.MeteredAssetId is not null || input.MeterUnits > 0)
+        else if (!preview.ItemIsMetered && (input.MeteredAssetId is not null || input.MeterUnits > 0))
         {
             throw new ValidationAppException("validation.item_not_metered");
         }

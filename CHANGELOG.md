@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-11-03 — Item execution mode: reserved vs direct
+
+### Added
+- Items carry an **execution mode** (migration `0071`, default `reserved`):
+  - `reserved`: reserved then executed independently with the usual constraints
+    (employee/appointment, meter, confirmed booking).
+  - `direct`: bypasses execution constraints — it can be executed from a draft booking without an
+    employee, appointment or meter, and posts revenue + customer receivable plus the stock
+    out-movement and cost entry immediately.
+- Item dialog exposes «طريقة التنفيذ»; the execution dialog shows a «تنفيذ مباشر» badge and skips the
+  employee/meter gating for direct items.
+- Tests: direct SERVICE posts Dr customer / Cr revenue; direct GOODS posts revenue, COGS/inventory
+  cost and a stock OUT movement. Full suite (315) passes.
+
 ## 2026-11-03 — WhatsApp send diagnostics (no silent SENT)
 
 ### Fixed

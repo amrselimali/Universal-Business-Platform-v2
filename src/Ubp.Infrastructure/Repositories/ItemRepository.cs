@@ -32,6 +32,7 @@ public sealed partial class ItemRepository : IItemRepository
         i.tax_id AS TaxId, (SELECT t.name_ar FROM taxes t WHERE t.id = i.tax_id) AS TaxName,
         i.price_includes_tax AS PriceIncludesTax, i.track_expiry AS TrackExpiry,
         i.is_consumable AS IsConsumable, i.is_metered AS IsMetered,
+        i.execution_mode AS ExecutionMode,
         i.metered_asset_id AS MeteredAssetId,
         (SELECT a.name_ar FROM fixed_assets a WHERE a.id = i.metered_asset_id) AS MeteredAssetName,
         i.default_price AS DefaultPrice,
@@ -126,7 +127,7 @@ public sealed partial class ItemRepository : IItemRepository
         BaseUnitId = row.BaseUnitId, BaseUnitName = row.BaseUnitName,
         ItemType = row.ItemType, Notes = row.Notes, IsActive = row.IsActive,
         IsMetered = row.IsMetered, MeteredAssetId = row.MeteredAssetId,
-        MeteredAssetName = row.MeteredAssetName,
+        MeteredAssetName = row.MeteredAssetName, ExecutionMode = row.ExecutionMode,
         CustomFields = string.IsNullOrWhiteSpace(row.CustomFieldsJson)
             ? new() : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(row.CustomFieldsJson) ?? new(),
         CreatedAt = row.CreatedAt, UpdatedAt = row.UpdatedAt, Version = row.Version
@@ -146,6 +147,7 @@ public sealed partial class ItemRepository : IItemRepository
         public string? Notes { get; set; }
         public bool IsActive { get; set; }
         public bool IsMetered { get; set; }
+        public string ExecutionMode { get; set; } = ItemExecutionModes.Reserved;
         public Guid? MeteredAssetId { get; set; }
         public string? MeteredAssetName { get; set; }
         public string? CustomFieldsJson { get; set; }

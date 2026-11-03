@@ -13,6 +13,8 @@ public sealed class BookingExecutionPreview
     public string ItemCode { get; set; } = "";
     public string ItemName { get; set; } = "";
     public string ItemType { get; set; } = "GOODS";
+    /// <summary>طريقة تنفيذ الصنف: reserved (الافتراضي) أو direct (تجاوز قيود التنفيذ).</summary>
+    public string ExecutionMode { get; set; } = ItemExecutionModes.Reserved;
     public Guid UnitId { get; set; }
     public string UnitName { get; set; } = "";
     public Guid WarehouseId { get; set; }
