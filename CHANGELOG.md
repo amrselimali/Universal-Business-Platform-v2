@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-11-03 — Booking end date removed from booking creation
+
+### Changed
+- The new-booking dialog no longer shows «تاريخ نهاية الحجز»: a manual booking is tied to its
+  appointment date only and leaves `bookings.expires_at` empty. The model/API
+  (`BookingInput.ExpiresAt`) remain available for compatibility; POS still records the offer
+  expiry.
+- The «تاريخ نهاية الحجز» wording was removed from the application: the expired-bookings and
+  reservations columns now use «تاريخ انتهاء الصلاحية» (`sales.offer_expiry`), and the expiry
+  validation message was reworded. Unused keys (`sales.booking_expiry`, `sales.extend_expiry`,
+  `sales.expiry_extended`, `reservations.expires`) were deleted from both ar/en resources.
+- No database schema or public API change; the expired-bookings logic and the reservations
+  extend action keep working on `bookings.expires_at`.
+
 ## 2026-11-03 — Separate offer expiry from the appointment date
 
 ### Changed

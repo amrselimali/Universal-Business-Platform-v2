@@ -41,7 +41,7 @@ public sealed partial class StandardReportRepository
             new("remaining", "reservations.remaining", ReportValueType.Number),
             new("remaining_value", "reservations.remaining_value", ReportValueType.Money),
             new("deposit", "report.deposit", ReportValueType.Money),
-            new("expires", "reservations.expires", ReportValueType.Date)
+            new("expires", "sales.offer_expiry", ReportValueType.Date)
         };
         var data = rows.Select(r => (IReadOnlyList<string?>)
         [
