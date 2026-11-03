@@ -132,6 +132,22 @@ public sealed class BookingCollectionTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Partial_collection_keeps_the_remaining_due()
+    {
+        var actor = await _db.AdminActorAsync();
+        var f = await SetupAsync("5");
+
+        var result = await _db.BookingCollections().CollectAsync(actor,
+            CollectInput(f.Branch, f.Customer.Id, f.TreasuryId, f.MethodId, f.Booking.Id, 100));
+
+        Assert.Equal(100m, result.Total);
+        var row = Assert.Single(await _db.BookingCollections()
+            .ListOutstandingAsync(actor, f.Branch, f.Customer.Id));
+        Assert.Equal(100m, row.PaidAmount);
+        Assert.Equal(200m, row.RemainingAmount);
+    }
+
+    [Fact]
     public async Task Collection_above_the_remaining_amount_is_rejected()
     {
         var actor = await _db.AdminActorAsync();

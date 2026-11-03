@@ -104,10 +104,14 @@
                     </tbody>
                 </table>
                 <div class="pos-receipt-totals">
-                    <div><span>@T.T("pos.collected_amount")</span><span>@SelectedTotal.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.collected_amount")</span><span>@CollectedTotal.ToString("N2")</span></div>
                     <div><span>@T.T("pos.fees")</span><span>@FeeTotal.ToString("N2")</span></div>
                     <div><b>@T.T("accounting.total")</b><b>@GrandTotal.ToString("N2")</b></div>
                     <div><span>@T.T("pos.paid")</span><span>@PaidTotal.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.remaining_on_services")</span><span>@RemainingOnServices.ToString("N2")</span></div>
+                </div>
+                <div class="mt-2">
+                    <MudText Typo="Typo.caption" Class="ubp-muted">@T.T("pos.partial_allowed")</MudText>
                 </div>
             </div>
         }
@@ -115,8 +119,8 @@
     <DialogActions>
         <MudButton OnClick="Cancel">@T.T("common.cancel")</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
-                   Disabled="@(_busy || _loading || SelectedTotal <= 0 ||
-                               PaidTotal - FeeTotal < SelectedTotal)">@T.T("pos.collect_confirm")</MudButton>
+                   Disabled="@(_busy || _loading || SelectedTotal <= 0 || CollectedTotal <= 0 ||
+                               CollectedTotal > SelectedTotal)">@T.T("pos.collect_confirm")</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -148,8 +152,12 @@
         MidpointRounding.AwayFromZero);
     private decimal PaidTotal => Math.Round(_payments.Sum(p => p.Total), 2,
         MidpointRounding.AwayFromZero);
-    private decimal GrandTotal => Math.Round(SelectedTotal + FeeTotal, 2,
+    private decimal CollectedTotal => Math.Round(_payments.Sum(p => p.Collected), 2,
         MidpointRounding.AwayFromZero);
+    private decimal GrandTotal => Math.Round(CollectedTotal + FeeTotal, 2,
+        MidpointRounding.AwayFromZero);
+    private decimal RemainingOnServices => Math.Max(Math.Round(SelectedTotal - CollectedTotal, 2,
+        MidpointRounding.AwayFromZero), 0);
 
     protected override async Task OnInitializedAsync()
     {

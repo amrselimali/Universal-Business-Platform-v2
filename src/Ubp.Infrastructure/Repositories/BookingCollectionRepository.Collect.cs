@@ -75,8 +75,8 @@ public sealed partial class BookingCollectionRepository
         var feeTotal = Math.Round(payRows.Sum(r => r.Fee), 2, MidpointRounding.AwayFromZero);
         var collectedTotal = Math.Round(payRows.Sum(r => r.Collected), 2,
             MidpointRounding.AwayFromZero);
-        if (collectedTotal != bookingTotal)
-            throw new ValidationAppException("validation.collection_amount_mismatch");
+        if (collectedTotal > bookingTotal)
+            throw new ValidationAppException("validation.collection_exceeds_selected");
 
         var ids = lines.Select(l => l.BookingId).ToArray();
         var bookings = (await connection.QueryAsync<LockedBooking>(new CommandDefinition("""
@@ -160,11 +160,17 @@ public sealed partial class BookingCollectionRepository
             vouchers.Add((id, no, groupCollected));
         }
 
+        // توزيع المبلغ المحصل (قد يكون جزئيًا) على الحجوزات المحددة بحدود المتبقي لكل حجز.
         var voucherIndex = 0;
         var voucherRemaining = vouchers[0].Collected;
+        var collectedRemaining = collectedTotal;
         foreach (var line in lines)
         {
-            var amount = Math.Round(line.Amount, 2, MidpointRounding.AwayFromZero);
+            if (collectedRemaining <= 0) break;
+            var cap = Math.Round(line.Amount, 2, MidpointRounding.AwayFromZero);
+            var amount = Math.Min(cap, collectedRemaining);
+            collectedRemaining = Math.Round(collectedRemaining - amount, 2,
+                MidpointRounding.AwayFromZero);
             while (amount > 0)
             {
                 var take = Math.Min(amount, voucherRemaining);
@@ -186,7 +192,7 @@ public sealed partial class BookingCollectionRepository
         await tx.CommitAsync(ct);
         return new BookingCollectionResult
         {
-            VoucherId = vouchers[0].Id, VoucherNo = vouchers[0].No, Total = bookingTotal,
+            VoucherId = vouchers[0].Id, VoucherNo = vouchers[0].No, Total = collectedTotal,
             Fee = feeTotal, Bookings = lines.Count
         };
     }

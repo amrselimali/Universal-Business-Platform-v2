@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-11-03 — Partial payments on receipts
+
+### Changed
+- Reserved-service collection accepts **partial payments**: the collected amount may be less than
+  the selected services total. It is applied to the selected bookings in order, each capped at its
+  remaining due; the rest stays due and the booking keeps appearing in the outstanding list.
+  Over-collection is rejected (`validation.collection_exceeds_selected`).
+- The collection dialog shows the collected amount, fees, grand total, paid and the remaining on
+  services, with a hint that partial payment is allowed; confirm is enabled for any collected
+  amount between zero and the selected total.
+- POS checkout already accepted partial payments; the receipt records the collected part.
+- Added a partial-collection test. No schema or public API change.
+
 ## 2026-11-03 — POS fee split, live receipt preview and multi-method collections
 
 ### Changed
