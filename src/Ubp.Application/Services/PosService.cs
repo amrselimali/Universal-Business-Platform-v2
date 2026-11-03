@@ -52,8 +52,9 @@ public sealed class PosService
 
         // إشعار العميل بالإيصال (واتساب) عند وجود مبلغ محصّل.
         if (receipt.Paid > 0)
-            await _notifier.NotifyAsync(input.CustomerId, receipt.BookingNo ?? "", receipt.Total,
-                receipt.Paid, Math.Max(receipt.Total - receipt.Paid, 0), ct);
+            await _notifier.NotifyAsync(input.CustomerId, receipt.BookingNo ?? "",
+                receipt.Total + receipt.FeeTotal, receipt.Paid,
+                Math.Max(receipt.Total + receipt.FeeTotal - receipt.Paid, 0), ct);
 
         return receipt;
     }
