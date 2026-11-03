@@ -16,7 +16,7 @@ public static partial class AppRegistry
 
         new(ScreenCodes.Notifications, "/notifications/center", "Notifications",
             "screen.notifications", GroupMain,
-            new[] { R(View), R(MarkAsRead), R(ClearAll) }),
+            new[] { R(View), R(MarkAsRead), R(ClearAll), R(RetryOutbox), R(CancelOutbox) }),
 
         new(ScreenCodes.ReportsCenter, "/reports/center", "QueryStats", "screen.reports_center",
             GroupReports,

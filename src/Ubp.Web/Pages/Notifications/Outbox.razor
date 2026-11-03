@@ -1,0 +1,125 @@
+@page "/notifications/outbox"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject OutboxService OutboxApi
+@inject IDisplayFormatter Fmt
+<PageTitle>@T.T("screen.outbox")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.outbox")" Subtitle="@T.T("outbox.hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="string?" Value="_status" Label="@T.T("common.status")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnStatusChanged">
+                <MudSelectItem T="string?" Value="@OutboxStatuses.Pending">@T.T("outbox.status_pending")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@OutboxStatuses.Sent">@T.T("outbox.status_sent")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@OutboxStatuses.Failed">@T.T("outbox.status_failed")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@OutboxStatuses.Cancelled">@T.T("outbox.status_cancelled")</MudSelectItem>
+            </MudSelect>
+            <MudSelect T="string?" Value="_channel" Label="@T.T("outbox.channel")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnChannelChanged">
+                @foreach (var channel in new[] { MessageChannels.WhatsApp, MessageChannels.Sms })
+                {
+                    <MudSelectItem T="string?" Value="@channel">@channel</MudSelectItem>
+                }
+            </MudSelect>
+            <MudButton Variant="Variant.Text" OnClick="ReloadAsync">@T.T("common.refresh")</MudButton>
+        </div>
+
+        <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("outbox.created")</MudTh>
+                <MudTh>@T.T("outbox.channel")</MudTh>
+                <MudTh>@T.T("outbox.recipient")</MudTh>
+                <MudTh>@T.T("outbox.body")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("outbox.attempts")</MudTh>
+                <MudTh>@T.T("outbox.last_error")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@Fmt.DateTime(context.CreatedAt)</MudTd>
+                <MudTd>@context.Channel</MudTd>
+                <MudTd><span dir="ltr">@Mask(context.Recipient)</span></MudTd>
+                <MudTd>@Truncate(context.Body, 60)</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@StatusColor(context.Status)">
+                        @T.T("outbox.status_" + context.Status.ToLowerInvariant())
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Right">@context.Attempts</MudTd>
+                <MudTd>@(context.LastError is null ? "—" : Truncate(context.LastError, 40))</MudTd>
+                <MudTd Align="Right">
+                    @if (context.Status is OutboxStatuses.Failed or OutboxStatuses.Cancelled &&
+                         Can(ActionCodes.RetryOutbox))
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small"
+                                       Title="@T.T("outbox.retry")" Color="Color.Primary"
+                                       OnClick="@(() => RetryAsync(context))" />
+                    }
+                    @if (context.Status == OutboxStatuses.Pending && Can(ActionCodes.CancelOutbox))
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small"
+                                       Title="@T.T("outbox.cancel")" Color="Color.Error"
+                                       OnClick="@(() => CancelAsync(context))" />
+                    }
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<OutboxMessage> _items = Array.Empty<OutboxMessage>();
+    private string? _status;
+    private string? _channel;
+
+    protected override string ScreenCode => ScreenCodes.Notifications;
+
+    protected override async Task OnLoadAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync() =>
+        _items = await OutboxApi.ListAsync(Actor!, _status, _channel);
+
+    private Task OnStatusChanged(string? value) { _status = value; return RunAsync(ReloadAsync); }
+    private Task OnChannelChanged(string? value) { _channel = value; return RunAsync(ReloadAsync); }
+
+    private async Task RetryAsync(OutboxMessage message) => await RunAsync(async () =>
+    {
+        if (!await OutboxApi.RetryAsync(Actor!, message.Id))
+            Snackbar.Add(T.T("outbox.not_retryable"), Severity.Warning);
+        await ReloadAsync();
+    });
+
+    private async Task CancelAsync(OutboxMessage message) => await RunAsync(async () =>
+    {
+        if (!await OutboxApi.CancelAsync(Actor!, message.Id))
+            Snackbar.Add(T.T("outbox.not_cancellable"), Severity.Warning);
+        await ReloadAsync();
+    });
+
+    private static string Mask(string recipient) =>
+        recipient.Length <= 4 ? "***" : "***" + recipient[^4..];
+
+    private static string Truncate(string value, int length) =>
+        value.Length <= length ? value : value[..length] + "…";
+
+    private static Color StatusColor(string status) => status switch
+    {
+        OutboxStatuses.Sent => Color.Success,
+        OutboxStatuses.Failed => Color.Error,
+        OutboxStatuses.Cancelled => Color.Default,
+        _ => Color.Warning
+    };
+}

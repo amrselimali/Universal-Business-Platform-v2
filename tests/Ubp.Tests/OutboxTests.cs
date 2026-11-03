@@ -46,9 +46,40 @@ public sealed class OutboxTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Service_lists_and_retries_failed_messages()
+    {
+        var actor = await _db.AdminActorAsync();
+        var id = await Repo().EnqueueAsync(NewInput("outbox-retry-1"));
+        Assert.NotNull(id);
+        await Repo().MarkFailedAsync(id!.Value, 5, DateTimeOffset.UtcNow, "boom", 5);
+
+        var service = new OutboxService(Repo(), _db.Permissions());
+        var failed = await service.ListAsync(actor, OutboxStatuses.Failed);
+        Assert.Contains(failed, m => m.Id == id);
+
+        Assert.True(await service.RetryAsync(actor, id.Value));
+        var pending = await service.ListAsync(actor, OutboxStatuses.Pending,
+            MessageChannels.WhatsApp);
+        Assert.Contains(pending, m => m.Id == id);
+    }
+
+    [Fact]
+    public async Task Service_cancels_pending_messages()
+    {
+        var actor = await _db.AdminActorAsync();
+        var id = await Repo().EnqueueAsync(NewInput("outbox-cancel-1"));
+        Assert.NotNull(id);
+
+        var service = new OutboxService(Repo(), _db.Permissions());
+        Assert.True(await service.CancelAsync(actor, id!.Value));
+        var cancelled = await service.ListAsync(actor, OutboxStatuses.Cancelled);
+        Assert.Contains(cancelled, m => m.Id == id);
+    }
+
+    [Fact]
     public async Task Service_rejects_empty_recipient_or_body()
     {
-        var service = new OutboxService(Repo());
+        var service = new OutboxService(Repo(), _db.Permissions());
 
         var recipient = await Assert.ThrowsAsync<ValidationAppException>(async () =>
             await service.EnqueueAsync(new OutboxMessageInput { Recipient = "  ", Body = "x" }));

@@ -26,6 +26,10 @@ else
             <MudButton Variant="Variant.Outlined" Color="Color.Error" Disabled="@(!Can(ActionCodes.ClearAll))"
                        OnClick="ClearAsync">@T.T("notifications.clear_all")</MudButton>
             <MudButton Variant="Variant.Text" OnClick="RefreshAsync">@T.T("common.refresh")</MudButton>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Outbox"
+                       OnClick="@(() => Navigation.NavigateTo("/notifications/outbox"))">
+                @T.T("notifications.outbox")
+            </MudButton>
             <MudSpacer />
             <MudChip T="string" Color="Color.Primary" Size="Size.Small">
                 @T.T("notifications.unread"): @_unread

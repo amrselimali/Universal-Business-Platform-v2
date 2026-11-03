@@ -19,6 +19,13 @@ public interface IMessageOutboxRepository
         short maxAttempts, CancellationToken ct = default);
     Task<int> CountByStatusAsync(string status, CancellationToken ct = default);
     Task<OutboxMessage?> GetAsync(Guid id, CancellationToken ct = default);
+    /// <summary>قائمة الرسائل لأحدث الرسائل مع فلترة اختيارية بالحالة/القناة.</summary>
+    Task<IReadOnlyList<OutboxMessage>> ListAsync(string? status, string? channel, int limit,
+        CancellationToken ct = default);
+    /// <summary>إعادة محاولة رسالة فاشلة/ملغاة (PENDING, attempts=0, الآن).</summary>
+    Task<bool> RetryAsync(Guid id, CancellationToken ct = default);
+    /// <summary>إلغاء رسالة ما زالت قيد الانتظار.</summary>
+    Task<bool> CancelPendingAsync(Guid id, CancellationToken ct = default);
 }
 
 /// <summary>

@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-11-03 — Message outbox screen
+
+### Added
+- `/notifications/outbox` («صندوق الرسائل») reachable from the notifications screen: lists outgoing
+  messages with channel, masked recipient, body, status, attempts and last error; supports
+  status/channel filters, retry of failed/cancelled messages and cancelling pending ones.
+- Permissions: new `RETRY_OUTBOX` / `CANCEL_OUTBOX` actions on the notifications screen (list uses
+  `View`). Recipients are masked to the last four digits.
+- Tests: outbox list/retry/cancel round-trips. No schema or public API break.
+
 ## 2026-11-03 — Per-branch WhatsApp settings
 
 ### Added
