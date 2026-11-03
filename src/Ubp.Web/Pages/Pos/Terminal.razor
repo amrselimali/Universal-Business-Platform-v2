@@ -136,13 +136,17 @@ else
                     <div><span>@T.T("pos.net")</span><b>@Net.ToString("N2")</b></div>
                     <div><span>@T.T("pos.tax")</span><b>@Tax.ToString("N2")</b></div>
                     <div><span>@T.T("pos.fees")</span><b>@Fees.ToString("N2")</b></div>
-                    <div class="pos-grand"><span>@T.T("accounting.total")</span><b>@Total.ToString("N2")</b></div>
+                    <div class="pos-grand"><span>@T.T("accounting.total")</span><b>@GrandTotal.ToString("N2")</b></div>
+                    <div><span>@T.T("pos.paid")</span><b>@Paid.ToString("N2")</b></div>
+                    <div><span>@T.T("pos.remaining")</span><b>@Remaining.ToString("N2")</b></div>
                 </div>
 
                 <MudTable Items="_payments" Dense="true" Elevation="0" Class="ubp-table mt-2">
                     <HeaderContent>
                         <MudTh>@T.T("treasury.method")</MudTh>
-                        <MudTh Align="Right">@T.T("common.amount")</MudTh>
+                        <MudTh Align="Right">@T.T("pos.payment_total")</MudTh>
+                        <MudTh Align="Right">@T.T("pos.collected_amount")</MudTh>
+                        <MudTh Align="Right">@T.T("pos.fee")</MudTh>
                         <MudTh></MudTh>
                     </HeaderContent>
                     <RowTemplate>
@@ -160,10 +164,12 @@ else
                             </MudSelect>
                         </MudTd>
                         <MudTd Align="Right">
-                            <MudNumericField T="decimal" @bind-Value="context.Amount" Min="0m"
+                            <MudNumericField T="decimal" Value="context.Total" Min="0m"
+                                             ValueChanged="@(v => SetTotal(context, v))"
                                              Format="N2" Dense="true" />
-                            <MudText Typo="Typo.caption">@T.T("pos.fee"): @FeeOf(context).ToString("N2")</MudText>
                         </MudTd>
+                        <MudTd Align="Right">@context.Collected.ToString("N2")</MudTd>
+                        <MudTd Align="Right">@context.Fee.ToString("N2")</MudTd>
                         <MudTd>
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
                                            OnClick="@(() => _payments.Remove(context))" />
@@ -183,6 +189,36 @@ else
                         </MudButton>
                     }
                 </div>
+
+                @if (_cart.Count > 0)
+                {
+                    <div class="pos-receipt mt-3">
+                        <div class="pos-receipt-head">
+                            <div><b>@T.T("pos.receipt")</b> — @T.T("pos.preview")</div>
+                            <div>@DateTime.Now.ToString("yyyy-MM-dd HH:mm")</div>
+                            <div>@(_customerName ?? "—")</div>
+                        </div>
+                        <table>
+                            <tbody>
+                                @foreach (var line in _cart)
+                                {
+                                    <tr>
+                                        <td>@line.Name × @line.Quantity.ToString("N2")</td>
+                                        <td class="num">@line.Total.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <div class="pos-receipt-totals">
+                            <div><span>@T.T("pos.net")</span><span>@Net.ToString("N2")</span></div>
+                            <div><span>@T.T("pos.tax")</span><span>@Tax.ToString("N2")</span></div>
+                            <div><span>@T.T("pos.fees")</span><span>@Fees.ToString("N2")</span></div>
+                            <div><b>@T.T("accounting.total")</b><b>@GrandTotal.ToString("N2")</b></div>
+                            <div><span>@T.T("pos.paid")</span><span>@Paid.ToString("N2")</span></div>
+                            <div><span>@T.T("pos.remaining")</span><span>@Remaining.ToString("N2")</span></div>
+                        </div>
+                    </div>
+                }
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -227,7 +263,7 @@ else
                     <div><span>@T.T("pos.net")</span><span>@_lastNet.ToString("N2")</span></div>
                     <div><span>@T.T("pos.tax")</span><span>@_receipt.TaxTotal.ToString("N2")</span></div>
                     <div><span>@T.T("pos.fees")</span><span>@_receipt.FeeTotal.ToString("N2")</span></div>
-                    <div><b>@T.T("accounting.total")</b><b>@_receipt.Total.ToString("N2")</b></div>
+                    <div><b>@T.T("accounting.total")</b><b>@((_receipt.Total + _receipt.FeeTotal).ToString("N2"))</b></div>
                     <div><span>@T.T("pos.paid")</span><span>@_receipt.Paid.ToString("N2")</span></div>
                 </div>
             </div>

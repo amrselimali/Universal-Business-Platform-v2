@@ -23,7 +23,6 @@
             <MudTable Items="_rows" Dense="true" Hover="true" Elevation="0" Class="ubp-table">
                 <HeaderContent>
                     <MudTh>@T.T("sales.booking_no")</MudTh>
-                    <MudTh>@T.T("common.date")</MudTh>
                     <MudTh>@T.T("pos.services")</MudTh>
                     <MudTh Align="Right">@T.T("accounting.total")</MudTh>
                     <MudTh Align="Right">@T.T("pos.paid_previously")</MudTh>
@@ -33,7 +32,6 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@context.BookingNo</MudTd>
-                    <MudTd>@context.BookingDate.ToString("yyyy-MM-dd")</MudTd>
                     <MudTd>@context.Services</MudTd>
                     <MudTd Align="Right">@context.TotalAmount.ToString("N2")</MudTd>
                     <MudTd Align="Right">@context.PaidAmount.ToString("N2")</MudTd>
@@ -50,34 +48,87 @@
                 </RowTemplate>
             </MudTable>
 
-            <div class="ubp-form-grid mt-2">
-                <MudSelect T="Guid" @bind-Value="_methodId" Label="@T.T("treasury.method")"
-                           Variant="Variant.Outlined">
-                    @foreach (var method in Methods)
-                    {
-                        <MudSelectItem T="Guid" Value="@method.Id">
-                            @method.Code — @method.NameAr
-                            @(string.IsNullOrWhiteSpace(method.TreasuryName) ? "" : $" — {method.TreasuryName}")
-                            (@method.FeePercent.ToString("N2")%)
-                        </MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
+            <MudDivider Class="my-3" />
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@T.T("pos.payment_methods")</MudText>
+            <MudTable Items="_payments" Dense="true" Elevation="0" Class="ubp-table">
+                <HeaderContent>
+                    <MudTh>@T.T("treasury.method")</MudTh>
+                    <MudTh Align="Right">@T.T("pos.payment_total")</MudTh>
+                    <MudTh Align="Right">@T.T("pos.collected_amount")</MudTh>
+                    <MudTh Align="Right">@T.T("pos.fee")</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudSelect T="Guid" Value="context.MethodId" Dense="true"
+                                   ValueChanged="@(v => PickMethod(context, v))">
+                            @foreach (var method in Methods)
+                            {
+                                <MudSelectItem T="Guid" Value="@method.Id">
+                                    @method.Code — @method.NameAr (@method.FeePercent.ToString("N2")%)
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd Align="Right">
+                        <MudNumericField T="decimal" Value="context.Total" Min="0m"
+                                         ValueChanged="@(v => SetTotal(context, v))"
+                                         Format="N2" Dense="true" />
+                    </MudTd>
+                    <MudTd Align="Right">@context.Collected.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.Fee.ToString("N2")</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                       OnClick="@(() => _payments.Remove(context))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+            <MudButton Size="Size.Small" Variant="Variant.Outlined" Class="mt-2"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="AddPayment">@T.T("pos.add_payment")</MudButton>
 
-            <div class="ubp-totals mt-2">
-                <span>@T.T("pos.collect_total"): <b>@SelectedTotal.ToString("N2")</b></span>
-                <span>@T.T("pos.collect_fee"): <b>@Fee.ToString("N2")</b></span>
+            <div class="pos-receipt mt-3">
+                <div class="pos-receipt-head">
+                    <div><b>@T.T("pos.receipt")</b> — @T.T("pos.preview")</div>
+                    <div>@DateTime.Now.ToString("yyyy-MM-dd HH:mm")</div>
+                    <div>@CustomerName</div>
+                </div>
+                <table>
+                    <tbody>
+                        @foreach (var row in _rows.Where(r => r.Selected && r.Amount > 0))
+                        {
+                            <tr>
+                                <td>@row.BookingNo — @row.Services</td>
+                                <td class="num">@row.Amount.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <div class="pos-receipt-totals">
+                    <div><span>@T.T("pos.collected_amount")</span><span>@SelectedTotal.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.fees")</span><span>@FeeTotal.ToString("N2")</span></div>
+                    <div><b>@T.T("accounting.total")</b><b>@GrandTotal.ToString("N2")</b></div>
+                    <div><span>@T.T("pos.paid")</span><span>@PaidTotal.ToString("N2")</span></div>
+                </div>
             </div>
         }
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">@T.T("common.cancel")</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
-                   Disabled="@(_busy || _loading || SelectedTotal <= 0)">@T.T("pos.collect_confirm")</MudButton>
+                   Disabled="@(_busy || _loading || SelectedTotal <= 0 ||
+                               PaidTotal - FeeTotal < SelectedTotal)">@T.T("pos.collect_confirm")</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
+    private sealed class PayLine
+    {
+        public Guid MethodId { get; set; }
+        public decimal Total { get; set; }
+        public decimal Fee { get; set; }
+        public decimal Collected => Math.Max(Total - Fee, 0);
+    }
+
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public Guid BranchId { get; set; }
     [Parameter] public Guid CustomerId { get; set; }
@@ -86,32 +137,70 @@
         Array.Empty<TreasuryMethod>();
 
     private List<BookingCollectionRow> _rows = new();
-    private Guid _methodId;
+    private List<PayLine> _payments = new();
     private bool _loading = true;
     private bool _busy;
 
-    private decimal SelectedTotal => _rows.Where(r => r.Selected)
-        .Sum(r => Math.Round(r.Amount, 2, MidpointRounding.AwayFromZero));
-
-    private TreasuryMethod? Method => Methods.FirstOrDefault(m => m.Id == _methodId);
-
-    private decimal Fee => Method is null ? 0m
-        : Math.Round(SelectedTotal * Method.FeePercent / 100m + Method.FeeFixed, 2,
-            MidpointRounding.AwayFromZero);
+    private decimal SelectedTotal => Math.Round(_rows.Where(r => r.Selected)
+        .Sum(r => Math.Round(r.Amount, 2, MidpointRounding.AwayFromZero)), 2,
+        MidpointRounding.AwayFromZero);
+    private decimal FeeTotal => Math.Round(_payments.Sum(p => p.Fee), 2,
+        MidpointRounding.AwayFromZero);
+    private decimal PaidTotal => Math.Round(_payments.Sum(p => p.Total), 2,
+        MidpointRounding.AwayFromZero);
+    private decimal GrandTotal => Math.Round(SelectedTotal + FeeTotal, 2,
+        MidpointRounding.AwayFromZero);
 
     protected override async Task OnInitializedAsync()
     {
-        _methodId = Methods.FirstOrDefault()?.Id ?? Guid.Empty;
         var actor = await UserContext.GetAsync();
         if (actor is null) return;
         _rows = (await Collections.ListOutstandingAsync(actor, BranchId, CustomerId)).ToList();
         _loading = false;
     }
 
-    private static void Toggle(BookingCollectionRow row, bool value)
+    private void Toggle(BookingCollectionRow row, bool value)
     {
         row.Selected = value;
         row.Amount = value ? row.RemainingAmount : 0m;
+        if (value && _payments.Count == 0) AddPayment();
+        StateHasChanged();
+    }
+
+    private decimal FeeFor(Guid methodId, decimal total)
+    {
+        var method = Methods.FirstOrDefault(m => m.Id == methodId);
+        return method is null ? 0m
+            : Math.Round(total * method.FeePercent / 100m + method.FeeFixed, 2,
+                MidpointRounding.AwayFromZero);
+    }
+
+    private void AddPayment()
+    {
+        var method = Methods.FirstOrDefault();
+        if (method is null) return;
+        var remaining = Math.Max(SelectedTotal - _payments.Sum(p => p.Collected), 0);
+        var fee = FeeFor(method.Id, remaining);
+        _payments.Add(new PayLine
+        {
+            MethodId = method.Id,
+            Total = Math.Round(remaining + fee, 2, MidpointRounding.AwayFromZero), Fee = fee
+        });
+        StateHasChanged();
+    }
+
+    private void PickMethod(PayLine line, Guid methodId)
+    {
+        line.MethodId = methodId;
+        line.Fee = FeeFor(methodId, line.Total);
+        StateHasChanged();
+    }
+
+    private void SetTotal(PayLine line, decimal total)
+    {
+        line.Total = Math.Max(total, 0);
+        line.Fee = FeeFor(line.MethodId, line.Total);
+        StateHasChanged();
     }
 
     private void Cancel() => MudDialog.Cancel();
@@ -121,8 +210,12 @@
         var lines = _rows.Where(r => r.Selected && r.Amount > 0)
             .Select(r => new BookingCollectionLineInput { BookingId = r.BookingId, Amount = r.Amount })
             .ToList();
-        var method = Method;
-        if (lines.Count == 0 || method is null) return;
+        var payments = _payments.Where(p => p.Total > 0).Select(p => new PosPaymentInput
+        {
+            TreasuryId = Methods.FirstOrDefault(m => m.Id == p.MethodId)?.TreasuryId ?? Guid.Empty,
+            TreasuryMethodId = p.MethodId, Amount = p.Total
+        }).ToList();
+        if (lines.Count == 0 || payments.Count == 0) return;
 
         _busy = true;
         try
@@ -130,8 +223,8 @@
             var actor = await UserContext.RequireAsync();
             var result = await Collections.CollectAsync(actor, new BookingCollectionInput
             {
-                BranchId = BranchId, CustomerId = CustomerId, TreasuryId = method.TreasuryId,
-                TreasuryMethodId = method.Id, DocDate = DateTime.Today, Lines = lines
+                BranchId = BranchId, CustomerId = CustomerId, DocDate = DateTime.Today,
+                Lines = lines, Payments = payments
             });
             Snackbar.Add(T.T("pos.collected") + $" — {result.VoucherNo}", Severity.Success);
             MudDialog.Close(DialogResult.Ok(result));

@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-11-03 — POS fee split, live receipt preview and multi-method collections
+
+### Changed
+- POS payment rows for fee-bearing methods now show three cells: **total paid with the method**,
+  **collected amount** and **fee** (total = collected + fee); fees are included in the displayed
+  grand total and on the printed receipt, and the booking’s paid amount records the collected part.
+- POS shows a **live receipt preview** (same printed layout) before checkout.
+- Reserved-service collection supports **multiple payment methods** with the same fee split and
+  shows a full receipt preview before confirming; it creates one posted receipt per treasury group
+  and allocates the collected amounts across the bookings (amount-mismatch validation added).
+- Tests updated for the collected-amount validation; no schema or public API change.
+
 ## 2026-11-03 — POS receipts list, WhatsApp resend and method source clarity
 
 ### Fixed

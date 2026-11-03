@@ -206,8 +206,8 @@ public sealed partial class PosRepository : IPosRepository
             await connection.ExecuteAsync(new CommandDefinition("""
                 INSERT INTO booking_payments (booking_id, voucher_id, amount, created_by, notes)
                 VALUES (@bookingId, @voucherId, @amount, @userId, 'دفع مع إنشاء الحجز من نقطة البيع')
-                """, new { bookingId, voucherId = voucher.VoucherId, amount = voucher.Amount,
-                    userId }, tx, cancellationToken: ct));
+                """, new { bookingId, voucherId = voucher.VoucherId,
+                    amount = voucher.Amount - voucher.Fee, userId }, tx, cancellationToken: ct));
         }
 
         await ConsumeServiceRecipesAsync(connection, tx, input, lines, userId, ct);
@@ -254,7 +254,7 @@ public sealed partial class PosRepository : IPosRepository
             result.Add(account);
         }
 
-        if (input.Payments.Sum(p => p.Amount) > total)
+        if (result.Sum(p => p.Amount - p.Fee) > total)
             throw new ValidationAppException("validation.pos_payment_exceeds_total");
 
         return result;

@@ -38,7 +38,9 @@ public partial class Terminal : SecurePageBase
     {
         public Guid TreasuryId { get; set; }
         public Guid TreasuryMethodId { get; set; }
-        public decimal Amount { get; set; }
+        public decimal Total { get; set; }
+        public decimal Fee { get; set; }
+        public decimal Collected => Math.Max(Total - Fee, 0);
     }
 
     private Guid _branchId;
@@ -65,8 +67,13 @@ public partial class Terminal : SecurePageBase
     private decimal Net => _cart.Sum(l => l.Net);
     private decimal Tax => _cart.Sum(l => l.Tax);
     private decimal Total => Math.Round(Net + Tax, 2, MidpointRounding.AwayFromZero);
-    private decimal Paid => _payments.Sum(p => p.Amount);
-    private decimal Fees => _payments.Sum(FeeOf);
+    private decimal Fees => Math.Round(_payments.Sum(p => p.Fee), 2,
+        MidpointRounding.AwayFromZero);
+    private decimal GrandTotal => Math.Round(Total + Fees, 2, MidpointRounding.AwayFromZero);
+    private decimal Paid => Math.Round(_payments.Sum(p => p.Total), 2,
+        MidpointRounding.AwayFromZero);
+    private decimal Remaining => Math.Max(Math.Round(GrandTotal - Paid, 2,
+        MidpointRounding.AwayFromZero), 0);
 
     private string? WhatsAppUrl
     {
@@ -157,8 +164,15 @@ public partial class Terminal : SecurePageBase
     {
         var method = _methods.FirstOrDefault(m => m.Id == payment.TreasuryMethodId);
         return method is null ? 0m
-            : Math.Round(payment.Amount * method.FeePercent / 100m + method.FeeFixed, 2,
+            : Math.Round(payment.Total * method.FeePercent / 100m + method.FeeFixed, 2,
                 MidpointRounding.AwayFromZero);
+    }
+
+    private void SetTotal(PaymentModel payment, decimal total)
+    {
+        payment.Total = Math.Max(total, 0);
+        payment.Fee = FeeOf(payment);
+        StateHasChanged();
     }
 
     private void PickMethod(PaymentModel payment, Guid methodId)
@@ -166,6 +180,7 @@ public partial class Terminal : SecurePageBase
         payment.TreasuryMethodId = methodId;
         var method = _methods.FirstOrDefault(m => m.Id == methodId);
         if (method is not null) payment.TreasuryId = method.TreasuryId;
+        payment.Fee = FeeOf(payment);
         StateHasChanged();
     }
 
@@ -173,10 +188,13 @@ public partial class Terminal : SecurePageBase
     {
         var method = _methods.FirstOrDefault();
         if (method is null) return;
+        var remaining = Math.Max(Total - _payments.Sum(p => p.Collected), 0);
+        var fee = Math.Round(remaining * method.FeePercent / 100m + method.FeeFixed, 2,
+            MidpointRounding.AwayFromZero);
         _payments.Add(new PaymentModel
         {
             TreasuryId = method.TreasuryId, TreasuryMethodId = method.Id,
-            Amount = Math.Max(Total - Paid, 0)
+            Total = Math.Round(remaining + fee, 2, MidpointRounding.AwayFromZero), Fee = fee
         });
         StateHasChanged();
     }
@@ -207,6 +225,11 @@ public partial class Terminal : SecurePageBase
             Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
             return;
         }
+        if (_payments.Sum(p => p.Collected) > Total)
+        {
+            Snackbar.Add(T.T("validation.pos_payment_exceeds_total"), Severity.Warning);
+            return;
+        }
 
         _busy = true;
         try
@@ -223,10 +246,10 @@ public partial class Terminal : SecurePageBase
                     ItemId = l.ItemId, UnitId = l.UnitId, Quantity = l.Quantity,
                     UnitPrice = l.UnitPrice
                 }).ToList(),
-                Payments = _payments.Where(p => p.Amount > 0).Select(p => new PosPaymentInput
+                Payments = _payments.Where(p => p.Total > 0).Select(p => new PosPaymentInput
                 {
                     TreasuryId = p.TreasuryId, TreasuryMethodId = p.TreasuryMethodId,
-                    Amount = p.Amount
+                    Amount = p.Total
                 }).ToList()
             });
             _cart.Clear();

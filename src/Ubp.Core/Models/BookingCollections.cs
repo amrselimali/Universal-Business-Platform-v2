@@ -30,6 +30,8 @@ public sealed class BookingCollectionInput
     public DateTime DocDate { get; set; } = DateTime.Today;
     public string? Notes { get; set; }
     public List<BookingCollectionLineInput> Lines { get; set; } = new();
+    /// <summary>سطور السداد (طريقة + إجمالي مدفوع)؛ تدعم أكثر من طريقة.</summary>
+    public List<PosPaymentInput> Payments { get; set; } = new();
 }
 
 public sealed class BookingCollectionResult
