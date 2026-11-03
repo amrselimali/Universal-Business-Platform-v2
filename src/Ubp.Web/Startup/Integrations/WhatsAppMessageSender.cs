@@ -28,13 +28,13 @@ public sealed class WhatsAppMessageSender : IMessageSender
         _logger = logger;
     }
 
-    public async Task SendAsync(OutboxMessage message, CancellationToken ct = default)
+    public async Task<string?> SendAsync(OutboxMessage message, CancellationToken ct = default)
     {
         if (message.Channel != MessageChannels.WhatsApp)
         {
             _logger.LogInformation("OUTBOX {Channel} -> {Recipient}: {Body}",
                 message.Channel, Mask(message.Recipient), message.Body);
-            return;
+            return null;
         }
 
         var (apiUrl, phoneNumberId, token) = await ResolveCredentialsAsync(message, ct);
@@ -42,7 +42,7 @@ public sealed class WhatsAppMessageSender : IMessageSender
         {
             _logger.LogInformation("OUTBOX WHATSAPP (not configured) -> {Recipient}: {Body}",
                 Mask(message.Recipient), message.Body);
-            return;
+            return null;
         }
 
         var to = new string(message.Recipient.Where(char.IsDigit).ToArray());
@@ -59,15 +59,27 @@ public sealed class WhatsAppMessageSender : IMessageSender
         });
 
         using var response = await client.SendAsync(request, ct);
+        var content = await response.Content.ReadAsStringAsync(ct);
         if (!response.IsSuccessStatusCode)
         {
-            var body = await response.Content.ReadAsStringAsync(ct);
             var hint = (int)response.StatusCode == 401
                 ? "WHATSAPP_AUTH_FAILED: access token is invalid or expired (generate a new token " +
                   "with whatsapp_business_messaging and save it in the branch settings)"
                 : "WHATSAPP_SEND_FAILED";
-            throw new HttpRequestException($"{hint} ({(int)response.StatusCode}): {body}");
+            throw new HttpRequestException($"{hint} ({(int)response.StatusCode}): {content}");
         }
+
+        // معرّف الرسالة لدى Meta (wamid) لربط تحديثات الحالة من Webhook.
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            if (doc.RootElement.TryGetProperty("messages", out var messages) &&
+                messages.ValueKind == JsonValueKind.Array && messages.GetArrayLength() > 0 &&
+                messages[0].TryGetProperty("id", out var id))
+                return id.GetString();
+        }
+        catch (JsonException) { }
+        return null;
     }
 
     private async Task<(string ApiUrl, string? PhoneNumberId, string? Token)>

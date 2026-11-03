@@ -23,11 +23,11 @@ public sealed class OutboxDispatcherTests : IClassFixture<TestDb>
         public bool ShouldFail { get; set; }
         public List<OutboxMessage> Sent { get; } = new();
 
-        public Task SendAsync(OutboxMessage message, CancellationToken ct = default)
+        public Task<string?> SendAsync(OutboxMessage message, CancellationToken ct = default)
         {
             if (ShouldFail) throw new InvalidOperationException("provider down");
             Sent.Add(message);
-            return Task.CompletedTask;
+            return Task.FromResult<string?>("wamid.test");
         }
     }
 

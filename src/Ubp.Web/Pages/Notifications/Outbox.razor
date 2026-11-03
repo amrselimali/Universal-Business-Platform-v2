@@ -41,6 +41,7 @@ else
                 <MudTh>@T.T("outbox.body")</MudTh>
                 <MudTh>@T.T("common.status")</MudTh>
                 <MudTh Align="Right">@T.T("outbox.attempts")</MudTh>
+                <MudTh>@T.T("outbox.delivery")</MudTh>
                 <MudTh>@T.T("outbox.last_error")</MudTh>
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
@@ -56,6 +57,7 @@ else
                     </MudChip>
                 </MudTd>
                 <MudTd Align="Right">@context.Attempts</MudTd>
+                <MudTd>@(context.DeliveryStatus ?? "—")</MudTd>
                 <MudTd>
                     @if (context.LastError is null)
                     {

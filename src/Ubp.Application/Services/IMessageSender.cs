@@ -6,7 +6,8 @@ namespace Ubp.Application.Services;
 /// <summary>مزوّد إرسال خارجي (SMS/واتساب/…): نقطة الاستبدال الوحيدة عند ربط مزوّد حقيقي.</summary>
 public interface IMessageSender
 {
-    Task SendAsync(OutboxMessage message, CancellationToken ct = default);
+    /// <summary>يرسل الرسالة ويعيد معرّف المزوّد (wamid) إن وُجد.</summary>
+    Task<string?> SendAsync(OutboxMessage message, CancellationToken ct = default);
 }
 
 /// <summary>مزوّد تجريبي يسجل الرسالة دون إرسالها، مع إخفاء جزء من رقم المستلم.</summary>
@@ -16,11 +17,11 @@ public sealed class LoggingMessageSender : IMessageSender
 
     public LoggingMessageSender(ILogger<LoggingMessageSender> logger) => _logger = logger;
 
-    public Task SendAsync(OutboxMessage message, CancellationToken ct = default)
+    public Task<string?> SendAsync(OutboxMessage message, CancellationToken ct = default)
     {
         _logger.LogInformation("OUTBOX {Channel} -> {Recipient} [{Template}]: {Body}",
             message.Channel, Mask(message.Recipient), message.TemplateKey ?? "-", message.Body);
-        return Task.CompletedTask;
+        return Task.FromResult<string?>(null);
     }
 
     private static string Mask(string recipient) =>

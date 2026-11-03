@@ -72,8 +72,8 @@ public sealed class OutboxDispatcher : BackgroundService
         {
             try
             {
-                await sender.SendAsync(message, ct);
-                await repository.MarkSentAsync(message.Id, ct);
+                var providerId = await sender.SendAsync(message, ct);
+                await repository.MarkSentAsync(message.Id, providerId, ct);
             }
             catch (Exception ex)
             {

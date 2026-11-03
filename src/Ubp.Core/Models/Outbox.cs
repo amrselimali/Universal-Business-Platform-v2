@@ -36,6 +36,25 @@ public sealed class OutboxMessage
     public string? LastError { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? SentAt { get; set; }
+    /// <summary>معرّف الرسالة لدى Meta (wamid) لربط تحديثات الحالة.</summary>
+    public string? ProviderMessageId { get; set; }
+    /// <summary>حالة التسليم من Webhook: sent/delivered/read/failed.</summary>
+    public string? DeliveryStatus { get; set; }
+    public DateTimeOffset? DeliveryUpdatedAt { get; set; }
+}
+
+/// <summary>رسالة واردة من واتساب عبر Webhook.</summary>
+public sealed class WhatsAppInboundMessage
+{
+    public Guid Id { get; set; }
+    public Guid BranchId { get; set; }
+    public string? BranchName { get; set; }
+    public string WaMessageId { get; set; } = "";
+    public string FromPhone { get; set; } = "";
+    public string MessageType { get; set; } = "text";
+    public string? TextBody { get; set; }
+    public DateTimeOffset? SentAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 }
 
 public sealed class OutboxMessageInput

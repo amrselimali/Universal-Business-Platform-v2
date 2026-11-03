@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-03 — WhatsApp webhooks (incoming messages and delivery status)
+
+### Added
+- Anonymous endpoints `/webhooks/whatsapp/{branchId}`:
+  - `GET` verification (`hub.mode` / `hub.verify_token`) against the branch’s Verify Token,
+  - `POST` receiver with `X-Hub-Signature-256` HMAC-SHA256 verification against the branch’s App
+    Secret (requests without a valid signature are rejected with 403).
+- Status updates update `message_outbox` (Meta wamid, `delivery_status`
+  sent/delivered/read/failed, failures to `last_error`); incoming messages are stored once per wamid
+  in `whatsapp_inbound_messages`.
+- Branch WhatsApp settings now hold the **Verify Token** and **App Secret** and display the
+  **Callback URL** to paste into Meta; the sender stores the Meta message id for correlation.
+- New inbox screen `/notifications/inbox` (linked from notifications) and a delivery-status column
+  in the outbox screen. Migration `0070`; tests cover verification, signature, status and inbound
+  storage. Full suite passes.
+
 ## 2026-11-03 — WhatsApp 401 diagnostics and token hygiene
 
 ### Fixed

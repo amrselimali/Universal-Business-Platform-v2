@@ -9,6 +9,8 @@ public sealed class BranchWhatsAppSettings
     public string? PhoneNumberId { get; set; }
     public string? MessagingAccountId { get; set; }
     public string? AccessToken { get; set; }
+    public string? WebhookVerifyToken { get; set; }
+    public string? AppSecret { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
 
@@ -20,4 +22,6 @@ public sealed class BranchWhatsAppSettingsInput
     public string? PhoneNumberId { get; set; }
     public string? MessagingAccountId { get; set; }
     public string? AccessToken { get; set; }
+    public string? WebhookVerifyToken { get; set; }
+    public string? AppSecret { get; set; }
 }

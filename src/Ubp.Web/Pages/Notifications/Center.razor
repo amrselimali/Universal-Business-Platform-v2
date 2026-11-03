@@ -30,6 +30,10 @@ else
                        OnClick="@(() => Navigation.NavigateTo("/notifications/outbox"))">
                 @T.T("notifications.outbox")
             </MudButton>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Inbox"
+                       OnClick="@(() => Navigation.NavigateTo("/notifications/inbox"))">
+                @T.T("notifications.inbox")
+            </MudButton>
             <MudSpacer />
             <MudChip T="string" Color="Color.Primary" Size="Size.Small">
                 @T.T("notifications.unread"): @_unread

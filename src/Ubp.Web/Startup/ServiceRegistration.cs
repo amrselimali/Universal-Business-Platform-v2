@@ -159,6 +159,7 @@ public static class ServiceRegistration
         services.AddScoped<IPosRepository, PosRepository>();
         services.AddScoped<IBookingCollectionRepository, BookingCollectionRepository>();
         services.AddScoped<IBranchWhatsAppSettingsRepository, BranchWhatsAppSettingsRepository>();
+        services.AddScoped<IWhatsAppInboundRepository, WhatsAppInboundRepository>();
         services.AddScoped<IFollowUpRepository, FollowUpRepository>();
     }
 
@@ -205,6 +206,8 @@ public static class ServiceRegistration
         services.AddScoped<BookingExecutionService>();
         services.AddScoped<BookingCollectionService>();
         services.AddScoped<BranchWhatsAppSettingsService>();
+        services.AddScoped<WhatsAppInboxService>();
+        services.AddScoped<WhatsAppWebhookService>();
         services.AddScoped<IBranchAccountDefaultsRepository, BranchAccountDefaultsRepository>();
         services.AddScoped<BranchAccountDefaultsService>();
         services.AddScoped<IAssetRepository, AssetRepository>();

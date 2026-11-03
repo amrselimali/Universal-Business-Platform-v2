@@ -1,0 +1,52 @@
+@page "/notifications/inbox"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject WhatsAppInboxService InboxApi
+@inject IDisplayFormatter Fmt
+<PageTitle>@T.T("screen.inbox")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.inbox")" Subtitle="@T.T("inbox.hint")" />
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudButton Variant="Variant.Text" OnClick="ReloadAsync">@T.T("common.refresh")</MudButton>
+        </div>
+
+        <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("inbox.received")</MudTh>
+                <MudTh>@T.T("inbox.branch")</MudTh>
+                <MudTh>@T.T("inbox.from")</MudTh>
+                <MudTh>@T.T("inbox.type")</MudTh>
+                <MudTh>@T.T("inbox.text")</MudTh>
+                <MudTh>@T.T("inbox.sent")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@Fmt.DateTime(context.CreatedAt)</MudTd>
+                <MudTd>@context.BranchName</MudTd>
+                <MudTd><span dir="ltr">@context.FromPhone</span></MudTd>
+                <MudTd>@context.MessageType</MudTd>
+                <MudTd>@(context.TextBody ?? "—")</MudTd>
+                <MudTd>@(context.SentAt is null ? "—" : Fmt.DateTime(context.SentAt))</MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<WhatsAppInboundMessage> _items = Array.Empty<WhatsAppInboundMessage>();
+
+    protected override string ScreenCode => ScreenCodes.Notifications;
+
+    protected override async Task OnLoadAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync() => _items = await InboxApi.ListAsync(Actor!);
+}

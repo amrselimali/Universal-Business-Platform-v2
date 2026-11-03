@@ -88,6 +88,13 @@ public sealed partial class TestDb
     public BranchWhatsAppSettingsService BranchWhatsApp() => new(
         BranchWhatsAppRepo, Permissions(), new AuditService(AuditRepo));
 
+    public WhatsAppInboundRepository WhatsAppInboundRepo => new(Factory);
+
+    public WhatsAppInboxService WhatsAppInbox() => new(WhatsAppInboundRepo, Permissions());
+
+    public WhatsAppWebhookService WhatsAppWebhook() => new(
+        BranchWhatsAppRepo, new MessageOutboxRepository(Factory), WhatsAppInboundRepo);
+
     public FollowUpService FollowUps() => new(
         FollowUpRepo, Permissions(), new AuditService(AuditRepo));
 

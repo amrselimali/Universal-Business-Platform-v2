@@ -2,6 +2,7 @@
 @inject UserContext UserContext
 @inject UiCulture T
 @inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 
 <MudDialog>
     <TitleContent>
@@ -23,6 +24,19 @@
                 <MudTextField @bind-Value="_input.AccessToken" Label="@T.T("branches.whatsapp_token")"
                               Variant="Variant.Outlined" InputType="InputType.Password"
                               MaxLength="600" Class="ubp-span-2" />
+                <MudTextField @bind-Value="_input.WebhookVerifyToken"
+                              Label="@T.T("branches.whatsapp_verify_token")"
+                              Variant="Variant.Outlined" MaxLength="120" />
+                <MudTextField @bind-Value="_input.AppSecret"
+                              Label="@T.T("branches.whatsapp_app_secret")"
+                              Variant="Variant.Outlined" InputType="InputType.Password"
+                              MaxLength="200" />
+                <MudText Typo="Typo.caption" Class="ubp-muted ubp-span-2">
+                    @T.T("branches.whatsapp_callback"): <span dir="ltr">@CallbackUrl</span>
+                </MudText>
+                <MudText Typo="Typo.caption" Class="ubp-muted ubp-span-2">
+                    @T.T("branches.whatsapp_webhook_hint")
+                </MudText>
                 <MudText Typo="Typo.caption" Class="ubp-muted ubp-span-2">
                     @T.T("branches.whatsapp_token_hint")
                 </MudText>
@@ -45,6 +59,9 @@
     private BranchWhatsAppSettingsInput _input = new();
     private bool _busy;
 
+    private string CallbackUrl =>
+        $"{Navigation.BaseUri.TrimEnd('/')}/webhooks/whatsapp/{BranchId}";
+
     protected override async Task OnInitializedAsync()
     {
         _input.BranchId = BranchId;
@@ -55,7 +72,8 @@
         {
             BranchId = BranchId, IsEnabled = settings.IsEnabled, ApiUrl = settings.ApiUrl,
             PhoneNumberId = settings.PhoneNumberId,
-            MessagingAccountId = settings.MessagingAccountId, AccessToken = settings.AccessToken
+            MessagingAccountId = settings.MessagingAccountId, AccessToken = settings.AccessToken,
+            WebhookVerifyToken = settings.WebhookVerifyToken, AppSecret = settings.AppSecret
         };
     }
 

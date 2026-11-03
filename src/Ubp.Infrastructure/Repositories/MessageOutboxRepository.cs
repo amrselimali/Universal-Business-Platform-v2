@@ -14,6 +14,11 @@ public interface IMessageOutboxRepository
     Task<IReadOnlyList<OutboxMessage>> ClaimDueAsync(int batchSize, TimeSpan lease,
         CancellationToken ct = default);
     Task MarkSentAsync(Guid id, CancellationToken ct = default);
+    /// <summary>تسجيل معرّف Meta للرسالة عند الإرسال الناجح.</summary>
+    Task MarkSentAsync(Guid id, string? providerMessageId, CancellationToken ct = default);
+    /// <summary>تحديث حالة التسليم من Webhook (sent/delivered/read/failed).</summary>
+    Task<bool> UpdateDeliveryStatusAsync(string providerMessageId, string deliveryStatus,
+        string? error, CancellationToken ct = default);
     /// <summary>يسجل فشلاً: attempts + 1، وموعد المحاولة التالية أو FAILED عند بلوغ السقف.</summary>
     Task MarkFailedAsync(Guid id, short attempts, DateTimeOffset nextAttemptAt, string error,
         short maxAttempts, CancellationToken ct = default);
@@ -38,14 +43,17 @@ public sealed partial class MessageOutboxRepository : IMessageOutboxRepository
         id AS Id, channel AS Channel, recipient AS Recipient, template_key AS TemplateKey,
         body AS Body, payload::text AS PayloadJson, dedupe_key AS DedupeKey, status AS Status,
         attempts AS Attempts, next_attempt_at AS NextAttemptAt, last_error AS LastError,
-        created_at AS CreatedAt, sent_at AS SentAt
+        created_at AS CreatedAt, sent_at AS SentAt, provider_message_id AS ProviderMessageId,
+        delivery_status AS DeliveryStatus, delivery_updated_at AS DeliveryUpdatedAt
         """;
 
     internal const string ColumnsWithAlias = """
         m.id AS Id, m.channel AS Channel, m.recipient AS Recipient, m.template_key AS TemplateKey,
         m.body AS Body, m.payload::text AS PayloadJson, m.dedupe_key AS DedupeKey, m.status AS Status,
         m.attempts AS Attempts, m.next_attempt_at AS NextAttemptAt, m.last_error AS LastError,
-        m.created_at AS CreatedAt, m.sent_at AS SentAt
+        m.created_at AS CreatedAt, m.sent_at AS SentAt,
+        m.provider_message_id AS ProviderMessageId, m.delivery_status AS DeliveryStatus,
+        m.delivery_updated_at AS DeliveryUpdatedAt
         """;
 
     private readonly IDbConnectionFactory _factory;

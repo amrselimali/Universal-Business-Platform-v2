@@ -50,6 +50,7 @@ app.UseSerilogRequestLogging();
 
 app.MapAuthEndpoints();
 app.MapSystemEndpoints();
+app.MapWhatsAppWebhookEndpoints();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
 await DatabaseBootstrapper.InitializeAsync(app);

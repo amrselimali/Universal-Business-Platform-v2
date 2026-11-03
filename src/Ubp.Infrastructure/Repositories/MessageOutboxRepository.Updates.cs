@@ -6,14 +6,37 @@ namespace Ubp.Infrastructure.Repositories;
 
 public sealed partial class MessageOutboxRepository
 {
-    public async Task MarkSentAsync(Guid id, CancellationToken ct = default)
+    public async Task MarkSentAsync(Guid id, CancellationToken ct = default) =>
+        await MarkSentAsync(id, null, ct);
+
+    public async Task MarkSentAsync(Guid id, string? providerMessageId,
+        CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE message_outbox
-            SET status = 'SENT', sent_at = now(), last_error = NULL
+            SET status = 'SENT', sent_at = now(), last_error = NULL,
+                provider_message_id = COALESCE(@providerMessageId, provider_message_id),
+                delivery_status = COALESCE(delivery_status, 'sent'),
+                delivery_updated_at = now()
             WHERE id = @id
-            """, new { id }, cancellationToken: ct));
+            """, new { id, providerMessageId }, cancellationToken: ct));
+    }
+
+    public async Task<bool> UpdateDeliveryStatusAsync(string providerMessageId,
+        string deliveryStatus, string? error, CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE message_outbox SET
+                delivery_status = @deliveryStatus,
+                delivery_updated_at = now(),
+                status = CASE WHEN @deliveryStatus = 'failed' THEN 'FAILED' ELSE status END,
+                last_error = CASE WHEN @deliveryStatus = 'failed'
+                                  THEN COALESCE(@error, last_error) ELSE last_error END
+            WHERE provider_message_id = @providerMessageId
+            """, new { providerMessageId, deliveryStatus, error = Truncate(error) },
+            cancellationToken: ct)) > 0;
     }
 
     public async Task MarkFailedAsync(Guid id, short attempts, DateTimeOffset nextAttemptAt,
