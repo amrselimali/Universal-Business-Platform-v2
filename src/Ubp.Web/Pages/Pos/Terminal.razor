@@ -35,6 +35,14 @@ else
                             <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
                         }
                     </MudSelect>
+                    <MudSelect T="Guid" Value="_warehouseId" Label="@T.T("common.warehouse")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               ValueChanged="OnWarehouseChanged">
+                        @foreach (var warehouse in BranchWarehouses)
+                        {
+                            <MudSelectItem T="Guid" Value="@warehouse.Id">@warehouse.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
                 </div>
 
                 @if (_products.Count == 0)

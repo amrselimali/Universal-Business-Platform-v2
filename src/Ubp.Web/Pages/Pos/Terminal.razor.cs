@@ -103,7 +103,8 @@ public partial class Terminal : SecurePageBase
     private async Task LoadBranchAsync()
     {
         _warehouses = await Warehouses.OptionsAsync(Actor!);
-        _warehouseId = _warehouses.FirstOrDefault()?.Id ?? Guid.Empty;
+        if (BranchWarehouses.All(w => w.Id != _warehouseId))
+            _warehouseId = BranchWarehouses.FirstOrDefault()?.Id ?? Guid.Empty;
         var treasuries = await Treasury.ListTreasuriesAsync(Actor!, _branchId);
         _treasuryId = treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
         _methods = await Treasury.ListBranchMethodsAsync(Actor!, _branchId);
@@ -135,6 +136,17 @@ public partial class Terminal : SecurePageBase
         if (_branchId != Guid.Empty)
             _methods = await Treasury.ListBranchMethodsAsync(Actor!, _branchId);
         StateHasChanged();
+    }
+
+    private IReadOnlyList<Warehouse> BranchWarehouses => _branchId == Guid.Empty
+        ? _warehouses
+        : _warehouses.Where(w => w.BranchIds.Count == 0 || w.BranchIds.Contains(_branchId))
+            .ToList();
+
+    private Task OnWarehouseChanged(Guid value)
+    {
+        _warehouseId = value;
+        return Task.CompletedTask;
     }
 
     private async Task OnBranchChanged(Guid value)

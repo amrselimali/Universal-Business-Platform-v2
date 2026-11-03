@@ -162,4 +162,49 @@ public sealed class DirectExecutionTests : IClassFixture<TestDb>
             "SELECT count(*)::int FROM stock_movements WHERE item_id = @id AND direction = 'OUT'",
             new { id = item.Id }));
     }
+
+    [Fact]
+    public async Task Pos_direct_item_falls_back_to_a_warehouse_that_holds_the_stock()
+    {
+        var actor = await _db.AdminActorAsync();
+        await _db.SeedAccountingAsync();
+        var branch = await _db.CreateBranchAsync("DX-B4", "فرع مخزن بديل");
+        var holding = await _db.CreateWarehouseAsync("DX-W4A", "مخزن الرصيد", branch);
+        var empty = await _db.CreateWarehouseAsync("DX-W4B", "مخزن فارغ", branch);
+        var item = await _db.CreateItemAsync("DX-IT4", "صنف مخزن بديل");
+        await _db.PostReceiptAsync(item, branch, holding, 15, 30);
+        await using (var setup = new NpgsqlConnection(TestDb.AdminConnection))
+        {
+            await setup.OpenAsync();
+            await setup.ExecuteAsync(
+                "UPDATE items SET execution_mode = 'direct' WHERE id = @id", new { id = item.Id });
+        }
+        var customer = await _db.PartnerRepo.CreateAsync(PartnerKind.Customer, new PartnerInput
+        { Code = "DX-C4", NameAr = "عميل مخزن بديل" });
+
+        // المستخدم اختار المخزن الفارغ: يجب أن يُصرف من المخزن الذي يحمل الرصيد.
+        var receipt = await _db.Pos().CheckoutAsync(actor, new PosCheckoutInput
+        {
+            BranchId = branch, CustomerId = customer.Id, WarehouseId = empty,
+            DocDate = DateTime.Today,
+            Lines =
+            {
+                new PosLineInput
+                {
+                    ItemId = item.Id, UnitId = item.BaseUnitId, Quantity = 5, UnitPrice = 60
+                }
+            }
+        });
+
+        Assert.Equal(10m, await _db.OnHandAsync(item.Id, holding));
+        Assert.Equal(0m, await _db.OnHandAsync(item.Id, empty));
+
+        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
+        await connection.OpenAsync();
+        Assert.Equal(1, await connection.ExecuteScalarAsync<int>(
+            "SELECT count(*)::int FROM stock_movements WHERE item_id = @id AND direction = 'OUT' " +
+            "AND warehouse_id = @warehouse", new { id = item.Id, warehouse = holding }));
+        Assert.Equal(BookingStatuses.Completed, await connection.ExecuteScalarAsync<string>(
+            "SELECT status FROM bookings WHERE id = @id", new { id = receipt.BookingId }));
+    }
 }

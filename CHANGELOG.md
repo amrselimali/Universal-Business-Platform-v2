@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-11-03 — POS warehouse selection and stock fallback for direct items
+
+### Fixed
+- “No stock” at POS when the item was received in a different warehouse: direct items now resolve a
+  warehouse that actually holds the quantity (selected warehouse first, then any warehouse linked to
+  the branch), so the sale no longer fails while the balance exists elsewhere.
+- POS gained an explicit **warehouse selector** limited to the selected branch (it previously used the
+  first warehouse in the list, which caused the mismatch).
+- When there is genuinely not enough stock, the error now reports the item, the requested quantity and
+  the available quantity instead of a generic message.
+
 ## 2026-11-03 — Direct items execute at POS checkout
 
 ### Fixed

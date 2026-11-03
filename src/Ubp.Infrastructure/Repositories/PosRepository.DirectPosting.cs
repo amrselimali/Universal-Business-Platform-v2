@@ -8,16 +8,53 @@ namespace Ubp.Infrastructure.Repositories;
 public sealed partial class PosRepository
 {
     /// <summary>صرف المخزون للصنف المباشر (مستند ISSUE مُرحّل) وإرجاع تكلفته الفعلية.</summary>
+    /// <summary>
+    /// يحدد مخزنًا فيه رصيد كافٍ للصنف: المخزن المختار أولًا، ثم أي مخزن آخر في نفس الفرع.
+    /// يمنع رسالة «لا توجد كمية» عندما يكون الرصيد مستلَمًا في مخزن آخر.
+    /// </summary>
+    private static async Task<(Guid WarehouseId, decimal Available)> ResolveWarehouseAsync(
+        NpgsqlConnection connection, NpgsqlTransaction tx, PosCheckoutInput input,
+        DirectLine line, CancellationToken ct)
+    {
+        var selected = await connection.ExecuteScalarAsync<decimal>(new CommandDefinition(
+            "SELECT COALESCE(fn_stock_available(@itemId, @warehouseId), 0)",
+            new { itemId = line.ItemId, warehouseId = input.WarehouseId }, tx,
+            cancellationToken: ct));
+        if (selected >= line.Quantity)
+            return (input.WarehouseId, selected);
+
+        var fallback = await connection.QuerySingleOrDefaultAsync<(Guid WarehouseId,
+            decimal Available)>(new CommandDefinition("""
+            SELECT b.warehouse_id AS WarehouseId,
+                   COALESCE(b.on_hand - b.reserved_qty, 0) AS Available
+            FROM stock_balances b
+            JOIN warehouses w ON w.id = b.warehouse_id
+            JOIN warehouse_branches wb ON wb.warehouse_id = w.id
+            WHERE b.item_id = @itemId AND wb.branch_id = @branchId AND w.is_active
+              AND COALESCE(b.on_hand - b.reserved_qty, 0) >= @quantity
+            ORDER BY (b.warehouse_id = @selected) DESC, (b.on_hand - b.reserved_qty) DESC
+            LIMIT 1
+            """, new { itemId = line.ItemId, branchId = input.BranchId,
+                quantity = line.Quantity, selected = input.WarehouseId }, tx,
+            cancellationToken: ct));
+
+        if (fallback.WarehouseId != Guid.Empty) return fallback;
+        return (input.WarehouseId, selected);
+    }
+
     private static async Task<(Guid? LineId, decimal Cost)> IssueStockAsync(
         NpgsqlConnection connection, NpgsqlTransaction tx, PosCheckoutInput input,
         DirectLine line, string docNo, Guid userId, bool allowNegative, CancellationToken ct)
     {
-        var available = await connection.ExecuteScalarAsync<decimal>(new CommandDefinition(
-            "SELECT COALESCE(fn_stock_available(@itemId, @warehouseId), 0)",
-            new { itemId = line.ItemId, warehouseId = input.WarehouseId }, tx,
-            cancellationToken: ct));
+        var (warehouseId, available) = await ResolveWarehouseAsync(connection, tx, input, line, ct);
         if (available < line.Quantity)
-            throw new ValidationAppException("validation.booking_not_available");
+            throw new ValidationAppException("validation.stock_not_available_detail",
+                new Dictionary<string, string>
+                {
+                    ["item"] = line.ItemId.ToString("N")[..8],
+                    ["requested"] = line.Quantity.ToString("N4"),
+                    ["available"] = available.ToString("N4")
+                });
 
         var documentId = Guid.CreateVersion7();
         await connection.ExecuteAsync(new CommandDefinition("""
@@ -27,7 +64,7 @@ public sealed partial class PosRepository
             """, new
         {
             id = documentId, date = input.DocDate.Date, branchId = input.BranchId,
-            warehouseId = input.WarehouseId, notes = $"تنفيذ مباشر {docNo}", userId
+            warehouseId, notes = $"تنفيذ مباشر {docNo}", userId
         }, tx, cancellationToken: ct));
 
         var lineId = Guid.CreateVersion7();

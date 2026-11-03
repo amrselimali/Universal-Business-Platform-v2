@@ -1362,6 +1362,7 @@
   "validation.booking_has_deliveries": "A booking with deliveries cannot be cancelled",
   "validation.booking_line_not_found": "Booking line not found",
   "validation.booking_not_available": "Quantity not available — {item} available {available}",
+  "validation.stock_not_available_detail": "Not enough available stock for item {item}: requested {requested}, available {available}",
   "validation.booking_not_cancellable": "Booking cannot be cancelled in its current status",
   "validation.booking_not_confirmed": "Booking is not confirmed",
   "validation.booking_expiry_invalid": "Offer expiry date must be today or later",

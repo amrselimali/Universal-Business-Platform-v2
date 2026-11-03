@@ -1362,6 +1362,7 @@
   "validation.booking_has_deliveries": "لا يمكن إلغاء حجز بدأ تنفيذه",
   "validation.booking_line_not_found": "بند الحجز غير موجود",
   "validation.booking_not_available": "الكمية غير متاحة للحجز — المطلوب {item} المتاح {available}",
+  "validation.stock_not_available_detail": "لا توجد كمية متاحة كافية للصنف {item}: المطلوب {requested} والمتاح {available}",
   "validation.booking_not_cancellable": "لا يمكن إلغاء الحجز في حالته الحالية",
   "validation.booking_not_confirmed": "الحجز غير مؤكد",
   "validation.booking_expiry_invalid": "تاريخ انتهاء الصلاحية يجب أن يكون اليوم أو بعده",
