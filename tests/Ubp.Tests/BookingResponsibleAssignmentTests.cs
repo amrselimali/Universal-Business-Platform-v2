@@ -85,6 +85,64 @@ public sealed class BookingResponsibleAssignmentTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Confirmation_records_the_responsible_employee_from_the_customer_appointment()
+    {
+        var actor = await _db.AdminActorAsync();
+        var bookingBranch = await _db.CreateBranchAsync("RA-B5", "فرع إسناد التأكيد");
+        var shiftBranch = await _db.CreateBranchAsync("RA-B6", "فرع دوام التأكيد");
+        var warehouse = await _db.CreateWarehouseAsync("RA-W5", "مخزن إسناد التأكيد",
+            bookingBranch);
+        var unit = await _db.UnitRepo.CreateAsync(new UnitInput
+        { Code = "RA-U5", NameAr = "وحدة إسناد التأكيد" });
+        var service = await _db.ItemRepo.CreateAsync(new ItemInput
+        {
+            Code = "RA-SV5", NameAr = "خدمة إسناد التأكيد", ItemType = "SERVICE",
+            BaseUnitId = unit.Id,
+            Units = new List<ItemUnitInput> { new() { UnitId = unit.Id, ConversionFactor = 1 } }
+        });
+        var customer = await _db.PartnerRepo.CreateAsync(PartnerKind.Customer, new PartnerInput
+        { Code = "RA-C5", NameAr = "عميل إسناد التأكيد" });
+        var employeeId = Guid.CreateVersion7();
+        await _db.EmployeeRepo.CreateAsync(employeeId, new EmployeeInput
+        { Code = "RA-E5", NameAr = "موظف إسناد التأكيد", IsServiceExecutor = true },
+            actor.UserId);
+
+        // موعد مؤكد للعميل على فرع آخر يغطي فترة الحجز.
+        var start = new DateTimeOffset(DateTime.UtcNow.Date.AddHours(9), TimeSpan.Zero);
+        var appointmentId = Guid.CreateVersion7();
+        await _db.AppointmentRepo.CreateAsync(appointmentId, new AppointmentInput
+        {
+            BranchId = shiftBranch, EmployeeId = employeeId, CustomerId = customer.Id,
+            StartsAt = start, EndsAt = start.AddHours(4)
+        }, actor.UserId);
+        var appointment = (await _db.AppointmentRepo.GetAsync(appointmentId))!;
+        await _db.AppointmentRepo.SetStatusAsync(appointmentId, appointment.Version,
+            AppointmentStatuses.Confirmed, actor.UserId);
+
+        var booking = await _db.BookingService().CreateAsync(actor, new BookingInput
+        {
+            BranchId = bookingBranch, BookingDate = start.UtcDateTime.Date, CustomerId = customer.Id,
+            StartsAt = start.AddHours(1), EndsAt = start.AddMinutes(90),
+            Lines =
+            {
+                new BookingLineInput
+                {
+                    ItemId = service.Id, UnitId = service.BaseUnitId, WarehouseId = warehouse,
+                    Quantity = 1, UnitPrice = 100
+                }
+            }
+        });
+
+        var confirmed = await _db.BookingRepo.ConfirmAsync(booking.Id, actor.UserId,
+            reserveStock: false);
+
+        Assert.Equal(employeeId, confirmed.AssignedEmployeeId);
+        var open = Assert.Single(confirmed.Assignments, a => a.UnassignedAt is null);
+        Assert.Equal("owner", open.Role);
+        Assert.Equal(employeeId, open.EmployeeId);
+    }
+
+    [Fact]
     public async Task Draft_update_records_the_responsible_employee_by_default()
     {
         var actor = await _db.AdminActorAsync();

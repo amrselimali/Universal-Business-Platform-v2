@@ -48,18 +48,19 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                 --     يُفحصان عند اختيار الموظف وتأكيد الحجز؛ لا يُعاد اشتراطهما هنا حتى لا يتعطل
                 --     تنفيذ حجز مؤكد بسبب تغيير لاحق في أدوار الموظف أو في دوامه.
                 LEFT JOIN employees resp ON resp.id = b.assigned_employee_id
-                -- (2) توافق خلفي: موعد مؤكد للعميل (بيانات أُنشئت قبل شاشة دوامات الموظفين).
+                -- (2) توافق خلفي: موعد العميل (المؤكد أولاً) — بلا قيد على الفرع أو الخدمة،
+                --     لأن دوام الموظف قد يُسجَّل على فرع آخر، والمهم ربط العميل بالموظف.
                 LEFT JOIN LATERAL (
                     SELECT emp.name_ar AS employee_name
                     FROM appointments ap
                     JOIN employees emp ON emp.id = ap.employee_id
-                    WHERE ap.status = 'confirmed'
-                      AND ap.customer_id = b.customer_id
-                      AND ap.branch_id = b.branch_id
+                    WHERE ap.customer_id = b.customer_id
+                      AND ap.status <> 'cancelled'
                     ORDER BY CASE WHEN ap.booking_id = b.id THEN 0 ELSE 1 END,
+                             CASE WHEN ap.status = 'confirmed' THEN 0 ELSE 1 END,
+                             CASE WHEN ap.branch_id = b.branch_id THEN 0 ELSE 1 END,
                              CASE WHEN (ap.starts_at AT TIME ZONE COALESCE(st.time_zone, 'UTC'))::date =
-                                       (now() AT TIME ZONE COALESCE(st.time_zone, 'UTC'))::date
-                                  THEN 0 ELSE 1 END,
+                                       COALESCE(b.starts_at::date, b.booking_date) THEN 0 ELSE 1 END,
                              ap.starts_at DESC
                     LIMIT 1
                 ) ap ON true

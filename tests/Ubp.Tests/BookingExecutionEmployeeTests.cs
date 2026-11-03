@@ -17,7 +17,7 @@ public sealed class BookingExecutionEmployeeTests : IClassFixture<TestDb>
     public BookingExecutionEmployeeTests(TestDb db) => _db = db;
 
     [Fact]
-    public async Task Legacy_execution_employee_falls_back_to_a_confirmed_customer_appointment()
+    public async Task Legacy_execution_employee_falls_back_to_a_customer_appointment()
     {
         var actor = await _db.AdminActorAsync();
         await _db.SeedAccountingAsync();
@@ -66,13 +66,9 @@ public sealed class BookingExecutionEmployeeTests : IClassFixture<TestDb>
             StartsAt = start, EndsAt = start.AddMinutes(30)
         }, actor.UserId);
 
-        // الموعد المجدول (غير المؤكد) لا يُعتمد: لا موظف مسؤول حتى لو كان مسنداً على الحجز.
+        // موعد العميل (غير الملغى) يُعتمد كتوافق خلفي، والمؤكد يُفضَّل عند التعدد.
         var pending = await _db.Executions().GetPreviewAsync(actor, line.Id);
-        Assert.Null(pending.EmployeeName);
-        var blocked = await Assert.ThrowsAsync<ValidationAppException>(() =>
-            _db.Executions().ExecuteAsync(actor, new BookingExecutionInput
-            { BookingLineId = line.Id, Quantity = 1 }));
-        Assert.Equal("validation.execution_employee_required", blocked.Code);
+        Assert.Equal("موظف تنفيذ مؤكد", pending.EmployeeName);
 
         // بعد تأكيد موعد العميل يصبح الموظف المسؤول متاحاً للتنفيذ.
         var appointment = (await _db.AppointmentRepo.GetAsync(appointmentId))!;
@@ -136,6 +132,59 @@ public sealed class BookingExecutionEmployeeTests : IClassFixture<TestDb>
         var result = await _db.Executions().ExecuteAsync(actor, new BookingExecutionInput
         { BookingLineId = line.Id, Quantity = 1 });
         Assert.Equal(1m, result.Quantity);
+    }
+
+    [Fact]
+    public async Task Execution_resolves_the_customer_appointment_across_branches()
+    {
+        var actor = await _db.AdminActorAsync();
+        var bookingBranch = await _db.CreateBranchAsync("EX-B-8", "فرع الحجز");
+        var shiftBranch = await _db.CreateBranchAsync("EX-B-9", "فرع الدوام");
+        var warehouse = await _db.CreateWarehouseAsync("EX-W-8", "مخزن ربط الفروع", bookingBranch);
+        var unit = await _db.UnitRepo.CreateAsync(new UnitInput
+        { Code = "EX-U-8", NameAr = "وحدة ربط الفروع" });
+        var service = await _db.ItemRepo.CreateAsync(new ItemInput
+        {
+            Code = "EX-SV-8", NameAr = "خدمة ربط الفروع", ItemType = "SERVICE",
+            BaseUnitId = unit.Id,
+            Units = new List<ItemUnitInput> { new() { UnitId = unit.Id, ConversionFactor = 1 } }
+        });
+        var customer = await _db.PartnerRepo.CreateAsync(PartnerKind.Customer, new PartnerInput
+        { Code = "EX-C-8", NameAr = "عميل ربط الفروع" });
+        var employeeId = Guid.CreateVersion7();
+        await _db.EmployeeRepo.CreateAsync(employeeId, new EmployeeInput
+        { Code = "EX-E-8", NameAr = "موظف ربط الفروع", IsServiceExecutor = true }, actor.UserId);
+
+        // حجز مؤكد قديم بلا موظف مسؤول على الحجز (بيانات ما قبل الدوامات).
+        var booking = await _db.BookingService().CreateAsync(actor, new BookingInput
+        {
+            BranchId = bookingBranch, BookingDate = DateTime.Today, CustomerId = customer.Id,
+            Lines =
+            {
+                new BookingLineInput
+                {
+                    ItemId = service.Id, UnitId = service.BaseUnitId, WarehouseId = warehouse,
+                    Quantity = 1, UnitPrice = 100
+                }
+            }
+        });
+        await _db.BookingRepo.ConfirmAsync(booking.Id, actor.UserId, reserveStock: false);
+        var line = (await _db.BookingService().GetAsync(actor, booking.Id)).Lines.Single();
+
+        // موعد مؤكد للعميل مسجل على فرع آخر ونفس اليوم.
+        var start = new DateTimeOffset(DateTime.UtcNow.Date.AddHours(9), TimeSpan.Zero);
+        var appointmentId = Guid.CreateVersion7();
+        await _db.AppointmentRepo.CreateAsync(appointmentId, new AppointmentInput
+        {
+            BranchId = shiftBranch, EmployeeId = employeeId, CustomerId = customer.Id,
+            StartsAt = start, EndsAt = start.AddHours(4)
+        }, actor.UserId);
+        var appointment = (await _db.AppointmentRepo.GetAsync(appointmentId))!;
+        await _db.AppointmentRepo.SetStatusAsync(appointmentId, appointment.Version,
+            AppointmentStatuses.Confirmed, actor.UserId);
+
+        var preview = await _db.Executions().GetPreviewAsync(actor, line.Id);
+        Assert.Equal("موظف ربط الفروع", preview.EmployeeName);
     }
 
     [Fact]

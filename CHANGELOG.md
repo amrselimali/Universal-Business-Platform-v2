@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-11-03 — Resolve and persist the responsible employee from the customer appointment
+
+### Fixed
+- Booking confirmation now derives and **persists** the responsible employee from the customer’s
+  appointment when the booking has none (linked booking first, then confirmed, then same
+  branch/day) and always records the default `owner` assignment — so execution no longer depends on
+  the booking being created with an employee.
+- The execution fallback accepts any non-cancelled customer appointment (confirmed preferred) and
+  no longer requires the appointment branch to match the booking branch, with no service/date
+  restriction — cross-branch shifts and legacy data resolve.
+- Tests: confirmation persistence from a cross-branch customer appointment, execution resolution
+  across branches, and updated legacy fallback coverage. No schema or public API change.
+
 ## 2026-11-03 — Execution employee follows the booking’s responsible employee
 
 ### Fixed

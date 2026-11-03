@@ -121,7 +121,8 @@ public sealed partial class BookingRepository
         if (head.Status != BookingStatuses.Draft)
             throw new ValidationAppException("validation.booking_not_draft");
 
-        // التأكيد يتطلب موظفاً منفذاً له موعد يغطي فترة الحجز.
+        // تثبيت الموظف المسؤول من موعد العميل إن لم يكن مسجلاً، ثم التحقق من الجدول.
+        await EnsureResponsibleEmployeeAsync(connection, tx, id, userId, ct);
         await EnsureScheduledEmployeeAsync(connection, tx, id, ct);
 
         var lines = (await connection.QueryAsync<(Guid Id, Guid ItemId, Guid WarehouseId,
