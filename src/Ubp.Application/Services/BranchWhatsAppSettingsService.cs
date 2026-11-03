@@ -37,6 +37,15 @@ public sealed class BranchWhatsAppSettingsService
         await _permissions.RequireAsync(actor, ScreenCodes.Branches, ActionCodes.ManageDefaults,
             ct: ct);
         BranchScope.Ensure(actor, input.BranchId);
+
+        // تنظيف القيم من المسافات/الأسطر الجديدة عند اللصق (تسبب 401 في Meta).
+        input.ApiUrl = (input.ApiUrl ?? "").Trim();
+        input.PhoneNumberId = input.PhoneNumberId?.Trim();
+        input.MessagingAccountId = input.MessagingAccountId?.Trim();
+        input.AccessToken = input.AccessToken?.Trim();
+        if (string.IsNullOrWhiteSpace(input.ApiUrl))
+            input.ApiUrl = "https://graph.facebook.com/v20.0";
+
         if (!Uri.TryCreate(input.ApiUrl, UriKind.Absolute, out _))
             throw new ValidationAppException("validation.whatsapp_api_url_invalid");
 

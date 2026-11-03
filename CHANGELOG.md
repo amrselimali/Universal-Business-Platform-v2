@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-11-03 — WhatsApp 401 diagnostics and token hygiene
+
+### Fixed
+- Branch WhatsApp settings trim the API URL, Phone Number ID, Messaging Account ID and access token
+  on save (tokens pasted with spaces/newlines caused `401 Invalid OAuth access token` from Meta).
+- The sender now reports a clear `WHATSAPP_AUTH_FAILED` hint for 401 responses (invalid or expired
+  token) and the outbox screen exposes the full last error in a tooltip for diagnosis.
+
 ## 2026-11-03 — Message outbox screen
 
 ### Added

@@ -56,7 +56,16 @@ else
                     </MudChip>
                 </MudTd>
                 <MudTd Align="Right">@context.Attempts</MudTd>
-                <MudTd>@(context.LastError is null ? "—" : Truncate(context.LastError, 40))</MudTd>
+                <MudTd>
+                    @if (context.LastError is null)
+                    {
+                        <text>—</text>
+                    }
+                    else
+                    {
+                        <span title="@context.LastError">@Truncate(context.LastError, 40)</span>
+                    }
+                </MudTd>
                 <MudTd Align="Right">
                     @if (context.Status is OutboxStatuses.Failed or OutboxStatuses.Cancelled &&
                          Can(ActionCodes.RetryOutbox))

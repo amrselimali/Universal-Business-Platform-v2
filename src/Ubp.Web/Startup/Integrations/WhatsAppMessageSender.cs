@@ -60,8 +60,14 @@ public sealed class WhatsAppMessageSender : IMessageSender
 
         using var response = await client.SendAsync(request, ct);
         if (!response.IsSuccessStatusCode)
-            throw new HttpRequestException(
-                $"WHATSAPP_SEND_FAILED {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(ct)}");
+        {
+            var body = await response.Content.ReadAsStringAsync(ct);
+            var hint = (int)response.StatusCode == 401
+                ? "WHATSAPP_AUTH_FAILED: access token is invalid or expired (generate a new token " +
+                  "with whatsapp_business_messaging and save it in the branch settings)"
+                : "WHATSAPP_SEND_FAILED";
+            throw new HttpRequestException($"{hint} ({(int)response.StatusCode}): {body}");
+        }
     }
 
     private async Task<(string ApiUrl, string? PhoneNumberId, string? Token)>
