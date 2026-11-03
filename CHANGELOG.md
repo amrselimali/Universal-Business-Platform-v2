@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-11-03 — POS collection of reserved services
+
+### Added
+- POS terminal: with a customer selected, a «تحصيل الخدمات المحجوزة» action lists every reserved
+  service of that customer in the branch that still has an outstanding amount, showing the total,
+  the **previously paid** amount and the **remaining due**, with a selectable amount per booking.
+- Confirming creates one posted receipt voucher (treasury method + fees) and allocates the amounts
+  to the bookings in the new `booking_payments` table (migration `0066`) inside one transaction;
+  the customer advances account is credited, consistent with POS collections.
+- `v_customer_booking_balances` is the single source for total/paid/remaining per booking, and POS
+  checkout now records the collected amount against the new booking as well.
+- Tests: outstanding list (paid/remaining), voucher posting and allocation, over-collection
+  rejection, and POS checkout recording. Other screens, APIs and tables are unchanged.
+
 ## 2026-11-03 — Meter asset and units are mandatory for metered items
 
 ### Changed

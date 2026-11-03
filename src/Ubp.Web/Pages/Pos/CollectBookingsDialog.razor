@@ -1,0 +1,140 @@
+@inject BookingCollectionService Collections
+@inject UserContext UserContext
+@inject UiCulture T
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("pos.collect_title") — @CustomerName</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (_rows.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">
+                @T.T("pos.no_outstanding_services")
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable Items="_rows" Dense="true" Hover="true" Elevation="0" Class="ubp-table">
+                <HeaderContent>
+                    <MudTh>@T.T("sales.booking_no")</MudTh>
+                    <MudTh>@T.T("common.date")</MudTh>
+                    <MudTh>@T.T("pos.services")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                    <MudTh Align="Right">@T.T("pos.paid_previously")</MudTh>
+                    <MudTh Align="Right">@T.T("pos.remaining_due")</MudTh>
+                    <MudTh></MudTh>
+                    <MudTh Align="Right">@T.T("pos.collect_amount")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.BookingNo</MudTd>
+                    <MudTd>@context.BookingDate.ToString("yyyy-MM-dd")</MudTd>
+                    <MudTd>@context.Services</MudTd>
+                    <MudTd Align="Right">@context.TotalAmount.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.PaidAmount.ToString("N2")</MudTd>
+                    <MudTd Align="Right"><b>@context.RemainingAmount.ToString("N2")</b></MudTd>
+                    <MudTd>
+                        <MudCheckBox T="bool" Value="@context.Selected" Dense="true"
+                                     ValueChanged="@(v => Toggle(context, v))" />
+                    </MudTd>
+                    <MudTd Align="Right">
+                        <MudNumericField T="decimal" @bind-Value="context.Amount"
+                                         Min="0m" Max="@context.RemainingAmount" Format="N2"
+                                         Dense="true" Disabled="@(!context.Selected)" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <div class="ubp-form-grid mt-2">
+                <MudSelect T="Guid" @bind-Value="_methodId" Label="@T.T("treasury.method")"
+                           Variant="Variant.Outlined">
+                    @foreach (var method in Methods)
+                    {
+                        <MudSelectItem T="Guid" Value="@method.Id">
+                            @method.NameAr (@method.FeePercent.ToString("N2")%)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+
+            <div class="ubp-totals mt-2">
+                <span>@T.T("pos.collect_total"): <b>@SelectedTotal.ToString("N2")</b></span>
+                <span>@T.T("pos.collect_fee"): <b>@Fee.ToString("N2")</b></span>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="@(_busy || _loading || SelectedTotal <= 0)">@T.T("pos.collect_confirm")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid BranchId { get; set; }
+    [Parameter] public Guid CustomerId { get; set; }
+    [Parameter] public string? CustomerName { get; set; }
+    [Parameter] public Guid TreasuryId { get; set; }
+    [Parameter] public IReadOnlyList<TreasuryMethod> Methods { get; set; } =
+        Array.Empty<TreasuryMethod>();
+
+    private List<BookingCollectionRow> _rows = new();
+    private Guid _methodId;
+    private bool _loading = true;
+    private bool _busy;
+
+    private decimal SelectedTotal => _rows.Where(r => r.Selected)
+        .Sum(r => Math.Round(r.Amount, 2, MidpointRounding.AwayFromZero));
+
+    private TreasuryMethod? Method => Methods.FirstOrDefault(m => m.Id == _methodId);
+
+    private decimal Fee => Method is null ? 0m
+        : Math.Round(SelectedTotal * Method.FeePercent / 100m + Method.FeeFixed, 2,
+            MidpointRounding.AwayFromZero);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _methodId = Methods.FirstOrDefault()?.Id ?? Guid.Empty;
+        var actor = await UserContext.GetAsync();
+        if (actor is null) return;
+        _rows = (await Collections.ListOutstandingAsync(actor, BranchId, CustomerId)).ToList();
+        _loading = false;
+    }
+
+    private static void Toggle(BookingCollectionRow row, bool value)
+    {
+        row.Selected = value;
+        row.Amount = value ? row.RemainingAmount : 0m;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var lines = _rows.Where(r => r.Selected && r.Amount > 0)
+            .Select(r => new BookingCollectionLineInput { BookingId = r.BookingId, Amount = r.Amount })
+            .ToList();
+        if (lines.Count == 0 || _methodId == Guid.Empty) return;
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var result = await Collections.CollectAsync(actor, new BookingCollectionInput
+            {
+                BranchId = BranchId, CustomerId = CustomerId, TreasuryId = TreasuryId,
+                TreasuryMethodId = _methodId, DocDate = DateTime.Today, Lines = lines
+            });
+            Snackbar.Add(T.T("pos.collected") + $" — {result.VoucherNo}", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

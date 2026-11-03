@@ -196,6 +196,16 @@ public sealed partial class PosRepository : IPosRepository
         receipt.FeeTotal = receipt.Vouchers.Sum(v => v.Fee);
         receipt.TaxTotal = lines.Sum(l => l.TaxAmount);
 
+        // تسجيل المبالغ المحصلة على الحجز: أساس «المسدد سابقًا» في تحصيل الخدمات المحجوزة.
+        foreach (var voucher in receipt.Vouchers)
+        {
+            await connection.ExecuteAsync(new CommandDefinition("""
+                INSERT INTO booking_payments (booking_id, voucher_id, amount, created_by, notes)
+                VALUES (@bookingId, @voucherId, @amount, @userId, 'دفع مع إنشاء الحجز من نقطة البيع')
+                """, new { bookingId, voucherId = voucher.VoucherId, amount = voucher.Amount,
+                    userId }, tx, cancellationToken: ct));
+        }
+
         await ConsumeServiceRecipesAsync(connection, tx, input, lines, userId, ct);
 
         await tx.CommitAsync(ct);

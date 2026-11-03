@@ -77,6 +77,11 @@ public sealed partial class TestDb
     public PosService Pos() => new(
         PosRepo, Settings(), Permissions(), new AuditService(AuditRepo));
 
+    public BookingCollectionRepository BookingCollectionsRepo => new(Factory);
+
+    public BookingCollectionService BookingCollections() => new(
+        BookingCollectionsRepo, Permissions(), new AuditService(AuditRepo));
+
     public FollowUpService FollowUps() => new(
         FollowUpRepo, Permissions(), new AuditService(AuditRepo));
 

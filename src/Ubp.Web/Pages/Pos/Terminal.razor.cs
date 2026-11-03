@@ -168,6 +168,25 @@ public partial class Terminal : SecurePageBase
         StateHasChanged();
     }
 
+    private async Task CollectBookingsAsync()
+    {
+        if (_customerId == Guid.Empty || _branchId == Guid.Empty) return;
+        if (_treasuryId == Guid.Empty || _methods.Count == 0)
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        var dialog = await Dialogs.ShowAsync<CollectBookingsDialog>(T.T("pos.collect_title"),
+            new DialogParameters
+            {
+                ["BranchId"] = _branchId, ["CustomerId"] = _customerId,
+                ["CustomerName"] = _customerName, ["TreasuryId"] = _treasuryId,
+                ["Methods"] = _methods
+            });
+        if ((await dialog.Result) is { Canceled: false }) StateHasChanged();
+    }
+
     private async Task CheckoutAsync() => await RunAsync(async () =>
     {
         if (_customerId == Guid.Empty || _branchId == Guid.Empty || _cart.Count == 0 ||
