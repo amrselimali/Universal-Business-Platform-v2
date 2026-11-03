@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Ubp.Application.Services;
+using Ubp.Core;
 using Ubp.Core.Models;
 using Ubp.Core.Results;
 using Ubp.Infrastructure.Repositories;
@@ -37,8 +38,9 @@ public sealed class WhatsAppReceiptNotifier : IReceiptNotifier
         if (!enabled) return false;
 
         var customer = await _partners.GetAsync(PartnerKind.Customer, customerId, ct);
-        var phone = Normalize(customer?.WhatsAppPhone) ?? Normalize(customer?.Phone)
-                    ?? Normalize(customer?.Phone2);
+        var phone = PhoneNumberFormatter.ToWhatsApp(customer?.WhatsAppPhone)
+                    ?? PhoneNumberFormatter.ToWhatsApp(customer?.Phone)
+                    ?? PhoneNumberFormatter.ToWhatsApp(customer?.Phone2);
         if (phone is null) return false;
 
         var body = $"إيصال {docNo}\nالإجمالي: {total:N2}\nالمدفوع: {paid:N2}"
@@ -60,11 +62,5 @@ public sealed class WhatsAppReceiptNotifier : IReceiptNotifier
         }
     }
 
-    private static string? Normalize(string? phone)
-    {
-        if (string.IsNullOrWhiteSpace(phone)) return null;
-        var digits = new string(phone.Where(char.IsDigit).ToArray());
-        if (digits.StartsWith("00")) digits = digits[2..];
-        return digits.Length >= 8 ? digits : null;
-    }
+    private static string? Normalize(string? phone) => PhoneNumberFormatter.ToWhatsApp(phone);
 }

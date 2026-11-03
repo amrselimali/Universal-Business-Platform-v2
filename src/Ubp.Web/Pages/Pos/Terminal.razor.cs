@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
 using Ubp.Application.Services;
+using Ubp.Core;
 using Ubp.Core.Models;
 using Ubp.Core.Paging;
 using Ubp.Core.Security;
@@ -80,8 +81,8 @@ public partial class Terminal : SecurePageBase
         get
         {
             if (_receipt is null) return null;
-            var phone = new string((_customerPhone ?? "").Where(char.IsDigit).ToArray());
-            if (phone.Length < 8) return null;
+            var phone = PhoneNumberFormatter.ToWhatsApp(_customerPhone);
+            if (phone is null) return null;
 
             var text = $"إيصال بيع {_receipt.BookingNo} — الإجمالي {_receipt.Total:N2} — " +
                        $"الضريبة {_receipt.TaxTotal:N2} — المدفوع {_receipt.Paid:N2}";

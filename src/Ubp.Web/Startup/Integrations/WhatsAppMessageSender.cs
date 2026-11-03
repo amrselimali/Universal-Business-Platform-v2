@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ubp.Application.Services;
+using Ubp.Core;
 using Ubp.Core.Models;
 using Ubp.Infrastructure.Repositories;
 using Ubp.Web.Services;
@@ -45,8 +46,8 @@ public sealed class WhatsAppMessageSender : IMessageSender
             return null;
         }
 
-        var to = new string(message.Recipient.Where(char.IsDigit).ToArray());
-        if (to.Length < 8) throw new InvalidOperationException("WHATSAPP_INVALID_RECIPIENT");
+        var to = PhoneNumberFormatter.ToWhatsApp(message.Recipient)
+                 ?? throw new InvalidOperationException("WHATSAPP_INVALID_RECIPIENT");
 
         var client = _http.CreateClient("whatsapp");
         using var request = new HttpRequestMessage(HttpMethod.Post,

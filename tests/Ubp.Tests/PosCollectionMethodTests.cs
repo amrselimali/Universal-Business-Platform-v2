@@ -169,6 +169,30 @@ public sealed class PosCollectionMethodTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task WhatsApp_converts_local_egyptian_numbers_to_international()
+    {
+        var f = await SetupAsync("8", 0m);
+        await using (var connection = new NpgsqlConnection(TestDb.AdminConnection))
+        {
+            await connection.OpenAsync();
+            await connection.ExecuteAsync(
+                "UPDATE customers SET phone = '01001234567', phone2 = NULL, " +
+                "whatsapp_phone = '01009876543' WHERE id = @id", new { id = f.Customer.Id });
+        }
+
+        var notifier = new WhatsAppReceiptNotifier(new MessageOutboxRepository(_db.Factory),
+            _db.PartnerRepo, new BranchWhatsAppSettingsRepository(_db.Factory),
+            Options.Create(new WhatsAppOptions { Enabled = true }));
+        Assert.True(await notifier.NotifyAsync(f.Branch, f.Customer.Id, "RCV-000124", 100m, 100m,
+            null));
+
+        await using var check = new NpgsqlConnection(TestDb.AdminConnection);
+        await check.OpenAsync();
+        Assert.Equal("201009876543", await check.ExecuteScalarAsync<string>(
+            "SELECT recipient FROM message_outbox WHERE dedupe_key = 'receipt:RCV-000124'"));
+    }
+
+    [Fact]
     public async Task WhatsApp_uses_the_designated_contact_number()
     {
         var f = await SetupAsync("6", 0m);

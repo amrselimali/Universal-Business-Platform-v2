@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-11-03 — Normalize phone numbers to international WhatsApp format
+
+### Fixed
+- Egyptian local numbers are converted before sending to WhatsApp: `01001234567` →
+  `201001234567` (strip the leading zero, prepend the country code, no `+`). Numbers with `+`/`00`
+  and already-international numbers are normalized too; other country codes are kept as-is.
+- Applied when a receipt message is enqueued and again by the sender, so messages already queued
+  with a local number are corrected on retry; the POS wa.me link uses the same conversion.
+- Tests: formatter cases and a receipt enqueued from a local number. Full suite passes.
+
 ## 2026-11-03 — WhatsApp webhooks (incoming messages and delivery status)
 
 ### Added
