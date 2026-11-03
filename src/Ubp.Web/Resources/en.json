@@ -904,6 +904,7 @@
   "sales.no_invoiceable_lines": "No delivered quantities awaiting invoice in this booking",
   "sales.no_remaining_lines": "No remaining quantities in this booking",
   "sales.no_returnable_lines": "No returnable quantities on this invoice",
+  "sales.offer_expiry": "Offer expiry date",
   "sales.party": "Party",
   "sales.price": "Price",
   "sales.quantity": "Quantity",

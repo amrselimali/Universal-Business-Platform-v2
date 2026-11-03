@@ -904,6 +904,7 @@
   "sales.no_invoiceable_lines": "لا توجد كميات منفذة غير مفوترة في هذا الحجز",
   "sales.no_remaining_lines": "لا توجد كميات متبقية في هذا الحجز",
   "sales.no_returnable_lines": "لا توجد كميات قابلة للإرجاع في هذه الفاتورة",
+  "sales.offer_expiry": "تاريخ انتهاء الصلاحية",
   "sales.party": "الطرف",
   "sales.price": "السعر",
   "sales.quantity": "الكمية",

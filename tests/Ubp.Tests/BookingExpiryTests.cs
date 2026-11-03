@@ -13,7 +13,7 @@ public sealed class BookingExpiryTests : IClassFixture<TestDb>
     public BookingExpiryTests(TestDb db) => _db = db;
 
     [Fact]
-    public async Task Expiry_is_saved_and_extended_from_both_screens()
+    public async Task Expiry_is_saved_and_extendable_via_booking_and_reservation_services()
     {
         var actor = await _db.AdminActorAsync();
         var branch = await _db.CreateBranchAsync("EXP2-B", "فرع الصلاحية");

@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-11-03 — Separate offer expiry from the appointment date
+
+### Changed
+- The bookings screen shows the appointment date/time only (single date + session window); the
+  “booking end date” column and the extend-expiry action were removed from it, so the sales
+  booking no longer mixes its offer validity with the appointment date.
+- POS: the date field and the printed booking receipt now use «تاريخ انتهاء الصلاحية»
+  (`sales.offer_expiry`) instead of «تاريخ نهاية الحجز»; the value is still stored in
+  `bookings.expires_at` (default 6 months, past dates rejected).
+- The reservations/deposits screen keeps its expiry column and extend action, and
+  `EXTEND_RESERVATION` / `BookingService.ExtendExpiryAsync` remain available for compatibility.
+- Removed the now-unused `ExtendBookingDialog` component from the bookings screen.
+
 ## 2026-11-03 — Responsible-employee assignment without a role
 
 ### Changed (additive)
