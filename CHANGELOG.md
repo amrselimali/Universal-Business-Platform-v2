@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-11-03 — Execution employee follows the booking’s responsible employee
+
+### Fixed
+- The execution preview (reserved services → execute) resolves the responsible employee directly
+  from `bookings.assigned_employee_id` — the same name shown in the bookings list — without
+  re-checking `is_service_executor` or the shift coverage at execution time. Those are validated
+  when picking the employee and when confirming the booking, so a confirmed booking no longer
+  shows «لا يوجد موظف مسجل» after a later role or shift change. The confirmed customer appointment
+  remains a backward-compatible fallback.
+- Moved the employee-resolution tests to `BookingExecutionEmployeeTests` and added coverage for a
+  later executor-role change; no schema or API change.
+
 ## 2026-11-03 — Link booking execution to the responsible employee and shift
 
 ### Fixed
