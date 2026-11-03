@@ -40,11 +40,9 @@ public sealed class WhatsAppMessageSender : IMessageSender
 
         var (apiUrl, phoneNumberId, token) = await ResolveCredentialsAsync(message, ct);
         if (string.IsNullOrWhiteSpace(phoneNumberId) || string.IsNullOrWhiteSpace(token))
-        {
-            _logger.LogInformation("OUTBOX WHATSAPP (not configured) -> {Recipient}: {Body}",
-                Mask(message.Recipient), message.Body);
-            return null;
-        }
+            throw new InvalidOperationException(
+                "WHATSAPP_NOT_CONFIGURED: set Phone Number ID and Access Token in the branch " +
+                "WhatsApp settings (or the global WhatsApp options) before sending");
 
         var to = PhoneNumberFormatter.ToWhatsApp(message.Recipient)
                  ?? throw new InvalidOperationException("WHATSAPP_INVALID_RECIPIENT");

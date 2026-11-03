@@ -353,6 +353,7 @@
   "inbox.received": "وقت الاستلام",
   "notifications.inbox": "الرسائل الواردة",
   "outbox.delivery": "حالة التسليم",
+  "outbox.provider_id": "معرّف Meta للرسالة",
   "branches.whatsapp_enabled": "تفعيل إرسال واتساب لهذا الفرع",
   "branches.whatsapp_api_url": "عنوان API",
   "branches.whatsapp_phone_number_id": "Phone Number ID",

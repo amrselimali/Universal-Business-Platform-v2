@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-11-03 — WhatsApp send diagnostics (no silent SENT)
+
+### Fixed
+- The sender no longer marks a WhatsApp message as SENT when the branch/global credentials are
+  missing. Previously it logged and returned success, so messages looked “sent” without leaving the
+  server; it now fails with `WHATSAPP_NOT_CONFIGURED`, keeping the message retryable and showing the
+  reason in `last_error`.
+- The outbox screen shows the Meta message id (`wamid`) per message, making it clear whether Meta
+  actually accepted the send and enabling correlation with webhook delivery statuses.
+
 ## 2026-11-03 — Normalize phone numbers to international WhatsApp format
 
 ### Fixed

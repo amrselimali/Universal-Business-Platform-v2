@@ -42,6 +42,7 @@ else
                 <MudTh>@T.T("common.status")</MudTh>
                 <MudTh Align="Right">@T.T("outbox.attempts")</MudTh>
                 <MudTh>@T.T("outbox.delivery")</MudTh>
+                <MudTh>@T.T("outbox.provider_id")</MudTh>
                 <MudTh>@T.T("outbox.last_error")</MudTh>
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
@@ -58,6 +59,18 @@ else
                 </MudTd>
                 <MudTd Align="Right">@context.Attempts</MudTd>
                 <MudTd>@(context.DeliveryStatus ?? "—")</MudTd>
+                <MudTd>
+                    @if (context.ProviderMessageId is null)
+                    {
+                        <text>—</text>
+                    }
+                    else
+                    {
+                        <span class="ubp-code" dir="ltr" title="@context.ProviderMessageId">
+                            @Truncate(context.ProviderMessageId, 18)
+                        </span>
+                    }
+                </MudTd>
                 <MudTd>
                     @if (context.LastError is null)
                     {

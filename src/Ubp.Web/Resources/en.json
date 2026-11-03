@@ -353,6 +353,7 @@
   "inbox.received": "Received at",
   "notifications.inbox": "Inbox",
   "outbox.delivery": "Delivery status",
+  "outbox.provider_id": "Meta message id",
   "branches.whatsapp_enabled": "Enable WhatsApp sending for this branch",
   "branches.whatsapp_api_url": "API URL",
   "branches.whatsapp_phone_number_id": "Phone Number ID",
