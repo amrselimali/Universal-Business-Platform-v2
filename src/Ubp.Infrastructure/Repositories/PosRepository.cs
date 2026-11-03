@@ -39,6 +39,7 @@ public sealed partial class PosRepository : IPosRepository
         public Guid UnitId { get; set; }
         public Guid? TaxId { get; set; }
         public string ItemType { get; set; } = "GOODS";
+        public bool Direct { get; set; }
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal DiscountPercent { get; set; }
@@ -99,7 +100,7 @@ public sealed partial class PosRepository : IPosRepository
 
         foreach (var line in lines)
         {
-            if (reserveStock && line.ItemType == "GOODS")
+            if (reserveStock && line.ItemType == "GOODS" && !line.Direct)
             {
                 var available = await connection.ExecuteScalarAsync<decimal>(new CommandDefinition(
                     "SELECT COALESCE(fn_stock_available(@itemId, @warehouseId), 0)",
@@ -127,8 +128,12 @@ public sealed partial class PosRepository : IPosRepository
                 """, new { bookingId, line.LineNo, line.ItemId, line.UnitId, input.WarehouseId,
                     line.Quantity, line.UnitPrice, line.DiscountPercent, line.TaxId,
                     line.NetAmount, line.TaxAmount, line.TotalAmount,
-                    reserved = line.Quantity }, tx, cancellationToken: ct));
+                    reserved = line.Direct ? 0 : line.Quantity }, tx, cancellationToken: ct));
         }
+
+        // الأصناف «المباشرة»: تُنفَّذ الآن (صرف مخزون + تكلفة + إيراد وذمم + كارتة كميات).
+        await ExecuteDirectLinesAsync(connection, tx, input, bookingId, userId,
+            allowNegative: false, ct);
 
         var receipt = new PosReceipt
         {

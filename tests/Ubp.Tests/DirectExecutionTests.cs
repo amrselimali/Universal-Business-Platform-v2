@@ -105,4 +105,61 @@ public sealed class DirectExecutionTests : IClassFixture<TestDb>
             new { id = result.ExecutionId });
         Assert.Equal(1, movement);
     }
+
+    [Fact]
+    public async Task Pos_checkout_of_a_direct_item_executes_immediately()
+    {
+        var actor = await _db.AdminActorAsync();
+        await _db.SeedAccountingAsync();
+        var branch = await _db.CreateBranchAsync("DX-B3", "فرع POS مباشر");
+        var warehouse = await _db.CreateWarehouseAsync("DX-W3", "مخزن POS مباشر", branch);
+        var item = await _db.CreateItemAsync("DX-IT3", "صنف POS مباشر");
+        await _db.PostReceiptAsync(item, branch, warehouse, 20, 40);
+        await using (var setup = new NpgsqlConnection(TestDb.AdminConnection))
+        {
+            await setup.OpenAsync();
+            await setup.ExecuteAsync(
+                "UPDATE items SET execution_mode = 'direct' WHERE id = @id", new { id = item.Id });
+        }
+        var customer = await _db.PartnerRepo.CreateAsync(PartnerKind.Customer, new PartnerInput
+        { Code = "DX-C3", NameAr = "عميل POS مباشر" });
+
+        var receipt = await _db.Pos().CheckoutAsync(actor, new PosCheckoutInput
+        {
+            BranchId = branch, CustomerId = customer.Id, WarehouseId = warehouse,
+            DocDate = DateTime.Today,
+            Lines =
+            {
+                new PosLineInput
+                {
+                    ItemId = item.Id, UnitId = item.BaseUnitId, Quantity = 10, UnitPrice = 100
+                }
+            }
+        });
+
+        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
+        await connection.OpenAsync();
+        var line = await connection.QuerySingleAsync<(decimal Delivered, decimal Reserved)>(
+            "SELECT delivered_qty, reserved_qty FROM booking_lines WHERE booking_id = @id",
+            new { id = receipt.BookingId });
+        Assert.Equal(10m, line.Delivered);
+        Assert.Equal(0m, line.Reserved);
+        Assert.Equal(10m, await _db.OnHandAsync(item.Id, warehouse));
+        Assert.Equal(BookingStatuses.Completed, await connection.ExecuteScalarAsync<string>(
+            "SELECT status FROM bookings WHERE id = @id", new { id = receipt.BookingId }));
+
+        var entries = (await connection.QueryAsync<(string Code, decimal Debit, decimal Credit)>("""
+            SELECT a.code, l.debit, l.credit FROM journal_entry_lines l
+            JOIN accounts a ON a.id = l.account_id
+            JOIN journal_entries e ON e.id = l.entry_id
+            WHERE e.source_type = 'execution'
+            """)).ToList();
+        Assert.Contains(entries, l => l.Code == "1110" && l.Debit == 1000m);
+        Assert.Contains(entries, l => l.Code == "4100" && l.Credit == 1000m);
+        Assert.Contains(entries, l => l.Code == "5100" && l.Debit == 400m);
+        Assert.Contains(entries, l => l.Code == "2150" && l.Credit == 400m);
+        Assert.Equal(1, await connection.ExecuteScalarAsync<int>(
+            "SELECT count(*)::int FROM stock_movements WHERE item_id = @id AND direction = 'OUT'",
+            new { id = item.Id }));
+    }
 }

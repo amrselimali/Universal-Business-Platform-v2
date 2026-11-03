@@ -1,0 +1,120 @@
+using Dapper;
+using Npgsql;
+using Ubp.Core.Models;
+using Ubp.Core.Results;
+
+namespace Ubp.Infrastructure.Repositories;
+
+/// <summary>
+/// الأصناف ذات التنفيذ المباشر في نقطة البيع: تُنفَّذ فور الحفظ (بدون انتظار موعد أو تحصيل)
+/// فتصرف المخزون وتُرحّل التكلفة والإيراد والذمم وتُحدِّث كارتة كميات العميل.
+/// </summary>
+public sealed partial class PosRepository
+{
+    private sealed class DirectLine
+    {
+        public Guid BookingLineId { get; set; }
+        public Guid ItemId { get; set; }
+        public Guid? CategoryId { get; set; }
+        public string ItemType { get; set; } = "GOODS";
+        public Guid UnitId { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal NetAmount { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal TotalAmount { get; set; }
+    }
+
+    /// <summary>ينفّذ سطور الأصناف المباشرة داخل معاملة البيع نفسها.</summary>
+    private static async Task ExecuteDirectLinesAsync(NpgsqlConnection connection,
+        NpgsqlTransaction tx, PosCheckoutInput input, Guid bookingId, Guid userId,
+        bool allowNegative, CancellationToken ct)
+    {
+        var lines = (await connection.QueryAsync<DirectLine>(new CommandDefinition("""
+            SELECT l.id AS BookingLineId, l.item_id AS ItemId, i.category_id AS CategoryId,
+                   i.item_type AS ItemType, l.unit_id AS UnitId, l.quantity AS Quantity,
+                   l.net_amount AS NetAmount, l.tax_amount AS TaxAmount,
+                   l.total_amount AS TotalAmount
+            FROM booking_lines l JOIN items i ON i.id = l.item_id
+            WHERE l.booking_id = @bookingId AND i.execution_mode = 'direct'
+            ORDER BY l.line_no
+            """, new { bookingId }, tx, cancellationToken: ct))).ToList();
+        if (lines.Count == 0) return;
+
+        foreach (var line in lines)
+            await ExecuteDirectLineAsync(connection, tx, input, bookingId, line, userId,
+                allowNegative, ct);
+
+        await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE bookings b
+            SET status = CASE WHEN NOT EXISTS (
+                    SELECT 1 FROM booking_lines l
+                    WHERE l.booking_id = b.id
+                      AND (l.quantity - l.delivered_qty - l.cancelled_qty) > 0)
+                THEN 'completed' ELSE 'partially_delivered' END,
+                updated_by = @userId
+            WHERE b.id = @bookingId
+            """, new { bookingId, userId }, tx, cancellationToken: ct));
+    }
+
+    private static async Task ExecuteDirectLineAsync(NpgsqlConnection connection,
+        NpgsqlTransaction tx, PosCheckoutInput input, Guid bookingId, DirectLine line,
+        Guid userId, bool allowNegative, CancellationToken ct)
+    {
+        var executionId = Guid.CreateVersion7();
+        var executionLineId = Guid.CreateVersion7();
+        var docNo = await connection.ExecuteScalarAsync<string>(new CommandDefinition("""
+            SELECT next_document_number('EXECUTION'::varchar, @branchId::uuid, @date::date,
+                                        'EX'::varchar, 6::smallint)
+            """, new { branchId = input.BranchId, date = input.DocDate.Date }, tx,
+            cancellationToken: ct));
+
+        Guid? stockDocumentLineId = null;
+        var cost = 0m;
+        if (line.ItemType == "GOODS")
+            (stockDocumentLineId, cost) = await IssueStockAsync(connection, tx, input, line,
+                docNo, userId, allowNegative, ct);
+
+        var journalEntryId = cost > 0
+            ? await PostCostAsync(connection, tx, line.CategoryId, input.BranchId, docNo, cost,
+                executionId, userId, ct)
+            : (Guid?)null;
+        var revenueEntryId = await PostRevenueAsync(connection, tx, input, line, docNo,
+            executionLineId, userId, ct);
+
+        await connection.ExecuteAsync(new CommandDefinition("""
+            INSERT INTO booking_executions
+                (id, branch_id, doc_no, execution_date, booking_id, status, stock_document_id,
+                 journal_entry_id, notes, created_by)
+            VALUES (@id, @branchId, @docNo, @date, @bookingId, 'posted',
+                    (SELECT document_id FROM stock_document_lines WHERE id = @stockLineId),
+                    @journalEntryId, 'تنفيذ مباشر من نقطة البيع', @userId)
+            """, new
+        {
+            id = executionId, branchId = input.BranchId, docNo, date = input.DocDate.Date,
+            bookingId, stockLineId = stockDocumentLineId,
+            journalEntryId = revenueEntryId ?? journalEntryId, userId
+        }, tx, cancellationToken: ct));
+
+        await connection.ExecuteAsync(new CommandDefinition("""
+            INSERT INTO booking_execution_lines
+                (id, execution_id, booking_line_id, item_id, unit_id, quantity, unit_cost,
+                 cost_total, stock_document_line_id)
+            VALUES (@id, @executionId, @bookingLineId, @itemId, @unitId, @quantity, @unitCost,
+                    @cost, @stockLineId)
+            """, new
+        {
+            id = executionLineId, executionId, bookingLineId = line.BookingLineId,
+            itemId = line.ItemId, unitId = line.UnitId, quantity = line.Quantity,
+            unitCost = line.Quantity == 0 ? 0 : Math.Round(cost / line.Quantity, 6), cost,
+            stockLineId = stockDocumentLineId
+        }, tx, cancellationToken: ct));
+
+        await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE booking_lines
+            SET delivered_qty = delivered_qty + @quantity,
+                reserved_qty = GREATEST(reserved_qty - @quantity, 0)
+            WHERE id = @id
+            """, new { quantity = line.Quantity, id = line.BookingLineId }, tx,
+            cancellationToken: ct));
+    }
+}

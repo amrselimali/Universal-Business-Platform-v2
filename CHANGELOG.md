@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-11-03 — Direct items execute at POS checkout
+
+### Fixed
+- POS checkout now executes **direct-mode items immediately** in the same transaction instead of
+  leaving them as a plain reservation: stock is issued (stock OUT movement + COGS entry), revenue and
+  the customer receivable are posted, the booking line’s delivered quantity is updated (customer
+  quantity card shows the consumption) and the booking is completed when nothing remains.
+- Direct lines no longer reserve stock (`reserved_qty = 0`), so balances stay consistent and the
+  amount is not left as a pending reservation.
+
 ## 2026-11-03 — Item execution mode: reserved vs direct
 
 ### Added

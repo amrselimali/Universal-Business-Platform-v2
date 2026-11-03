@@ -11,6 +11,7 @@ public sealed partial class PosRepository
     {
         public Guid Id { get; set; }
         public string ItemType { get; set; } = "GOODS";
+        public string ExecutionMode { get; set; } = ItemExecutionModes.Reserved;
         public Guid? TaxId { get; set; }
         public bool PriceIncludesTax { get; set; }
         public decimal DefaultPrice { get; set; }
@@ -22,7 +23,8 @@ public sealed partial class PosRepository
     {
         var ids = input.Lines.Select(l => l.ItemId).Distinct().ToArray();
         return (await connection.QueryAsync<ItemInfo>(new CommandDefinition("""
-            SELECT i.id AS Id, i.item_type AS ItemType, i.tax_id AS TaxId,
+            SELECT i.id AS Id, i.item_type AS ItemType, i.execution_mode AS ExecutionMode,
+                   i.tax_id AS TaxId,
                    i.price_includes_tax AS PriceIncludesTax,
                    COALESCE(i.default_price,
                             (SELECT iu.sale_price FROM item_units iu
@@ -84,6 +86,8 @@ public sealed partial class PosRepository
             {
                 LineNo = lineNo, ItemId = line.ItemId, UnitId = line.UnitId,
                 ItemType = item.ItemType, TaxId = taxId, Quantity = line.Quantity,
+                Direct = string.Equals(item.ExecutionMode, ItemExecutionModes.Direct,
+                    StringComparison.OrdinalIgnoreCase),
                 UnitPrice = price, DiscountPercent = line.DiscountPercent, NetAmount = net,
                 TaxAmount = tax,
                 TotalAmount = Math.Round(net + tax, 2, MidpointRounding.AwayFromZero)
