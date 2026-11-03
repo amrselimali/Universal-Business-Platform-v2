@@ -96,6 +96,7 @@ public sealed class TreasuryMethod
     public decimal FeeFixed { get; set; }
     public bool RequiresReference { get; set; }
     public bool IsActive { get; set; } = true;
+    public string? TreasuryName { get; set; }
 }
 
 public sealed class TreasuryMethodInput

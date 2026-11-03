@@ -114,8 +114,11 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
                    m.method_type AS MethodType, m.clearing_account_id AS ClearingAccountId,
                    m.fee_account_id AS FeeAccountId,
                    m.fee_percent AS FeePercent, m.fee_fixed AS FeeFixed,
-                   m.requires_reference AS RequiresReference, m.is_active AS IsActive
-            FROM treasury_methods m WHERE m.treasury_id = @treasuryId AND m.is_active
+                   m.requires_reference AS RequiresReference, m.is_active AS IsActive,
+                   t.name_ar AS TreasuryName
+            FROM treasury_methods m
+            JOIN treasuries t ON t.id = m.treasury_id
+            WHERE m.treasury_id = @treasuryId AND m.is_active
             ORDER BY m.code
             """, new { treasuryId }, cancellationToken: ct))).ToList();
     }
@@ -129,7 +132,8 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
                    m.method_type AS MethodType, m.clearing_account_id AS ClearingAccountId,
                    m.fee_account_id AS FeeAccountId,
                    m.fee_percent AS FeePercent, m.fee_fixed AS FeeFixed,
-                   m.requires_reference AS RequiresReference, m.is_active AS IsActive
+                   m.requires_reference AS RequiresReference, m.is_active AS IsActive,
+                   t.name_ar AS TreasuryName
             FROM treasury_methods m
             JOIN treasuries t ON t.id = m.treasury_id
             WHERE t.branch_id = @branchId AND t.is_active AND m.is_active

@@ -112,16 +112,21 @@ public partial class Terminal : SecurePageBase
         _customers = (await Partners.ListAsync(Actor!, PartnerKind.Customer,
             new PageRequest { Page = 1, PageSize = 25, Search = _customerSearch }, null)).Items;
         if (_customers.All(c => c.Id != _customerId))
-            OnCustomerChanged(_customers.FirstOrDefault()?.Id ?? Guid.Empty);
+            await OnCustomerChanged(_customers.FirstOrDefault()?.Id ?? Guid.Empty);
         StateHasChanged();
     }
 
-    private void OnCustomerChanged(Guid customerId)
+    private async Task OnCustomerChanged(Guid customerId)
     {
         _customerId = customerId;
         var customer = _customers.FirstOrDefault(c => c.Id == customerId);
         _customerName = customer?.NameAr;
         _customerPhone = customer?.Phone;
+
+        // تحديث طرق التحصيل المكوَّدة في شاشة الخزائن عند اختيار العميل (بدون إعادة تحميل الصفحة).
+        if (_branchId != Guid.Empty)
+            _methods = await Treasury.ListBranchMethodsAsync(Actor!, _branchId);
+        StateHasChanged();
     }
 
     private async Task OnBranchChanged(Guid value)

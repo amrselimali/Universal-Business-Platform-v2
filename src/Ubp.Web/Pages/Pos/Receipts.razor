@@ -31,6 +31,7 @@ else
                 <MudTh>@T.T("sales.customer")</MudTh>
                 <MudTh Align="Right">@T.T("accounting.total")</MudTh>
                 <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd><span class="ubp-code">@context.DocNo</span></MudTd>
@@ -38,6 +39,11 @@ else
                 <MudTd>@context.PartyName</MudTd>
                 <MudTd Align="Right">@context.Total.ToString("N2")</MudTd>
                 <MudTd>@T.T("accounting.status_" + context.Status)</MudTd>
+                <MudTd Align="Right">
+                    <MudIconButton Icon="@Icons.Material.Filled.Send" Size="Size.Small"
+                                   Title="@T.T("pos.send_whatsapp")" Color="Color.Success"
+                                   OnClick="@(() => SendWhatsAppAsync(context))" />
+                </MudTd>
             </RowTemplate>
         </MudTable>
     </MudPaper>
@@ -60,4 +66,11 @@ else
         _items = await Pos.ListReceiptsAsync(Actor!, _branchId, 200);
 
     private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+
+    private async Task SendWhatsAppAsync(CommercialDocument doc) => await RunAsync(async () =>
+    {
+        var sent = await Pos.SendReceiptWhatsAppAsync(Actor!, doc.Id);
+        Snackbar.Add(T.T(sent ? "pos.whatsapp_queued" : "pos.whatsapp_unavailable"),
+            sent ? Severity.Success : Severity.Warning);
+    });
 }

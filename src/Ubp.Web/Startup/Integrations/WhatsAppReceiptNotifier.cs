@@ -23,14 +23,14 @@ public sealed class WhatsAppReceiptNotifier : IReceiptNotifier
         _outbox = outbox; _partners = partners; _options = options.Value;
     }
 
-    public async Task NotifyAsync(Guid customerId, string docNo, decimal total, decimal paid,
-        decimal? remaining, CancellationToken ct = default)
+    public async Task<bool> NotifyAsync(Guid customerId, string docNo, decimal total,
+        decimal paid, decimal? remaining, CancellationToken ct = default)
     {
-        if (!_options.Enabled || string.IsNullOrWhiteSpace(docNo)) return;
+        if (!_options.Enabled || string.IsNullOrWhiteSpace(docNo)) return false;
 
         var customer = await _partners.GetAsync(PartnerKind.Customer, customerId, ct);
         var phone = Normalize(customer?.Phone);
-        if (phone is null) return;
+        if (phone is null) return false;
 
         var body = $"إيصال {docNo}\nالإجمالي: {total:N2}\nالمدفوع: {paid:N2}"
                    + (remaining is > 0 ? $"\nالمتبقي: {remaining.Value:N2}" : "");
@@ -41,10 +41,12 @@ public sealed class WhatsAppReceiptNotifier : IReceiptNotifier
                 Channel = MessageChannels.WhatsApp, Recipient = phone,
                 TemplateKey = "pos_receipt", Body = body, DedupeKey = $"receipt:{docNo}"
             }, ct);
+            return true;
         }
         catch (ValidationAppException)
         {
             // رقم غير صالح أو جسم رسالة غير مطابق: لا يُفشل تسجيل الإيصال.
+            return false;
         }
     }
 

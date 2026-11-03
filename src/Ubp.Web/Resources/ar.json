@@ -611,6 +611,8 @@
   "pos.paid_previously": "المسدد سابقًا",
   "pos.remaining_due": "المستحق",
   "pos.services": "الخدمات",
+  "pos.whatsapp_queued": "تمت جدولة إرسال الإيصال عبر واتساب",
+  "pos.whatsapp_unavailable": "تعذّر جدولة الإرسال: تحقق من رقم العميل وتفعيل واتساب",
   "pos.fee": "عمولة الوسيلة",
   "pos.fees": "إجمالي العمولات",
   "pos.net": "الصافي قبل الضريبة",

@@ -8,13 +8,14 @@ namespace Ubp.Application.Services;
 /// </summary>
 public interface IReceiptNotifier
 {
-    Task NotifyAsync(Guid customerId, string docNo, decimal total, decimal paid,
+    /// <summary>يحاول إرسال/جدولة إشعار الإيصال؛ يرجع true إذا جُدول الإرسال.</summary>
+    Task<bool> NotifyAsync(Guid customerId, string docNo, decimal total, decimal paid,
         decimal? remaining, CancellationToken ct = default);
 }
 
 /// <summary>تنفيذ محايد للاختبارات/بيئات بلا مزوّد.</summary>
 public sealed class NullReceiptNotifier : IReceiptNotifier
 {
-    public Task NotifyAsync(Guid customerId, string docNo, decimal total, decimal paid,
-        decimal? remaining, CancellationToken ct = default) => Task.CompletedTask;
+    public Task<bool> NotifyAsync(Guid customerId, string docNo, decimal total, decimal paid,
+        decimal? remaining, CancellationToken ct = default) => Task.FromResult(false);
 }

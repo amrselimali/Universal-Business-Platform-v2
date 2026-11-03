@@ -611,6 +611,8 @@
   "pos.paid_previously": "Previously paid",
   "pos.remaining_due": "Remaining due",
   "pos.services": "Services",
+  "pos.whatsapp_queued": "The receipt was queued for WhatsApp delivery",
+  "pos.whatsapp_unavailable": "Could not queue the message: check the customer phone and WhatsApp settings",
   "pos.fee": "Method fee",
   "pos.fees": "Total fees",
   "pos.net": "Net",

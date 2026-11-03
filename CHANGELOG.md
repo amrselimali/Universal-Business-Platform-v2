@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-11-03 — POS receipts list, WhatsApp resend and method source clarity
+
+### Fixed
+- POS receipts screen now lists **collection receipts** too (linked through `booking_payments`),
+  not only receipts matching a POS booking on the same date — reserved-service payments appear.
+- Added a per-receipt WhatsApp action on the POS receipts screen (re-enqueues the receipt message,
+  deduplicated) with clear feedback when the customer phone or WhatsApp settings are missing.
+- POS reloads the collection methods when a customer is selected, and each item shows its code and
+  treasury, making it explicit that they come from the treasuries/payment-methods screen (all
+  active treasuries of the branch).
+
 ## 2026-11-03 — POS collection methods, per-method fee accounts and WhatsApp receipts
 
 ### Added

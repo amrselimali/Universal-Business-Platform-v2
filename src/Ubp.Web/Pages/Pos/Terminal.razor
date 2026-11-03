@@ -152,7 +152,9 @@ else
                                 @foreach (var method in _methods)
                                 {
                                     <MudSelectItem T="Guid" Value="@method.Id">
-                                        @method.NameAr (@method.FeePercent.ToString("N2")%)
+                                        @method.Code — @method.NameAr
+                                        @(string.IsNullOrWhiteSpace(method.TreasuryName) ? "" : $" — {method.TreasuryName}")
+                                        (@method.FeePercent.ToString("N2")%)
                                     </MudSelectItem>
                                 }
                             </MudSelect>
