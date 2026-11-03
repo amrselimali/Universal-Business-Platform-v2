@@ -50,7 +50,12 @@ public partial class ItemDialog
             Code = detail.Item.Code, NameAr = detail.Item.NameAr, NameEn = detail.Item.NameEn,
             CategoryId = detail.Item.CategoryId, BaseUnitId = detail.Item.BaseUnitId,
             ItemType = detail.Item.ItemType, Notes = detail.Item.Notes,
-            IsMetered = detail.Item.IsMetered, IsActive = detail.Item.IsActive
+            IsMetered = detail.Item.IsMetered, IsActive = detail.Item.IsActive,
+            ExecutionMode = detail.Item.ExecutionMode,
+            IsConsumable = detail.Item.IsConsumable, TrackExpiry = detail.Item.TrackExpiry,
+            PriceIncludesTax = detail.Item.PriceIncludesTax, TaxId = detail.Item.TaxId,
+            MeteredAssetId = detail.Item.MeteredAssetId,
+            DefaultPrice = detail.Item.DefaultPrice
         };
         _unitRows.AddRange(detail.Units.Select(u => new ItemUnitInput
         {

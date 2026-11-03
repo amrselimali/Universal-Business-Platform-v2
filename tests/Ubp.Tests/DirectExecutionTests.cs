@@ -207,4 +207,42 @@ public sealed class DirectExecutionTests : IClassFixture<TestDb>
         Assert.Equal(BookingStatuses.Completed, await connection.ExecuteScalarAsync<string>(
             "SELECT status FROM bookings WHERE id = @id", new { id = receipt.BookingId }));
     }
+
+    [Fact]
+    public async Task Editing_an_item_keeps_its_direct_execution_mode_and_flags()
+    {
+        var actor = await _db.AdminActorAsync();
+        var unit = await _db.UnitRepo.CreateAsync(new UnitInput
+        { Code = "DX-U5", NameAr = "وحدة حفظ الإعدادات" });
+        var item = await _db.ItemRepo.CreateAsync(new ItemInput
+        {
+            Code = "DX-IT5", NameAr = "صنف حفظ الإعدادات", BaseUnitId = unit.Id,
+            ExecutionMode = ItemExecutionModes.Direct, IsConsumable = true,
+            PriceIncludesTax = true, DefaultPrice = 25,
+            Units = new List<ItemUnitInput> { new() { UnitId = unit.Id, ConversionFactor = 1 } }
+        });
+
+        var detail = (await _db.ItemRepo.GetDetailAsync(item.Id))!;
+        Assert.Equal(ItemExecutionModes.Direct, detail.Item.ExecutionMode);
+
+        // نفس ما تفعله الشاشة: تعيد بناء المدخل من التفاصيل ثم تحفظ.
+        var input = new ItemInput
+        {
+            Code = detail.Item.Code, NameAr = detail.Item.NameAr, BaseUnitId = detail.Item.BaseUnitId,
+            ItemType = detail.Item.ItemType, IsMetered = detail.Item.IsMetered,
+            IsActive = detail.Item.IsActive, ExecutionMode = detail.Item.ExecutionMode,
+            IsConsumable = detail.Item.IsConsumable, TrackExpiry = detail.Item.TrackExpiry,
+            PriceIncludesTax = detail.Item.PriceIncludesTax, TaxId = detail.Item.TaxId,
+            MeteredAssetId = detail.Item.MeteredAssetId, DefaultPrice = detail.Item.DefaultPrice,
+            Units = detail.Units.Select(u => new ItemUnitInput
+            { UnitId = u.UnitId, ConversionFactor = u.ConversionFactor }).ToList()
+        };
+        await _db.ItemService().UpdateAsync(actor, item.Id, item.Version, input);
+
+        var reloaded = (await _db.ItemRepo.GetAsync(item.Id))!;
+        Assert.Equal(ItemExecutionModes.Direct, reloaded.ExecutionMode);
+        Assert.True(reloaded.IsConsumable);
+        Assert.True(reloaded.PriceIncludesTax);
+        Assert.Equal(25m, reloaded.DefaultPrice);
+    }
 }

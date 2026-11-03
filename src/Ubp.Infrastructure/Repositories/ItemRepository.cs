@@ -128,6 +128,9 @@ public sealed partial class ItemRepository : IItemRepository
         ItemType = row.ItemType, Notes = row.Notes, IsActive = row.IsActive,
         IsMetered = row.IsMetered, MeteredAssetId = row.MeteredAssetId,
         MeteredAssetName = row.MeteredAssetName, ExecutionMode = row.ExecutionMode,
+        TaxId = row.TaxId, TaxName = row.TaxName, PriceIncludesTax = row.PriceIncludesTax,
+        TrackExpiry = row.TrackExpiry, IsConsumable = row.IsConsumable,
+        DefaultPrice = row.DefaultPrice,
         CustomFields = string.IsNullOrWhiteSpace(row.CustomFieldsJson)
             ? new() : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(row.CustomFieldsJson) ?? new(),
         CreatedAt = row.CreatedAt, UpdatedAt = row.UpdatedAt, Version = row.Version
@@ -144,6 +147,12 @@ public sealed partial class ItemRepository : IItemRepository
         public Guid BaseUnitId { get; set; }
         public string BaseUnitName { get; set; } = "";
         public string ItemType { get; set; } = "GOODS";
+        public Guid? TaxId { get; set; }
+        public string? TaxName { get; set; }
+        public bool PriceIncludesTax { get; set; }
+        public bool TrackExpiry { get; set; }
+        public bool IsConsumable { get; set; }
+        public decimal? DefaultPrice { get; set; }
         public string? Notes { get; set; }
         public bool IsActive { get; set; }
         public bool IsMetered { get; set; }

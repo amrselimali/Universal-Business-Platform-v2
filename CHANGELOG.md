@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-11-03 — Editing an item no longer resets its settings
+
+### Fixed
+- The item dialog now reloads **all** item settings when opened for edit; `ExecutionMode` (and the
+  consumable / expiry / tax / default-price flags) were dropped, so every save wrote the default
+  `reserved` back over a `direct` item.
+- `ItemRepository.Map` was not populating tax, price-includes-tax, expiry, consumable and default
+  price even though the query selected them — those values were lost on every edit as well. Both
+  paths are fixed and covered by a round-trip test.
+
 ## 2026-11-03 — POS warehouse selection and stock fallback for direct items
 
 ### Fixed
