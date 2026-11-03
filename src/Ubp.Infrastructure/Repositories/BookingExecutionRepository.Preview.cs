@@ -34,7 +34,7 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                        l.reserved_qty AS ReservedQty,
                        GREATEST(l.quantity - l.delivered_qty - l.cancelled_qty, 0) AS RemainingQty,
                        l.unit_price AS UnitPrice,
-                       ap.employee_name AS EmployeeName,
+                       COALESCE(resp.employee_name, ap.employee_name) AS EmployeeName,
                        i.is_metered AS ItemIsMetered
                 FROM booking_lines l
                 JOIN bookings b ON b.id = l.booking_id
@@ -43,10 +43,25 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                 JOIN units u ON u.id = l.unit_id
                 JOIN warehouses w ON w.id = l.warehouse_id
                 LEFT JOIN (SELECT time_zone FROM app_settings LIMIT 1) st ON true
-                -- الموظف المسؤول يُحل فقط من موعد مؤكد للعميل (لا يُعتمد أي موعد بحالة أخرى
-                -- ولا الموظف المسند على الحجز بلا موعد مؤكد).
+                -- (1) المصدر الأساسي: الموظف المسؤول المسجل على الحجز، نشط ومنفذ خدمة،
+                -- وله دوام (موعد) يغطي فترة الجلسة. هذا هو الربط الصحيح بين حجز الموعد والتنفيذ.
                 LEFT JOIN LATERAL (
-                    SELECT ap.employee_id, emp.name_ar AS employee_name
+                    SELECT emp.name_ar AS employee_name
+                    FROM employees emp
+                    WHERE emp.id = b.assigned_employee_id
+                      AND emp.is_active
+                      AND emp.is_service_executor
+                      AND (b.starts_at IS NULL OR b.ends_at IS NULL OR EXISTS (
+                            SELECT 1 FROM appointments sh
+                            WHERE sh.employee_id = emp.id
+                              AND sh.status <> 'cancelled'
+                              AND sh.starts_at <= b.starts_at
+                              AND sh.ends_at >= b.ends_at))
+                    LIMIT 1
+                ) resp ON true
+                -- (2) توافق خلفي: موعد مؤكد للعميل (بيانات أُنشئت قبل شاشة دوامات الموظفين).
+                LEFT JOIN LATERAL (
+                    SELECT emp.name_ar AS employee_name
                     FROM appointments ap
                     JOIN employees emp ON emp.id = ap.employee_id
                     WHERE ap.status = 'confirmed'

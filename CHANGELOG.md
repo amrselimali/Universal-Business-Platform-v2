@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-11-03 — Link booking execution to the responsible employee and shift
+
+### Fixed
+- Booking execution resolves the responsible employee from the booking’s `assigned_employee_id`
+  (active service executor with a covering, non-cancelled shift for the session window), so
+  confirmed bookings created from the appointments screen (customer-less shifts) can execute
+  sessions again; the confirmed customer appointment remains as a backward-compatible fallback.
+- Every booking save now records the responsible employee with the default `owner` role in
+  `booking_assignments` inside one transaction: creation, draft update (new) and the assign
+  action. The legacy role-based API remains untouched.
+- Split the assignment/extension writes into `BookingRepository.Assign.cs` (no logic change) and
+  added tests for shift-based resolution and the default assignment on draft update.
+
 ## 2026-11-03 — Sidebar order and sales screen names
 
 ### Changed

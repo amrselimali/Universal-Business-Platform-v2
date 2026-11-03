@@ -85,6 +85,32 @@ public sealed class BookingResponsibleAssignmentTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Draft_update_records_the_responsible_employee_by_default()
+    {
+        var actor = await _db.AdminActorAsync();
+        var (booking, first, _) = await SetupAsync("4");
+
+        var input = new BookingInput
+        {
+            BranchId = booking.BranchId, BookingDate = booking.BookingDate,
+            CustomerId = booking.CustomerId, AssignedEmployeeId = first,
+            Lines = booking.Lines.Select(l => new BookingLineInput
+            {
+                ItemId = l.ItemId, UnitId = l.UnitId, WarehouseId = l.WarehouseId,
+                Quantity = l.Quantity, UnitPrice = l.UnitPrice
+            }).ToList()
+        };
+
+        var updated = await _db.BookingService().UpdateAsync(actor, booking.Id,
+            booking.Version, input);
+
+        Assert.Equal(first, updated.AssignedEmployeeId);
+        var open = Assert.Single(updated.Assignments, a => a.UnassignedAt is null);
+        Assert.Equal("owner", open.Role);
+        Assert.Equal(first, open.EmployeeId);
+    }
+
+    [Fact]
     public async Task Assigning_a_closed_booking_is_rejected()
     {
         var actor = await _db.AdminActorAsync();
