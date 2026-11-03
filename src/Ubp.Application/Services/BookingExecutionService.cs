@@ -45,14 +45,12 @@ public sealed class BookingExecutionService
 
         if (preview.ItemIsMetered)
         {
-            // قراءة العدّاد ليست شرطًا للبيع: تُسجَّل فقط عند اختيار أصل وتحديد وحدات.
-            if (input.MeteredAssetId is not null &&
+            // الأصناف المرتبطة بعدّاد: اختيار الأصل وعدد وحدات أكبر من صفر إجباري، وإلا لا يُقبل التنفيذ.
+            if (input.MeteredAssetId is null ||
                 preview.MeterAssets.All(a => a.Id != input.MeteredAssetId))
                 throw new ValidationAppException("validation.asset_meter_required");
-            if (input.MeteredAssetId is not null && input.MeterUnits <= 0)
+            if (input.MeterUnits <= 0)
                 throw new ValidationAppException("validation.meter_units_required");
-            if (input.MeteredAssetId is null && input.MeterUnits > 0)
-                throw new ValidationAppException("validation.asset_meter_required");
         }
         else if (input.MeteredAssetId is not null || input.MeterUnits > 0)
         {

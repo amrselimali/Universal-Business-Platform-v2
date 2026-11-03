@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-11-03 — Meter asset and units are mandatory for metered items
+
+### Changed
+- Booking execution now requires, **only for items flagged as metered**, selecting an active
+  branch meter asset and entering units greater than zero; otherwise execution is rejected
+  (`validation.asset_meter_required` / `validation.meter_units_required`) and the confirm button
+  stays disabled. Non-metered items keep rejecting any meter data (`validation.item_not_metered`).
+- The execution dialog preselects the asset when exactly one is available, shows the requirement
+  hint, and treats “no metered assets” as a blocking error for metered items.
+- Server-side validation mirrors the dialog (service + repository). Tests cover missing asset,
+  zero units and a successful metered execution.
+
 ## 2026-11-03 — Resolve and persist the responsible employee from the customer appointment
 
 ### Fixed

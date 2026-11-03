@@ -112,20 +112,34 @@ public sealed class BookingExecutionTests : IClassFixture<TestDb>
     }
 
     [Fact]
-    public async Task Metered_item_executes_without_a_meter_reading()
+    public async Task Metered_item_execution_requires_asset_and_units()
     {
         var actor = await _db.AdminActorAsync();
         await _db.SeedAccountingAsync();
-        var branch = await _db.CreateBranchAsync("EX-B-3", "فرع تنفيذ بلا عدّاد");
-        var warehouse = await _db.CreateWarehouseAsync("EX-W-3", "مخزن تنفيذ بلا عدّاد", branch);
-        var item = await _db.CreateItemAsync("EX-IT-3", "صنف تنفيذ بلا عدّاد");
+        var branch = await _db.CreateBranchAsync("EX-B-3", "فرع إجبارية العدّاد");
+        var warehouse = await _db.CreateWarehouseAsync("EX-W-3", "مخزن إجبارية العدّاد", branch);
+        var item = await _db.CreateItemAsync("EX-IT-3", "صنف إجبارية العدّاد");
         await _db.PostReceiptAsync(item, branch, warehouse, 10, 50);
         var customer = await _db.PartnerRepo.CreateAsync(PartnerKind.Customer, new PartnerInput
-        { Code = "EX-C-3", NameAr = "عميل تنفيذ بلا عدّاد" });
+        { Code = "EX-C-3", NameAr = "عميل إجبارية العدّاد" });
 
+        var categoryId = Guid.CreateVersion7();
+        var assetId = Guid.CreateVersion7();
         await using (var connection = new NpgsqlConnection(TestDb.AdminConnection))
         {
             await connection.OpenAsync();
+            await connection.ExecuteAsync("""
+                INSERT INTO asset_categories
+                    (id, code, name_ar, depreciation_method, useful_life_months, is_metered)
+                VALUES (@id, 'EX-AC-3', 'تصنيف عدّاد إجباري', 'LINEAR', 60, true)
+                """, new { id = categoryId });
+            await connection.ExecuteAsync("""
+                INSERT INTO fixed_assets
+                    (id, code, name_ar, category_id, branch_id, purchase_date, cost, is_metered,
+                     meter_type, current_meter_value)
+                VALUES (@id, 'EX-AS-3', 'ماكينة عدّاد إجباري', @category, @branch, current_date,
+                        1000, true, 'UNITS', 0)
+                """, new { id = assetId, category = categoryId, branch });
             await connection.ExecuteAsync(
                 "UPDATE items SET is_metered = true WHERE id = @item", new { item = item.Id });
         }
@@ -145,23 +159,31 @@ public sealed class BookingExecutionTests : IClassFixture<TestDb>
         await _db.BookingService().ConfirmAsync(actor, booking.Id);
         var line = (await _db.BookingService().GetAsync(actor, booking.Id)).Lines.Single();
 
-        // قراءة العدّاد للمتابعة في الصيانة فقط: غيابها لا يمنع تنفيذ البيع.
         var preview = await _db.Executions().GetPreviewAsync(actor, line.Id);
         Assert.True(preview.ItemIsMetered);
+        Assert.Contains(preview.MeterAssets, a => a.Id == assetId);
 
+        // بلا اختيار أصل: لا يُقبل التنفيذ.
+        var noAsset = await Assert.ThrowsAsync<ValidationAppException>(() =>
+            _db.Executions().ExecuteAsync(actor, new BookingExecutionInput
+            { BookingLineId = line.Id, Quantity = 1 }));
+        Assert.Equal("validation.asset_meter_required", noAsset.Code);
+
+        // بأصل بلا وحدات (0): لا يُقبل التنفيذ.
+        var noUnits = await Assert.ThrowsAsync<ValidationAppException>(() =>
+            _db.Executions().ExecuteAsync(actor, new BookingExecutionInput
+            { BookingLineId = line.Id, Quantity = 1, MeteredAssetId = assetId }));
+        Assert.Equal("validation.meter_units_required", noUnits.Code);
+
+        // بأصل ووحدات أكبر من صفر: يُقبل ويُسجَّل في العدّاد.
         var result = await _db.Executions().ExecuteAsync(actor, new BookingExecutionInput
-        { BookingLineId = line.Id, Quantity = 2 });
-        Assert.Equal(2m, result.Quantity);
-        Assert.Equal(0m, result.MeterUnits);
-        Assert.Equal(0m, result.MeterValueAfter);
-
-        await using var check = new NpgsqlConnection(TestDb.AdminConnection);
-        await check.OpenAsync();
-        Assert.Equal(0, await check.ExecuteScalarAsync<int>(
-            "SELECT count(*)::int FROM asset_meter_readings WHERE source_line_id IN " +
-            "(SELECT id FROM booking_execution_lines WHERE booking_line_id = @id)",
-            new { id = line.Id }));
-        Assert.Equal(8m, await _db.OnHandAsync(item.Id, warehouse));
+        {
+            BookingLineId = line.Id, Quantity = 1, MeteredAssetId = assetId, MeterUnits = 2
+        });
+        Assert.Equal(1m, result.Quantity);
+        Assert.Equal(2m, result.MeterUnits);
+        Assert.Equal(2m, result.MeterValueAfter);
+        Assert.Equal(9m, await _db.OnHandAsync(item.Id, warehouse));
     }
 
 }
