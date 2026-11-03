@@ -76,4 +76,32 @@ public sealed class BookingScheduleTests : IClassFixture<TestDb>
         var confirmed = await service.ConfirmAsync(actor, withEmployee.Id);
         Assert.Equal(BookingStatuses.Confirmed, confirmed.Status);
     }
+
+    [Fact]
+    public async Task Cancelling_an_employee_shift_reverts_their_bookings_to_draft()
+    {
+        var actor = await _db.AdminActorAsync();
+        var service = _db.BookingService();
+        var (branch, warehouse, item, customer, employee) = await SetupAsync("2");
+        var start = DateTimeOffset.UtcNow.Date.AddHours(9);
+
+        var shift = await _db.Fulfillment().CreateAppointmentAsync(actor, new AppointmentInput
+        {
+            BranchId = branch, EmployeeId = employee.Id,
+            StartsAt = start, EndsAt = start.AddHours(4), Notes = "دوام صباحي"
+        });
+
+        var booking = await DraftAsync(branch, warehouse, item, customer, employee.Id,
+            start.AddHours(1));
+        var confirmed = await service.ConfirmAsync(actor, booking.Id);
+        Assert.Equal(BookingStatuses.Confirmed, confirmed.Status);
+
+        await _db.Fulfillment().SetAppointmentStatusAsync(actor, shift.Id, shift.Version,
+            AppointmentStatuses.Cancelled);
+
+        var reverted = await service.GetAsync(actor, booking.Id);
+        Assert.Equal(BookingStatuses.Draft, reverted.Status);
+        Assert.Null(reverted.AssignedEmployeeId);
+        Assert.Equal(0m, reverted.Lines.Single().ReservedQty);
+    }
 }

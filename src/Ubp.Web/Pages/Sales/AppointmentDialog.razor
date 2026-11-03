@@ -21,22 +21,13 @@
                         </MudSelectItem>
                     }
                 </MudSelect>
-                <MudSelect T="Guid?" @bind-Value="_customerId" Label="@T.T("sales.customer")"
-                           Variant="Variant.Outlined" Required="true" Clearable="false">
-                    @foreach (var customer in _customers)
-                    {
-                        <MudSelectItem T="Guid?" Value="@((Guid?)customer.Id)">
-                            @customer.Code — @customer.NameAr
-                        </MudSelectItem>
-                    }
-                </MudSelect>
                 <MudDatePicker @bind-Date="_date" Label="@T.T("common.date")"
                                Variant="Variant.Outlined" />
                 <MudTimePicker @bind-Time="_start" Label="@T.T("sales.start")"
                                Variant="Variant.Outlined" />
                 <MudTimePicker @bind-Time="_end" Label="@T.T("sales.end")"
                                Variant="Variant.Outlined" />
-                <MudTextField @bind-Value="_notes" Label="@T.T("common.notes")"
+                <MudTextField @bind-Value="_notes" Label="@T.T("sales.shift_notes")"
                               Variant="Variant.Outlined" MaxLength="500" />
             </div>
         </MudForm>
@@ -56,7 +47,6 @@
 
     [Inject] private SalesFulfillmentService Fulfillment { get; set; } = default!;
     [Inject] private MasterDataService MasterData { get; set; } = default!;
-    [Inject] private PartnerService Partners { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
     [Inject] private UiCulture T { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
@@ -64,13 +54,11 @@
     private MudForm _form = default!;
     private Guid _branchId;
     private Guid _employeeId;
-    private Guid? _customerId;
     private DateTime? _date;
     private TimeSpan? _start = new(10, 0, 0);
     private TimeSpan? _end = new(10, 30, 0);
     private string? _notes;
     private IReadOnlyList<Employee> _employees = Array.Empty<Employee>();
-    private IReadOnlyList<Partner> _customers = Array.Empty<Partner>();
     private bool _busy;
 
     protected override async Task OnInitializedAsync()
@@ -82,9 +70,6 @@
         if (actor is null) return;
         _employees = await MasterData.EmployeeOptionsAsync(actor);
         _employeeId = _employees.FirstOrDefault()?.Id ?? Guid.Empty;
-        var customers = await Partners.ListAsync(actor, PartnerKind.Customer,
-            new PageRequest { Page = 1, PageSize = 25 }, null);
-        _customers = customers.Items;
     }
 
     private void OnBranchChanged(Guid value) => _branchId = value;
@@ -94,7 +79,7 @@
     private async Task SaveAsync()
     {
         await _form.Validate();
-        if (!_form.IsValid || _employeeId == Guid.Empty || _customerId is null ||
+        if (!_form.IsValid || _employeeId == Guid.Empty ||
             _date is null || _start is null || _end is null)
         {
             Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
@@ -109,7 +94,7 @@
             var ends = new DateTimeOffset(_date.Value.Date + _end.Value);
             var appointment = await Fulfillment.CreateAppointmentAsync(actor, new AppointmentInput
             {
-                BranchId = _branchId, EmployeeId = _employeeId, CustomerId = _customerId,
+                BranchId = _branchId, EmployeeId = _employeeId,
                 StartsAt = starts, EndsAt = ends, Notes = _notes
             });
             MudDialog.Close(DialogResult.Ok(appointment));
