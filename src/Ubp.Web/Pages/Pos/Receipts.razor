@@ -3,6 +3,7 @@
 @inherits SecurePageBase
 @inject PosService Pos
 @inject BranchService Branches
+@inject IDialogService Dialogs
 <PageTitle>@T.T("screen.pos_receipts")</PageTitle>
 
 @if (Denied) { <ForbiddenView /> }
@@ -40,6 +41,9 @@ else
                 <MudTd Align="Right">@context.Total.ToString("N2")</MudTd>
                 <MudTd>@T.T("accounting.status_" + context.Status)</MudTd>
                 <MudTd Align="Right">
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                   Title="@T.T("pos.view_receipt")" Color="Color.Primary"
+                                   OnClick="@(() => ViewAsync(context))" />
                     <MudIconButton Icon="@Icons.Material.Filled.Send" Size="Size.Small"
                                    Title="@T.T("pos.send_whatsapp")" Color="Color.Success"
                                    OnClick="@(() => SendWhatsAppAsync(context))" />
@@ -66,6 +70,10 @@ else
         _items = await Pos.ListReceiptsAsync(Actor!, _branchId, 200);
 
     private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+
+    private async Task ViewAsync(CommercialDocument doc) =>
+        await Dialogs.ShowAsync<ViewReceiptDialog>(T.T("pos.view_receipt"),
+            new DialogParameters { ["VoucherId"] = doc.Id });
 
     private async Task SendWhatsAppAsync(CommercialDocument doc) => await RunAsync(async () =>
     {

@@ -53,7 +53,8 @@ public sealed partial class PartnerRepository : IPartnerRepository
             (SELECT c.name_ar FROM {category} c WHERE c.id = p.category_id) AS CategoryName,
             p.scope_type AS ScopeType, p.branch_id AS BranchId,
             (SELECT b.name_ar FROM branches b WHERE b.id = p.branch_id) AS BranchName,
-            p.phone AS Phone, p.email AS Email, p.address AS Address, p.tax_number AS TaxNumber,
+            p.phone AS Phone, p.phone2 AS Phone2, p.whatsapp_phone AS WhatsAppPhone,
+            p.email AS Email, p.address AS Address, p.tax_number AS TaxNumber,
             p.credit_limit AS CreditLimit, p.notes AS Notes, p.is_active AS IsActive,
             p.custom_fields::text AS CustomFieldsJson,
             p.created_at AS CreatedAt, p.updated_at AS UpdatedAt, p.version AS Version
@@ -115,7 +116,8 @@ public sealed partial class PartnerRepository : IPartnerRepository
         Id = row.Id, Code = row.Code, NameAr = row.NameAr, NameEn = row.NameEn,
         CategoryId = row.CategoryId, CategoryName = row.CategoryName,
         ScopeType = row.ScopeType, BranchId = row.BranchId, BranchName = row.BranchName,
-        Phone = row.Phone, Email = row.Email, Address = row.Address, TaxNumber = row.TaxNumber,
+        Phone = row.Phone, Phone2 = row.Phone2, WhatsAppPhone = row.WhatsAppPhone,
+        Email = row.Email, Address = row.Address, TaxNumber = row.TaxNumber,
         CreditLimit = row.CreditLimit, Notes = row.Notes, IsActive = row.IsActive,
         CustomFields = string.IsNullOrWhiteSpace(row.CustomFieldsJson)
             ? new() : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(row.CustomFieldsJson) ?? new(),
@@ -134,6 +136,8 @@ public sealed partial class PartnerRepository : IPartnerRepository
         public Guid? BranchId { get; set; }
         public string? BranchName { get; set; }
         public string? Phone { get; set; }
+        public string? Phone2 { get; set; }
+        public string? WhatsAppPhone { get; set; }
         public string? Email { get; set; }
         public string? Address { get; set; }
         public string? TaxNumber { get; set; }

@@ -18,6 +18,8 @@ public sealed class Partner
     public Guid? BranchId { get; set; }
     public string? BranchName { get; set; }
     public string? Phone { get; set; }
+    public string? Phone2 { get; set; }
+    public string? WhatsAppPhone { get; set; }
     public string? Email { get; set; }
     public string? Address { get; set; }
     public string? TaxNumber { get; set; }
@@ -39,6 +41,8 @@ public sealed class PartnerInput
     public string ScopeType { get; set; } = "COMPANY";
     public Guid? BranchId { get; set; }
     public string? Phone { get; set; }
+    public string? Phone2 { get; set; }
+    public string? WhatsAppPhone { get; set; }
     public string? Email { get; set; }
     public string? Address { get; set; }
     public string? TaxNumber { get; set; }

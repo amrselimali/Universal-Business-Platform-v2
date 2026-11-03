@@ -70,7 +70,12 @@ public sealed class PosService
     public async Task<bool> SendReceiptWhatsAppAsync(ActorContext actor, Guid voucherId,
         CancellationToken ct = default)
     {
-        await _permissions.RequireAsync(actor, ScreenCodes.PosReceipts, ActionCodes.View, ct: ct);
+        var allowed = await _permissions.HasAsync(actor, ScreenCodes.PosTerminal,
+                          ActionCodes.Checkout, ct)
+                      || await _permissions.HasAsync(actor, ScreenCodes.PosReceipts,
+                          ActionCodes.View, ct);
+        if (!allowed) throw new ForbiddenException();
+
         var head = await _pos.GetReceiptHeaderAsync(voucherId, ct);
         if (head.CustomerId is null || string.IsNullOrWhiteSpace(head.DocNo))
             throw new NotFoundAppException();
@@ -81,5 +86,16 @@ public sealed class PosService
         await _audit.WriteAsync(actor, "message_outbox", voucherId.ToString(), "INSERT", null,
             new { Channel = MessageChannels.WhatsApp, head.DocNo, Sent = sent }, ct);
         return sent;
+    }
+
+    /// <summary>تفاصيل إيصال قبض لعرضه من شاشة إيصالات POS.</summary>
+    public async Task<Voucher> GetReceiptAsync(ActorContext actor, Guid voucherId,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.PosReceipts, ActionCodes.View, ct: ct);
+        var voucher = await _pos.GetReceiptDetailAsync(voucherId, ct)
+                      ?? throw new NotFoundAppException();
+        BranchScope.Ensure(actor, voucher.BranchId);
+        return voucher;
     }
 }

@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-11-03 — Receipt viewing, save-and-send WhatsApp and contact numbers
+
+### Added
+- POS receipts screen: a **view receipt** action opens the posted receipt (payment methods,
+  amounts, fees and totals) in the printed layout with print support.
+- POS terminal: a «حفظ وإرسال واتساب» button saves the receipt and queues the WhatsApp message for
+  the customer in one action (normal checkout remains unchanged).
+- Customer/supplier profile: a secondary phone and a **WhatsApp contact number** selector; the
+  notifier uses the designated WhatsApp number first, then the primary phone, then the secondary
+  (migration `0068` adds nullable columns only).
+- Tests: receipt detail lines/fees and the designated WhatsApp number; full suite (295) passes.
+
 ## 2026-11-03 — Partial payments on receipts
 
 ### Changed

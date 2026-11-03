@@ -15,6 +15,8 @@ public interface IPosRepository
     /// <summary>رأس إيصال قبض (عميل/رقم/إجمالي/فرع) لإعادة إرسال الإشعار.</summary>
     Task<(Guid? CustomerId, string? DocNo, decimal Total, Guid BranchId)> GetReceiptHeaderAsync(
         Guid voucherId, CancellationToken ct = default);
+    /// <summary>تفاصيل إيصال قبض (سطور طرق الدفع/العمولة) لعرضه أو طباعته.</summary>
+    Task<Voucher?> GetReceiptDetailAsync(Guid voucherId, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -258,40 +260,5 @@ public sealed partial class PosRepository : IPosRepository
             throw new ValidationAppException("validation.pos_payment_exceeds_total");
 
         return result;
-    }
-
-    public async Task<IReadOnlyList<CommercialDocument>> ListReceiptsAsync(Guid? branchId,
-        int limit, CancellationToken ct = default)
-    {
-        await using var connection = await _factory.OpenAsync(ct);
-        return (await connection.QueryAsync<CommercialDocument>(new CommandDefinition("""
-            SELECT v.id AS Id, v.voucher_type AS DocType, v.doc_no AS DocNo, v.doc_date AS DocDate,
-                   v.status AS Status, v.branch_id AS BranchId, v.party_name AS PartyName,
-                   v.total_amount AS Total, v.fee_total AS AllocatedTotal,
-                   v.journal_entry_id AS JournalEntryId
-            FROM vouchers v
-            WHERE v.voucher_type = 'receipt' AND v.party_type = 'C'
-              AND (EXISTS (SELECT 1 FROM bookings b
-                           WHERE b.customer_id = v.party_id AND b.source = 'pos'
-                             AND b.branch_id = v.branch_id AND b.booking_date = v.doc_date)
-                   -- إيصالات تحصيل الخدمات المحجوزة (مرتبطة بالحجوزات عبر booking_payments)
-                   OR EXISTS (SELECT 1 FROM booking_payments bp WHERE bp.voucher_id = v.id))
-              AND (@branchId::uuid IS NULL OR v.branch_id = @branchId::uuid)
-            ORDER BY v.doc_date DESC, v.id DESC LIMIT @limit
-            """, new { branchId, limit = Math.Clamp(limit, 1, 200) }, cancellationToken: ct)))
-            .ToList();
-    }
-
-    public async Task<(Guid? CustomerId, string? DocNo, decimal Total, Guid BranchId)>
-        GetReceiptHeaderAsync(Guid voucherId, CancellationToken ct = default)
-    {
-        await using var connection = await _factory.OpenAsync(ct);
-        return await connection.QuerySingleOrDefaultAsync<(Guid? CustomerId, string? DocNo,
-            decimal Total, Guid BranchId)>(new CommandDefinition("""
-            SELECT party_id AS CustomerId, doc_no AS DocNo, total_amount AS Total,
-                   branch_id AS BranchId
-            FROM vouchers
-            WHERE id = @id AND voucher_type = 'receipt' AND party_type = 'C'
-            """, new { id = voucherId }, cancellationToken: ct));
     }
 }

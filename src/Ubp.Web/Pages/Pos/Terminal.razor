@@ -187,6 +187,11 @@ else
                                    OnClick="CheckoutAsync" Disabled="@(_busy || _cart.Count == 0)">
                             @T.T("pos.checkout")
                         </MudButton>
+                        <MudButton Color="Color.Success" Variant="Variant.Outlined"
+                                   StartIcon="@Icons.Material.Filled.Send" OnClick="CheckoutAndSendAsync"
+                                   Disabled="@(_busy || _cart.Count == 0)">
+                            @T.T("pos.save_and_send_whatsapp")
+                        </MudButton>
                     }
                 </div>
 

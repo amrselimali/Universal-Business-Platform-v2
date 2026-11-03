@@ -1,0 +1,80 @@
+@inject PosService Pos
+@inject UserContext UserContext
+@inject UiCulture T
+@inject IJSRuntime JS
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("pos.receipt") — @(_receipt?.DocNo ?? "…")</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (_receipt is null)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true">@T.T("pos.receipt_not_found")</MudAlert>
+        }
+        else
+        {
+            <div id="receipt-view-area" class="pos-receipt">
+                <div class="pos-receipt-head">
+                    <div><b>@T.T("pos.receipt")</b></div>
+                    <div>@_receipt.DocNo · @_receipt.DocDate.ToString("yyyy-MM-dd")</div>
+                    <div>@_receipt.PartyName</div>
+                    <div>@_receipt.TreasuryName</div>
+                    <div>@T.T("accounting.status_" + _receipt.Status)</div>
+                </div>
+                <table>
+                    <tbody>
+                        @foreach (var line in _receipt.Lines)
+                        {
+                            <tr>
+                                <td>@line.MethodCode — @line.MethodName</td>
+                                <td class="num">@line.Amount.ToString("N2")</td>
+                            </tr>
+                            @if (line.FeeAmount > 0)
+                            {
+                                <tr>
+                                    <td>@T.T("pos.fee")</td>
+                                    <td class="num">@line.FeeAmount.ToString("N2")</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+                <div class="pos-receipt-totals">
+                    <div><b>@T.T("accounting.total")</b><b>@_receipt.TotalAmount.ToString("N2")</b></div>
+                    <div><span>@T.T("pos.fees")</span><span>@_receipt.FeeTotal.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.collected_amount")</span><span>@_receipt.NetAmount.ToString("N2")</span></div>
+                </div>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@T.T("common.close")</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Print" Variant="Variant.Outlined"
+                   OnClick="PrintAsync" Disabled="@(_receipt is null)">@T.T("common.print")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid VoucherId { get; set; }
+
+    private Voucher? _receipt;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = await UserContext.GetAsync();
+        if (actor is null) return;
+        _receipt = await Pos.GetReceiptAsync(actor, VoucherId);
+        _loading = false;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("ubpPrint");
+}

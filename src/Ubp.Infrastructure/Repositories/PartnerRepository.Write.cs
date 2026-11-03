@@ -11,11 +11,12 @@ public sealed partial class PartnerRepository
     {
         var sql = $"""
             INSERT INTO {Table(kind)}
-                (code, name_ar, name_en, category_id, scope_type, branch_id, phone, email,
-                 address, tax_number, credit_limit, notes, is_active, custom_fields)
+                (code, name_ar, name_en, category_id, scope_type, branch_id, phone, phone2,
+                 whatsapp_phone, email, address, tax_number, credit_limit, notes, is_active,
+                 custom_fields)
             VALUES
-                (@Code, @NameAr, @NameEn, @CategoryId, @ScopeType, @BranchId, @Phone, @Email,
-                 @Address, @TaxNumber, @CreditLimit, @Notes, @IsActive,
+                (@Code, @NameAr, @NameEn, @CategoryId, @ScopeType, @BranchId, @Phone, @Phone2,
+                 @WhatsAppPhone, @Email, @Address, @TaxNumber, @CreditLimit, @Notes, @IsActive,
                   CAST(@CustomFields AS jsonb))
             RETURNING id
             """;
@@ -23,7 +24,8 @@ public sealed partial class PartnerRepository
         var id = await connection.ExecuteScalarAsync<Guid>(new CommandDefinition(sql, new
         {
             input.Code, input.NameAr, input.NameEn, input.CategoryId, input.ScopeType,
-            input.BranchId, input.Phone, input.Email, input.Address, input.TaxNumber,
+            input.BranchId, input.Phone, input.Phone2, input.WhatsAppPhone, input.Email,
+            input.Address, input.TaxNumber,
             input.CreditLimit, input.Notes, input.IsActive,
             CustomFields = JsonSerializer.Serialize(input.CustomFields)
         }, cancellationToken: ct));
@@ -36,7 +38,8 @@ public sealed partial class PartnerRepository
         var sql = $"""
             UPDATE {Table(kind)} SET
                 code = @Code, name_ar = @NameAr, name_en = @NameEn, category_id = @CategoryId,
-                scope_type = @ScopeType, branch_id = @BranchId, phone = @Phone, email = @Email,
+                scope_type = @ScopeType, branch_id = @BranchId, phone = @Phone,
+                phone2 = @Phone2, whatsapp_phone = @WhatsAppPhone, email = @Email,
                 address = @Address, tax_number = @TaxNumber, credit_limit = @CreditLimit,
                 notes = @Notes, is_active = @IsActive,
                 custom_fields = CAST(@CustomFields AS jsonb)
@@ -47,7 +50,8 @@ public sealed partial class PartnerRepository
         var updated = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(sql, new
         {
             id, version, input.Code, input.NameAr, input.NameEn, input.CategoryId, input.ScopeType,
-            input.BranchId, input.Phone, input.Email, input.Address, input.TaxNumber,
+            input.BranchId, input.Phone, input.Phone2, input.WhatsAppPhone, input.Email,
+            input.Address, input.TaxNumber,
             input.CreditLimit, input.Notes, input.IsActive,
             CustomFields = JsonSerializer.Serialize(input.CustomFields)
         }, cancellationToken: ct));

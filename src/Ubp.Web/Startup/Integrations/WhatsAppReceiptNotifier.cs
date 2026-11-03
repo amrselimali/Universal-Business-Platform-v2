@@ -29,7 +29,8 @@ public sealed class WhatsAppReceiptNotifier : IReceiptNotifier
         if (!_options.Enabled || string.IsNullOrWhiteSpace(docNo)) return false;
 
         var customer = await _partners.GetAsync(PartnerKind.Customer, customerId, ct);
-        var phone = Normalize(customer?.Phone);
+        var phone = Normalize(customer?.WhatsAppPhone) ?? Normalize(customer?.Phone)
+                    ?? Normalize(customer?.Phone2);
         if (phone is null) return false;
 
         var body = $"إيصال {docNo}\nالإجمالي: {total:N2}\nالمدفوع: {paid:N2}"

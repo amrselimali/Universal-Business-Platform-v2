@@ -82,6 +82,7 @@ public sealed class PosCollectionMethodTests : IClassFixture<TestDb>
     [Fact]
     public async Task Pos_fee_posts_to_the_method_fee_account()
     {
+        var actor = await _db.AdminActorAsync();
         var chart = await _db.SeedAccountingAsync();
         var f = await SetupAsync("1", 1m, chart["5490"].Id);
 
@@ -100,6 +101,12 @@ public sealed class PosCollectionMethodTests : IClassFixture<TestDb>
 
         Assert.Contains(entries, l => l.Code == chart["5490"].Code && l.Debit == 1m);
         Assert.DoesNotContain(entries, l => l.Code == "5200");
+
+        var detail = await _db.Pos().GetReceiptAsync(actor, voucher.VoucherId);
+        Assert.Equal(voucher.VoucherId, detail.Id);
+        var line = Assert.Single(detail.Lines);
+        Assert.Equal(1m, line.FeeAmount);
+        Assert.Equal(100m, line.Amount);
     }
 
     [Fact]
@@ -125,6 +132,30 @@ public sealed class PosCollectionMethodTests : IClassFixture<TestDb>
         Assert.Contains(methods, m => m.Id == f.MethodId);
         Assert.Contains(methods, m => m.Id == secondMethod);
         Assert.All(methods, m => Assert.NotEqual(Guid.Empty, m.TreasuryId));
+    }
+
+    [Fact]
+    public async Task WhatsApp_uses_the_designated_contact_number()
+    {
+        var f = await SetupAsync("6", 0m);
+        await using (var connection = new NpgsqlConnection(TestDb.AdminConnection))
+        {
+            await connection.OpenAsync();
+            await connection.ExecuteAsync("""
+                UPDATE customers SET phone = '201000000001', phone2 = '201000000002',
+                                     whatsapp_phone = '201000000003'
+                WHERE id = @id
+                """, new { id = f.Customer.Id });
+        }
+
+        var notifier = new WhatsAppReceiptNotifier(new MessageOutboxRepository(_db.Factory),
+            _db.PartnerRepo, Options.Create(new WhatsAppOptions { Enabled = true }));
+        Assert.True(await notifier.NotifyAsync(f.Customer.Id, "RCV-000099", 100m, 100m, null));
+
+        await using var check = new NpgsqlConnection(TestDb.AdminConnection);
+        await check.OpenAsync();
+        Assert.Equal("201000000003", await check.ExecuteScalarAsync<string>(
+            "SELECT recipient FROM message_outbox WHERE dedupe_key = 'receipt:RCV-000099'"));
     }
 
     [Fact]

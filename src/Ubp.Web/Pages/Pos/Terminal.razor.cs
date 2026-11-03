@@ -128,7 +128,7 @@ public partial class Terminal : SecurePageBase
         _customerId = customerId;
         var customer = _customers.FirstOrDefault(c => c.Id == customerId);
         _customerName = customer?.NameAr;
-        _customerPhone = customer?.Phone;
+        _customerPhone = customer?.WhatsAppPhone ?? customer?.Phone ?? customer?.Phone2;
 
         // تحديث طرق التحصيل المكوَّدة في شاشة الخزائن عند اختيار العميل (بدون إعادة تحميل الصفحة).
         if (_branchId != Guid.Empty)
@@ -217,7 +217,11 @@ public partial class Terminal : SecurePageBase
         if ((await dialog.Result) is { Canceled: false }) StateHasChanged();
     }
 
-    private async Task CheckoutAsync() => await RunAsync(async () =>
+    private Task CheckoutAsync() => CheckoutCoreAsync(sendWhatsApp: false);
+
+    private Task CheckoutAndSendAsync() => CheckoutCoreAsync(sendWhatsApp: true);
+
+    private async Task CheckoutCoreAsync(bool sendWhatsApp) => await RunAsync(async () =>
     {
         if (_customerId == Guid.Empty || _branchId == Guid.Empty || _cart.Count == 0 ||
             _expiryDate is null)
@@ -252,6 +256,16 @@ public partial class Terminal : SecurePageBase
                     Amount = p.Total
                 }).ToList()
             });
+
+            if (sendWhatsApp && _receipt is not null)
+            {
+                var sent = 0;
+                foreach (var voucher in _receipt.Vouchers)
+                    if (await Pos.SendReceiptWhatsAppAsync(Actor!, voucher.VoucherId)) sent++;
+                Snackbar.Add(T.T(sent > 0 ? "pos.whatsapp_queued" : "pos.whatsapp_unavailable"),
+                    sent > 0 ? Severity.Success : Severity.Warning);
+            }
+
             _cart.Clear();
             _payments.Clear();
             await SearchAsync();
