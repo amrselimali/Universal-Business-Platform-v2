@@ -1,0 +1,66 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">@T.T("assets.meter_adjustment")</MudText></TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.caption" Class="ubp-muted">@T.T("assets.meter_adjustment_hint")</MudText>
+        <div class="ubp-form-grid mt-2">
+            <MudNumericField T="decimal" @bind-Value="_units" Label="@T.T("assets.adjustment_units")"
+                             Variant="Variant.Outlined" Format="N2" />
+            <MudDatePicker @bind-Date="_date" Label="@T.T("common.date")"
+                           Variant="Variant.Outlined" Required="true" />
+            <MudTextField @bind-Value="_note" Label="@T.T("assets.adjustment_note")"
+                          Variant="Variant.Outlined" MaxLength="300" Required="true"
+                          Class="ubp-span-2" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid AssetId { get; set; }
+    [Parameter] public DateTime DefaultDate { get; set; } = DateTime.Today;
+
+    [Inject] private AssetService AssetsApi { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private decimal _units;
+    private DateTime? _date;
+    private string? _note;
+    private bool _busy;
+
+    protected override void OnInitialized() => _date = DefaultDate;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        if (_units == 0 || _date is null || string.IsNullOrWhiteSpace(_note))
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var adjustment = await AssetsApi.AddMeterAdjustmentAsync(actor,
+                new AssetMeterAdjustmentInput
+                {
+                    AssetId = AssetId, AdjustedAt = _date.Value.Date, Units = _units,
+                    Note = _note.Trim()
+                });
+            MudDialog.Close(DialogResult.Ok(adjustment));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

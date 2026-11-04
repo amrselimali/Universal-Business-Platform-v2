@@ -90,6 +90,14 @@ public partial class AssetManagement
         Snackbar.Add(T.T("assets.reading_saved"), Severity.Success);
     }
 
+    /// <summary>متابعة العداد: إجماليات بالشهر/اليوم/يوم محدد + تسويات وحركات.</summary>
+    private async Task MeterFollowUpAsync(FixedAsset asset)
+    {
+        await DialogService.ShowAsync<MeterFollowUpDialog>(T.T("assets.meter_followup"),
+            new DialogParameters { ["AssetId"] = asset.Id },
+            new DialogOptions { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true });
+    }
+
     private async Task ResetMeterAsync(FixedAsset asset)
     {
         await RunAsync(async () =>

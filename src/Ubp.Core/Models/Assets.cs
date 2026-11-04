@@ -167,3 +167,76 @@ public sealed record DepreciationRunRow(Guid Id, DateOnly PeriodMonth, Guid? Bra
     decimal TotalAmount, Guid? JournalEntryId, string? EntryNo, int AssetsCount,
     DateTimeOffset RunAt);
 
+
+/// <summary>أنماط عرض متابعة العدّاد: بالشهر، باليوم، أو يوم محدد.</summary>
+public static class MeterStatementModes
+{
+    public const string Month = "month";
+    public const string Day = "day";
+    public const string SingleDay = "single";
+
+    public static bool IsValid(string? value) => value is Month or Day or SingleDay;
+}
+
+/// <summary>تسوية عدّاد: وحدات موجبة أو سالبة مع ملاحظة وتاريخ (يُسجَّل في سجل عدادات الجهاز).</summary>
+public sealed class AssetMeterAdjustmentInput
+{
+    public Guid AssetId { get; set; }
+    public DateTime AdjustedAt { get; set; } = DateTime.Today;
+    public decimal Units { get; set; }
+    public string? Note { get; set; }
+}
+
+public sealed class AssetMeterAdjustment
+{
+    public Guid Id { get; set; }
+    public Guid AssetId { get; set; }
+    public DateTimeOffset AdjustedAt { get; set; }
+    public decimal Units { get; set; }
+    public string? Note { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>سطر إجمالي لفترة (شهر/يوم): بداية المدة + المستهلك + التسويات + الرصيد.</summary>
+public sealed class AssetMeterStatementRow
+{
+    public string Period { get; set; } = "";
+    public DateTime Start { get; set; }
+    public DateTime End { get; set; }
+    public decimal Opening { get; set; }
+    public decimal Consumed { get; set; }
+    public decimal Adjustments { get; set; }
+    public decimal Closing => Opening + Consumed + Adjustments;
+    public string? AdjustmentNotes { get; set; }
+}
+
+/// <summary>حركة تفصيلية داخل الفترة: قراءة عدّاد أو تسوية.</summary>
+public sealed class AssetMeterMovement
+{
+    public string Kind { get; set; } = "READING";
+    public DateTimeOffset At { get; set; }
+    public decimal Value { get; set; }
+    public decimal Units { get; set; }
+    public string? Source { get; set; }
+    public string? Note { get; set; }
+
+    public bool IsAdjustment => Kind == "ADJUSTMENT";
+}
+
+/// <summary>كشف متابعة العدّاد: بيانات الأصل + سطور الفترات + الحركات التفصيلية.</summary>
+public sealed class AssetMeterStatement
+{
+    public Guid AssetId { get; set; }
+    public string AssetCode { get; set; } = "";
+    public string AssetName { get; set; } = "";
+    public string? BranchName { get; set; }
+    public string? MeterType { get; set; }
+    public decimal CurrentValue { get; set; }
+    public string Mode { get; set; } = MeterStatementModes.Month;
+    public DateTime From { get; set; }
+    public DateTime To { get; set; }
+    public IReadOnlyList<AssetMeterStatementRow> Rows { get; set; } =
+        Array.Empty<AssetMeterStatementRow>();
+    public IReadOnlyList<AssetMeterMovement> Movements { get; set; } =
+        Array.Empty<AssetMeterMovement>();
+}

@@ -1,0 +1,109 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("assets.meter_followup")</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_statement is not null)
+        {
+            <MudPaper Elevation="0" Class="ubp-card mb-3">
+                <div class="ubp-toolbar">
+                    <MudText><b>@T.T("common.branch"):</b> @(_statement.BranchName ?? T.T("assets.shared"))</MudText>
+                    <MudText><b>@T.T("common.name_ar"):</b> @_statement.AssetCode — @_statement.AssetName</MudText>
+                    <MudText><b>@T.T("assets.meter"):</b> @Fmt.Decimal(_statement.CurrentValue) @_statement.MeterType</MudText>
+                </div>
+            </MudPaper>
+        }
+
+        <MudRadioGroup T="string" Value="_mode" ValueChanged="OnModeChanged">
+            <MudRadio T="string" Value="@MeterStatementModes.Month">@T.T("assets.view_by_month")</MudRadio>
+            <MudRadio T="string" Value="@MeterStatementModes.Day">@T.T("assets.view_by_day")</MudRadio>
+            <MudRadio T="string" Value="@MeterStatementModes.SingleDay">@T.T("assets.view_single_day")</MudRadio>
+        </MudRadioGroup>
+
+        <div class="ubp-toolbar mt-2">
+            @if (_mode == MeterStatementModes.Month)
+            {
+                <MudDatePicker @bind-Date="_fromMonth" Label="@T.T("assets.from_month")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="yyyy-MM"
+                               Editable="true" />
+                <MudDatePicker @bind-Date="_toMonth" Label="@T.T("assets.to_month")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="yyyy-MM"
+                               Editable="true" />
+            }
+            else if (_mode == MeterStatementModes.Day)
+            {
+                <MudDatePicker @bind-Date="_fromDay" Label="@T.T("assets.from_day")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               DateFormat="yyyy-MM-dd" Editable="true" />
+                <MudDatePicker @bind-Date="_toDay" Label="@T.T("assets.to_day")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               DateFormat="yyyy-MM-dd" Editable="true" />
+            }
+            else
+            {
+                <MudDatePicker @bind-Date="_singleDay" Label="@T.T("assets.single_day")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               DateFormat="yyyy-MM-dd" Editable="true" />
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAsync"
+                       Disabled="_busy" StartIcon="@Icons.Material.Filled.Search">
+                @T.T("assets.show")
+            </MudButton>
+        </div>
+
+        <MudTable Items="_rows" Dense="true" Elevation="0" Class="ubp-table mt-2">
+            <HeaderContent>
+                <MudTh>@T.T("assets.period")</MudTh>
+                <MudTh Align="Right">@T.T("assets.opening")</MudTh>
+                <MudTh Align="Right">@T.T("assets.consumed")</MudTh>
+                <MudTh Align="Right">@T.T("assets.adjustments")</MudTh>
+                <MudTh Align="Right">@T.T("assets.balance")</MudTh>
+                <MudTh>@T.T("assets.adjustment_notes")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Period</MudTd>
+                <MudTd Align="Right">@Fmt.Decimal(context.Opening)</MudTd>
+                <MudTd Align="Right">@Fmt.Decimal(context.Consumed)</MudTd>
+                <MudTd Align="Right">@Fmt.Decimal(context.Adjustments)</MudTd>
+                <MudTd Align="Right"><b>@Fmt.Decimal(context.Closing)</b></MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.AdjustmentNotes) ? "—" : context.AdjustmentNotes)</MudTd>
+                <MudTd Align="Right">
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning"
+                               Disabled="_busy" OnClick="@(() => AddAdjustmentAsync(context))">
+                        @T.T("assets.add_adjustment")
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="ubp-muted pa-4">@T.T("common.no_records")</MudText>
+            </NoRecordsContent>
+        </MudTable>
+
+        <MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("assets.meter_movements")</MudText>
+        <MudTable Items="_movements" Dense="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("common.date")</MudTh>
+                <MudTh>@T.T("assets.movement_kind")</MudTh>
+                <MudTh Align="Right">@T.T("assets.meter")</MudTh>
+                <MudTh Align="Right">@T.T("assets.consumed")</MudTh>
+                <MudTh>@T.T("common.notes")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@Fmt.DateTime(context.At)</MudTd>
+                <MudTd>@T.T(context.IsAdjustment ? "assets.kind_adjustment" : "assets.kind_reading")</MudTd>
+                <MudTd Align="Right">@(context.IsAdjustment ? "—" : Fmt.Decimal(context.Value))</MudTd>
+                <MudTd Align="Right">@Fmt.Decimal(context.Units)</MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.Note) ? "—" : context.Note)</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="ubp-muted pa-4">@T.T("common.no_records")</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@T.T("common.close")</MudButton>
+    </DialogActions>
+</MudDialog>

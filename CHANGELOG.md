@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026-11-04 — Asset meter follow-up (month/day/single-day) with adjustments
+
+### Added
+- Action **«متابعة العداد»** on every metered asset in `/assets/management` (migration `0073` adds
+  `asset_meter_adjustments`). The dialog shows the branch + asset header and offers **by month**
+  (from month → to month), **by day** (from day → to day) and **single day** views:
+  - per period row: **بداية المدة** (last reading before the period + earlier adjustments),
+    **المستهلك**, **التسويات**, **الرصيد** and **ملاحظة التسويات**;
+  - a detailed movement table (readings + adjustments) for the selected period;
+  - **إضافة تسوية** on each row: units (+/−) with a mandatory note and a date defaulting to that
+    row’s period; the adjustment is stored in `asset_meter_adjustments` (the asset meter log) with an
+    audit entry and the period is recalculated immediately.
+- Tests: `AssetMeterStatementTests` (2) — monthly opening/consumed/adjustments/balance and
+  single-day statement + adjustment validation. Full suite (337) passes.
+
+### Changed
+- Idle-customers column renamed to **«آخر نشاط مسجّل (حجز خدمة/موعد/متابعة)»**.
+
 ## 2026-11-04 — Bookings columns order, simple future-only idle logic, follow-ups defaults
 
 ### Changed

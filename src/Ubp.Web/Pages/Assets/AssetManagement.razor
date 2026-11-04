@@ -76,6 +76,11 @@ else
                 </MudTd>
                 <MudTd>@T.T("assets.status_" + context.Status.ToLowerInvariant())</MudTd>
                 <MudTd>
+                    @if (context.IsMetered && Can(ActionCodes.View))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Info"
+                                   OnClick="@(() => MeterFollowUpAsync(context))">@T.T("assets.meter_followup")</MudButton>
+                    }
                     @if (context.IsMetered && Can(ActionCodes.AddMeterReading))
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"

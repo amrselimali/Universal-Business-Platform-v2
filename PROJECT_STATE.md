@@ -1,5 +1,15 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-04 — Asset meter follow-up + adjustments, idle column rename
+
+- Migration `0073`: `asset_meter_adjustments` (units ±, note, adjusted_at). New `AssetService`
+  `MeterStatementAsync` (month/day/single-day rows: opening, consumed, adjustments, closing, notes;
+  movements list) and `AddMeterAdjustmentAsync` (units ≠ 0 + mandatory note, audited).
+- `/assets/management`: «متابعة العداد» opens `MeterFollowUpDialog` for metered assets, with
+  month/day/single-day selectors and a per-row «إضافة تسوية» (`MeterAdjustmentDialog`).
+- Idle-customers last-activity column renamed to «آخر نشاط مسجّل (حجز خدمة/موعد/متابعة)».
+  Tests: `AssetMeterStatementTests` (2), full suite (337).
+
 ## 2026-11-04 — Bookings columns, simple future-only idle logic, follow-up defaults
 
 - Bookings table: customer first column, new «الملاحظات» column after «الخدمة المحجوزة».

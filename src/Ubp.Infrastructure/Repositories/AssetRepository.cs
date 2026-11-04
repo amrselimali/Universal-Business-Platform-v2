@@ -22,6 +22,13 @@ public interface IAssetRepository
         CancellationToken ct = default);
     Task<IReadOnlyList<AssetMeterReading>> ListReadingsAsync(Guid assetId, int take = 50,
         CancellationToken ct = default);
+    /// <summary>متابعة العدّاد: قراءات/تسويات حتى تاريخ + إضافة تسوية.</summary>
+    Task<IReadOnlyList<AssetMeterReading>> ListReadingsUpToAsync(Guid assetId, DateTime to,
+        CancellationToken ct = default);
+    Task<IReadOnlyList<AssetMeterAdjustment>> ListAdjustmentsUpToAsync(Guid assetId, DateTime to,
+        CancellationToken ct = default);
+    Task<Guid> AddAdjustmentAsync(Guid assetId, DateTime adjustedAt, decimal units, string? note,
+        Guid userId, CancellationToken ct = default);
     Task SetMeterValueAsync(Guid assetId, decimal value, Guid userId, CancellationToken ct = default);
     /// <summary>خطط/أوامر الصيانة (8أ).</summary>
     Task<Guid> CreatePlanAsync(Guid assetId, string kind, int? intervalDays, decimal? intervalUnits,
