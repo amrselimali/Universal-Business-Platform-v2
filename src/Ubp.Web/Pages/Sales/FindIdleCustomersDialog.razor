@@ -1,0 +1,78 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("sales.idle_title")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.caption" Class="ubp-muted">@T.T("sales.idle_hint")</MudText>
+        <div class="ubp-form-grid mt-2">
+            <MudTextField @bind-Value="_codes" Label="@T.T("sales.idle_codes")"
+                          HelperText="@T.T("sales.idle_codes_hint")" Variant="Variant.Outlined"
+                          MaxLength="500" />
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Clearable="true"
+                       ValueChanged="@(v => _branchId = v)">
+                @foreach (var branch in Branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker @bind-Date="_from" Label="@T.T("sales.idle_from")"
+                           Variant="Variant.Outlined" />
+            <MudDatePicker @bind-Date="_to" Label="@T.T("sales.idle_to")"
+                           Variant="Variant.Outlined" />
+        </div>
+        <div class="ubp-toolbar mt-2">
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SearchAsync"
+                       Disabled="_busy" StartIcon="@Icons.Material.Filled.Search">
+                @T.T("sales.idle_search")
+            </MudButton>
+            <MudText>@T.T("sales.idle_found"): <b>@_rows.Count</b></MudText>
+        </div>
+
+        <MudTable Items="_rows" Dense="true" Elevation="0" Class="ubp-table mt-2">
+            <HeaderContent>
+                <MudTh>@T.T("sales.customer")</MudTh>
+                <MudTh>@T.T("sales.phone")</MudTh>
+                <MudTh>@T.T("common.branch")</MudTh>
+                <MudTh>@T.T("sales.idle_last_activity")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <span class="ubp-code">@context.Code</span> — @context.NameAr
+                </MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.Phone) ? "—" : context.Phone)</MudTd>
+                <MudTd>@(context.BranchName ?? "—")</MudTd>
+                <MudTd>
+                    <MudText Typo="Typo.body2">@Summary(context)</MudText>
+                    @if (!string.IsNullOrWhiteSpace(context.LastFollowUpNote))
+                    {
+                        <MudText Typo="Typo.caption" Class="ubp-muted">
+                            @T.T("common.notes"): @context.LastFollowUpNote
+                        </MudText>
+                    }
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                               Disabled="_busy" OnClick="@(() => BookAsync(context))">
+                        @T.T("sales.followup_book")
+                    </MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success"
+                               Disabled="_busy" OnClick="@(() => FollowUpAsync(context))">
+                        @T.T("sales.followup_add")
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="ubp-muted pa-4">
+                    @(_searched ? T.T("sales.idle_empty") : T.T("sales.idle_prompt"))
+                </MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@T.T("common.close")</MudButton>
+    </DialogActions>
+</MudDialog>

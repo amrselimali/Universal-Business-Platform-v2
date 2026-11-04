@@ -1,0 +1,76 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("sales.followup_add")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Class="mb-2"><b>@CustomerName</b></MudText>
+        <div class="ubp-form-grid">
+            <MudSelect T="string" @bind-Value="_channel" Label="@T.T("sales.channel")"
+                       Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@FollowUpChannels.Call">@T.T("sales.channel_call")</MudSelectItem>
+                <MudSelectItem T="string" Value="@FollowUpChannels.WhatsApp">@T.T("sales.channel_whatsapp")</MudSelectItem>
+                <MudSelectItem T="string" Value="@FollowUpChannels.Sms">@T.T("sales.channel_sms")</MudSelectItem>
+                <MudSelectItem T="string" Value="@FollowUpChannels.Visit">@T.T("sales.channel_visit")</MudSelectItem>
+            </MudSelect>
+            <MudDatePicker @bind-Date="_date" Label="@T.T("sales.followup_due")"
+                           Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_note" Label="@T.T("common.notes")"
+                          Variant="Variant.Outlined" MaxLength="500" Class="ubp-span-2" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid CustomerId { get; set; }
+    [Parameter] public string? CustomerName { get; set; }
+    [Parameter] public Guid? BookingId { get; set; }
+    [Parameter] public DateTime DefaultDate { get; set; } = DateTime.Today;
+
+    [Inject] private FollowUpService FollowUps { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private string _channel = FollowUpChannels.Call;
+    private DateTime? _date;
+    private string? _note;
+    private bool _busy;
+
+    protected override void OnInitialized() => _date = DefaultDate;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        if (CustomerId == Guid.Empty || _date is null)
+        {
+            Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var followUp = await FollowUps.CreateAsync(actor, new FollowUpInput
+            {
+                CustomerId = CustomerId,
+                BookingId = BookingId,
+                Channel = _channel,
+                DueAt = new DateTimeOffset(_date.Value.Date.AddHours(10)),
+                Note = string.IsNullOrWhiteSpace(_note) ? null : _note.Trim()
+            });
+            MudDialog.Close(DialogResult.Ok(followUp));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

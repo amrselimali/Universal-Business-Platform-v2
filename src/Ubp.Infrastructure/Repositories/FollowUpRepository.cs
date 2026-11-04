@@ -11,7 +11,10 @@ public interface IFollowUpRepository
     Task<Guid> CreateAsync(Guid id, FollowUpInput input, Guid userId,
         CancellationToken ct = default);
     Task<FollowUp?> GetAsync(Guid id, CancellationToken ct = default);
-    Task<IReadOnlyList<FollowUp>> ListAsync(string? status, int limit,
+    Task<IReadOnlyList<FollowUp>> ListAsync(string? status, DateTime? from, DateTime? to, int limit,
+        CancellationToken ct = default);
+    Task<IReadOnlyList<CustomerGapRow>> FindIdleCustomersAsync(string[] codes, Guid? branchId,
+        IReadOnlyCollection<Guid> branchIds, DateTime from, DateTime to, int limit,
         CancellationToken ct = default);
     Task<FollowUp> CompleteAsync(Guid id, int version, Guid userId,
         CancellationToken ct = default);
@@ -73,16 +76,89 @@ public sealed class FollowUpRepository : IFollowUpRepository
             Select + " WHERE f.id = @id", new { id }, cancellationToken: ct));
     }
 
-    public async Task<IReadOnlyList<FollowUp>> ListAsync(string? status, int limit,
-        CancellationToken ct = default)
+    public async Task<IReadOnlyList<FollowUp>> ListAsync(string? status, DateTime? from,
+        DateTime? to, int limit, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         return (await connection.QueryAsync<FollowUp>(new CommandDefinition(Select + """
              WHERE (@status::varchar IS NULL OR f.status = @status::varchar)
+               AND (@from::date IS NULL OR f.due_at::date >= @from::date)
+               AND (@to::date IS NULL OR f.due_at::date <= @to::date)
              ORDER BY f.status = 'pending' DESC, f.due_at
              LIMIT @limit
-            """, new { status, limit = Math.Clamp(limit, 1, 500) }, cancellationToken: ct)))
-            .ToList();
+            """, new
+        {
+            status, from = from?.Date, to = to?.Date, limit = Math.Clamp(limit, 1, 500)
+        }, cancellationToken: ct))).ToList();
+    }
+
+    /// <summary>
+    /// عملاء نشطون بلا حجز ولا موعد ولا متابعة داخل الفترة، مع آخر نشاط مسجّل لكل عميل.
+    /// تُطبَّق فلاتر: أكواد العملاء (اختياري)، الفرع، ونطاق فروع المستخدم.
+    /// </summary>
+    public async Task<IReadOnlyList<CustomerGapRow>> FindIdleCustomersAsync(string[] codes,
+        Guid? branchId, IReadOnlyCollection<Guid> branchIds, DateTime from, DateTime to,
+        int limit, CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        var rows = await connection.QueryAsync<CustomerGapRow>(new CommandDefinition("""
+            SELECT c.id AS CustomerId, c.code AS Code, c.name_ar AS NameAr, c.phone AS Phone,
+                   br.name_ar AS BranchName,
+                   lb.last_at AS LastBookingAt, lb.doc_no AS LastBookingNo,
+                   lb.status AS LastBookingStatus, la.last_at AS LastAppointmentAt,
+                   lf.last_at AS LastFollowUpAt, lf.note AS LastFollowUpNote,
+                   lf.channel AS LastFollowUpChannel, lf.status AS LastFollowUpStatus
+            FROM customers c
+            LEFT JOIN branches br ON br.id = c.branch_id
+            LEFT JOIN LATERAL (
+                SELECT COALESCE(b.starts_at, b.booking_date::timestamptz) AS last_at,
+                       b.doc_no, b.status
+                FROM bookings b
+                WHERE b.customer_id = c.id AND b.status NOT IN ('cancelled', 'reversed')
+                ORDER BY COALESCE(b.starts_at, b.booking_date::timestamptz) DESC
+                LIMIT 1
+            ) lb ON true
+            LEFT JOIN LATERAL (
+                SELECT a.starts_at AS last_at
+                FROM appointments a
+                WHERE a.customer_id = c.id AND a.status <> 'cancelled'
+                ORDER BY a.starts_at DESC
+                LIMIT 1
+            ) la ON true
+            LEFT JOIN LATERAL (
+                SELECT f.due_at AS last_at, f.note, f.channel, f.status
+                FROM follow_ups f
+                WHERE f.customer_id = c.id
+                ORDER BY f.due_at DESC
+                LIMIT 1
+            ) lf ON true
+            WHERE c.is_active
+              AND (@branchId::uuid IS NULL OR c.branch_id = @branchId::uuid)
+              AND (@allBranches OR c.branch_id IS NULL
+                   OR c.branch_id = ANY(@branchIds))
+              AND (cardinality(@codes::text[]) = 0 OR upper(c.code) = ANY(@codes::text[]))
+              AND NOT EXISTS (
+                  SELECT 1 FROM bookings b
+                  WHERE b.customer_id = c.id AND b.status NOT IN ('cancelled', 'reversed')
+                    AND COALESCE(b.starts_at::date, b.booking_date)
+                        BETWEEN @from::date AND @to::date)
+              AND NOT EXISTS (
+                  SELECT 1 FROM appointments a
+                  WHERE a.customer_id = c.id AND a.status <> 'cancelled'
+                    AND a.starts_at::date BETWEEN @from::date AND @to::date)
+              AND NOT EXISTS (
+                  SELECT 1 FROM follow_ups f
+                  WHERE f.customer_id = c.id
+                    AND f.due_at::date BETWEEN @from::date AND @to::date)
+            ORDER BY COALESCE(lf.last_at, lb.last_at, la.last_at) ASC NULLS FIRST, c.name_ar
+            LIMIT @take
+            """, new
+        {
+            codes = codes ?? Array.Empty<string>(), branchId,
+            allBranches = branchIds.Count == 0, branchIds = branchIds.ToArray(),
+            from = from.Date, to = to.Date, take = Math.Clamp(limit, 1, 500)
+        }, cancellationToken: ct));
+        return rows.ToList();
     }
 
     public async Task<FollowUp> CompleteAsync(Guid id, int version, Guid userId,

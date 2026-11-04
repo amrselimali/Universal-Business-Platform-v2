@@ -1,0 +1,98 @@
+using Microsoft.AspNetCore.Components;
+using MudBlazor;
+using Ubp.Application.Services;
+using Ubp.Core.Models;
+using Ubp.Core.Results;
+using Ubp.Core.Security;
+using Ubp.Web.Services;
+
+namespace Ubp.Web.Pages.Sales;
+
+public partial class FindIdleCustomersDialog : ComponentBase
+{
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public IReadOnlyList<Branch> Branches { get; set; } = Array.Empty<Branch>();
+    [Parameter] public Guid? DefaultBranchId { get; set; }
+
+    [Inject] private FollowUpService FollowUps { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private IDialogService Dialogs { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private string? _codes;
+    private Guid? _branchId;
+    private DateTime? _from = DateTime.Today;
+    private DateTime? _to = DateTime.Today.AddDays(30);
+    private IReadOnlyList<CustomerGapRow> _rows = Array.Empty<CustomerGapRow>();
+    private bool _busy;
+    private bool _searched;
+
+    protected override void OnInitialized() => _branchId = DefaultBranchId;
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(_searched));
+
+    private async Task SearchAsync()
+    {
+        if (_from is null || _to is null) return;
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            _rows = await FollowUps.FindIdleCustomersAsync(actor, _codes, _branchId,
+                _from.Value.Date, _to, 300);
+            _searched = true;
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    /// <summary>آخر نشاط مسجّل (حجز/موعد/متابعة) في خلية واحدة.</summary>
+    private string Summary(CustomerGapRow row)
+    {
+        var parts = new List<string>();
+        if (row.LastBookingAt is { } booked)
+            parts.Add($"{T.T("sales.last_booking")}: {booked.ToLocalTime():yyyy-MM-dd}" +
+                      (string.IsNullOrWhiteSpace(row.LastBookingNo) ? "" : $" ({row.LastBookingNo})"));
+        if (row.LastAppointmentAt is { } appointment)
+            parts.Add($"{T.T("sales.last_appointment")}: {appointment.ToLocalTime():yyyy-MM-dd}");
+        if (row.LastFollowUpAt is { } followUp)
+            parts.Add($"{T.T("sales.last_followup")}: {followUp.ToLocalTime():yyyy-MM-dd}" +
+                      $" ({T.T("sales.channel_" + row.LastFollowUpChannel)})" +
+                      $" [{T.T("sales.followup_" + row.LastFollowUpStatus)}]");
+        return parts.Count == 0 ? T.T("sales.no_activity") : string.Join(" · ", parts);
+    }
+
+    private async Task BookAsync(CustomerGapRow row)
+    {
+        var dialog = await Dialogs.ShowAsync<AppointmentDialog>(T.T("sales.new_appointment"),
+            new DialogParameters
+            {
+                ["Branches"] = Branches,
+                ["DefaultBranchId"] = _branchId ?? DefaultBranchId,
+                ["DefaultDate"] = _from?.Date ?? DateTime.Today,
+                ["DefaultCustomerId"] = row.CustomerId
+            });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            Snackbar.Add(T.T("common.saved"), Severity.Success);
+            await SearchAsync();
+        }
+    }
+
+    private async Task FollowUpAsync(CustomerGapRow row)
+    {
+        var dialog = await Dialogs.ShowAsync<QuickFollowUpDialog>(T.T("sales.followup_add"),
+            new DialogParameters
+            {
+                ["CustomerId"] = row.CustomerId,
+                ["CustomerName"] = $"{row.Code} — {row.NameAr}",
+                ["DefaultDate"] = _from?.Date ?? DateTime.Today
+            });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            Snackbar.Add(T.T("common.saved"), Severity.Success);
+            await SearchAsync();
+        }
+    }
+}

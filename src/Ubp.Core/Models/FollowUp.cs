@@ -48,3 +48,29 @@ public sealed class FollowUpInput
     public string Channel { get; set; } = FollowUpChannels.Call;
     public string? Note { get; set; }
 }
+
+/// <summary>
+/// عميل بلا حجز/موعد/متابعة داخل الفترة المطلوبة، مع آخر نشاط مسجّل له (للعرض المجمّع في خلية واحدة).
+/// </summary>
+public sealed class CustomerGapRow
+{
+    public Guid CustomerId { get; set; }
+    public string Code { get; set; } = "";
+    public string NameAr { get; set; } = "";
+    public string? Phone { get; set; }
+    public string? BranchName { get; set; }
+
+    public DateTimeOffset? LastBookingAt { get; set; }
+    public string? LastBookingNo { get; set; }
+    public string? LastBookingStatus { get; set; }
+    public DateTimeOffset? LastAppointmentAt { get; set; }
+    public DateTimeOffset? LastFollowUpAt { get; set; }
+    public string? LastFollowUpNote { get; set; }
+    public string? LastFollowUpChannel { get; set; }
+    public string? LastFollowUpStatus { get; set; }
+
+    /// <summary>أحدث نشاط مسجّل (حجز/موعد/متابعة) لعرضه وترتيبه.</summary>
+    public DateTimeOffset? LastActivityAt =>
+        new[] { LastBookingAt, LastAppointmentAt, LastFollowUpAt }
+            .Where(x => x is not null).Max();
+}

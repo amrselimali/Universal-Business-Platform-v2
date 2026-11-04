@@ -1,5 +1,15 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-04 — Follow-ups screen: notes, due filter, quick actions, idle-customer search
+
+- `follow_ups` list shows the note column and filters by `due_at` range (default today → today).
+- Row actions: book an appointment for the customer (`AppointmentDialog` gained `DefaultCustomerId`
+  and an optional customer select) and add a follow-up (`QuickFollowUpDialog`).
+- «توليد متابعات المتأخرة» replaced by **عملاء بلا حجز أو متابعة**: repository
+  `FindIdleCustomersAsync` returns active customers with no booking/appointment/follow-up inside the
+  selected range (codes filter, branch filter, user branch scope) plus the three last-activity
+  fields rendered in one cell. Tests: `FollowUpTests` (6). Full suite (332) passes.
+
 ## 2026-11-04 — Operating-expenses document (screen + posting)
 
 - Migration `0072`: `operating_expenses` / `operating_expense_lines` (+ `operating_expense` as a

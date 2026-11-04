@@ -20,10 +20,47 @@ public sealed class FollowUpService
     }
 
     public async Task<IReadOnlyList<FollowUp>> ListAsync(ActorContext actor, string? status,
-        int limit = 200, CancellationToken ct = default)
+        DateTime? from = null, DateTime? to = null, int limit = 200,
+        CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.FollowUps, ActionCodes.View, ct: ct);
-        return await _followUps.ListAsync(status, limit, ct);
+        var branchIds = actor.IsSuperAdmin
+            ? Array.Empty<Guid>()
+            : actor.AllowedBranchIds.Distinct().ToArray();
+        try { return await _followUps.ListAsync(status, from, to, limit, ct); }
+        catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
+    }
+
+    /// <summary>
+    /// عملاء بلا حجز/موعد/متابعة من تاريخ إلى تاريخ (الافتراضي اليوم → اليوم)، مع آخر نشاط مسجّل.
+    /// الأكواد مفصولة بفاصلة/مسافة، والفرع يُقصّ على الفروع المسموحة للمستخدم.
+    /// </summary>
+    public async Task<IReadOnlyList<CustomerGapRow>> FindIdleCustomersAsync(ActorContext actor,
+        string? codes, Guid? branchId, DateTime from, DateTime? to, int limit = 200,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.FollowUps, ActionCodes.View, ct: ct);
+        if (branchId is { } id) BranchScope.Ensure(actor, id);
+
+        var parsed = (codes ?? string.Empty)
+            .Split(new[] { ',', ';', ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(code => code.Trim().ToUpperInvariant())
+            .Where(code => code.Length > 0)
+            .Distinct()
+            .ToArray();
+
+        var branchIds = actor.IsSuperAdmin
+            ? Array.Empty<Guid>()
+            : actor.AllowedBranchIds.Distinct().ToArray();
+        var end = to?.Date ?? from.Date;
+        if (end < from.Date) (from, end) = (end, from.Date);
+
+        try
+        {
+            return await _followUps.FindIdleCustomersAsync(parsed, branchId, branchIds,
+                from.Date, end, limit, ct);
+        }
+        catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
     }
 
     public async Task<FollowUp> CreateAsync(ActorContext actor, FollowUpInput input,

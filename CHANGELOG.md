@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-11-04 — Follow-ups: notes column, due-date filter, quick actions and “idle customers” search
+
+### Added
+- **متابعات العملاء** table now shows the recorded **notes** and a **due-date range filter**
+  («من» / «إلى» على `due_at`) whose default is **today → today**.
+- Quick actions on every row (and inside the search dialog): **حجز موعد** (opens `AppointmentDialog`
+  with the customer preselected — the dialog now accepts `DefaultCustomerId` and can link an
+  appointment to a customer) and **تسجيل متابعة** (`QuickFollowUpDialog`: channel, due date, note).
+- The «توليد متابعات المتأخرة» button was replaced by **«عملاء بلا حجز أو متابعة»**: a dialog where the
+  user picks **customer codes** (comma/space separated, empty = all), a **branch** (only the branches
+  linked to the user) and a **from/to** range; it lists every registered customer with **no booking,
+  no appointment and no follow-up** inside that range, in one consolidated «آخر نشاط» cell
+  (last booking + last appointment + last follow-up with its note), and offers the two quick actions
+  per row. Branch scope is enforced on the server.
+
 ## 2026-11-04 — Operating-expenses screen (chart accounts · stock lines · payment / credit)
 
 ### Added
