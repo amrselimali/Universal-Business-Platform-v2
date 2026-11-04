@@ -21,6 +21,11 @@
   stock line completeness and branch/warehouse link, no re-posting a posted document, delete only
   drafts.
 
+### Fixed
+- The expense dialog did not write back the **supplier autocomplete** (it had `Value` without
+  `ValueChanged`), so saving always failed with «اختر المورد المسجَّل» even after choosing a supplier;
+  the **payment-method select** had the same problem. Both are now two-way bound.
+
 ## 2026-11-04 — Execution mode is visible on the items grid and inside the POS
 
 ### Fixed

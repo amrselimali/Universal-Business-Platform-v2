@@ -10,6 +10,8 @@
 - Payment: treasury + method → posted **payment voucher** (payable → treasury/clearing) inside the same
   transaction; otherwise the expense stays on the **supplier payable**. Document numbers `EXP-…` /
   `PAY-…`. Tests: `OperatingExpenseTests` (4).
+- Fixed the dialog write-back: the supplier autocomplete and payment-method select are now two-way
+  bound (they previously kept `null` and blocked saving with «اختر المورد المسجَّل»).
 
 ## 2026-11-04 — Execution mode visible in the items grid and POS
 

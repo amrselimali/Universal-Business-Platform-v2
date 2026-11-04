@@ -16,9 +16,10 @@
                 </MudSelect>
                 <MudDatePicker @bind-Date="_docDate" Label="@T.T("common.date")"
                                Variant="Variant.Outlined" Required="true" />
-                <MudAutocomplete T="Partner" Value="_supplier" Label="@T.T("expenses.supplier")"
+                <MudAutocomplete T="Partner" @bind-Value="_supplier" Label="@T.T("expenses.supplier")"
                                  SearchFunc="SearchSuppliers" ToStringFunc="@SupplierLabel"
-                                 Variant="Variant.Outlined" Required="true" Dense="true" />
+                                 Variant="Variant.Outlined" Required="true" Dense="true"
+                                 CoerceText="true" CoerceValue="true" />
                 <MudTextField @bind-Value="_notes" Label="@T.T("common.notes")"
                               Variant="Variant.Outlined" MaxLength="500" />
             </div>
@@ -38,7 +39,7 @@
                             </MudSelectItem>
                         }
                     </MudSelect>
-                    <MudSelect T="Guid" Value="_methodId" Label="@T.T("expenses.payment_method")"
+                    <MudSelect T="Guid" @bind-Value="_methodId" Label="@T.T("expenses.payment_method")"
                                Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search">
                         @foreach (var method in _methods.Where(m => m.TreasuryId == _treasuryId))
                         {
