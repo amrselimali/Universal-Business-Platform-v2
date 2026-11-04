@@ -161,6 +161,7 @@ public static class ServiceRegistration
         services.AddScoped<IBranchWhatsAppSettingsRepository, BranchWhatsAppSettingsRepository>();
         services.AddScoped<IWhatsAppInboundRepository, WhatsAppInboundRepository>();
         services.AddScoped<IFollowUpRepository, FollowUpRepository>();
+        services.AddScoped<IOperatingExpenseRepository, OperatingExpenseRepository>();
     }
 
     private static void AddApplicationServices(IServiceCollection services)
@@ -239,5 +240,6 @@ public static class ServiceRegistration
         services.AddScoped<SalesFinanceService>();
         services.AddScoped<PosService>();
         services.AddScoped<FollowUpService>();
+        services.AddScoped<OperatingExpenseService>();
     }
 }

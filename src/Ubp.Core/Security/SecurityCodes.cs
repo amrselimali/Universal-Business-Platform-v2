@@ -48,6 +48,7 @@ public static class ScreenCodes
     public const string JournalEntry = "JOURNAL_ENTRY";
     public const string OpeningBalances = "OPENING_BALANCES";
     public const string StockPostingCenter = "STOCK_POSTING";
+    public const string OperatingExpenses = "OPERATING_EXPENSES";
     public const string LedgerReport = "LEDGER_REPORT";
     public const string TrialBalanceReport = "TRIAL_BALANCE_REPORT";
     public const string PartyStatementReport = "PARTY_STATEMENT_REPORT";

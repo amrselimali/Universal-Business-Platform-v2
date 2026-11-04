@@ -1,5 +1,16 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-04 — Operating-expenses document (screen + posting)
+
+- Migration `0072`: `operating_expenses` / `operating_expense_lines` (+ `operating_expense` as a
+  journal-entry source type). Screen `OPERATING_EXPENSES` → `/expenses/operating`.
+- Lines post to **any postable chart account** (with optional cost center); a line may be a goods item
+  with warehouse/unit, in which case posting creates a stock **RECEIPT** (IN movement, lot/average
+  cost) and debits the chosen account (normally inventory `2150`).
+- Payment: treasury + method → posted **payment voucher** (payable → treasury/clearing) inside the same
+  transaction; otherwise the expense stays on the **supplier payable**. Document numbers `EXP-…` /
+  `PAY-…`. Tests: `OperatingExpenseTests` (4).
+
 ## 2026-11-04 — Execution mode visible in the items grid and POS
 
 - Items grid: new **«طريقة التنفيذ»** column (مباشر/محجوز) showing the stored `items.execution_mode`.

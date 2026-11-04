@@ -1,0 +1,136 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("expenses.new")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <div class="ubp-form-grid">
+                <MudSelect T="Guid" Value="_branchId" Label="@T.T("common.branch")"
+                           Variant="Variant.Outlined" ValueChanged="OnBranchChanged">
+                    @foreach (var branch in Branches)
+                    {
+                        <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudDatePicker @bind-Date="_docDate" Label="@T.T("common.date")"
+                               Variant="Variant.Outlined" Required="true" />
+                <MudAutocomplete T="Partner" Value="_supplier" Label="@T.T("expenses.supplier")"
+                                 SearchFunc="SearchSuppliers" ToStringFunc="@SupplierLabel"
+                                 Variant="Variant.Outlined" Required="true" Dense="true" />
+                <MudTextField @bind-Value="_notes" Label="@T.T("common.notes")"
+                              Variant="Variant.Outlined" MaxLength="500" />
+            </div>
+
+            <div class="d-flex flex-wrap align-center gap-2 mt-2">
+                <MudSwitch T="bool" @bind-Value="_onCredit" Color="Color.Warning"
+                           Label="@T.T("expenses.on_credit")" />
+                @if (!_onCredit)
+                {
+                    <MudSelect T="Guid" Value="_treasuryId" Label="@T.T("treasury.treasury")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               ValueChanged="OnTreasuryChanged" Class="ubp-search">
+                        @foreach (var treasury in _treasuries)
+                        {
+                            <MudSelectItem T="Guid" Value="@treasury.Id">
+                                @treasury.Code — @treasury.NameAr
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudSelect T="Guid" Value="_methodId" Label="@T.T("expenses.payment_method")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search">
+                        @foreach (var method in _methods.Where(m => m.TreasuryId == _treasuryId))
+                        {
+                            <MudSelectItem T="Guid" Value="@method.Id">
+                                @method.Code — @method.NameAr
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Class="ubp-muted">@T.T("expenses.on_credit_hint")</MudText>
+                }
+            </div>
+        </MudForm>
+
+        <MudTable Items="_lines" Dense="true" Elevation="0" Class="ubp-table mt-3">
+            <HeaderContent>
+                <MudTh>@T.T("expenses.line_description")</MudTh>
+                <MudTh>@T.T("expenses.account")</MudTh>
+                <MudTh>@T.T("expenses.cost_center")</MudTh>
+                <MudTh>@T.T("expenses.item")</MudTh>
+                <MudTh>@T.T("expenses.warehouse")</MudTh>
+                <MudTh Align="Right">@T.T("expenses.quantity")</MudTh>
+                <MudTh Align="Right">@T.T("expenses.unit_price")</MudTh>
+                <MudTh Align="Right">@T.T("expenses.amount")</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <MudTextField @bind-Value="context.Description" Dense="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudTd>
+                <MudTd>
+                    <MudAutocomplete T="Account" Value="context.Account"
+                                     ValueChanged="@(v => context.Account = v)" Dense="true"
+                                     SearchFunc="SearchAccounts" ToStringFunc="@AccountLabel"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudTd>
+                <MudTd>
+                    <MudSelect T="Guid?" Value="context.CostCenterId" Dense="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                               ValueChanged="@(v => context.CostCenterId = v)">
+                        @foreach (var center in _costCenters)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)center.Id)">@center.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudTd>
+                <MudTd>
+                    <MudAutocomplete T="ItemOption" Value="context.Item"
+                                     ValueChanged="@(v => OnItemChanged(context, v))" Dense="true"
+                                     SearchFunc="SearchItems" ToStringFunc="@ItemLabel"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudTd>
+                <MudTd>
+                    <MudSelect T="Guid?" Value="context.WarehouseId" Dense="true"
+                               Disabled="context.Item is null" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" ValueChanged="@(v => context.WarehouseId = v)">
+                        @foreach (var warehouse in BranchWarehouses)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)warehouse.Id)">@warehouse.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudNumericField T="decimal" @bind-Value="context.Quantity" Min="0.0001m"
+                                     Format="N4" Dense="true" Variant="Variant.Outlined" />
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudNumericField T="decimal" @bind-Value="context.UnitPrice" Min="0m"
+                                     Format="N4" Dense="true" Variant="Variant.Outlined" />
+                </MudTd>
+                <MudTd Align="Right">@context.Amount.ToString("N2")</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                   OnClick="@(() => _lines.Remove(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <div class="ubp-toolbar mt-2">
+            <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="AddLine">@T.T("expenses.add_line")</MudButton>
+            <MudText>@T.T("accounting.total"): <b>@Total.ToString("N2")</b></MudText>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Default" Variant="Variant.Outlined" OnClick="SaveDraftAsync"
+                   Disabled="_busy">@T.T("expenses.save_draft")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAndPostAsync"
+                   Disabled="_busy">@T.T("expenses.save_and_post")</MudButton>
+    </DialogActions>
+</MudDialog>

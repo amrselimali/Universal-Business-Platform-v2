@@ -77,6 +77,11 @@ public sealed partial class TestDb
     public PosService Pos() => new(
         PosRepo, Settings(), Permissions(), new AuditService(AuditRepo), new NullReceiptNotifier());
 
+    public OperatingExpenseRepository OperatingExpensesRepo => new(Factory);
+
+    public OperatingExpenseService OperatingExpenses() => new(
+        OperatingExpensesRepo, Settings(), Permissions(), new AuditService(AuditRepo));
+
     public BookingCollectionRepository BookingCollectionsRepo => new(Factory);
 
     public BookingCollectionService BookingCollections() => new(

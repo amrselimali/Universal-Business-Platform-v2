@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 2026-11-04 — Operating-expenses screen (chart accounts · stock lines · payment / credit)
+
+### Added
+- New screen **مصروفات تشغيلية** `/expenses/operating` (migration `0072`, screen `OPERATING_EXPENSES`
+  with `VIEW/CREATE/POST/DELETE/PRINT`):
+  - every line picks a **postable account from the chart of accounts** and carries description,
+    quantity, unit price and amount (amount = quantity × unit price, computed server-side) plus an
+    optional **cost center**.
+  - a line can be a **stock item** (goods + warehouse + base unit): posting creates a stock **RECEIPT**
+    per warehouse, moves the quantity (IN movement, lots/average cost) and debits the account chosen
+    for the line (normally the inventory account).
+  - header links the registered **supplier**, date, notes, and the **payment**: a treasury + treasury
+    method (paid) or “آجل” on credit.
+- Posting (one transaction): Dr the line accounts / Cr **supplier payable**, plus — when a payment
+  method is chosen — a posted **payment voucher** (visible in the treasury and the shift) that debits
+  the payable and credits the treasury/clearing account. Document numbering `EXP-…` / `PAY-…`;
+  `source_type = 'operating_expense'` in the general ledger.
+- Validation: supplier required, postable non-group account, positive amount, cost-center policy,
+  stock line completeness and branch/warehouse link, no re-posting a posted document, delete only
+  drafts.
+
 ## 2026-11-04 — Execution mode is visible on the items grid and inside the POS
 
 ### Fixed

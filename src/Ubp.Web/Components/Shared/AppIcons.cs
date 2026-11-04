@@ -27,6 +27,7 @@ public static class AppIcons
         "LocalShipping" => Icons.Material.Filled.LocalShipping,
         "EventNote" => Icons.Material.Filled.EventNote,
         "Assessment" => Icons.Material.Filled.Assessment,
+        "RequestQuote" => Icons.Material.Filled.RequestQuote,
         _ => Icons.Material.Filled.Circle
     };
 }

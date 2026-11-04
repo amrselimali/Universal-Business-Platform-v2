@@ -1,0 +1,113 @@
+@page "/expenses/operating"
+@attribute [Authorize]
+@inherits SecurePageBase
+@inject OperatingExpenseService Expenses
+@inject IDialogService Dialogs
+<PageTitle>@T.T("screen.operating_expenses")</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <PageHeader Title="@T.T("screen.operating_expenses")" Subtitle="@T.T("expenses.hint")">
+        <Actions>
+            @if (Can(ActionCodes.Create))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">@T.T("common.add")</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudPaper Elevation="0" Class="ubp-card">
+        <div class="ubp-toolbar">
+            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnBranchChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker @bind-Date="_from" Label="@T.T("expenses.from")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
+            <MudDatePicker @bind-Date="_to" Label="@T.T("expenses.to")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Editable="true" />
+            <MudSelect T="string?" Value="_status" Label="@T.T("common.status")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       ValueChanged="OnStatusChanged">
+                <MudSelectItem T="string?" Value="@OperatingExpenseStatuses.Draft">@T.T("accounting.status_draft")</MudSelectItem>
+                <MudSelectItem T="string?" Value="@OperatingExpenseStatuses.Posted">@T.T("accounting.status_posted")</MudSelectItem>
+            </MudSelect>
+            <MudButton Variant="Variant.Text" OnClick="ReloadAsync">@T.T("common.refresh")</MudButton>
+        </div>
+
+        <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
+                  RowsPerPage="25" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("expenses.doc_no")</MudTh>
+                <MudTh>@T.T("common.date")</MudTh>
+                <MudTh>@T.T("expenses.supplier")</MudTh>
+                <MudTh>@T.T("expenses.payment")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@(context.DocNo ?? "—")</span></MudTd>
+                <MudTd>@context.DocDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd>@context.SupplierName</MudTd>
+                <MudTd>
+                    @if (context.IsPaid)
+                    {
+                        <span>@context.TreasuryName — @context.MethodName</span>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">
+                            @T.T("expenses.on_credit")
+                        </MudChip>
+                    }
+                </MudTd>
+                <MudTd Align="Right">@context.TotalAmount.ToString("N2")</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@(context.IsDraft ? Color.Default : Color.Success)">
+                        @T.T(context.IsDraft ? "accounting.status_draft" : "accounting.status_posted")
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Right">
+                    @if (context.IsDraft)
+                    {
+                        @if (Can(ActionCodes.Post))
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success"
+                                       Disabled="@_busy" OnClick="@(() => PostAsync(context))">
+                                @T.T("expenses.post")
+                            </MudButton>
+                        }
+                        @if (Can(ActionCodes.Delete))
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                                       Disabled="@_busy" OnClick="@(() => DeleteAsync(context))">
+                                @T.T("common.delete")
+                            </MudButton>
+                        }
+                    }
+                    else if (context.JournalEntryId is not null)
+                    {
+                        <MudLink Href="@($"/accounting/entries/{context.JournalEntryId}")">
+                            @T.T("expenses.open_entry")
+                        </MudLink>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="ubp-muted pa-4">@T.T("common.no_records")</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25 }" RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}

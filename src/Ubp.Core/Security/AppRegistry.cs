@@ -149,6 +149,11 @@ public static partial class AppRegistry
             new[] { A(ActionCodes.View), A(ActionCodes.Preview), A(ActionCodes.GenerateSingle),
                     A(ActionCodes.GenerateAll), A(ActionCodes.OpenEntry) }, "accounting.stock_posting"),
 
+        new(ScreenCodes.OperatingExpenses, "/expenses/operating", "RequestQuote",
+            "screen.operating_expenses", GroupAccounting,
+            new[] { A(ActionCodes.View), A(ActionCodes.Create), A(ActionCodes.Post),
+                    A(ActionCodes.Delete), A(ActionCodes.Print) }),
+
         new(ScreenCodes.LedgerReport, "/reports/accounting/ledger", "FormatListNumbered",
             "screen.ledger", GroupReports,
             new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "accounting.ledger"),
