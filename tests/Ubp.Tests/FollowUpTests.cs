@@ -171,12 +171,12 @@ public sealed class FollowUpTests : IClassFixture<TestDb>
     }
 
     [Fact]
-    public async Task Idle_search_excludes_any_activity_on_the_report_day_even_if_cancelled()
+    public async Task Idle_search_excludes_cancelled_bookings_today_but_ignores_completed_followups()
     {
         var actor = await _db.AdminActorAsync();
         var (branch, _, _, customer) = await SetupAsync("8");
 
-        // حجز اليوم ثم إلغاؤه: يبقى مستبعدًا لأن النشاط في يوم التقرير بأي حالة.
+        // حجز اليوم ثم إلغاؤه: يبقى مستبعدًا لأن أي حجز في يوم التقرير يستبعد بأي حالة.
         var booking = await _db.BookingService().CreateSessionAsync(actor, new BookingInput
         {
             BranchId = branch, CustomerId = customer.Id, BookingDate = DateTime.Today,
@@ -193,21 +193,25 @@ public sealed class FollowUpTests : IClassFixture<TestDb>
             customer.Code, null);
         Assert.DoesNotContain(rows, r => r.CustomerId == customer.Id);
 
-        // متابعة اليوم ثم إلغاؤها: نفس القاعدة.
+        // إبعاد الحجز للماضي + متابعة منتهية اليوم ومستقبلية: المتابعة المنتهية لا تُخفي العميل.
         await connection.ExecuteAsync(
-            "UPDATE bookings SET booking_date = current_date - 30 WHERE id = @id",
+            "UPDATE bookings SET booking_date = current_date - 30, starts_at = NULL, " +
+            "ends_at = NULL WHERE id = @id",
             new { id = booking.Id });
-        var followUp = await _db.FollowUps().CreateAsync(actor, new FollowUpInput
-        {
-            CustomerId = customer.Id, Channel = FollowUpChannels.Call,
-            DueAt = DateTimeOffset.Now.AddHours(1), Note = "متابعة اليوم"
-        });
-        await connection.ExecuteAsync(
-            "UPDATE follow_ups SET status = 'cancelled' WHERE id = @id", new { id = followUp.Id });
 
-        var afterFollowUp = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
+        foreach (var offset in new[] { 0, 5 })
+        {
+            var followUp = await _db.FollowUps().CreateAsync(actor, new FollowUpInput
+            {
+                CustomerId = customer.Id, Channel = FollowUpChannels.Call,
+                DueAt = DateTimeOffset.Now.AddDays(offset).AddHours(1), Note = "متابعة منتهية"
+            });
+            await _db.FollowUps().CompleteAsync(actor, followUp.Id, followUp.Version);
+        }
+
+        var afterFollowUps = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
             customer.Code, null);
-        Assert.DoesNotContain(afterFollowUp, r => r.CustomerId == customer.Id);
+        Assert.Contains(afterFollowUps, r => r.CustomerId == customer.Id);
     }
 
     [Fact]

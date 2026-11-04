@@ -1670,5 +1670,6 @@
   "sales.session_title": "Customer session appointment",
   "sales.session_hint": "The session is saved as a draft booking (no lines) so it can be confirmed and executed later — not an employee shift.",
   "sales.session_saved": "The session appointment was saved as a draft",
-  "sales.employee_optional": "Responsible employee (optional)"
+  "sales.employee_optional": "Responsible employee (optional)",
+  "sales.reserved_service": "Reserved service"
 }

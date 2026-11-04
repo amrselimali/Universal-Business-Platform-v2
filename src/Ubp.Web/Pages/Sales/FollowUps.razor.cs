@@ -60,7 +60,10 @@ public partial class FollowUps
         {
             _input.DueAt = new DateTimeOffset((_dueDate ?? DateTime.Today).Date.AddHours(10));
             await FollowUpApi.CreateAsync(Actor!, _input);
-            _input = new FollowUpInput { CustomerId = _input.CustomerId };
+
+            // بعد التسجيل: تفريغ النموذج بالكامل إلى القيم الافتراضية.
+            _input = new FollowUpInput { CustomerId = Guid.Empty };
+            _dueDate = DateTime.Today.AddDays(1);
             await ReloadAsync();
             ShowSuccess("common.saved");
         }

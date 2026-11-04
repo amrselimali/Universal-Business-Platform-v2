@@ -1,5 +1,15 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-04 — Bookings service column, customer-only bookings screen, follow-up reset & rule fix
+
+- Bookings list shows **الخدمة المحجوزة** (`Booking.ItemsSummary` via `string_agg` on booking lines)
+  after the appointment time; the source filter is gone and the screen is customer appointments only
+  (`source = manual`).
+- Follow-up form resets to defaults after saving (customer empty, channel call, due tomorrow, no note).
+- Idle search: **bookings/appointments on the report day** hide the customer whatever their status;
+  **follow-ups only when pending** (today or later) — completed/cancelled follow-ups never hide.
+  Tests: `FollowUpTests` (8), full suite (335).
+
 ## 2026-11-04 — Idle search excludes any activity on the report day
 
 - Exclusion rule: **today** → any booking/appointment/follow-up (any status) hides the customer;

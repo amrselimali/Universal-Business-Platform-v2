@@ -41,6 +41,10 @@ public sealed class Booking
     public string Status { get; set; } = BookingStatuses.Draft;
     public Guid CustomerId { get; set; }
     public string? CustomerName { get; set; }
+
+    /// <summary>أسماء الخدمات/الأصناف المحجوزة مجمّعة لعرضها في عمود «الخدمة المحجوزة».</summary>
+    public string? ItemsSummary { get; set; }
+
     public string Source { get; set; } = BookingSources.Manual;
     public DateTime? DueDate { get; set; }
     public DateTimeOffset? StartsAt { get; set; }

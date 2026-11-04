@@ -45,6 +45,7 @@ public sealed partial class BookingRepository : IBookingRepository
         public string Status { get; set; } = BookingStatuses.Draft;
         public Guid CustomerId { get; set; }
         public string? CustomerName { get; set; }
+        public string? ItemsSummary { get; set; }
         public string Source { get; set; } = BookingSources.Manual;
         public DateTime? DueDate { get; set; }
         public DateTimeOffset? StartsAt { get; set; }
@@ -89,6 +90,9 @@ public sealed partial class BookingRepository : IBookingRepository
     private const string HeadSelect = """
         SELECT b.id AS Id, b.branch_id AS BranchId, b.doc_no AS DocNo, b.booking_date AS BookingDate,
                b.status AS Status, b.customer_id AS CustomerId, c.name_ar AS CustomerName,
+               (SELECT string_agg(i.name_ar, '، ' ORDER BY l.line_no)
+                FROM booking_lines l JOIN items i ON i.id = l.item_id
+                WHERE l.booking_id = b.id) AS ItemsSummary,
                b.source AS Source, b.due_date AS DueDate, b.starts_at AS StartsAt,
                b.ends_at AS EndsAt, b.expires_at AS ExpiresAt,
                b.assigned_employee_id AS AssignedEmployeeId, e.name_ar AS EmployeeName,
@@ -166,6 +170,7 @@ public sealed partial class BookingRepository : IBookingRepository
     {
         Id = row.Id, BranchId = row.BranchId, DocNo = row.DocNo, BookingDate = row.BookingDate,
         Status = row.Status, CustomerId = row.CustomerId, CustomerName = row.CustomerName,
+        ItemsSummary = row.ItemsSummary,
         Source = row.Source, DueDate = row.DueDate, StartsAt = row.StartsAt,
         EndsAt = row.EndsAt, ExpiresAt = row.ExpiresAt,
         AssignedEmployeeId = row.AssignedEmployeeId, EmployeeName = row.EmployeeName,

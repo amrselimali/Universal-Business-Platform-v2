@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-11-04 — Bookings service column & customer-only screen, follow-up form reset, follow-up rule fix
+
+### Changed
+- **شاشة الحجوزات** (`/sales/bookings`): new column **«الخدمة المحجوزة»** right after the appointment
+  time (aggregated item/service names from the booking lines), and the **«مصدر الحجز»** filter was
+  removed — the screen is now customer appointments only (source fixed to `manual`, no POS source).
+- **متابعات العملاء**: after saving a follow-up the form resets completely to its defaults (customer
+  cleared, channel back to call, due date back to tomorrow, note cleared).
+- **عملاء بلا حجز أو متابعة**: the follow-up rule is back to **pending only** for any date from today
+  onwards — a **completed/cancelled follow-up** (even dated today or in the future) no longer hides
+  the customer. A **booking or appointment on the report day** still hides the customer whatever its
+  status, and future live bookings/appointments still hide them (unchanged).
+- Test: `Idle_search_excludes_cancelled_bookings_today_but_ignores_completed_followups`.
+  Full suite (335) passes.
+
 ## 2026-11-04 — Idle search: any activity on the report day excludes the customer
 
 ### Changed

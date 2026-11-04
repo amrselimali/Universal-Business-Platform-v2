@@ -1670,5 +1670,6 @@
   "sales.session_title": "حجز موعد جلسة لعميل",
   "sales.session_hint": "يُسجَّل موعد الجلسة كمسودة في شاشة الحجوزات (بدون بنود) بحيث يمكن تأكيده وتنفيذه لاحقًا — وليس دوامًا لموظف.",
   "sales.session_saved": "تم تسجيل موعد الجلسة كمسودة",
-  "sales.employee_optional": "الموظف المسؤول (اختياري)"
+  "sales.employee_optional": "الموظف المسؤول (اختياري)",
+  "sales.reserved_service": "الخدمة المحجوزة"
 }
