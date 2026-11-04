@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-11-04 — Idle search: any activity on the report day excludes the customer
+
+### Changed
+- **عملاء بلا حجز أو متابعة** exclusion rule updated:
+  - **Report day (today):** any booking, appointment or follow-up dated today excludes the customer
+    **whatever its status** (cancelled/done included).
+  - **Future dates:** unchanged — only a live booking (not cancelled/reversed), an active appointment
+    (not cancelled) or a **pending** follow-up excludes the customer.
+  - Code range, branch, branch-scope and active-customer conditions are unchanged.
+- Test: `Idle_search_excludes_any_activity_on_the_report_day_even_if_cancelled` (cancelled booking and
+  cancelled follow-up today keep the customer out). Full suite (335) passes.
+
 ## 2026-11-04 — Idle search ignores cancelled/completed activity; «حجز موعد جديد» books a customer session draft
 
 ### Changed

@@ -141,18 +141,30 @@ public sealed class FollowUpRepository : IFollowUpRepository
                    OR c.branch_id = ANY(@branchIds))
               AND (@codeFrom::text IS NULL OR upper(c.code) >= upper(@codeFrom::text))
               AND (@codeTo::text IS NULL OR upper(c.code) <= upper(@codeTo::text))
+              -- يوم التقرير (اليوم): أي حجز/موعد/متابعة يستبعد العميل بأي حالة كانت.
+              AND NOT EXISTS (
+                  SELECT 1 FROM bookings b
+                  WHERE b.customer_id = c.id
+                    AND COALESCE(b.starts_at::date, b.booking_date) = current_date)
+              AND NOT EXISTS (
+                  SELECT 1 FROM appointments a
+                  WHERE a.customer_id = c.id AND a.starts_at::date = current_date)
+              AND NOT EXISTS (
+                  SELECT 1 FROM follow_ups f
+                  WHERE f.customer_id = c.id AND f.due_at::date = current_date)
+              -- المستقبل: النشاط الحيّ فقط (غير الملغى، والمتابعة المعلّقة).
               AND NOT EXISTS (
                   SELECT 1 FROM bookings b
                   WHERE b.customer_id = c.id AND b.status NOT IN ('cancelled', 'reversed')
-                    AND COALESCE(b.starts_at::date, b.booking_date) >= current_date)
+                    AND COALESCE(b.starts_at::date, b.booking_date) > current_date)
               AND NOT EXISTS (
                   SELECT 1 FROM appointments a
                   WHERE a.customer_id = c.id AND a.status <> 'cancelled'
-                    AND a.starts_at::date >= current_date)
+                    AND a.starts_at::date > current_date)
               AND NOT EXISTS (
                   SELECT 1 FROM follow_ups f
                   WHERE f.customer_id = c.id AND f.status = 'pending'
-                    AND f.due_at::date >= current_date)
+                    AND f.due_at::date > current_date)
             ORDER BY COALESCE(lf.last_at, lb.last_at, la.last_at) ASC NULLS FIRST, c.name_ar
             LIMIT @take
             """, new

@@ -1,5 +1,13 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-04 — Idle search excludes any activity on the report day
+
+- Exclusion rule: **today** → any booking/appointment/follow-up (any status) hides the customer;
+  **future** → live activity only (booking not cancelled/reversed, appointment not cancelled, pending
+  follow-up). The rest of the conditions (code range, branch, branch scope, active customer) are
+  unchanged. Test: `Idle_search_excludes_any_activity_on_the_report_day_even_if_cancelled`;
+  full suite (335).
+
 ## 2026-11-04 — Follow-up idle search semantics + customer session draft booking
 
 - Idle search counts only **live** activity: bookings not cancelled/reversed, appointments not

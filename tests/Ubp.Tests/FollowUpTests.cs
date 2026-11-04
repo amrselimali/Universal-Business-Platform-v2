@@ -171,6 +171,46 @@ public sealed class FollowUpTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Idle_search_excludes_any_activity_on_the_report_day_even_if_cancelled()
+    {
+        var actor = await _db.AdminActorAsync();
+        var (branch, _, _, customer) = await SetupAsync("8");
+
+        // حجز اليوم ثم إلغاؤه: يبقى مستبعدًا لأن النشاط في يوم التقرير بأي حالة.
+        var booking = await _db.BookingService().CreateSessionAsync(actor, new BookingInput
+        {
+            BranchId = branch, CustomerId = customer.Id, BookingDate = DateTime.Today,
+            StartsAt = new DateTimeOffset(DateTime.Today.AddHours(9)),
+            EndsAt = new DateTimeOffset(DateTime.Today.AddHours(10))
+        });
+
+        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
+        await connection.OpenAsync();
+        await connection.ExecuteAsync(
+            "UPDATE bookings SET status = 'cancelled' WHERE id = @id", new { id = booking.Id });
+
+        var rows = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
+            customer.Code, null);
+        Assert.DoesNotContain(rows, r => r.CustomerId == customer.Id);
+
+        // متابعة اليوم ثم إلغاؤها: نفس القاعدة.
+        await connection.ExecuteAsync(
+            "UPDATE bookings SET booking_date = current_date - 30 WHERE id = @id",
+            new { id = booking.Id });
+        var followUp = await _db.FollowUps().CreateAsync(actor, new FollowUpInput
+        {
+            CustomerId = customer.Id, Channel = FollowUpChannels.Call,
+            DueAt = DateTimeOffset.Now.AddHours(1), Note = "متابعة اليوم"
+        });
+        await connection.ExecuteAsync(
+            "UPDATE follow_ups SET status = 'cancelled' WHERE id = @id", new { id = followUp.Id });
+
+        var afterFollowUp = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
+            customer.Code, null);
+        Assert.DoesNotContain(afterFollowUp, r => r.CustomerId == customer.Id);
+    }
+
+    [Fact]
     public async Task Followup_list_filters_by_the_due_date_range()
     {
         var actor = await _db.AdminActorAsync();
