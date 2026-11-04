@@ -20,10 +20,10 @@ public partial class FollowUps
     private IReadOnlyList<Partner> _customers = Array.Empty<Partner>();
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private FollowUpInput _input = new();
-    private DateTime? _dueDate = DateTime.Today.AddDays(1);
+    private DateTime? _dueDate;
     private DateTime? _from = DateTime.Today;
     private DateTime? _to = DateTime.Today;
-    private string? _status;
+    private string? _status = FollowUpStatuses.Pending;
     private string? _customerSearch;
     private bool _busy;
 
@@ -33,7 +33,8 @@ public partial class FollowUps
     {
         _customers = (await Partners.ListAsync(Actor!, PartnerKind.Customer,
             new PageRequest { Page = 1, PageSize = 50 }, null)).Items;
-        _input.CustomerId = _customers.FirstOrDefault()?.Id ?? Guid.Empty;
+        // نموذج الإضافة يبدأ فارغًا بالكامل (العميل والتاريخ والملاحظة).
+        _input.CustomerId = Guid.Empty;
         _branches = await BranchApi.OptionsAsync(Actor!);
         await ReloadAsync();
     }
@@ -50,7 +51,7 @@ public partial class FollowUps
 
     private async Task AddAsync() => await RunAsync(async () =>
     {
-        if (_input.CustomerId == Guid.Empty)
+        if (_input.CustomerId == Guid.Empty || _dueDate is null)
         {
             Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
             return;
@@ -63,7 +64,7 @@ public partial class FollowUps
 
             // بعد التسجيل: تفريغ النموذج بالكامل إلى القيم الافتراضية.
             _input = new FollowUpInput { CustomerId = Guid.Empty };
-            _dueDate = DateTime.Today.AddDays(1);
+            _dueDate = null;
             await ReloadAsync();
             ShowSuccess("common.saved");
         }

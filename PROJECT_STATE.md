@@ -1,5 +1,14 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-04 — Bookings columns, simple future-only idle logic, follow-up defaults
+
+- Bookings table: customer first column, new «الملاحظات» column after «الخدمة المحجوزة».
+- Idle search (`FindIdleCustomersAsync`): exclusion is now only a **non-cancelled booking** or a
+  **pending follow-up** dated **tomorrow or later** (appointments and the “today any status” rule were
+  removed). Cancelled bookings and done/cancelled follow-ups never hide a customer.
+- Follow-ups screen: status filter defaults to **pending**; the add form starts and resets empty
+  (customer/date/note). Tests: `FollowUpTests` (8), full suite (335).
+
 ## 2026-11-04 — Bookings service column, customer-only bookings screen, follow-up reset & rule fix
 
 - Bookings list shows **الخدمة المحجوزة** (`Booking.ItemsSummary` via `string_agg` on booking lines)

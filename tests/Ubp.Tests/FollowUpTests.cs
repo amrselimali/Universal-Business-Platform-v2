@@ -106,18 +106,20 @@ public sealed class FollowUpTests : IClassFixture<TestDb>
     }
 
     [Fact]
-    public async Task Idle_search_excludes_customers_with_a_booking_inside_the_range()
+    public async Task Idle_search_excludes_customers_with_a_future_booking()
     {
         var actor = await _db.AdminActorAsync();
         var (branch, warehouse, item, customer) = await SetupAsync("4");
 
-        var booking = await _db.BookingService().CreateAsync(actor, new BookingInput
+        await _db.BookingService().CreateAsync(actor, new BookingInput
         {
-            BranchId = branch, CustomerId = customer.Id, BookingDate = DateTime.Today,
+            BranchId = branch, CustomerId = customer.Id,
+            BookingDate = DateTime.Today.AddDays(5),
+            StartsAt = new DateTimeOffset(DateTime.Today.AddDays(5).AddHours(10)),
+            EndsAt = new DateTimeOffset(DateTime.Today.AddDays(5).AddHours(11)),
             Lines = { new BookingLineInput { ItemId = item.Id, UnitId = item.BaseUnitId,
                 WarehouseId = warehouse, Quantity = 1, UnitPrice = 10 } }
         });
-        await _db.BookingService().ConfirmAsync(actor, booking.Id);
 
         var rows = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
             customer.Code, null);
@@ -171,47 +173,52 @@ public sealed class FollowUpTests : IClassFixture<TestDb>
     }
 
     [Fact]
-    public async Task Idle_search_excludes_cancelled_bookings_today_but_ignores_completed_followups()
+    public async Task Idle_search_counts_only_live_future_bookings_and_pending_followups()
     {
         var actor = await _db.AdminActorAsync();
         var (branch, _, _, customer) = await SetupAsync("8");
 
-        // حجز اليوم ثم إلغاؤه: يبقى مستبعدًا لأن أي حجز في يوم التقرير يستبعد بأي حالة.
+        // حجز غدًا (مسودة) → مستبعد.
         var booking = await _db.BookingService().CreateSessionAsync(actor, new BookingInput
         {
-            BranchId = branch, CustomerId = customer.Id, BookingDate = DateTime.Today,
-            StartsAt = new DateTimeOffset(DateTime.Today.AddHours(9)),
-            EndsAt = new DateTimeOffset(DateTime.Today.AddHours(10))
+            BranchId = branch, CustomerId = customer.Id,
+            BookingDate = DateTime.Today.AddDays(1),
+            StartsAt = new DateTimeOffset(DateTime.Today.AddDays(1).AddHours(9)),
+            EndsAt = new DateTimeOffset(DateTime.Today.AddDays(1).AddHours(10))
         });
+        var hidden = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
+            customer.Code, null);
+        Assert.DoesNotContain(hidden, r => r.CustomerId == customer.Id);
 
+        // إلغاء الحجز → يظهر (الملغى غير موجود).
         await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
         await connection.OpenAsync();
         await connection.ExecuteAsync(
             "UPDATE bookings SET status = 'cancelled' WHERE id = @id", new { id = booking.Id });
-
-        var rows = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
+        var afterCancel = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
             customer.Code, null);
-        Assert.DoesNotContain(rows, r => r.CustomerId == customer.Id);
+        Assert.Contains(afterCancel, r => r.CustomerId == customer.Id);
 
-        // إبعاد الحجز للماضي + متابعة منتهية اليوم ومستقبلية: المتابعة المنتهية لا تُخفي العميل.
-        await connection.ExecuteAsync(
-            "UPDATE bookings SET booking_date = current_date - 30, starts_at = NULL, " +
-            "ends_at = NULL WHERE id = @id",
-            new { id = booking.Id });
-
-        foreach (var offset in new[] { 0, 5 })
+        // متابعة غدًا منتهية → لا تُخفي العميل.
+        var done = await _db.FollowUps().CreateAsync(actor, new FollowUpInput
         {
-            var followUp = await _db.FollowUps().CreateAsync(actor, new FollowUpInput
-            {
-                CustomerId = customer.Id, Channel = FollowUpChannels.Call,
-                DueAt = DateTimeOffset.Now.AddDays(offset).AddHours(1), Note = "متابعة منتهية"
-            });
-            await _db.FollowUps().CompleteAsync(actor, followUp.Id, followUp.Version);
-        }
-
-        var afterFollowUps = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
+            CustomerId = customer.Id, Channel = FollowUpChannels.Call,
+            DueAt = DateTimeOffset.Now.AddDays(1), Note = "منتهية غدًا"
+        });
+        await _db.FollowUps().CompleteAsync(actor, done.Id, done.Version);
+        var afterDone = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
             customer.Code, null);
-        Assert.Contains(afterFollowUps, r => r.CustomerId == customer.Id);
+        Assert.Contains(afterDone, r => r.CustomerId == customer.Id);
+
+        // متابعة غدًا معلّقة → تُخفي العميل.
+        await _db.FollowUps().CreateAsync(actor, new FollowUpInput
+        {
+            CustomerId = customer.Id, Channel = FollowUpChannels.WhatsApp,
+            DueAt = DateTimeOffset.Now.AddDays(1).AddHours(1), Note = "معلّقة غدًا"
+        });
+        var afterPending = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
+            customer.Code, null);
+        Assert.DoesNotContain(afterPending, r => r.CustomerId == customer.Id);
     }
 
     [Fact]

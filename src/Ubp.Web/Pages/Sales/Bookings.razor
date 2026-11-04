@@ -48,11 +48,12 @@ else
         <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
                   Elevation="0" RowsPerPage="25" Class="ubp-table">
             <HeaderContent>
+                <MudTh>@T.T("sales.customer")</MudTh>
                 <MudTh>@T.T("sales.booking_no")</MudTh>
                 <MudTh>@T.T("sales.booking_date")</MudTh>
                 <MudTh>@T.T("sales.appointment_time")</MudTh>
                 <MudTh>@T.T("sales.reserved_service")</MudTh>
-                <MudTh>@T.T("sales.customer")</MudTh>
+                <MudTh>@T.T("common.notes")</MudTh>
                 <MudTh>@T.T("sales.booking_created_by")</MudTh>
                 <MudTh>@T.T("sales.assigned_employee")</MudTh>
                 <MudTh Align="Right">@T.T("accounting.total")</MudTh>
@@ -60,6 +61,7 @@ else
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
             <RowTemplate>
+                <MudTd>@context.CustomerName</MudTd>
                 <MudTd><span class="ubp-code">@(context.DocNo ?? "—")</span></MudTd>
                 <MudTd>@context.BookingDate.ToString("yyyy-MM-dd")</MudTd>
                 <MudTd>
@@ -72,7 +74,7 @@ else
                     else { <text>—</text> }
                 </MudTd>
                 <MudTd>@(string.IsNullOrWhiteSpace(context.ItemsSummary) ? "—" : context.ItemsSummary)</MudTd>
-                <MudTd>@context.CustomerName</MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.Notes) ? "—" : context.Notes)</MudTd>
                 <MudTd>@(context.CreatedByName ?? "—")</MudTd>
                 <MudTd>@(context.EmployeeName ?? "—")</MudTd>
                 <MudTd Align="Right">@context.TotalAmount.ToString("N2")</MudTd>
