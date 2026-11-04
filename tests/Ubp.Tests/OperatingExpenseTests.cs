@@ -169,6 +169,23 @@ public sealed class OperatingExpenseTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Saved_expense_appears_in_the_list()
+    {
+        var actor = await _db.AdminActorAsync();
+        var f = await SetupAsync("5");
+
+        var created = await _db.OperatingExpenses()
+            .CreateAsync(actor, Input(f, ExpenseLine(f.ExpenseAccount, 1, 100)));
+
+        var rows = await _db.OperatingExpenses()
+            .ListAsync(actor, null, null, null, null, null);
+        var row = Assert.Single(rows.Where(r => r.Id == created.Id));
+        Assert.Equal("مورد مصروفات 5", row.SupplierName);
+        Assert.Equal(100m, row.TotalAmount);
+        Assert.False(row.IsPaid);
+    }
+
+    [Fact]
     public async Task Expense_validation_rejects_non_postable_accounts_and_missing_supplier()
     {
         var actor = await _db.AdminActorAsync();

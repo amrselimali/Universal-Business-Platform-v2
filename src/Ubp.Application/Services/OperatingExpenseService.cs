@@ -35,8 +35,12 @@ public sealed class OperatingExpenseService
         var branchIds = actor.IsSuperAdmin
             ? Array.Empty<Guid>()
             : actor.AllowedBranchIds.Distinct().ToArray();
-        return await _expenses.ListAsync(branchId, branchIds, supplierId, from, to, status, limit,
-            ct);
+        try
+        {
+            return await _expenses.ListAsync(branchId, branchIds, supplierId, from, to, status,
+                limit, ct);
+        }
+        catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
     }
 
     public async Task<OperatingExpense> GetAsync(ActorContext actor, Guid id,

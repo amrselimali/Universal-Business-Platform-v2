@@ -53,12 +53,13 @@ public sealed partial class OperatingExpenseRepository : IOperatingExpenseReposi
         await using var connection = await _factory.OpenAsync(ct);
         var rows = await connection.QueryAsync<OperatingExpense>(new CommandDefinition($"""
             SELECT {HeaderColumns} {HeaderJoins}
-            WHERE (@allBranches OR e.branch_id = ANY(@branchIds))
-              AND (@branchId IS NULL OR e.branch_id = @branchId)
-              AND (@supplierId IS NULL OR e.supplier_id = @supplierId)
-              AND (@from IS NULL OR e.doc_date >= @from::date)
-              AND (@to IS NULL OR e.doc_date <= @to::date)
-              AND (@status IS NULL OR e.status = @status)
+            WHERE (@allBranches
+                   OR e.branch_id = ANY(@branchIds))
+              AND (@branchId::uuid IS NULL OR e.branch_id = @branchId::uuid)
+              AND (@supplierId::uuid IS NULL OR e.supplier_id = @supplierId::uuid)
+              AND (@from::date IS NULL OR e.doc_date >= @from::date)
+              AND (@to::date IS NULL OR e.doc_date <= @to::date)
+              AND (@status::varchar IS NULL OR e.status = @status::varchar)
             ORDER BY e.doc_date DESC, e.created_at DESC
             LIMIT @take
             """, new

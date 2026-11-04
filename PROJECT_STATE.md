@@ -12,6 +12,9 @@
   `PAY-…`. Tests: `OperatingExpenseTests` (4).
 - Fixed the dialog write-back: the supplier autocomplete and payment-method select are now two-way
   bound (they previously kept `null` and blocked saving with «اختر المورد المسجَّل»).
+- Fixed the list query (nullable filters needed explicit `::uuid/::date/::varchar` casts; PostgreSQL
+  raised `42P08`, so the screen errored on load and saved rows were invisible). Test:
+  `Saved_expense_appears_in_the_list`. Full suite (329) passes.
 
 ## 2026-11-04 — Execution mode visible in the items grid and POS
 

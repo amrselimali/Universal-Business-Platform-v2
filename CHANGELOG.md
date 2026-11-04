@@ -25,6 +25,11 @@
 - The expense dialog did not write back the **supplier autocomplete** (it had `Value` without
   `ValueChanged`), so saving always failed with «اختر المورد المسجَّل» even after choosing a supplier;
   the **payment-method select** had the same problem. Both are now two-way bound.
+- The expenses **list query** failed on PostgreSQL with `42P08 could not determine data type of
+  parameter` (nullable filters were compared with `IS NULL` without a type), so the screen showed the
+  generic “تعذّر إتمام العملية” error on load and a saved expense never appeared. Every nullable filter
+  is now explicitly cast (`::uuid` / `::date` / `::varchar`), and a regression test
+  (`Saved_expense_appears_in_the_list`) covers the list.
 
 ## 2026-11-04 — Execution mode is visible on the items grid and inside the POS
 
