@@ -165,6 +165,7 @@ public sealed class ItemOption
     public string BaseUnitName { get; set; } = "";
     public decimal OnHand { get; set; }
     public string ItemType { get; set; } = "GOODS";
+    public string ExecutionMode { get; set; } = ItemExecutionModes.Reserved;
     public Guid? TaxId { get; set; }
     public decimal TaxRate { get; set; }
     public decimal DefaultPrice { get; set; }

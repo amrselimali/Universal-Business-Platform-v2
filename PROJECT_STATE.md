@@ -1,5 +1,15 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-04 — Execution mode visible in the items grid and POS
+
+- Items grid: new **«طريقة التنفيذ»** column (مباشر/محجوز) showing the stored `items.execution_mode`.
+- POS: the product tile and the cart line mark direct items with «يُنفَّذ مباشرة», so the cashier can
+  verify the link between the item screen and the checkout before saving.
+- `ItemOption.ExecutionMode` is selected by the POS product query; the sellable-items query got the
+  missing parentheses so `is_active` is applied to services as well.
+- Test: item created via `ItemService` with `ExecutionMode = direct` → listed with that mode → POS
+  executes it (`PosDirectSaleTests`, 5 tests).
+
 ## 2026-11-04 — POS executes the items coded «تنفيذ مباشر» only
 
 - POS checkout executes **only** lines whose item is coded `direct` (stock OUT + COGS, revenue,

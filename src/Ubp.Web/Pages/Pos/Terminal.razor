@@ -64,6 +64,10 @@ else
                                         {
                                             <text> · @product.OnHand.ToString("N2")</text>
                                         }
+                                        @if (ItemExecutionModes.IsDirect(product.ExecutionMode))
+                                        {
+                                            <text> · @T.T("items.execution_direct")</text>
+                                        }
                                     </MudText>
                                     <MudText Typo="Typo.body2">
                                         <b>@PriceOf(product).ToString("N2")</b>
@@ -119,6 +123,10 @@ else
                     <RowTemplate>
                         <MudTd>
                             @context.Name
+                            @if (context.IsDirect)
+                            {
+                                <MudText Typo="Typo.caption" Class="ubp-muted">@T.T("items.execution_direct")</MudText>
+                            }
                             @if (context.TaxRate > 0)
                             {
                                 <MudText Typo="Typo.caption">@T.T("pos.tax"): @context.TaxRate%</MudText>

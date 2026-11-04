@@ -18,6 +18,8 @@ public partial class Terminal : SecurePageBase
         public Guid UnitId { get; set; }
         public string Name { get; set; } = "";
         public string ItemType { get; set; } = "GOODS";
+        public string ExecutionMode { get; set; } = ItemExecutionModes.Reserved;
+        public bool IsDirect => ItemExecutionModes.IsDirect(ExecutionMode);
         public decimal Quantity { get; set; } = 1;
         public decimal UnitPrice { get; set; }
         public decimal TaxRate { get; set; }
@@ -165,7 +167,8 @@ public partial class Terminal : SecurePageBase
             _cart.Add(new CartLine
             {
                 ItemId = product.Id, UnitId = product.BaseUnitId, Name = product.NameAr,
-                ItemType = product.ItemType, UnitPrice = product.DefaultPrice,
+                ItemType = product.ItemType, ExecutionMode = product.ExecutionMode,
+                UnitPrice = product.DefaultPrice,
                 TaxRate = product.TaxRate, PriceIncludesTax = product.PriceIncludesTax
             });
         }

@@ -43,6 +43,7 @@ else
                 <MudTh>@T.T("items.category")</MudTh>
                 <MudTh>@T.T("items.base_unit")</MudTh>
                 <MudTh>@T.T("items.type")</MudTh>
+                <MudTh>@T.T("items.execution_mode")</MudTh>
                 <MudTh>@T.T("common.status")</MudTh>
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
@@ -55,6 +56,13 @@ else
                     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                              Color="@(context.ItemType == "SERVICE" ? Color.Info : Color.Default)">
                         @T.T(context.ItemType == "SERVICE" ? "items.type_service" : "items.type_goods")
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="@T.T("items.execution_mode")">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@(ItemExecutionModes.IsDirect(context.ExecutionMode) ? Color.Success : Color.Default)">
+                        @T.T(ItemExecutionModes.IsDirect(context.ExecutionMode)
+                            ? "items.execution_direct" : "items.execution_reserved")
                     </MudChip>
                 </MudTd>
                 <MudTd DataLabel="@T.T("common.status")">

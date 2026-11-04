@@ -558,7 +558,7 @@
   "items.metered": "مرتبط بعدّاد أصل",
   "items.execution_mode": "طريقة التنفيذ",
   "items.execution_reserved": "يُحجز ثم يُنفَّذ بشكل مستقل",
-  "items.execution_direct": "يُ نفَّذ مباشرة (تجاوز قيود التنفيذ)",
+  "items.execution_direct": "يُنفَّذ مباشرة (تجاوز قيود التنفيذ)",
   "items.execution_mode_hint": "«مباشر» يتجاوز قيود التنفيذ (الموظف/الموعد/العدّاد/حالة الحجز) ويُرحّل الإيراد والذمم وحركة المخزون عند التنفيذ.",
   "items.purchase_price": "سعر الشراء",
   "items.sale_price": "سعر البيع",

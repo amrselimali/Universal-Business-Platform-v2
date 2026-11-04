@@ -179,6 +179,48 @@ public sealed class PosDirectSaleTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Pos_reads_the_execution_mode_saved_from_the_item_screen()
+    {
+        var actor = await _db.AdminActorAsync();
+        await _db.SeedAccountingAsync();
+        var branch = await _db.CreateBranchAsync("PDS-B-5", "فرع ربط الشاشة");
+        var warehouse = await _db.CreateWarehouseAsync("PDS-W-5", "مخزن ربط الشاشة", branch);
+        var unit = await _db.UnitRepo.CreateAsync(new UnitInput
+        { Code = "PDS-U-5", NameAr = "وحدة ربط الشاشة" });
+
+        // نفس ما تحفظه شاشة الأصناف عند اختيار «يُنفَّذ مباشرة».
+        var item = await _db.ItemService().CreateAsync(actor, new ItemInput
+        {
+            Code = "PDS-IT-5", NameAr = "صنف ربط الشاشة", BaseUnitId = unit.Id,
+            ExecutionMode = ItemExecutionModes.Direct, DefaultPrice = 100,
+            Units = new List<ItemUnitInput> { new() { UnitId = unit.Id, ConversionFactor = 1 } }
+        });
+        Assert.Equal(ItemExecutionModes.Direct, item.ExecutionMode);
+        await _db.PostReceiptAsync(item, branch, warehouse, 6, 40);
+
+        // نفس القائمة التي تعرضها نقطة البيع (يجب أن تحمل طريقة التنفيذ).
+        var listed = (await _db.ItemService().OptionsAsync(actor, "PDS-IT-5", true))
+            .Single(o => o.Id == item.Id);
+        Assert.Equal(ItemExecutionModes.Direct, listed.ExecutionMode);
+
+        var customer = await _db.PartnerRepo.CreateAsync(PartnerKind.Customer, new PartnerInput
+        { Code = "PDS-C-5", NameAr = "عميل ربط الشاشة" });
+        var receipt = await _db.Pos().CheckoutAsync(actor, new PosCheckoutInput
+        {
+            BranchId = branch, CustomerId = customer.Id, WarehouseId = warehouse,
+            DocDate = DateTime.Today,
+            Lines =
+            {
+                new PosLineInput
+                { ItemId = item.Id, UnitId = unit.Id, Quantity = 2, UnitPrice = 100 }
+            }
+        });
+
+        Assert.True(receipt.Executed);
+        Assert.Equal(4m, await _db.OnHandAsync(item.Id, warehouse));
+    }
+
+    [Fact]
     public async Task Pos_direct_item_sells_on_negative_stock_when_the_setting_allows_it()
     {
         var actor = await _db.AdminActorAsync();

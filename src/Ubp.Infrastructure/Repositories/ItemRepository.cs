@@ -91,7 +91,7 @@ public sealed partial class ItemRepository : IItemRepository
                    i.base_unit_id AS BaseUnitId,
                    (SELECT u.name_ar FROM units u WHERE u.id = i.base_unit_id) AS BaseUnitName,
                    COALESCE((SELECT sum(b.on_hand) FROM stock_balances b WHERE b.item_id = i.id), 0) AS OnHand,
-                   i.item_type AS ItemType, i.tax_id AS TaxId,
+                   i.item_type AS ItemType, i.execution_mode AS ExecutionMode, i.tax_id AS TaxId,
                    COALESCE((SELECT t.rate FROM taxes t WHERE t.id = i.tax_id), 0) AS TaxRate,
                    COALESCE(i.default_price,
                             (SELECT iu.sale_price FROM item_units iu
@@ -99,9 +99,9 @@ public sealed partial class ItemRepository : IItemRepository
                    i.price_includes_tax AS PriceIncludesTax, i.is_consumable AS IsConsumable
             FROM items i
             WHERE i.is_active
-              AND (@sellableOnly = false AND i.item_type = 'GOODS'
-                   OR @sellableOnly = true AND i.item_type IN ('GOODS', 'SERVICE')
-                      AND NOT i.is_consumable)
+              AND ((@sellableOnly = false AND i.item_type = 'GOODS')
+                   OR (@sellableOnly = true AND i.item_type IN ('GOODS', 'SERVICE')
+                       AND NOT i.is_consumable))
               AND (@search IS NULL OR @search = '' OR i.search_text LIKE '%' || normalize_search(@search) || '%')
             ORDER BY i.name_ar
             LIMIT @take

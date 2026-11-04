@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-11-04 — Execution mode is visible on the items grid and inside the POS
+
+### Fixed
+- The items grid shows a **«طريقة التنفيذ»** column (مباشر / محجوز), so the value actually stored in
+  `items.execution_mode` is visible without opening the dialog.
+- The POS product tile and cart line display **«يُنفَّذ مباشرة»** for items coded direct, so the
+  cashier sees exactly which lines will execute at checkout and which lines stay reserved for
+  «الخدمات المحجوزة».
+- `ItemOption` now carries `ExecutionMode` (the POS product query selects it), and the sellable-items
+  query no longer drops the `is_active` filter for services (missing parentheses made it apply to the
+  goods branch only).
+- Test: an item created through the item-screen service with `ExecutionMode = direct` comes back from
+  the POS product list with that mode and is executed at checkout.
+
 ## 2026-11-04 — POS executes the items coded «تنفيذ مباشر» only
 
 ### Fixed
