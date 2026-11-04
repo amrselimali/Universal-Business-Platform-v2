@@ -13,6 +13,10 @@
   goods branch only).
 - Test: an item created through the item-screen service with `ExecutionMode = direct` comes back from
   the POS product list with that mode and is executed at checkout.
+- The direct-execution tests now set the mode through the **item-screen service** (load detail → save,
+  exactly like the dialog) instead of raw SQL, and a new test covers a direct item **paid at checkout**
+  (revenue + customer receivable + receipt voucher + zero customer balance after full payment).
+  `PosDirectSaleTests` (5) + `PosDirectPaymentTests` (1). Full suite (324) passes.
 
 ## 2026-11-04 — POS executes the items coded «تنفيذ مباشر» only
 

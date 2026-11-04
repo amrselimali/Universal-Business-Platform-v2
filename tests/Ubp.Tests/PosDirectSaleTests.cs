@@ -32,13 +32,29 @@ public sealed class PosDirectSaleTests : IClassFixture<TestDb>
         return new Fixture(branch, warehouse, item, customer);
     }
 
-    private static async Task SetExecutionModeAsync(Guid itemId, string mode)
+    /// <summary>
+    /// تضبط طريقة التنفيذ من نفس مسار شاشة الأصناف (تحميل التفاصيل ثم الحفظ) وليس بـSQL مباشر،
+    /// حتى يغطي الاختبار الحفظ الحقيقي في <c>items.execution_mode</c>.
+    /// </summary>
+    private async Task SetExecutionModeAsync(Guid itemId, string mode)
     {
-        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
-        await connection.OpenAsync();
-        await connection.ExecuteAsync(
-            "UPDATE items SET execution_mode = @mode WHERE id = @id",
-            new { id = itemId, mode });
+        var actor = await _db.AdminActorAsync();
+        var detail = (await _db.ItemRepo.GetDetailAsync(itemId))
+                     ?? throw new InvalidOperationException("Item missing");
+        var input = new ItemInput
+        {
+            Code = detail.Item.Code, NameAr = detail.Item.NameAr, NameEn = detail.Item.NameEn,
+            CategoryId = detail.Item.CategoryId, BaseUnitId = detail.Item.BaseUnitId,
+            ItemType = detail.Item.ItemType, Notes = detail.Item.Notes,
+            IsMetered = detail.Item.IsMetered, IsActive = detail.Item.IsActive,
+            ExecutionMode = mode, IsConsumable = detail.Item.IsConsumable,
+            TrackExpiry = detail.Item.TrackExpiry, PriceIncludesTax = detail.Item.PriceIncludesTax,
+            TaxId = detail.Item.TaxId, MeteredAssetId = detail.Item.MeteredAssetId,
+            DefaultPrice = detail.Item.DefaultPrice,
+            Units = detail.Units.Select(u => new ItemUnitInput
+            { UnitId = u.UnitId, ConversionFactor = u.ConversionFactor }).ToList()
+        };
+        await _db.ItemService().UpdateAsync(actor, itemId, detail.Item.Version, input);
     }
 
     private async Task<PosReceipt> CheckoutAsync(Fixture fixture, decimal quantity)

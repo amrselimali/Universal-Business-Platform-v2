@@ -8,7 +8,8 @@
 - `ItemOption.ExecutionMode` is selected by the POS product query; the sellable-items query got the
   missing parentheses so `is_active` is applied to services as well.
 - Test: item created via `ItemService` with `ExecutionMode = direct` → listed with that mode → POS
-  executes it (`PosDirectSaleTests`, 5 tests).
+  executes it (`PosDirectSaleTests`, 5 tests) + a paid direct sale (`PosDirectPaymentTests`).
+  The direct-mode tests now save the mode through the item-screen service, not raw SQL.
 
 ## 2026-11-04 — POS executes the items coded «تنفيذ مباشر» only
 
