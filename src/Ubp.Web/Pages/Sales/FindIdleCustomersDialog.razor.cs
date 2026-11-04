@@ -62,17 +62,17 @@ public partial class FindIdleCustomersDialog : ComponentBase
 
     private async Task BookAsync(CustomerGapRow row)
     {
-        var dialog = await Dialogs.ShowAsync<AppointmentDialog>(T.T("sales.new_appointment"),
+        var dialog = await Dialogs.ShowAsync<CustomerSessionDialog>(T.T("sales.session_title"),
             new DialogParameters
             {
                 ["Branches"] = Branches,
                 ["DefaultBranchId"] = _branchId ?? DefaultBranchId,
-                ["DefaultDate"] = DateTime.Today,
-                ["DefaultCustomerId"] = row.CustomerId
+                ["DefaultCustomerId"] = row.CustomerId,
+                ["DefaultCustomerName"] = $"{row.Code} — {row.NameAr}"
             });
         if ((await dialog.Result) is { Canceled: false })
         {
-            Snackbar.Add(T.T("common.saved"), Severity.Success);
+            Snackbar.Add(T.T("sales.session_saved"), Severity.Success);
             await SearchAsync();
         }
     }

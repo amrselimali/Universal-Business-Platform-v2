@@ -51,6 +51,43 @@ public sealed partial class BookingRepository
         return id;
     }
 
+    /// <summary>موعد جلسة لعميل: مسودة بلا بنود (تاريخ/وقت/موظف مسؤول اختياريًا).</summary>
+    public async Task<Guid> CreateSessionDraftAsync(Guid id, BookingInput input, Guid userId,
+        CancellationToken ct = default)
+    {
+        if (input.BranchId == Guid.Empty || input.CustomerId == Guid.Empty)
+            throw new ValidationAppException("validation.required_fields");
+        if (input.StartsAt is null || input.EndsAt is null || input.EndsAt <= input.StartsAt)
+            throw new ValidationAppException("validation.booking_time_range");
+
+        await using var connection = await _factory.OpenAsync(ct);
+        await using var tx = await connection.BeginTransactionAsync(ct);
+        await EnsureDraftEmployeeAsync(connection, tx, input.AssignedEmployeeId, ct);
+
+        await connection.ExecuteAsync(new CommandDefinition("""
+            INSERT INTO bookings (id, branch_id, booking_date, status, customer_id, source, due_date,
+                starts_at, ends_at, assigned_employee_id, related_booking_id, expires_at,
+                total_amount, notes, created_by)
+            VALUES (@id, @BranchId, @BookingDate, 'draft', @CustomerId, 'manual', @BookingDate,
+                    @StartsAt, @EndsAt, @AssignedEmployeeId, NULL, @ExpiresAt, 0, @Notes, @userId)
+            """, new
+        {
+            id, input.BranchId, bookingDate = input.BookingDate.Date, input.CustomerId,
+            StartsAt = DbTime.Utc(input.StartsAt), EndsAt = DbTime.Utc(input.EndsAt),
+            ExpiresAt = DbTime.Utc(input.ExpiresAt), input.AssignedEmployeeId, input.Notes, userId
+        }, tx, cancellationToken: ct));
+
+        if (input.AssignedEmployeeId is not null)
+            await connection.ExecuteAsync(new CommandDefinition("""
+                INSERT INTO booking_assignments (booking_id, employee_id, role, assigned_by)
+                VALUES (@id, @employeeId, 'owner', @userId)
+                """, new { id, employeeId = input.AssignedEmployeeId, userId }, tx,
+                cancellationToken: ct));
+
+        await tx.CommitAsync(ct);
+        return id;
+    }
+
     public async Task<Booking> UpdateDraftAsync(Guid id, int version, BookingInput input,
         Guid userId, CancellationToken ct = default)
     {

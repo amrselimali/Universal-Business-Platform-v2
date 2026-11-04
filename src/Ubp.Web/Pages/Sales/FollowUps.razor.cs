@@ -89,17 +89,18 @@ public partial class FollowUps
 
     private async Task BookAsync(FollowUp followUp)
     {
-        var dialog = await Dialogs.ShowAsync<AppointmentDialog>(T.T("sales.new_appointment"),
+        var dialog = await Dialogs.ShowAsync<CustomerSessionDialog>(T.T("sales.session_title"),
             new DialogParameters
             {
                 ["Branches"] = _branches,
                 ["DefaultBranchId"] = Actor?.CurrentBranchId,
-                ["DefaultCustomerId"] = followUp.CustomerId
+                ["DefaultCustomerId"] = followUp.CustomerId,
+                ["DefaultCustomerName"] = followUp.CustomerName
             });
         if ((await dialog.Result) is { Canceled: false })
         {
             await ReloadAsync();
-            ShowSuccess("common.saved");
+            ShowSuccess("sales.session_saved");
         }
     }
 

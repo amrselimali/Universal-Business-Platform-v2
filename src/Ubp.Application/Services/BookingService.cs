@@ -54,6 +54,24 @@ public sealed class BookingService
         return booking;
     }
 
+    /// <summary>موعد جلسة لعميل (مسودة بلا بنود) من شاشة المتابعات أو حوار العملاء الخاملين.</summary>
+    public async Task<Booking> CreateSessionAsync(ActorContext actor, BookingInput input,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings, ActionCodes.Create,
+            ct: ct);
+        BranchScope.Ensure(actor, input.BranchId);
+        ValidateExpiry(input);
+
+        var id = Guid.CreateVersion7();
+        try { await _bookings.CreateSessionDraftAsync(id, input, actor.UserId, ct); }
+        catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
+
+        var booking = await _bookings.GetAsync(id, ct) ?? throw new NotFoundAppException();
+        await _audit.WriteAsync(actor, "bookings", id.ToString(), "INSERT", null, booking, ct);
+        return booking;
+    }
+
     public async Task<Booking> UpdateAsync(ActorContext actor, Guid id, int version,
         BookingInput input, CancellationToken ct = default)
     {

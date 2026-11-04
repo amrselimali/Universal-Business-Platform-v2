@@ -1,0 +1,53 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("sales.session_title")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.caption" Class="ubp-muted">@T.T("sales.session_hint")</MudText>
+        <MudForm @ref="_form" Class="mt-2">
+            <div class="ubp-form-grid">
+                <MudSelect T="Guid" Value="_branchId" Label="@T.T("common.branch")"
+                           Variant="Variant.Outlined" ValueChanged="OnBranchChanged">
+                    @foreach (var branch in Branches)
+                    {
+                        <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid" @bind-Value="_customerId" Label="@T.T("sales.customer")"
+                           Variant="Variant.Outlined" Required="true">
+                    @foreach (var customer in _customers)
+                    {
+                        <MudSelectItem T="Guid" Value="@customer.Id">
+                            @customer.Code — @customer.NameAr
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudDatePicker @bind-Date="_date" Label="@T.T("common.date")"
+                               Variant="Variant.Outlined" Required="true" />
+                <MudTimePicker @bind-Time="_start" Label="@T.T("sales.start")"
+                               Variant="Variant.Outlined" />
+                <MudTimePicker @bind-Time="_end" Label="@T.T("sales.end")"
+                               Variant="Variant.Outlined" />
+                <MudSelect T="Guid?" @bind-Value="_employeeId"
+                           Label="@T.T("sales.employee_optional")" Variant="Variant.Outlined"
+                           Clearable="true">
+                    @foreach (var employee in _employees)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)employee.Id)">
+                            @employee.Code — @employee.NameAr
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="_notes" Label="@T.T("common.notes")"
+                              Variant="Variant.Outlined" MaxLength="500" Class="ubp-span-2" />
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>

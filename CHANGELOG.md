@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-04 — Idle search ignores cancelled/completed activity; «حجز موعد جديد» books a customer session draft
+
+### Changed
+- **عملاء بلا حجز أو متابعة** now treats a **cancelled booking**, a **completed follow-up** and a
+  **cancelled follow-up** as non-existent: only a live booking (not cancelled/reversed), an active
+  appointment (not cancelled) or a **pending** follow-up dated today or later hides the customer. The
+  «آخر نشاط» cell also ignores done/cancelled follow-ups.
+- **«حجز موعد جديد»** (on every follow-up row and inside the idle search) no longer opens the employee
+  shift dialog. It opens a new **customer session** dialog (`CustomerSessionDialog`: customer + date +
+  start/end time + optional responsible employee + note) and saves it through
+  `BookingService.CreateSessionAsync` as a **draft booking without lines** (`CreateSessionDraftAsync`),
+  so it shows in the bookings screen as «مسودة» and can be confirmed/executed later — not as an
+  employee shift.
+- Tests: `FollowUpTests` (8) — completed/cancelled follow-ups do not hide a customer, a pending one
+  does, and the session appointment is stored as an empty draft booking. Full suite (334) passes.
+
 ## 2026-11-04 — Follow-ups: code-range idle search, customer-name filter, booking action on every row
 
 ### Changed

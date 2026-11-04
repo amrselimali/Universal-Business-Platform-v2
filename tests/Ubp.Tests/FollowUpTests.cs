@@ -1,3 +1,5 @@
+using Dapper;
+using Npgsql;
 using Ubp.Core.Models;
 using Xunit;
 
@@ -65,35 +67,42 @@ public sealed class FollowUpTests : IClassFixture<TestDb>
     }
 
     [Fact]
-    public async Task Idle_search_lists_customers_without_activity_and_reports_the_last_one()
+    public async Task Idle_search_ignores_completed_followups_and_only_pending_ones_hide_the_customer()
     {
         var actor = await _db.AdminActorAsync();
         var (_, _, _, customer) = await SetupAsync("3");
 
-        // نشاط قديم خارج الفترة: العميل يظهر ومعه آخر متابعة وملاحظتها.
+        // متابعة منتهية (done) تُعتبر غير موجودة: العميل يظهر بلا نشاط متابعة.
         var past = await _db.FollowUps().CreateAsync(actor, new FollowUpInput
         {
             CustomerId = customer.Id, Channel = FollowUpChannels.Call,
-            DueAt = DateTimeOffset.Now.AddDays(-3), Note = "متابعة قديمة"
+            DueAt = DateTimeOffset.Now.AddDays(3), Note = "متابعة منتهية"
         });
         await _db.FollowUps().CompleteAsync(actor, past.Id, past.Version);
 
         var rows = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
             customer.Code, null);
         var row = Assert.Single(rows.Where(r => r.CustomerId == customer.Id));
-        Assert.NotNull(row.LastFollowUpAt);
-        Assert.Equal("متابعة قديمة", row.LastFollowUpNote);
-        Assert.Equal(FollowUpStatuses.Done, row.LastFollowUpStatus);
+        Assert.Null(row.LastFollowUpAt);
 
-        // متابعة اليوم تستبعده من نتيجة البحث.
-        await _db.FollowUps().CreateAsync(actor, new FollowUpInput
+        // متابعة معلّقة مستقبلية تستبعده من نتيجة البحث.
+        var pending = await _db.FollowUps().CreateAsync(actor, new FollowUpInput
         {
             CustomerId = customer.Id, Channel = FollowUpChannels.WhatsApp,
-            DueAt = DateTimeOffset.Now.AddHours(2), Note = "اليوم"
+            DueAt = DateTimeOffset.Now.AddDays(2), Note = "متابعة معلّقة"
         });
         var after = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
             customer.Code, null);
         Assert.DoesNotContain(after, r => r.CustomerId == customer.Id);
+
+        // إلغاء المتابعة يعيده للقائمة (المتابعة الملغاة غير موجودة).
+        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
+        await connection.OpenAsync();
+        await connection.ExecuteAsync(
+            "UPDATE follow_ups SET status = 'cancelled' WHERE id = @id", new { id = pending.Id });
+        var afterCancel = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
+            customer.Code, null);
+        Assert.Contains(afterCancel, r => r.CustomerId == customer.Id);
     }
 
     [Fact]
@@ -139,6 +148,26 @@ public sealed class FollowUpTests : IClassFixture<TestDb>
         var outside = await _db.FollowUps().FindIdleCustomersAsync(actor, "ZZZ-9999", "ZZZ-9999",
             null);
         Assert.DoesNotContain(outside, r => r.CustomerId == customer.Id);
+    }
+
+    [Fact]
+    public async Task Session_appointment_is_saved_as_a_draft_booking_without_lines()
+    {
+        var actor = await _db.AdminActorAsync();
+        var (branch, _, _, customer) = await SetupAsync("7");
+
+        var session = await _db.BookingService().CreateSessionAsync(actor, new BookingInput
+        {
+            BranchId = branch, CustomerId = customer.Id, BookingDate = DateTime.Today,
+            StartsAt = new DateTimeOffset(DateTime.Today.AddHours(11)),
+            EndsAt = new DateTimeOffset(DateTime.Today.AddHours(12)),
+            Notes = "جلسة عميل من شاشة المتابعات"
+        });
+
+        Assert.Equal(BookingStatuses.Draft, session.Status);
+        Assert.Empty(session.Lines);
+        Assert.NotNull(session.StartsAt);
+        Assert.Equal(0m, session.TotalAmount);
     }
 
     [Fact]

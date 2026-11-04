@@ -1666,5 +1666,9 @@
   "sales.idle_code_from": "من كود العميل",
   "sales.idle_code_to": "إلى كود العميل",
   "sales.idle_code_hint": "اتركهما فارغين لكل الأكواد، أو حدّد نطاقًا مثل C1000 → C2000",
-  "sales.followup_customer_filter": "بحث باسم العميل"
+  "sales.followup_customer_filter": "بحث باسم العميل",
+  "sales.session_title": "حجز موعد جلسة لعميل",
+  "sales.session_hint": "يُسجَّل موعد الجلسة كمسودة في شاشة الحجوزات (بدون بنود) بحيث يمكن تأكيده وتنفيذه لاحقًا — وليس دوامًا لموظف.",
+  "sales.session_saved": "تم تسجيل موعد الجلسة كمسودة",
+  "sales.employee_optional": "الموظف المسؤول (اختياري)"
 }

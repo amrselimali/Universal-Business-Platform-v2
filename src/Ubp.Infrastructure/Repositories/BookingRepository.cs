@@ -9,6 +9,10 @@ namespace Ubp.Infrastructure.Repositories;
 public interface IBookingRepository
 {
     Task<Guid> CreateDraftAsync(Guid id, BookingInput input, Guid userId, CancellationToken ct = default);
+
+    /// <summary>موعد جلسة لعميل: مسودة بلا بنود (تاريخ/وقت/موظف مسؤول اختياريًا).</summary>
+    Task<Guid> CreateSessionDraftAsync(Guid id, BookingInput input, Guid userId,
+        CancellationToken ct = default);
     Task<Booking> UpdateDraftAsync(Guid id, int version, BookingInput input, Guid userId,
         CancellationToken ct = default);
     Task<Booking?> GetAsync(Guid id, CancellationToken ct = default);

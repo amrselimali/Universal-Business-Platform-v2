@@ -1,5 +1,16 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-04 — Follow-up idle search semantics + customer session draft booking
+
+- Idle search counts only **live** activity: bookings not cancelled/reversed, appointments not
+  cancelled, and **pending** follow-ups from today onwards (done/cancelled follow-ups and cancelled
+  bookings are treated as non-existent, including in the last-activity cell).
+- New `CustomerSessionDialog` + `BookingService.CreateSessionAsync` →
+  `BookingRepository.CreateSessionDraftAsync`: a **customer session appointment** saved as a **draft
+  booking without lines** (customer, date/time, optional responsible employee, notes) — used by
+  «حجز موعد جديد» in the follow-ups screen and the idle-customer dialog; it replaces the employee
+  shift dialog there. Tests: `FollowUpTests` (8), full suite (334).
+
 ## 2026-11-04 — Follow-ups: code-range idle search + name filter + booking action everywhere
 
 - Idle-customer search takes a **code range** (`codeFrom` → `codeTo`) and has **no date range**: it

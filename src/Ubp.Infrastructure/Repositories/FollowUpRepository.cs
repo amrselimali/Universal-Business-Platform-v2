@@ -131,7 +131,7 @@ public sealed class FollowUpRepository : IFollowUpRepository
             LEFT JOIN LATERAL (
                 SELECT f.due_at AS last_at, f.note, f.channel, f.status
                 FROM follow_ups f
-                WHERE f.customer_id = c.id
+                WHERE f.customer_id = c.id AND f.status = 'pending'
                 ORDER BY f.due_at DESC
                 LIMIT 1
             ) lf ON true
@@ -151,7 +151,8 @@ public sealed class FollowUpRepository : IFollowUpRepository
                     AND a.starts_at::date >= current_date)
               AND NOT EXISTS (
                   SELECT 1 FROM follow_ups f
-                  WHERE f.customer_id = c.id AND f.due_at::date >= current_date)
+                  WHERE f.customer_id = c.id AND f.status = 'pending'
+                    AND f.due_at::date >= current_date)
             ORDER BY COALESCE(lf.last_at, lb.last_at, la.last_at) ASC NULLS FIRST, c.name_ar
             LIMIT @take
             """, new
