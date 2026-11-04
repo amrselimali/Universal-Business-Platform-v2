@@ -6,9 +6,9 @@ using Xunit;
 namespace Ubp.Tests;
 
 /// <summary>
-/// البيع المباشر من نقطة البيع: الصنف «المكوَّد» يُنفَّذ فور الحفظ (حجز + تنفيذ في معاملة واحدة)
-/// ويتجاوز قيود التنفيذ، فيُصرف المخزون ويُرحّل الإيراد والمستحق على العميل وتُحدَّث كارتة الكميات
-/// دون أن يبقى أي رصيد محجوز.
+/// نقطة البيع: الصنف المكوَّد «تنفيذ مباشر» فقط هو الذي يُنفَّذ فور الحجز (صرف مخزون + تكلفة +
+/// إيراد + مستحق على العميل + كارتة كميات) ويتجاوز قيود التنفيذ؛ أما الأصناف الأخرى فتبقى
+/// حجزًا ينتظر التنفيذ من شاشة الخدمات المحجوزة كما هو معتاد.
 /// </summary>
 public sealed class PosDirectSaleTests : IClassFixture<TestDb>
 {
@@ -32,15 +32,22 @@ public sealed class PosDirectSaleTests : IClassFixture<TestDb>
         return new Fixture(branch, warehouse, item, customer);
     }
 
-    private async Task<PosReceipt> CheckoutAsync(Fixture fixture, decimal quantity,
-        bool directSale)
+    private static async Task SetExecutionModeAsync(Guid itemId, string mode)
+    {
+        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
+        await connection.OpenAsync();
+        await connection.ExecuteAsync(
+            "UPDATE items SET execution_mode = @mode WHERE id = @id",
+            new { id = itemId, mode });
+    }
+
+    private async Task<PosReceipt> CheckoutAsync(Fixture fixture, decimal quantity)
     {
         var actor = await _db.AdminActorAsync();
         return await _db.Pos().CheckoutAsync(actor, new PosCheckoutInput
         {
             BranchId = fixture.Branch, CustomerId = fixture.Customer.Id,
             WarehouseId = fixture.Warehouse, DocDate = DateTime.Today,
-            DirectSale = directSale,
             Lines =
             {
                 new PosLineInput
@@ -53,12 +60,12 @@ public sealed class PosDirectSaleTests : IClassFixture<TestDb>
     }
 
     [Fact]
-    public async Task Pos_direct_sale_executes_a_reserved_item_and_posts_revenue()
+    public async Task Pos_executes_a_direct_item_and_posts_revenue_and_receivable()
     {
         var fixture = await SetupAsync("1");
-        Assert.Equal(ItemExecutionModes.Reserved, fixture.Item.ExecutionMode);
+        await SetExecutionModeAsync(fixture.Item.Id, ItemExecutionModes.Direct);
 
-        var receipt = await CheckoutAsync(fixture, 4, directSale: true);
+        var receipt = await CheckoutAsync(fixture, 4);
 
         Assert.True(receipt.Executed);
         Assert.Equal(400m, receipt.Total);
@@ -95,11 +102,12 @@ public sealed class PosDirectSaleTests : IClassFixture<TestDb>
     }
 
     [Fact]
-    public async Task Pos_without_direct_sale_still_keeps_the_quantity_reserved()
+    public async Task Pos_keeps_a_reserved_item_as_a_booking_waiting_for_execution()
     {
         var fixture = await SetupAsync("2");
+        Assert.Equal(ItemExecutionModes.Reserved, fixture.Item.ExecutionMode);
 
-        var receipt = await CheckoutAsync(fixture, 4, directSale: false);
+        var receipt = await CheckoutAsync(fixture, 4);
 
         Assert.False(receipt.Executed);
         Assert.Equal(10m, await _db.OnHandAsync(fixture.Item.Id, fixture.Warehouse));
@@ -117,41 +125,61 @@ public sealed class PosDirectSaleTests : IClassFixture<TestDb>
         Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
             "SELECT count(*)::int FROM booking_executions WHERE booking_id = @id",
             new { id = receipt.BookingId }));
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
+            "SELECT count(*)::int FROM stock_movements WHERE item_id = @id AND direction = 'OUT'",
+            new { id = fixture.Item.Id }));
     }
 
     [Fact]
-    public async Task Pos_executes_a_direct_item_even_without_the_direct_sale_flag()
+    public async Task Pos_executes_only_the_direct_lines_and_keeps_the_others_booked()
     {
-        var fixture = await SetupAsync("4");
-        await using (var setup = new NpgsqlConnection(TestDb.AdminConnection))
-        {
-            await setup.OpenAsync();
-            await setup.ExecuteAsync(
-                "UPDATE items SET execution_mode = 'direct' WHERE id = @id",
-                new { id = fixture.Item.Id });
-        }
+        var fixture = await SetupAsync("3");
+        var direct = await _db.CreateItemAsync("PDS-IT-3D", "صنف مباشر مختلط");
+        await _db.PostReceiptAsync(direct, fixture.Branch, fixture.Warehouse, 5, 40);
+        await SetExecutionModeAsync(direct.Id, ItemExecutionModes.Direct);
 
-        var receipt = await CheckoutAsync(fixture, 3, directSale: false);
+        var actor = await _db.AdminActorAsync();
+        var receipt = await _db.Pos().CheckoutAsync(actor, new PosCheckoutInput
+        {
+            BranchId = fixture.Branch, CustomerId = fixture.Customer.Id,
+            WarehouseId = fixture.Warehouse, DocDate = DateTime.Today,
+            Lines =
+            {
+                new PosLineInput
+                {
+                    ItemId = direct.Id, UnitId = direct.BaseUnitId, Quantity = 2, UnitPrice = 100
+                },
+                new PosLineInput
+                {
+                    ItemId = fixture.Item.Id, UnitId = fixture.Item.BaseUnitId,
+                    Quantity = 3, UnitPrice = 100
+                }
+            }
+        });
 
         Assert.True(receipt.Executed);
-        Assert.Equal(7m, await _db.OnHandAsync(fixture.Item.Id, fixture.Warehouse));
+        Assert.Equal(3m, await _db.OnHandAsync(direct.Id, fixture.Warehouse));
+        Assert.Equal(10m, await _db.OnHandAsync(fixture.Item.Id, fixture.Warehouse));
 
         await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
         await connection.OpenAsync();
-        var line = await connection.QuerySingleAsync<(decimal Delivered, decimal Reserved)>(
-            "SELECT delivered_qty, reserved_qty FROM booking_lines WHERE booking_id = @id",
-            new { id = receipt.BookingId });
-        Assert.Equal(3m, line.Delivered);
-        Assert.Equal(0m, line.Reserved);
-        Assert.Equal(BookingStatuses.Completed, await connection.ExecuteScalarAsync<string>(
-            "SELECT status FROM bookings WHERE id = @id", new { id = receipt.BookingId }));
-        Assert.Equal(1, await connection.ExecuteScalarAsync<int>(
-            "SELECT count(*)::int FROM booking_executions WHERE booking_id = @id",
-            new { id = receipt.BookingId }));
+        var lines = (await connection.QueryAsync<(Guid ItemId, decimal Delivered, decimal Reserved)>(
+            "SELECT item_id AS ItemId, delivered_qty AS Delivered, reserved_qty AS Reserved " +
+            "FROM booking_lines WHERE booking_id = @id ORDER BY line_no",
+            new { id = receipt.BookingId })).ToList();
+        var directLine = lines.Single(l => l.ItemId == direct.Id);
+        var reservedLine = lines.Single(l => l.ItemId == fixture.Item.Id);
+        Assert.Equal(2m, directLine.Delivered);
+        Assert.Equal(0m, directLine.Reserved);
+        Assert.Equal(0m, reservedLine.Delivered);
+        Assert.Equal(3m, reservedLine.Reserved);
+        Assert.Equal(BookingStatuses.PartiallyDelivered,
+            await connection.ExecuteScalarAsync<string>(
+                "SELECT status FROM bookings WHERE id = @id", new { id = receipt.BookingId }));
     }
 
     [Fact]
-    public async Task Pos_direct_sale_sells_on_negative_stock_when_the_setting_allows_it()
+    public async Task Pos_direct_item_sells_on_negative_stock_when_the_setting_allows_it()
     {
         var actor = await _db.AdminActorAsync();
         var settings = _db.Settings();
@@ -160,9 +188,10 @@ public sealed class PosDirectSaleTests : IClassFixture<TestDb>
         await settings.UpdateAsync(actor, current);
         try
         {
-            var fixture = await SetupAsync("3", received: 0);
+            var fixture = await SetupAsync("4", received: 0);
+            await SetExecutionModeAsync(fixture.Item.Id, ItemExecutionModes.Direct);
 
-            var receipt = await CheckoutAsync(fixture, 2, directSale: true);
+            var receipt = await CheckoutAsync(fixture, 2);
 
             Assert.True(receipt.Executed);
             Assert.Equal(-2m, await _db.OnHandAsync(fixture.Item.Id, fixture.Warehouse));

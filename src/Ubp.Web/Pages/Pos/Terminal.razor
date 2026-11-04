@@ -104,9 +104,9 @@ else
                     </MudButton>
                 }
 
-                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
-                    @T.T("pos.direct_sale_hint")
-                </MudAlert>
+                <MudDatePicker @bind-Date="_expiryDate" Label="@T.T("sales.offer_expiry")"
+                               Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" Editable="true"
+                               Class="mb-2" />
 
                 <MudTable Items="_cart" Dense="true" Elevation="0" Class="ubp-table">
                     <HeaderContent>

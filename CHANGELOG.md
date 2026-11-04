@@ -1,38 +1,25 @@
 # CHANGELOG
 
-## 2026-11-04 — POS always sells (no pending booking) and direct detection is unified
+## 2026-11-04 — POS executes the items coded «تنفيذ مباشر» only
 
 ### Fixed
-- **The POS no longer has a “booking” mode.** Every checkout executes the cart in the same
-  transaction (`DirectSale = true` from the screen), so a sale can never stay as a reservation
-  waiting in «الخدمات المحجوزة». Bookings without execution are created from `/sales/bookings`.
-- Direct-mode detection is now a single tolerant helper (`ItemExecutionModes.IsDirect`: trims and
-  ignores case) used by the POS line builder, the POS executor, the execution dialog/service and the
-  item normalization — so a direct item can never be inserted with `reserved_qty = 0` and then
-  skipped by an exact `= 'direct'` comparison (which left the booking stuck: no sale, nothing left
-  to execute).
-- `PosReceipt.Executed` now reports what actually happened (any executed line) instead of echoing
-  the request flag.
-
-## 2026-11-04 — POS direct sale for coded items (reserve + execute in one step)
-
-### Added
-- POS terminal now has a **«بيع مباشر» / “Direct sale”** switch (on by default): checkout executes
-  every coded item immediately — even when the item is set to `reserved` — in the same transaction,
-  so the quantity is reserved **and** executed at once instead of waiting for a later execution.
-- Direct execution posts the **revenue and the customer receivable** (Dr customer / Cr revenue + VAT),
-  issues the stock (OUT movement + COGS/inventory cost entry), updates the booking line
-  (`delivered_qty`, `reserved_qty = 0`, real warehouse) so the customer quantity card shows the
-  in (booked) and out (consumed) quantities, and completes the booking.
-- (Superseded the same day) the switch was removed so the POS always sells directly — see the entry above.
-
-### Fixed
-- POS direct execution now honours the **allow-negative-stock** setting instead of hard-coding
-  “no negative”: the flag reaches the stock posting and the availability guard.
-- The direct cost entry now uses the document date (not `UtcNow`) so the COGS entry lands in the same
-  period as the stock document and the revenue entry.
-- Tests: `PosDirectSaleTests` (3 new) plus the existing POS/direct-execution suites; the full suite
-  (322) passes.
+- POS checkout executes **only** the lines whose item is coded «تنفيذ مباشر»
+  (`items.execution_mode = 'direct'`): stock OUT + COGS, revenue, customer receivable, booking line
+  delivered (`reserved_qty = 0`, quantity card in/out) and the booking is completed — bypassing the
+  execution constraints (employee/appointment/meter/booking status).
+- **Every other item keeps the previous workflow**: a POS booking with reserved quantities,
+  optional collection, then execution from «الخدمات المحجوزة». There is no POS-wide “sell all”
+  option any more.
+- Direct-mode detection is unified in `ItemExecutionModes.IsDirect` (trims, ignores case) and used by
+  the POS line builder/executor, the execution dialog/service and item normalization; the previous
+  exact `= 'direct'` SQL comparison could skip a line stored with `reserved_qty = 0` and leave the
+  booking stuck with no sale and nothing left to execute.
+- `PosReceipt.Executed` reports whether lines were actually executed; the receipt shows the
+  «تم البيع والتنفيذ مباشرة» note (and hides the offer expiry) only for an executed sale.
+- POS direct execution honours the **allow-negative-stock** setting, dates the COGS entry on the
+  document date (not `UtcNow`) and keeps the warehouse the stock was issued from on the booking line.
+- Tests: `PosDirectSaleTests` (4) — direct item executes, reserved item stays booked, a mixed cart
+  executes only the direct line, negative stock when enabled. Full suite (322) passes.
 
 ## 2026-11-03 — Editing an item no longer resets its settings
 

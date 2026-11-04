@@ -1,16 +1,16 @@
 # PROJECT STATE — Universal Business Platform v2
 
-## 2026-11-04 — POS always sells; no pending POS booking
+## 2026-11-04 — POS executes the items coded «تنفيذ مباشر» only
 
-- `/pos/terminal` now always checks out as a **direct sale** (`DirectSale = true`, the mode switch was
-  removed): every line is reserved **and** executed in the same transaction — stock OUT + COGS,
-  revenue, customer receivable, quantity card — whatever the item's execution mode. A POS sale can
-  no longer sit in «الخدمات المحجوزة» waiting for an execution.
+- POS checkout executes **only** lines whose item is coded `direct` (stock OUT + COGS, revenue,
+  customer receivable, quantity card, booking completed) and bypasses the execution constraints;
+  **all other items keep the previous workflow** (booking with reserved quantities, then execution
+  from «الخدمات المحجوزة»). No POS-wide “sell everything” option.
 - Direct-mode detection is unified in `ItemExecutionModes.IsDirect` (trim + case-insensitive) and used
   by the POS builder/executor, the execution dialog/service and item normalization; the previous exact
-  `= 'direct'` SQL match could skip a line that had already been stored with `reserved_qty = 0`.
-- `PosReceipt.Executed` now reflects the executed lines, not the request flag. Tests:
-  `PosDirectSaleTests` (4).
+  `= 'direct'` SQL match could skip a line already stored with `reserved_qty = 0`.
+- `PosReceipt.Executed` reflects the executed lines; the receipt shows the execution note (and hides
+  the offer expiry) only for an executed sale. Tests: `PosDirectSaleTests` (4), full suite (322).
 
 ## 2026-11-04 — POS direct sale for coded items
 
@@ -18,7 +18,8 @@
   reservation **and** the execution in one transaction for every coded item, bypassing the item's
   `reserved` mode and the execution constraints: stock OUT + COGS, revenue, customer receivable,
   booking line delivered (quantity card in/out) and the booking is completed.
-- (Superseded) the switch was later removed so the POS always sells directly — see the entry above.
+- (Superseded) the switch was removed the same day: the POS now executes only the items coded
+  «تنفيذ مباشر» and keeps the booking workflow for everything else — see the entry above.
 - Direct execution now honours `allow_negative_stock` (guard + posting) and dates the COGS entry on
   the document date instead of `UtcNow`. Tests: `PosDirectSaleTests` (4); full suite (322) passes.
 

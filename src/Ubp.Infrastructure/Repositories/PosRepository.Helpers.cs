@@ -86,7 +86,7 @@ public sealed partial class PosRepository
             {
                 LineNo = lineNo, ItemId = line.ItemId, UnitId = line.UnitId,
                 ItemType = item.ItemType, TaxId = taxId, Quantity = line.Quantity,
-                Direct = input.DirectSale || ItemExecutionModes.IsDirect(item.ExecutionMode),
+                Direct = ItemExecutionModes.IsDirect(item.ExecutionMode),
                 UnitPrice = price, DiscountPercent = line.DiscountPercent, NetAmount = net,
                 TaxAmount = tax,
                 TotalAmount = Math.Round(net + tax, 2, MidpointRounding.AwayFromZero)

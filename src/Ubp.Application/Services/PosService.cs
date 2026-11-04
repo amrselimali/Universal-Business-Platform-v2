@@ -47,7 +47,7 @@ public sealed class PosService
             new
             {
                 receipt.BookingNo, receipt.ExpiresAt, receipt.Total, receipt.Paid,
-                DirectSale = input.DirectSale, receipt.Executed,
+                receipt.Executed,
                 Vouchers = receipt.Vouchers.Select(v => v.VoucherNo).ToArray()
             }, ct);
 

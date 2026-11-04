@@ -30,8 +30,8 @@ public sealed partial class PosRepository
         NpgsqlTransaction tx, PosCheckoutInput input, Guid bookingId, Guid userId,
         bool allowNegative, CancellationToken ct)
     {
-        // البيع المباشر من الشاشة ينفّذ كل السطور حتى لو كان الصنف مضبوطًا على «محجوز»،
-        // فيتجاوز قيود التنفيذ ويُرحّل الإيراد والذمم وحركة المخزون فورًا.
+        // تُنفَّذ سطور الأصناف المكوَّدة «تنفيذ مباشر» فقط؛ باقي الأصناف تظل حجزًا
+        // ينتظر التنفيذ من شاشة الخدمات المحجوزة (نفس الدورة السابقة).
         // القرار في C# بنفس دالة الكشف المستخدمة عند بناء السطور، حتى لا يتحول صنف مباشر
         // إلى حجز معلّق بسبب اختلاف حالة الأحرف أو مسافة زائدة في القيمة المخزنة.
         var lines = (await connection.QueryAsync<DirectLine>(new CommandDefinition("""
@@ -44,7 +44,7 @@ public sealed partial class PosRepository
             WHERE l.booking_id = @bookingId
             ORDER BY l.line_no
             """, new { bookingId }, tx, cancellationToken: ct)))
-            .Where(l => input.DirectSale || ItemExecutionModes.IsDirect(l.ExecutionMode))
+            .Where(l => ItemExecutionModes.IsDirect(l.ExecutionMode))
             .ToList();
         if (lines.Count == 0) return;
 
