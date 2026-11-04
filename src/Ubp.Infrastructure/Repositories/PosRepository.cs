@@ -9,7 +9,7 @@ namespace Ubp.Infrastructure.Repositories;
 public interface IPosRepository
 {
     Task<PosReceipt> CheckoutAsync(PosCheckoutInput input, Guid userId, bool reserveStock,
-        CancellationToken ct = default);
+        bool allowNegative, CancellationToken ct = default);
     Task<IReadOnlyList<CommercialDocument>> ListReceiptsAsync(Guid? branchId, int limit,
         CancellationToken ct = default);
     /// <summary>رأس إيصال قبض (عميل/رقم/إجمالي/فرع) لإعادة إرسال الإشعار.</summary>
@@ -66,7 +66,7 @@ public sealed partial class PosRepository : IPosRepository
     }
 
     public async Task<PosReceipt> CheckoutAsync(PosCheckoutInput input, Guid userId,
-        bool reserveStock, CancellationToken ct = default)
+        bool reserveStock, bool allowNegative, CancellationToken ct = default)
     {
         if (input.BranchId == Guid.Empty || input.CustomerId == Guid.Empty ||
             input.WarehouseId == Guid.Empty)
@@ -131,14 +131,15 @@ public sealed partial class PosRepository : IPosRepository
                     reserved = line.Direct ? 0 : line.Quantity }, tx, cancellationToken: ct));
         }
 
-        // الأصناف «المباشرة»: تُنفَّذ الآن (صرف مخزون + تكلفة + إيراد وذمم + كارتة كميات).
+        // الأصناف «المباشرة» (أو البيع المباشر من الشاشة): تُنفَّذ الآن
+        // (صرف مخزون + تكلفة + إيراد وذمم + كارتة كميات).
         await ExecuteDirectLinesAsync(connection, tx, input, bookingId, userId,
-            allowNegative: false, ct);
+            allowNegative, ct);
 
         var receipt = new PosReceipt
         {
             BookingId = bookingId, BookingNo = bookingNo, ExpiresAt = expiresAt,
-            Total = total
+            Total = total, Executed = lines.Any(l => l.Direct)
         };
         foreach (var group in payments.GroupBy(p => p.TreasuryId))
         {

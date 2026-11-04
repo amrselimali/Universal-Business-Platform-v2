@@ -38,8 +38,7 @@ public sealed class BookingExecutionService
         await _permissions.RequireAsync(actor, ScreenCodes.Reservations, ActionCodes.Execute, ct: ct);
         var preview = await _executions.GetPreviewAsync(input.BookingLineId, ct);
         BranchScope.Ensure(actor, preview.BranchId);
-        var direct = string.Equals(preview.ExecutionMode, ItemExecutionModes.Direct,
-            StringComparison.OrdinalIgnoreCase);
+        var direct = ItemExecutionModes.IsDirect(preview.ExecutionMode);
         if (!direct && preview.ItemType == "SERVICE" &&
             string.IsNullOrWhiteSpace(preview.EmployeeName))
             throw new ValidationAppException("validation.execution_employee_required");

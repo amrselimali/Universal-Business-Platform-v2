@@ -111,8 +111,7 @@ public sealed class ItemService
         input.Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim();
         input.ItemType = string.Equals(input.ItemType, "SERVICE", StringComparison.OrdinalIgnoreCase)
             ? "SERVICE" : "GOODS";
-        input.ExecutionMode = string.Equals(input.ExecutionMode, ItemExecutionModes.Direct,
-            StringComparison.OrdinalIgnoreCase)
+        input.ExecutionMode = ItemExecutionModes.IsDirect(input.ExecutionMode)
             ? ItemExecutionModes.Direct : ItemExecutionModes.Reserved;
 
         if (input.Code.Length == 0 || input.Code.Length > 50)

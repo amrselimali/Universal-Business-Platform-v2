@@ -7,7 +7,6 @@ namespace Ubp.Infrastructure.Repositories;
 
 public sealed partial class PosRepository
 {
-    /// <summary>صرف المخزون للصنف المباشر (مستند ISSUE مُرحّل) وإرجاع تكلفته الفعلية.</summary>
     /// <summary>
     /// يحدد مخزنًا فيه رصيد كافٍ للصنف: المخزن المختار أولًا، ثم أي مخزن آخر في نفس الفرع.
     /// يمنع رسالة «لا توجد كمية» عندما يكون الرصيد مستلَمًا في مخزن آخر.
@@ -42,12 +41,13 @@ public sealed partial class PosRepository
         return (input.WarehouseId, selected);
     }
 
-    private static async Task<(Guid? LineId, decimal Cost)> IssueStockAsync(
+    /// <summary>صرف المخزون للصنف المباشر (مستند ISSUE مُرحّل) وإرجاع تكلفته والمخزن المصروف منه.</summary>
+    private static async Task<(Guid? LineId, decimal Cost, Guid WarehouseId)> IssueStockAsync(
         NpgsqlConnection connection, NpgsqlTransaction tx, PosCheckoutInput input,
         DirectLine line, string docNo, Guid userId, bool allowNegative, CancellationToken ct)
     {
         var (warehouseId, available) = await ResolveWarehouseAsync(connection, tx, input, line, ct);
-        if (available < line.Quantity)
+        if (!allowNegative && available < line.Quantity)
             throw new ValidationAppException("validation.stock_not_available_detail",
                 new Dictionary<string, string>
                 {
@@ -85,13 +85,13 @@ public sealed partial class PosRepository
         var cost = await connection.ExecuteScalarAsync<decimal>(new CommandDefinition(
             "SELECT COALESCE(total_cost, 0) FROM stock_document_lines WHERE id = @id",
             new { id = lineId }, tx, cancellationToken: ct));
-        return (lineId, cost);
+        return (lineId, cost, warehouseId);
     }
 
     /// <summary>قيد التكلفة: من حساب تكلفة المخزن (تصنيف الصنف) إلى حساب المخزن.</summary>
     private static async Task<Guid> PostCostAsync(NpgsqlConnection connection,
-        NpgsqlTransaction tx, Guid? categoryId, Guid branchId, string docNo, decimal amount,
-        Guid executionId, Guid userId, CancellationToken ct)
+        NpgsqlTransaction tx, Guid? categoryId, Guid branchId, DateTime docDate, string docNo,
+        decimal amount, Guid executionId, Guid userId, CancellationToken ct)
     {
         var accounts = await connection.QuerySingleOrDefaultAsync<(Guid? Cogs, Guid? Inventory)>(
             new CommandDefinition("""
@@ -102,7 +102,7 @@ public sealed partial class PosRepository
         var inventory = accounts.Inventory ??
                         await NeedAsync(connection, tx, PostingKeys.StockInventory, ct);
 
-        return await PostEntryAsync(connection, tx, "stock", branchId, DateTime.UtcNow.Date,
+        return await PostEntryAsync(connection, tx, "stock", branchId, docDate.Date,
             docNo, $"تكلفة تنفيذ مباشر {docNo}", new List<EntryLine>
             {
                 new(cogs, amount, 0), new(inventory, 0, amount)

@@ -39,7 +39,7 @@ public sealed class PosService
         try
         {
             receipt = await _pos.CheckoutAsync(input, actor.UserId, settings.ReserveStockOnBooking,
-                ct);
+                settings.AllowNegativeStock, ct);
         }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
 
@@ -47,6 +47,7 @@ public sealed class PosService
             new
             {
                 receipt.BookingNo, receipt.ExpiresAt, receipt.Total, receipt.Paid,
+                DirectSale = input.DirectSale, receipt.Executed,
                 Vouchers = receipt.Vouchers.Select(v => v.VoucherNo).ToArray()
             }, ct);
 

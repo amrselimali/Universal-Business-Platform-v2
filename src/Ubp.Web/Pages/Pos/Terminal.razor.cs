@@ -256,7 +256,7 @@ public partial class Terminal : SecurePageBase
             _receipt = await Pos.CheckoutAsync(Actor!, new PosCheckoutInput
             {
                 BranchId = _branchId, CustomerId = _customerId, WarehouseId = _warehouseId,
-                DocDate = DateTime.Today,
+                DocDate = DateTime.Today, DirectSale = true,
                 ExpiresAt = new DateTimeOffset(_expiryDate.Value.Date),
                 Lines = _cart.Select(l => new PosLineInput
                 {

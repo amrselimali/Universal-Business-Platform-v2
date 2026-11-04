@@ -57,8 +57,7 @@ public sealed partial class BookingExecutionRepository
             """, new { lineId = input.BookingLineId }, tx, cancellationToken: ct))
             ?? throw new NotFoundAppException();
 
-        var direct = string.Equals(line.ExecutionMode, ItemExecutionModes.Direct,
-            StringComparison.OrdinalIgnoreCase);
+        var direct = ItemExecutionModes.IsDirect(line.ExecutionMode);
         if (!direct &&
             line.BookingStatus is not (BookingStatuses.Confirmed or BookingStatuses.PartiallyDelivered))
             throw new ValidationAppException("validation.booking_not_confirmed");

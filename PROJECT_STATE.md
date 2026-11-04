@@ -1,5 +1,27 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-04 — POS always sells; no pending POS booking
+
+- `/pos/terminal` now always checks out as a **direct sale** (`DirectSale = true`, the mode switch was
+  removed): every line is reserved **and** executed in the same transaction — stock OUT + COGS,
+  revenue, customer receivable, quantity card — whatever the item's execution mode. A POS sale can
+  no longer sit in «الخدمات المحجوزة» waiting for an execution.
+- Direct-mode detection is unified in `ItemExecutionModes.IsDirect` (trim + case-insensitive) and used
+  by the POS builder/executor, the execution dialog/service and item normalization; the previous exact
+  `= 'direct'` SQL match could skip a line that had already been stored with `reserved_qty = 0`.
+- `PosReceipt.Executed` now reflects the executed lines, not the request flag. Tests:
+  `PosDirectSaleTests` (4).
+
+## 2026-11-04 — POS direct sale for coded items
+
+- `/pos/terminal` has a **«بيع مباشر»** switch (default on). With it, checkout performs the
+  reservation **and** the execution in one transaction for every coded item, bypassing the item's
+  `reserved` mode and the execution constraints: stock OUT + COGS, revenue, customer receivable,
+  booking line delivered (quantity card in/out) and the booking is completed.
+- (Superseded) the switch was later removed so the POS always sells directly — see the entry above.
+- Direct execution now honours `allow_negative_stock` (guard + posting) and dates the COGS entry on
+  the document date instead of `UtcNow`. Tests: `PosDirectSaleTests` (4); full suite (322) passes.
+
 ## 2026-10-31 — Phase 8 (8A/8B/8C/8D) complete
 
 - Migrations `0046`–`0052` (55 scripts total) cover: reservation deposits, main treasury, branch

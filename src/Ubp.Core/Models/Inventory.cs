@@ -54,6 +54,13 @@ public static class ItemExecutionModes
     public const string Direct = "direct";
 
     public static bool IsValid(string? value) => value is Reserved or Direct;
+
+    /// <summary>
+    /// هل الصنف «تنفيذ مباشر»؟ المقارنة متسامحة مع حالة الأحرف والمسافات حتى لا يتحول
+    /// صنف مباشر إلى حجز معلّق بسبب قيمة مخزّنة مثل «Direct » أو «DIRECT».
+    /// </summary>
+    public static bool IsDirect(string? value) =>
+        string.Equals(value?.Trim(), Direct, StringComparison.OrdinalIgnoreCase);
 }
 
 public sealed class Item

@@ -22,7 +22,7 @@
                 <MudTextField Value="@(_preview.EmployeeName ?? T.T("execution.no_employee"))"
                               Label="@T.T("execution.employee")" Variant="Variant.Outlined"
                               ReadOnly="true" />
-                @if (_preview.ExecutionMode == ItemExecutionModes.Direct)
+                @if (ItemExecutionModes.IsDirect(_preview.ExecutionMode))
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Warning"
                              Variant="Variant.Outlined">
@@ -88,7 +88,7 @@
                     </MudAlert>
                 }
                 @if (_preview.ItemType == "SERVICE" &&
-                     _preview.ExecutionMode != ItemExecutionModes.Direct &&
+                     !ItemExecutionModes.IsDirect(_preview.ExecutionMode) &&
                      string.IsNullOrWhiteSpace(_preview.EmployeeName))
                 {
                     <MudAlert Severity="Severity.Error" Dense="true" Class="ubp-span-2">
@@ -103,10 +103,10 @@
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
                    Disabled="@(_busy || _preview is null || _preview.RemainingQty <= 0 ||
                                _quantity <= 0 ||
-                               (_preview.ExecutionMode != ItemExecutionModes.Direct &&
+                               (!ItemExecutionModes.IsDirect(_preview.ExecutionMode) &&
                                 _preview.ItemType == "SERVICE" &&
                                 string.IsNullOrWhiteSpace(_preview.EmployeeName)) ||
-                               (_preview.ExecutionMode != ItemExecutionModes.Direct &&
+                               (!ItemExecutionModes.IsDirect(_preview.ExecutionMode) &&
                                 _preview.ItemIsMetered &&
                                 (_meterAssetId is null || _meterUnits <= 0)))">@T.T("execution.confirm")</MudButton>
     </DialogActions>
@@ -144,7 +144,7 @@
     {
         if (_preview is null || _preview.RemainingQty <= 0) return;
         if (_quantity <= 0 || _quantity > _preview.RemainingQty) return;
-        if (_preview.ExecutionMode != ItemExecutionModes.Direct && _preview.ItemIsMetered &&
+        if (!ItemExecutionModes.IsDirect(_preview.ExecutionMode) && _preview.ItemIsMetered &&
             (_meterAssetId is null || _meterUnits <= 0)) return;
         _busy = true;
         try

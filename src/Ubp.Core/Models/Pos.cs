@@ -30,6 +30,12 @@ public sealed class PosCheckoutInput
     /// <summary>تاريخ نهاية صلاحية العرض؛ الافتراضي 6 أشهر من اليوم.</summary>
     public DateTimeOffset? ExpiresAt { get; set; }
 
+    /// <summary>
+    /// بيع مباشر: تُنفَّذ كل سطور الأصناف المكوَّدة فور الحفظ (حجز + تنفيذ في معاملة واحدة)
+    /// مهما كانت طريقة تنفيذ الصنف، فتُرحَّل الكمية والإيراد والذمم وحركة المخزون مباشرة.
+    /// </summary>
+    public bool DirectSale { get; set; }
+
     public List<PosLineInput> Lines { get; set; } = new();
     public List<PosPaymentInput> Payments { get; set; } = new();
 }
@@ -49,6 +55,10 @@ public sealed class PosReceipt
     public Guid BookingId { get; set; }
     public string? BookingNo { get; set; }
     public DateTimeOffset? ExpiresAt { get; set; }
+
+    /// <summary>true = نُفِّذت السطور مباشرة داخل المعاملة (بيع مباشر)، لا مجرد حجز.</summary>
+    public bool Executed { get; set; }
+
     public decimal Total { get; set; }
     public decimal TaxTotal { get; set; }
     public decimal Paid { get; set; }

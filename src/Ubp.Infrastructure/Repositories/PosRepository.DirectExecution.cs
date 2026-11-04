@@ -17,6 +17,7 @@ public sealed partial class PosRepository
         public Guid ItemId { get; set; }
         public Guid? CategoryId { get; set; }
         public string ItemType { get; set; } = "GOODS";
+        public string ExecutionMode { get; set; } = ItemExecutionModes.Reserved;
         public Guid UnitId { get; set; }
         public decimal Quantity { get; set; }
         public decimal NetAmount { get; set; }
@@ -29,15 +30,22 @@ public sealed partial class PosRepository
         NpgsqlTransaction tx, PosCheckoutInput input, Guid bookingId, Guid userId,
         bool allowNegative, CancellationToken ct)
     {
+        // البيع المباشر من الشاشة ينفّذ كل السطور حتى لو كان الصنف مضبوطًا على «محجوز»،
+        // فيتجاوز قيود التنفيذ ويُرحّل الإيراد والذمم وحركة المخزون فورًا.
+        // القرار في C# بنفس دالة الكشف المستخدمة عند بناء السطور، حتى لا يتحول صنف مباشر
+        // إلى حجز معلّق بسبب اختلاف حالة الأحرف أو مسافة زائدة في القيمة المخزنة.
         var lines = (await connection.QueryAsync<DirectLine>(new CommandDefinition("""
             SELECT l.id AS BookingLineId, l.item_id AS ItemId, i.category_id AS CategoryId,
-                   i.item_type AS ItemType, l.unit_id AS UnitId, l.quantity AS Quantity,
+                   i.item_type AS ItemType, i.execution_mode AS ExecutionMode,
+                   l.unit_id AS UnitId, l.quantity AS Quantity,
                    l.net_amount AS NetAmount, l.tax_amount AS TaxAmount,
                    l.total_amount AS TotalAmount
             FROM booking_lines l JOIN items i ON i.id = l.item_id
-            WHERE l.booking_id = @bookingId AND i.execution_mode = 'direct'
+            WHERE l.booking_id = @bookingId
             ORDER BY l.line_no
-            """, new { bookingId }, tx, cancellationToken: ct))).ToList();
+            """, new { bookingId }, tx, cancellationToken: ct)))
+            .Where(l => input.DirectSale || ItemExecutionModes.IsDirect(l.ExecutionMode))
+            .ToList();
         if (lines.Count == 0) return;
 
         foreach (var line in lines)
@@ -69,14 +77,15 @@ public sealed partial class PosRepository
             cancellationToken: ct));
 
         Guid? stockDocumentLineId = null;
+        var stockWarehouseId = Guid.Empty;
         var cost = 0m;
         if (line.ItemType == "GOODS")
-            (stockDocumentLineId, cost) = await IssueStockAsync(connection, tx, input, line,
-                docNo, userId, allowNegative, ct);
+            (stockDocumentLineId, cost, stockWarehouseId) = await IssueStockAsync(connection, tx,
+                input, line, docNo, userId, allowNegative, ct);
 
         var journalEntryId = cost > 0
-            ? await PostCostAsync(connection, tx, line.CategoryId, input.BranchId, docNo, cost,
-                executionId, userId, ct)
+            ? await PostCostAsync(connection, tx, line.CategoryId, input.BranchId, input.DocDate,
+                docNo, cost, executionId, userId, ct)
             : (Guid?)null;
         var revenueEntryId = await PostRevenueAsync(connection, tx, input, line, docNo,
             executionLineId, userId, ct);
@@ -112,9 +121,13 @@ public sealed partial class PosRepository
         await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE booking_lines
             SET delivered_qty = delivered_qty + @quantity,
-                reserved_qty = GREATEST(reserved_qty - @quantity, 0)
+                reserved_qty = GREATEST(reserved_qty - @quantity, 0),
+                warehouse_id = COALESCE(@warehouseId, warehouse_id)
             WHERE id = @id
-            """, new { quantity = line.Quantity, id = line.BookingLineId }, tx,
-            cancellationToken: ct));
+            """, new
+            {
+                quantity = line.Quantity, id = line.BookingLineId,
+                warehouseId = stockWarehouseId == Guid.Empty ? (Guid?)null : stockWarehouseId
+            }, tx, cancellationToken: ct));
     }
 }
