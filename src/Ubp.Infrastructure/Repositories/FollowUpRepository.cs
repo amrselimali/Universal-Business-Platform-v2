@@ -11,10 +11,10 @@ public interface IFollowUpRepository
     Task<Guid> CreateAsync(Guid id, FollowUpInput input, Guid userId,
         CancellationToken ct = default);
     Task<FollowUp?> GetAsync(Guid id, CancellationToken ct = default);
-    Task<IReadOnlyList<FollowUp>> ListAsync(string? status, DateTime? from, DateTime? to, int limit,
-        CancellationToken ct = default);
-    Task<IReadOnlyList<CustomerGapRow>> FindIdleCustomersAsync(string[] codes, Guid? branchId,
-        IReadOnlyCollection<Guid> branchIds, DateTime from, DateTime to, int limit,
+    Task<IReadOnlyList<FollowUp>> ListAsync(string? status, DateTime? from, DateTime? to,
+        string? customerSearch, int limit, CancellationToken ct = default);
+    Task<IReadOnlyList<CustomerGapRow>> FindIdleCustomersAsync(string? codeFrom, string? codeTo,
+        Guid? branchId, IReadOnlyCollection<Guid> branchIds, int limit,
         CancellationToken ct = default);
     Task<FollowUp> CompleteAsync(Guid id, int version, Guid userId,
         CancellationToken ct = default);
@@ -77,28 +77,31 @@ public sealed class FollowUpRepository : IFollowUpRepository
     }
 
     public async Task<IReadOnlyList<FollowUp>> ListAsync(string? status, DateTime? from,
-        DateTime? to, int limit, CancellationToken ct = default)
+        DateTime? to, string? customerSearch, int limit, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         return (await connection.QueryAsync<FollowUp>(new CommandDefinition(Select + """
              WHERE (@status::varchar IS NULL OR f.status = @status::varchar)
                AND (@from::date IS NULL OR f.due_at::date >= @from::date)
                AND (@to::date IS NULL OR f.due_at::date <= @to::date)
+               AND (@customerSearch::text IS NULL OR @customerSearch = ''
+                    OR c.search_text LIKE '%' || normalize_search(@customerSearch) || '%')
              ORDER BY f.status = 'pending' DESC, f.due_at
              LIMIT @limit
             """, new
         {
-            status, from = from?.Date, to = to?.Date, limit = Math.Clamp(limit, 1, 500)
+            status, from = from?.Date, to = to?.Date, customerSearch,
+            limit = Math.Clamp(limit, 1, 500)
         }, cancellationToken: ct))).ToList();
     }
 
     /// <summary>
-    /// عملاء نشطون بلا حجز ولا موعد ولا متابعة داخل الفترة، مع آخر نشاط مسجّل لكل عميل.
-    /// تُطبَّق فلاتر: أكواد العملاء (اختياري)، الفرع، ونطاق فروع المستخدم.
+    /// عملاء نشطون بلا حجز ولا موعد ولا متابعة **من اليوم إلى ما لا نهاية**، مع آخر نشاط مسجّل.
+    /// أكواد العملاء تُفلتر بنطاق (من كود → إلى كود)، ويُطبَّق فلتر الفرع ونطاق فروع المستخدم.
     /// </summary>
-    public async Task<IReadOnlyList<CustomerGapRow>> FindIdleCustomersAsync(string[] codes,
-        Guid? branchId, IReadOnlyCollection<Guid> branchIds, DateTime from, DateTime to,
-        int limit, CancellationToken ct = default)
+    public async Task<IReadOnlyList<CustomerGapRow>> FindIdleCustomersAsync(string? codeFrom,
+        string? codeTo, Guid? branchId, IReadOnlyCollection<Guid> branchIds, int limit,
+        CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         var rows = await connection.QueryAsync<CustomerGapRow>(new CommandDefinition("""
@@ -136,27 +139,27 @@ public sealed class FollowUpRepository : IFollowUpRepository
               AND (@branchId::uuid IS NULL OR c.branch_id = @branchId::uuid)
               AND (@allBranches OR c.branch_id IS NULL
                    OR c.branch_id = ANY(@branchIds))
-              AND (cardinality(@codes::text[]) = 0 OR upper(c.code) = ANY(@codes::text[]))
+              AND (@codeFrom::text IS NULL OR upper(c.code) >= upper(@codeFrom::text))
+              AND (@codeTo::text IS NULL OR upper(c.code) <= upper(@codeTo::text))
               AND NOT EXISTS (
                   SELECT 1 FROM bookings b
                   WHERE b.customer_id = c.id AND b.status NOT IN ('cancelled', 'reversed')
-                    AND COALESCE(b.starts_at::date, b.booking_date)
-                        BETWEEN @from::date AND @to::date)
+                    AND COALESCE(b.starts_at::date, b.booking_date) >= current_date)
               AND NOT EXISTS (
                   SELECT 1 FROM appointments a
                   WHERE a.customer_id = c.id AND a.status <> 'cancelled'
-                    AND a.starts_at::date BETWEEN @from::date AND @to::date)
+                    AND a.starts_at::date >= current_date)
               AND NOT EXISTS (
                   SELECT 1 FROM follow_ups f
-                  WHERE f.customer_id = c.id
-                    AND f.due_at::date BETWEEN @from::date AND @to::date)
+                  WHERE f.customer_id = c.id AND f.due_at::date >= current_date)
             ORDER BY COALESCE(lf.last_at, lb.last_at, la.last_at) ASC NULLS FIRST, c.name_ar
             LIMIT @take
             """, new
         {
-            codes = codes ?? Array.Empty<string>(), branchId,
-            allBranches = branchIds.Count == 0, branchIds = branchIds.ToArray(),
-            from = from.Date, to = to.Date, take = Math.Clamp(limit, 1, 500)
+            codeFrom = string.IsNullOrWhiteSpace(codeFrom) ? null : codeFrom.Trim(),
+            codeTo = string.IsNullOrWhiteSpace(codeTo) ? null : codeTo.Trim(),
+            branchId, allBranches = branchIds.Count == 0, branchIds = branchIds.ToArray(),
+            take = Math.Clamp(limit, 1, 1000)
         }, cancellationToken: ct));
         return rows.ToList();
     }

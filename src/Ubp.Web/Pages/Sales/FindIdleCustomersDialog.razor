@@ -7,9 +7,11 @@
     <DialogContent>
         <MudText Typo="Typo.caption" Class="ubp-muted">@T.T("sales.idle_hint")</MudText>
         <div class="ubp-form-grid mt-2">
-            <MudTextField @bind-Value="_codes" Label="@T.T("sales.idle_codes")"
-                          HelperText="@T.T("sales.idle_codes_hint")" Variant="Variant.Outlined"
-                          MaxLength="500" />
+            <MudTextField @bind-Value="_codeFrom" Label="@T.T("sales.idle_code_from")"
+                          HelperText="@T.T("sales.idle_code_hint")" Variant="Variant.Outlined"
+                          MaxLength="50" />
+            <MudTextField @bind-Value="_codeTo" Label="@T.T("sales.idle_code_to")"
+                          Variant="Variant.Outlined" MaxLength="50" />
             <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
                        Variant="Variant.Outlined" Clearable="true"
                        ValueChanged="@(v => _branchId = v)">
@@ -18,10 +20,6 @@
                     <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
                 }
             </MudSelect>
-            <MudDatePicker @bind-Date="_from" Label="@T.T("sales.idle_from")"
-                           Variant="Variant.Outlined" />
-            <MudDatePicker @bind-Date="_to" Label="@T.T("sales.idle_to")"
-                           Variant="Variant.Outlined" />
         </div>
         <div class="ubp-toolbar mt-2">
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SearchAsync"

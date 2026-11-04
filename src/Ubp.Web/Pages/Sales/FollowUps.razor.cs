@@ -24,8 +24,8 @@ public partial class FollowUps
     private DateTime? _from = DateTime.Today;
     private DateTime? _to = DateTime.Today;
     private string? _status;
+    private string? _customerSearch;
     private bool _busy;
-    private bool _canBook;
 
     protected override string ScreenCode => ScreenCodes.FollowUps;
 
@@ -35,14 +35,12 @@ public partial class FollowUps
             new PageRequest { Page = 1, PageSize = 50 }, null)).Items;
         _input.CustomerId = _customers.FirstOrDefault()?.Id ?? Guid.Empty;
         _branches = await BranchApi.OptionsAsync(Actor!);
-        _canBook = await PermissionService.HasAsync(Actor!, ScreenCodes.SalesAppointments,
-            ActionCodes.Create);
         await ReloadAsync();
     }
 
     private async Task ReloadAsync() =>
         await RunAsync(async () =>
-            _items = await FollowUpApi.ListAsync(Actor!, _status, _from, _to));
+            _items = await FollowUpApi.ListAsync(Actor!, _status, _from, _to, _customerSearch));
 
     private async Task OnStatusChanged(string? status)
     {

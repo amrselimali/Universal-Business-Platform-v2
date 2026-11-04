@@ -48,6 +48,11 @@ else
 
     <MudPaper Elevation="0" Class="ubp-card">
         <div class="ubp-toolbar">
+            <MudTextField @bind-Value="_customerSearch" Label="@T.T("sales.followup_customer_filter")"
+                          Placeholder="@T.T("sales.customer_search_hint")" Immediate="true"
+                          DebounceInterval="350" OnDebounceIntervalElapsed="ReloadAsync"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
             <MudDatePicker @bind-Date="_from" Label="@T.T("sales.followup_due_from")"
                            Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="yyyy-MM-dd"
                            Editable="true" />
@@ -93,7 +98,7 @@ else
                         <MudButton Size="Size.Small" Variant="Variant.Outlined"
                                    OnClick="@(() => CompleteAsync(context))">@T.T("sales.followup_complete")</MudButton>
                     }
-                    @if (_canBook)
+                    @if (Can(ActionCodes.Create))
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
                                    Disabled="_busy" OnClick="@(() => BookAsync(context))">

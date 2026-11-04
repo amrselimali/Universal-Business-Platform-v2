@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-11-04 — Follow-ups: code-range idle search, customer-name filter, booking action on every row
+
+### Changed
+- **عملاء بلا حجز أو متابعة** (the idle-customer search) now filters with a **code range** («من كود» →
+  «إلى كود», empty = all) instead of a free list of codes, and **no date range**: it always looks from
+  **today to the future** — a customer appears when they have **no booking, no appointment and no
+  follow-up from today onwards** (older activity no longer hides them) and the consolidated cell keeps
+  their last booking/appointment/follow-up with the note.
+- The follow-ups table gained a **customer search filter** (name/code/phone, via `customer_search`),
+  next to the due-date range and status filters.
+- **«حجز موعد جديد»** is now shown next to **every** follow-up row (and inside the search dialog),
+  gated by the follow-ups `CREATE` permission instead of the appointments screen permission that used
+  to hide it.
+
 ## 2026-11-04 — Follow-ups: notes column, due-date filter, quick actions and “idle customers” search
 
 ### Added

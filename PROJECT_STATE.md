@@ -1,5 +1,15 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-04 — Follow-ups: code-range idle search + name filter + booking action everywhere
+
+- Idle-customer search takes a **code range** (`codeFrom` → `codeTo`) and has **no date range**: it
+  returns active customers with no booking/appointment/follow-up **from today onwards**, together with
+  their last activity. Branch scope stays on the server.
+- Follow-ups list supports a **customer search** (name/code/phone) in addition to the due-date range
+  and status filters.
+- «حجز موعد جديد» appears on every row next to the follow-up, gated by the follow-ups `CREATE`
+  permission. Tests: `FollowUpTests` (7). Full suite (333) passes.
+
 ## 2026-11-04 — Follow-ups screen: notes, due filter, quick actions, idle-customer search
 
 - `follow_ups` list shows the note column and filters by `due_at` range (default today → today).

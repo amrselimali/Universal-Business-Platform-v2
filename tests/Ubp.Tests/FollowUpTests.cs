@@ -78,8 +78,8 @@ public sealed class FollowUpTests : IClassFixture<TestDb>
         });
         await _db.FollowUps().CompleteAsync(actor, past.Id, past.Version);
 
-        var rows = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code, null,
-            DateTime.Today, DateTime.Today);
+        var rows = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
+            customer.Code, null);
         var row = Assert.Single(rows.Where(r => r.CustomerId == customer.Id));
         Assert.NotNull(row.LastFollowUpAt);
         Assert.Equal("متابعة قديمة", row.LastFollowUpNote);
@@ -91,8 +91,8 @@ public sealed class FollowUpTests : IClassFixture<TestDb>
             CustomerId = customer.Id, Channel = FollowUpChannels.WhatsApp,
             DueAt = DateTimeOffset.Now.AddHours(2), Note = "اليوم"
         });
-        var after = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code, null,
-            DateTime.Today, DateTime.Today);
+        var after = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
+            customer.Code, null);
         Assert.DoesNotContain(after, r => r.CustomerId == customer.Id);
     }
 
@@ -110,9 +110,35 @@ public sealed class FollowUpTests : IClassFixture<TestDb>
         });
         await _db.BookingService().ConfirmAsync(actor, booking.Id);
 
-        var rows = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code, null,
-            DateTime.Today, DateTime.Today.AddDays(30));
+        var rows = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
+            customer.Code, null);
         Assert.DoesNotContain(rows, r => r.CustomerId == customer.Id);
+    }
+
+    [Fact]
+    public async Task Idle_search_ignores_old_activity_and_filters_by_the_code_range()
+    {
+        var actor = await _db.AdminActorAsync();
+        var (branch, warehouse, item, customer) = await SetupAsync("6");
+
+        // حجز قديم (قبل اليوم) لا يمنع ظهور العميل في نتيجة «بلا نشاط مستقبلي».
+        var pastBooking = await _db.BookingService().CreateAsync(actor, new BookingInput
+        {
+            BranchId = branch, CustomerId = customer.Id, BookingDate = DateTime.Today.AddDays(-40),
+            Lines = { new BookingLineInput { ItemId = item.Id, UnitId = item.BaseUnitId,
+                WarehouseId = warehouse, Quantity = 1, UnitPrice = 10 } }
+        });
+        Assert.NotNull(pastBooking);
+
+        var rows = await _db.FollowUps().FindIdleCustomersAsync(actor, customer.Code,
+            customer.Code, null);
+        var row = Assert.Single(rows.Where(r => r.CustomerId == customer.Id));
+        Assert.NotNull(row.LastBookingAt);
+
+        // خارج نطاق الأكواد لا يظهر.
+        var outside = await _db.FollowUps().FindIdleCustomersAsync(actor, "ZZZ-9999", "ZZZ-9999",
+            null);
+        Assert.DoesNotContain(outside, r => r.CustomerId == customer.Id);
     }
 
     [Fact]
@@ -126,7 +152,7 @@ public sealed class FollowUpTests : IClassFixture<TestDb>
         var later = await _db.FollowUps().CreateAsync(actor, new FollowUpInput
         { CustomerId = customer.Id, DueAt = DateTimeOffset.Now.AddDays(10), Note = "later" });
 
-        var rows = await _db.FollowUps().ListAsync(actor, null, DateTime.Today, DateTime.Today);
+        var rows = await _db.FollowUps().ListAsync(actor, null, DateTime.Today, DateTime.Today, null);
         Assert.Contains(rows, f => f.Id == today.Id);
         Assert.DoesNotContain(rows, f => f.Id == later.Id);
         Assert.Contains(rows, f => f.Id == today.Id && f.Note == "today");
