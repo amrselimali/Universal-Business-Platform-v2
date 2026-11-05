@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-11-05 — Treasury opening no longer double-adds the treasury opening balance field
+
+### Fixed
+- فرق 7,000,000 في «أول المدة» لخزينة الفرع كان سببه إضافة حقل **الرصيد الافتتاحي للخزينة**
+  (`treasuries.opening_balance`) فوق السندات المرحّلة، مع أن هذا الرصيد **مرحّل أصلاً كقيد افتتاحي**
+  في الأستاذ (ظهوره في تحليل الفروق: مستندات 5,711,118.99 مقابل أستاذ -1,288,881.01).
+- رصيد الخزينة أصبح = **سنداتها المرحّلة فقط** (قبض/صرف/تحويلات) بدون إعادة إضافة حقل الافتتاحي.
+
 ## 2026-11-05 — Fix all-accounts reconciliation, allow account-type edit, posting-center account analysis
 
 ### Fixed

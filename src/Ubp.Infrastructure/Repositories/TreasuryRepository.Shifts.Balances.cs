@@ -30,7 +30,7 @@ public sealed partial class TreasuryRepository
             -- رصيد الخزينة = افتتاحيها + سنداتها المرحّلة فقط (وليس رصيد الحساب المشترك
             -- مع خزائن أخرى مثل الخزينة الرئيسية).
             LEFT JOIN LATERAL (
-                SELECT t.opening_balance + SUM(CASE
+                SELECT SUM(CASE
                            WHEN v.treasury_id = t.id AND v.voucher_type = 'receipt'
                                THEN v.total_amount
                            WHEN v.treasury_id = t.id AND v.voucher_type = 'payment'

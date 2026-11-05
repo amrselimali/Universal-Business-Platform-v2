@@ -78,7 +78,7 @@ public sealed partial class TreasuryRepository
                    CASE WHEN @isOpen THEN 'open' ELSE 'draft' END
             FROM treasuries t
             LEFT JOIN LATERAL (
-                SELECT t.opening_balance + SUM(CASE
+                SELECT SUM(CASE
                            WHEN v.treasury_id = t.id AND v.voucher_type = 'receipt'
                                THEN v.total_amount
                            WHEN v.treasury_id = t.id AND v.voucher_type = 'payment'
@@ -119,7 +119,7 @@ public sealed partial class TreasuryRepository
                        + COALESCE(carry.total, 0) AS opening
                 FROM treasuries t
                 LEFT JOIN LATERAL (
-                    SELECT t.opening_balance + SUM(CASE
+                    SELECT SUM(CASE
                                WHEN v.treasury_id = t.id AND v.voucher_type = 'receipt'
                                    THEN v.total_amount
                                WHEN v.treasury_id = t.id AND v.voucher_type = 'payment'
