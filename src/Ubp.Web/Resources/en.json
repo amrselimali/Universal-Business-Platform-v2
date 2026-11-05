@@ -1240,6 +1240,7 @@
   "treasury.denomination": "Denomination",
   "treasury.denomination_total": "Denomination total",
   "treasury.doc_no": "Voucher no.",
+  "expenses.handover_commission": "Cash handover commission",
   "treasury.settings_menu": "Treasury settings (over/short + collection fee)",
   "treasury.collection_fee_percent": "Collection fee %",
   "treasury.collection_fee_account": "Collection fee account",

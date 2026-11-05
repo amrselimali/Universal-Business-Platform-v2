@@ -48,7 +48,7 @@ public sealed partial class TreasuryRepository
                        0::numeric AS Collected,
                        0::numeric AS Revenue,
                        SUM(el.quantity) AS Quantity, SUM(el.meter_units) AS MeterUnits,
-                       MAX(e.name_ar) AS EmployeeName
+                       e.name_ar AS EmployeeName
                 FROM booking_executions be
                 JOIN booking_execution_lines el ON el.execution_id = be.id
                 JOIN bookings b ON b.id = be.booking_id
@@ -57,16 +57,11 @@ public sealed partial class TreasuryRepository
                 WHERE be.branch_id = @branchId AND be.status = 'posted'
                   AND be.created_at >= @openedAt
                   AND (@until::timestamptz IS NULL OR be.created_at <= @until::timestamptz)
-                GROUP BY c.name_ar
+                GROUP BY be.id, c.name_ar, e.name_ar
             )
-            SELECT CustomerName, MAX(TreasuryType) AS TreasuryType,
-                   SUM(Collected) AS Collected, SUM(Revenue) AS Revenue,
-                   SUM(Quantity) AS Quantity, SUM(MeterUnits) AS MeterUnits,
-                   MAX(EmployeeName) AS EmployeeName
-            FROM (SELECT * FROM receipts
-                  UNION ALL SELECT * FROM revenues
-                  UNION ALL SELECT * FROM executions) x
-            GROUP BY CustomerName
+            SELECT * FROM receipts
+            UNION ALL SELECT * FROM revenues
+            UNION ALL SELECT * FROM executions
             ORDER BY CustomerName
             """, args, cancellationToken: ct))).ToList();
 
@@ -224,6 +219,19 @@ public sealed partial class TreasuryRepository
               AND (@until::timestamptz IS NULL OR v.created_at <= @until::timestamptz)
               AND t.collection_fee_percent > 0
             GROUP BY t.treasury_type, t.name_ar, t.collection_fee_percent
+            """, args, cancellationToken: ct)));
+
+        // عمولة تسليم النقدية (0082): مصروف إضافي في الوردية.
+        report.Expenses.AddRange(await connection.QueryAsync<ShiftExpenseRow>(new CommandDefinition("""
+            SELECT t.treasury_type AS TreasuryType, t.name_ar AS TreasuryName,
+                   h.commission_amount AS Amount, NULL::text AS ItemName, 0::numeric AS Quantity,
+                   0::numeric AS UnitPrice, 'عمولة تسليم نقدية' AS Description,
+                   'POSTED'::varchar AS Status
+            FROM cash_handovers h
+            JOIN treasuries t ON t.id = h.treasury_id
+            WHERE h.branch_id = @branchId AND h.commission_amount > 0
+              AND h.created_at >= @openedAt
+              AND (@until::timestamptz IS NULL OR h.created_at <= @until::timestamptz)
             """, args, cancellationToken: ct)));
 
         report.IdleCustomers = (await connection.QueryAsync<ShiftCustomerRow>(new CommandDefinition("""

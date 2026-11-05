@@ -105,7 +105,7 @@ public sealed partial class TreasuryRepository
                            THEN v.total_amount
                        ELSE 0 END), 0)
                    -- تسليم النقدية للحساب الوسيط يخفض نقدية الخزينة في الوردية (0080)
-                   - COALESCE((SELECT SUM(h.amount) FROM cash_handovers h
+                   - COALESCE((SELECT SUM(h.amount + h.commission_amount) FROM cash_handovers h
                                WHERE h.treasury_id = @treasuryId
                                  AND h.created_at >= @openedAt), 0)
             FROM vouchers v

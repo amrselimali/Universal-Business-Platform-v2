@@ -310,6 +310,8 @@ public sealed class CashHandover
     public string AccountCode { get; set; } = "";
     public string AccountName { get; set; } = "";
     public decimal Amount { get; set; }
+    /// <summary>عمولة التسليم (تُرحَّل على حساب عمولة الخزينة) — 0082.</summary>
+    public decimal CommissionAmount { get; set; }
     public DateTime DocDate { get; set; }
     public string? Notes { get; set; }
 }
@@ -320,6 +322,8 @@ public sealed class CashHandoverInput
     public Guid TreasuryId { get; set; }
     public Guid ClearingAccountId { get; set; }
     public decimal Amount { get; set; }
+    /// <summary>عمولة التسليم (اختيارية) — تُضاف لمصروفات الوردية وتُرحَّل على حساب عمولة الخزينة.</summary>
+    public decimal CommissionAmount { get; set; }
     public DateTime DocDate { get; set; } = DateTime.Today;
     public string? Notes { get; set; }
 }

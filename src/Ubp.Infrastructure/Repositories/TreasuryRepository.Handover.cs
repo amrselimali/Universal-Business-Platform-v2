@@ -15,6 +15,10 @@ public sealed partial class TreasuryRepository
         Guid userId, CancellationToken ct = default)
     {
         input.Amount = Math.Round(input.Amount, 2, MidpointRounding.AwayFromZero);
+        input.CommissionAmount = Math.Round(input.CommissionAmount, 2,
+            MidpointRounding.AwayFromZero);
+        if (input.CommissionAmount < 0)
+            throw new ValidationAppException("validation.payment_fee");
         if (input.Amount <= 0)
             throw new ValidationAppException("validation.voucher_amount");
         if (input.TreasuryId == Guid.Empty || input.ClearingAccountId == Guid.Empty)
@@ -41,6 +45,22 @@ public sealed partial class TreasuryRepository
             new(treasury.AccountId, 0, input.Amount)
         };
 
+        // عمولة التسليم: تُحمَّل على حساب عمولة تحصيل الخزينة وتُضاف على الخزينة (خصماً).
+        if (input.CommissionAmount > 0)
+        {
+            var feeAccount = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+                "SELECT collection_fee_account_id FROM treasuries WHERE id = @id",
+                new { id = input.TreasuryId }, tx, cancellationToken: ct));
+            if (feeAccount is null)
+                throw new ValidationAppException("validation.posting_account_missing",
+                    new Dictionary<string, string>
+                    {
+                        ["key"] = "collection_fee_account", ["module"] = "treasury"
+                    });
+            gl.Add(new JournalLine(feeAccount.Value, input.CommissionAmount, 0));
+            gl.Add(new JournalLine(treasury.AccountId, 0, input.CommissionAmount));
+        }
+
         await connection.ExecuteAsync(new CommandDefinition(
             "SELECT fn_assert_period_open(@docDate::date, @branchId, 'ACCOUNTING')",
             new { docDate = input.DocDate.Date, input.BranchId }, tx, cancellationToken: ct));
@@ -56,11 +76,12 @@ public sealed partial class TreasuryRepository
 
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO cash_handovers (id, branch_id, treasury_id, clearing_account_id, amount,
-                doc_date, notes, journal_entry_id, created_by)
-            VALUES (@id, @BranchId, @TreasuryId, @ClearingAccountId, @Amount, @docDate, @Notes,
-                    @entryId, @userId)
+                commission_amount, doc_date, notes, journal_entry_id, created_by)
+            VALUES (@id, @BranchId, @TreasuryId, @ClearingAccountId, @Amount, @CommissionAmount,
+                    @docDate, @Notes, @entryId, @userId)
             """, new { id, input.BranchId, input.TreasuryId, input.ClearingAccountId, input.Amount,
-                docDate = input.DocDate.Date, input.Notes, entryId, userId }, tx,
+                input.CommissionAmount, docDate = input.DocDate.Date, input.Notes, entryId,
+                userId }, tx,
             cancellationToken: ct));
 
         await tx.CommitAsync(ct);
@@ -76,6 +97,7 @@ public sealed partial class TreasuryRepository
                    t.code AS TreasuryCode, t.name_ar AS TreasuryName,
                    t.treasury_type AS TreasuryType, h.clearing_account_id AS ClearingAccountId,
                    a.code AS AccountCode, a.name_ar AS AccountName, h.amount AS Amount,
+                   h.commission_amount AS CommissionAmount,
                    h.doc_date AS DocDate, h.notes AS Notes
             FROM cash_handovers h
             JOIN treasuries t ON t.id = h.treasury_id

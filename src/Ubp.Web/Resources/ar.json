@@ -1240,6 +1240,7 @@
   "treasury.denomination": "الفئة",
   "treasury.denomination_total": "مجموع الفئات",
   "treasury.doc_no": "رقم السند",
+  "expenses.handover_commission": "عمولة تسليم النقدية",
   "treasury.settings_menu": "إعدادات الخزينة (زيادة/عجز + عمولة التحصيل)",
   "treasury.collection_fee_percent": "نسبة عمولة التحصيل %",
   "treasury.collection_fee_account": "حساب ترحيل عمولة التحصيل",

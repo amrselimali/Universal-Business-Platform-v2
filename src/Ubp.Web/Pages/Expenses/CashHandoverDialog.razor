@@ -28,6 +28,8 @@
                         </MudSelectItem>
                     }
                 </MudSelect>
+                <MudNumericField @bind-Value="_commission" Label="@T.T("expenses.handover_commission")"
+                                 Variant="Variant.Outlined" Min="0m" Format="N2" />
                 <MudTextField @bind-Value="_notes" Label="@T.T("common.notes")"
                               Variant="Variant.Outlined" MaxLength="500" />
             </div>
@@ -56,6 +58,7 @@
     private Guid _treasuryId;
     private Guid _clearingAccountId;
     private decimal _amount;
+    private decimal _commission;
     private string? _notes;
     private bool _busy;
     private bool _english;
@@ -96,6 +99,7 @@
             {
                 BranchId = BranchId, TreasuryId = _treasuryId,
                 ClearingAccountId = _clearingAccountId, Amount = _amount,
+                CommissionAmount = _commission,
                 DocDate = DateTime.Today, Notes = _notes
             });
             MudDialog.Close(DialogResult.Ok(true));
