@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-05 — Fix remaining GROUP BY error in treasury commission helper
+
+### Fixed
+- `CollectionFeeAsync` (تُستخدم في الإغلاق وعرض الوردية) كانت تجمع `SUM` مع عمود غير مجمَّع؛
+  أصبحت `SUM(...) * MAX(collection_fee_percent)` — آخر موضع بهذا الخطأ.
+
 ## 2026-11-05 — Fix HAVING GROUP BY error and expose commission fields
 
 ### Fixed

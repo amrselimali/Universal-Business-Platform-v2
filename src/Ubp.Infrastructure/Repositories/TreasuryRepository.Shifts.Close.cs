@@ -168,7 +168,7 @@ public sealed partial class TreasuryRepository
         NpgsqlTransaction? tx, Guid treasuryId, DateTimeOffset openedAt, DateTimeOffset? until,
         CancellationToken ct) =>
         await connection.ExecuteScalarAsync<decimal>(new CommandDefinition("""
-            SELECT COALESCE(ROUND(SUM(v.total_amount) * t.collection_fee_percent / 100, 2), 0)
+            SELECT COALESCE(ROUND(SUM(v.total_amount) * MAX(t.collection_fee_percent) / 100, 2), 0)
             FROM vouchers v
             JOIN treasuries t ON t.id = v.treasury_id
             WHERE t.id = @treasuryId AND v.voucher_type = 'receipt' AND v.status <> 'cancelled'
