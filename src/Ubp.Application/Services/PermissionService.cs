@@ -41,7 +41,8 @@ public sealed class PermissionService
         if (IsPostingAction(actionCode)) throw new ForbiddenException();
         if (IsReadOnlyAction(actionCode)) return;
         if (_shiftGate is null) return;
-        if (!await _shiftGate.HasOpenShiftAsync(actor.UserId, actor.CurrentBranchId, ct))
+        if (!await _shiftGate.HasOpenShiftAsync(actor.UserId, actor.CurrentBranchId,
+                actor.AllowedBranchIds, ct))
             throw new ValidationAppException("validation.shift_required");
     }
 

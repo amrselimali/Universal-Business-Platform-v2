@@ -30,7 +30,8 @@ public sealed class ShiftGateTests
     private sealed class FixedGate(bool open) : IShiftGate
     {
         public Task<bool> HasOpenShiftAsync(Guid userId, Guid? branchId,
-            CancellationToken ct = default) => Task.FromResult(open);
+            IReadOnlyCollection<Guid> branchIds, CancellationToken ct = default) =>
+            Task.FromResult(open);
     }
 
     private static PermissionService Build(bool openShift) =>

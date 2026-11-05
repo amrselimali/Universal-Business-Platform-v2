@@ -129,7 +129,17 @@
     {
         var actor = await UserContext.GetAsync();
         if (actor is null) return;
-        _preview = await Executions.GetPreviewAsync(actor, BookingLineId);
+        try
+        {
+            _preview = await Executions.GetPreviewAsync(actor, BookingLineId);
+        }
+        catch (AppException ex)
+        {
+            // مثل «لا يمكن التسجيل قبل فتح وردية»: رسالة واضحة بدل انهيار الحوار.
+            Snackbar.Add(T.T(ex.Code), Severity.Error);
+            MudDialog.Cancel();
+            return;
+        }
         _quantity = _preview.RemainingQty;
         // الأصناف المرتبطة بعدّاد: الأصل والوحدات إجباريان. يُحدَّد الأصل تلقائيًا عند وجود أصل واحد فقط.
         _meterAssetId = _preview.ItemIsMetered && _preview.MeterAssets.Count == 1

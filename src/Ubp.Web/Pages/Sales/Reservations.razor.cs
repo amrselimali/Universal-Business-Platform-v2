@@ -44,13 +44,17 @@ public partial class Reservations
 
     private async Task ExecuteAsync(ReservationRow row)
     {
-        var dialog = await Dialogs.ShowAsync<ExecutionDialog>(T.T("execution.title"),
-            new DialogParameters { ["BookingLineId"] = row.BookingLineId });
-        if ((await dialog.Result) is { Canceled: false })
+        try
         {
-            await RefreshAsync();
-            Snackbar.Add(T.T("execution.done"), Severity.Success);
+            var dialog = await Dialogs.ShowAsync<ExecutionDialog>(T.T("execution.title"),
+                new DialogParameters { ["BookingLineId"] = row.BookingLineId });
+            if ((await dialog.Result) is { Canceled: false })
+            {
+                await RefreshAsync();
+                Snackbar.Add(T.T("execution.done"), Severity.Success);
+            }
         }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
     }
 
     private async Task ExtendAsync(ReservationRow row)

@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-11-05 — Shift gate: no more crash on «تنفيذ» for reservation users
+
+### Fixed
+- «الخدمات المحجوزة» → «تنفيذ» was throwing a raw `validation.shift_required` from the execution
+  dialog constructor. The dialog now catches `AppException`, shows the clear message and closes,
+  so the screen keeps working instead of crashing.
+- Shift gate became branch-aware: an open shift is accepted when it belongs to **the branch**, to
+  **the user himself**, or to **any of the user's authorized branches** (data stays scoped to those
+  branches/warehouses), instead of only the session branch.
+- Tests: `ShiftBalancesTests` (3 — followed methods, per-device meters, gate acceptance rules);
+  `TreasuryShiftTests` back under the 300-line cap; full suite (356).
+
 ## 2026-11-05 — Shift opening balances per followed treasury/method, method editing, booking filters and reception-user linking
 
 ### Added

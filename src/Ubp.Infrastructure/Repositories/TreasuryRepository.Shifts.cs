@@ -167,16 +167,22 @@ public sealed partial class TreasuryRepository
     }
 
     public async Task<bool> HasOpenShiftAsync(Guid userId, Guid? branchId,
-        CancellationToken ct = default)
+        IReadOnlyCollection<Guid> branchIds = null!, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         return await connection.ExecuteScalarAsync<bool>(new CommandDefinition("""
             SELECT EXISTS (
-                SELECT 1 FROM cashier_shifts
-                WHERE status = 'open'
-                  AND ((@branchId::uuid IS NOT NULL AND branch_id = @branchId::uuid)
-                       OR (@branchId::uuid IS NULL AND user_id = @userId)))
-            """, new { userId, branchId }, cancellationToken: ct));
+                SELECT 1 FROM cashier_shifts s
+                WHERE s.status = 'open'
+                  AND (s.user_id = @userId
+                       OR (@branchId::uuid IS NOT NULL AND s.branch_id = @branchId::uuid)
+                       OR (coalesce(array_length(@branchIds::uuid[], 1), 0) > 0
+                           AND s.branch_id = ANY(@branchIds::uuid[]))))
+            """, new
+        {
+            userId, branchId,
+            branchIds = (branchIds ?? Array.Empty<Guid>()).ToArray()
+        }, cancellationToken: ct));
     }
 
     /// <summary>حفظ جدول الفئات النقدية للوردية المفتوحة (يستبدل السابق).</summary>

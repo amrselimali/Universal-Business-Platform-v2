@@ -1,5 +1,14 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-05 — Shift gate crash fix on reservation execution
+
+- `ExecutionDialog` (الخدمات المحجوزة → تنفيذ) catches `AppException` from the preview call:
+  shows the message (e.g. «لا يمكن التسجيل قبل فتح وردية للفرع») and closes instead of crashing.
+- `IShiftGate`/`HasOpenShiftAsync` is branch-aware: passes when a shift is open for the branch, for
+  the user, or for any of the user's authorized branches — data remains scoped to those branches
+  and warehouses.
+- Tests moved to `ShiftBalancesTests` (3) so `TreasuryShiftTests` stays < 300 lines; full suite (356).
+
 ## 2026-11-05 — Followed treasuries/methods in shift opening, method editing, booking filters, user-scope linking
 
 - Migration `0075`: `treasury_methods.follow_in_shift` (default true) + partial index.
