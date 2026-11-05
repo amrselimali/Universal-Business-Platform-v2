@@ -27,6 +27,20 @@ public sealed partial class TreasuryService
         return await _treasury.ListReviewItemsAsync(shiftId, ct);
     }
 
+    /// <summary>ترحيل الوردية للحسابات: تصبح «تحت المراجعة» ويُفعَّل اعتماد المراجعة — 0079.</summary>
+    public async Task PostShiftToAccountsAsync(ActorContext actor, Guid shiftId,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.Approve,
+            ct: ct);
+        var shift = await _treasury.GetShiftAsync(shiftId, ct) ?? throw new NotFoundAppException();
+        BranchScope.Ensure(actor, shift.BranchId);
+        if (!await _treasury.PostShiftAsync(shiftId, actor.UserId, ct))
+            throw new ValidationAppException("validation.shift_not_closed");
+        await _audit.WriteAsync(actor, "cashier_shifts", shiftId.ToString(), "UPDATE", null,
+            new { review_status = ShiftReviewStatuses.Pending }, ct);
+    }
+
     /// <summary>
     /// اعتماد مراجعة الوردية: يوزر محاسب يملك صلاحية APPROVE (تُمنح وقت تكويد المستخدم)
     /// يغلق دورة المراجعة على كل تسجيلات الوردية.

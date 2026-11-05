@@ -33,6 +33,8 @@ public sealed class Shift
     public decimal? Variance { get; set; }
     /// <summary>إجمالي تحصيلات الوردية: كل سندات القبض الصادرة خلالها أياً كان نوع الخزينة.</summary>
     public decimal ReceiptsTotal { get; set; }
+    /// <summary>مجموع أرصدة الخزائن المسجّلة في الوردية.</summary>
+    public decimal TreasuryBalance { get; set; }
     public string Status { get; set; } = ShiftStatuses.Open;
     public string? Notes { get; set; }
     public DateTimeOffset? ReopenedAt { get; set; }

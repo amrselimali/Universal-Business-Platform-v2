@@ -48,9 +48,8 @@ else
                 <MudTh>@T.T("treasury.opened_at")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.opening_cash")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.receipts_total")</MudTh>
-                <MudTh Align="Right">@T.T("treasury.expected_cash")</MudTh>
-                <MudTh Align="Right">@T.T("treasury.counted_cash")</MudTh>
-                <MudTh Align="Right">@T.T("treasury.variance")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.treasuries_balance")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.meters_balance")</MudTh>
                 <MudTh>@T.T("common.status")</MudTh>
                 <MudTh>@T.T("treasury.review_status")</MudTh>
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
@@ -62,13 +61,8 @@ else
                 <MudTd>@Fmt.DateTime(context.OpenedAt)</MudTd>
                 <MudTd Align="Right">@context.OpeningCash.ToString("N2")</MudTd>
                 <MudTd Align="Right">@context.ReceiptsTotal.ToString("N2")</MudTd>
-                <MudTd Align="Right">@context.ExpectedCash.ToString("N2")</MudTd>
-                <MudTd Align="Right">@(context.CountedCash?.ToString("N2") ?? "—")</MudTd>
-                <MudTd Align="Right">
-                    <MudText Color="@(context.Variance is < 0 ? Color.Error : Color.Default)">
-                        @(context.Variance?.ToString("N2") ?? "—")
-                    </MudText>
-                </MudTd>
+                <MudTd Align="Right">@context.TreasuryBalance.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.MeterBalance.ToString("N2")</MudTd>
                 <MudTd>
                     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                              Color="@(context.IsOpen ? Color.Warning : Color.Success)">
@@ -95,11 +89,20 @@ else
                         <MudButton Size="Size.Small" Variant="Variant.Outlined"
                                    OnClick="@(() => CloseAsync(context))">@T.T("treasury.close_shift")</MudButton>
                     }
-                    else if (context.IsPendingReview && Can(ActionCodes.Approve))
+                    else if (Can(ActionCodes.Approve))
                     {
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.PostAdd"
-                                   OnClick="@(() => ReviewAsync(context))">@T.T("treasury.post_shift")</MudButton>
+                        @if (!context.IsPendingReview)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.PostAdd"
+                                       OnClick="@(() => PostAsync(context))">@T.T("treasury.post_shift")</MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.FactCheck"
+                                       OnClick="@(() => ReviewAsync(context))">@T.T("treasury.approve_review")</MudButton>
+                        }
                     }
                 </MudTd>
             </RowTemplate>
@@ -163,6 +166,13 @@ else
             ShowSuccess("treasury.shift_closed");
         }
     }
+
+    private async Task PostAsync(Shift shift) => await RunAsync(async () =>
+    {
+        await Treasury.PostShiftToAccountsAsync(Actor!, shift.Id);
+        await ReloadAsync();
+        ShowSuccess("treasury.posted_review");
+    });
 
     private async Task ReviewAsync(Shift shift)
     {

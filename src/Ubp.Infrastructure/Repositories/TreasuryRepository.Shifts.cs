@@ -28,6 +28,7 @@ public sealed partial class TreasuryRepository
         public decimal? CountedCash { get; set; }
         public decimal? Variance { get; set; }
         public decimal ReceiptsTotal { get; set; }
+        public decimal TreasuryBalance { get; set; }
         public string Status { get; set; } = ShiftStatuses.Open;
         public string? Notes { get; set; }
         public DateTimeOffset? ReopenedAt { get; set; }
@@ -53,7 +54,9 @@ public sealed partial class TreasuryRepository
                            AND v.status <> 'cancelled'
                            AND v.created_at >= s.opened_at
                            AND (s.closed_at IS NULL OR v.created_at <= s.closed_at)), 0)
-                   AS ReceiptsTotal
+                   AS ReceiptsTotal,
+               COALESCE((SELECT SUM(COALESCE(c.counted_cash, c.expected_cash))
+                         FROM shift_cash_counts c WHERE c.shift_id = s.id), 0) AS TreasuryBalance
         FROM cashier_shifts s
         JOIN branches br ON br.id = s.branch_id
         LEFT JOIN treasuries t ON t.id = s.treasury_id
@@ -160,7 +163,7 @@ public sealed partial class TreasuryRepository
         OpeningCash = row.OpeningCash, CarriedBalance = row.CarriedBalance,
         ReviewBalance = row.ReviewBalance, MeterBalance = row.MeterBalance,
         ExpectedCash = row.ExpectedCash, CountedCash = row.CountedCash, Variance = row.Variance,
-        ReceiptsTotal = row.ReceiptsTotal,
+        ReceiptsTotal = row.ReceiptsTotal, TreasuryBalance = row.TreasuryBalance,
         Status = row.Status, Notes = row.Notes, ReopenedAt = row.ReopenedAt,
         ReopenReason = row.ReopenReason, ReviewStatus = row.ReviewStatus,
         AutoClosed = row.AutoClosed, ReviewedAt = row.ReviewedAt

@@ -49,6 +49,9 @@ public interface ITreasuryRepository : IShiftGate
     Task<bool> SetMeterReadingAsync(Guid assetId, decimal value, Guid userId,
         CancellationToken ct = default);
 
+    /// <summary>ترحيل الوردية للحسابات (تحويل حالتها إلى «تحت المراجعة») — 0079.</summary>
+    Task<bool> PostShiftAsync(Guid shiftId, Guid userId, CancellationToken ct = default);
+
     /// <summary>حفظ ملاحظات الوردية (0078).</summary>
     Task<bool> SaveShiftNotesAsync(Guid shiftId, string? notes, CancellationToken ct = default);
     /// <summary>حساب زيادة/عجز خاص بالخزينة يُستخدم عند اعتماد المحاسب — 0076.</summary>

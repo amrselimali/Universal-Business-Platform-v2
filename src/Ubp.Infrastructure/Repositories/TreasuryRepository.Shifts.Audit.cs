@@ -28,6 +28,16 @@ public sealed partial class TreasuryRepository
             ORDER BY i.doc_date, i.doc_no, i.entity_id
             """, new { shiftId }, cancellationToken: ct))).ToList();
 
+    /// <summary>ترحيل الوردية للحسابات: تعليمها «تحت المراجعة» حتى لو بلا بيانات — 0079.</summary>
+    public async Task<bool> PostShiftAsync(Guid shiftId, Guid userId, CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE cashier_shifts SET review_status = 'pending', updated_by = @userId
+            WHERE id = @shiftId AND status = 'closed'
+            """, new { shiftId, userId }, cancellationToken: ct)) > 0;
+    }
+
     /// <summary>
     /// اعتماد مراجعة الوردية بواسطة يوزر محاسب (صلاحية APPROVE على شاشة الورديات):
     /// يُرحّل فرق كل خزينة (زيادة/عجز) على حساب الخزينة المخصص أو الافتراضي، ويحوّل
