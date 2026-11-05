@@ -1236,6 +1236,7 @@
   "treasury.denomination": "Denomination",
   "treasury.denomination_total": "Denomination total",
   "treasury.doc_no": "Voucher no.",
+  "treasury.post_shift": "Post shift to accounts",
   "treasury.opening_period": "Opening balance",
   "treasury.open_date": "Opened on",
   "treasury.save_meter_readings": "Save actual readings",

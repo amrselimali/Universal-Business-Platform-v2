@@ -97,6 +97,54 @@ public sealed partial class TreasuryRepository
             """, new { shiftId, branchId = shift.BranchId, isOpen = shift.IsOpen },
             cancellationToken: ct));
 
+        // تصحيح «أول المدة» للورديات المفتوحة التي أُنشئت لقطتها متأخرة (0):
+        // أول المدة = رصيد الخزينة المرحّل الآن − حركة الوردية + تحصيلات الورديات غير المرحّلة.
+        if (shift.IsOpen)
+        {
+            await connection.ExecuteAsync(new CommandDefinition("""
+                UPDATE shift_cash_counts c
+                SET opening_cash = x.opening, expected_cash = x.opening
+                FROM (
+                    SELECT t.id AS treasury_id,
+                           COALESCE(gl.balance, 0) - COALESCE(mv.amount, 0)
+                           + COALESCE(carry.total, 0) AS opening
+                    FROM treasuries t
+                    LEFT JOIN LATERAL (
+                        SELECT SUM(l.debit - l.credit) AS balance
+                        FROM journal_entry_lines l
+                        JOIN journal_entries e ON e.id = l.entry_id AND e.branch_id = t.branch_id
+                        WHERE e.status = 'posted' AND l.account_id = t.account_id
+                    ) gl ON true
+                    LEFT JOIN LATERAL (
+                        SELECT SUM(CASE
+                                   WHEN v.treasury_id = t.id AND v.voucher_type = 'receipt'
+                                       THEN v.total_amount
+                                   WHEN v.treasury_id = t.id AND v.voucher_type = 'payment'
+                                       THEN -v.total_amount
+                                   WHEN v.treasury_id = t.id AND v.voucher_type = 'transfer'
+                                       THEN -(v.total_amount + v.fee_total)
+                                   WHEN v.to_treasury_id = t.id AND v.voucher_type = 'transfer'
+                                       THEN v.total_amount
+                                   ELSE 0 END) AS amount
+                        FROM vouchers v
+                        WHERE v.status <> 'cancelled' AND v.created_at >= @openedAt
+                          AND (v.treasury_id = t.id OR v.to_treasury_id = t.id)
+                    ) mv ON true
+                    LEFT JOIN LATERAL (
+                        SELECT SUM(c2.counted_cash) AS total
+                        FROM shift_cash_counts c2
+                        JOIN cashier_shifts s2 ON s2.id = c2.shift_id
+                        WHERE s2.branch_id = t.branch_id AND s2.review_status = 'pending'
+                          AND c2.status = 'draft' AND c2.treasury_id = t.id
+                    ) carry ON true
+                    WHERE t.branch_id = @branchId AND t.is_active
+                ) x
+                WHERE c.shift_id = @shiftId AND c.treasury_id = x.treasury_id
+                  AND c.status = 'open' AND c.counted_cash IS NULL
+                """, new { shiftId, branchId = shift.BranchId, openedAt = shift.OpenedAt },
+                cancellationToken: ct));
+        }
+
         report.CashCounts = (await QueryCashCountsAsync(connection, shiftId, null, ct)).ToList();
         if (shift.IsOpen)
         {

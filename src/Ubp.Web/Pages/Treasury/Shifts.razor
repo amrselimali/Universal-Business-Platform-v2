@@ -97,8 +97,9 @@ else
                     }
                     else if (context.IsPendingReview && Can(ActionCodes.Approve))
                     {
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
-                                   OnClick="@(() => ReviewAsync(context))">@T.T("treasury.review_shift")</MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.PostAdd"
+                                   OnClick="@(() => ReviewAsync(context))">@T.T("treasury.post_shift")</MudButton>
                     }
                 </MudTd>
             </RowTemplate>

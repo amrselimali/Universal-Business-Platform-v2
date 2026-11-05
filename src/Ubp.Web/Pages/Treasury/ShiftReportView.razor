@@ -32,7 +32,7 @@
     @T.T("treasury.revenue_value"): <b>@Report.RevenuesTotal.ToString("N2")</b>
 </MudText>
 
-<div class="text-center ubp-muted my-2">----------</div>
+<div class="my-2" style="width:100%;overflow:hidden;white-space:nowrap;color:#999;letter-spacing:1px;text-align:center">----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</div>
 
 <MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("expenses.title")</MudText>
 <MudTable Items="Report.Expenses" Dense="true" Elevation="0" Class="ubp-table">
@@ -57,7 +57,7 @@
     @T.T("accounting.total"): <b>@Report.ExpensesTotal.ToString("N2")</b>
 </MudText>
 
-<div class="text-center ubp-muted my-2">----------</div>
+<div class="my-2" style="width:100%;overflow:hidden;white-space:nowrap;color:#999;letter-spacing:1px;text-align:center">----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</div>
 
 <MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("treasury.meter_balance")</MudText>
 <MudTable Items="Report.Meters" Dense="true" Elevation="0" Class="ubp-table">
@@ -99,7 +99,7 @@
                Disabled="@_saving">@T.T("treasury.save_meter_readings")</MudButton>
 }
 
-<div class="text-center ubp-muted my-2">----------</div>
+<div class="my-2" style="width:100%;overflow:hidden;white-space:nowrap;color:#999;letter-spacing:1px;text-align:center">----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</div>
 
 <MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("treasury.cash_count")</MudText>
 <MudTable Items="Report.CashCounts" Dense="true" Elevation="0" Class="ubp-table">
@@ -136,7 +136,7 @@
     </RowTemplate>
 </MudTable>
 
-<div class="text-center ubp-muted my-2">----------</div>
+<div class="my-2" style="width:100%;overflow:hidden;white-space:nowrap;color:#999;letter-spacing:1px;text-align:center">----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</div>
 
 <MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("common.notes")</MudText>
 <MudTextField T="string" Value="Report.Notes" ValueChanged="OnNotesChanged"
