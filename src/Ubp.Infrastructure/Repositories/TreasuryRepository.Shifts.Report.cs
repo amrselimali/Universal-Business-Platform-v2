@@ -97,7 +97,8 @@ public sealed partial class TreasuryRepository
             ) gl ON true
             WHERE t.branch_id = @branchId AND t.is_active
             ON CONFLICT (shift_id, treasury_id) DO NOTHING
-            """, new { shiftId, branchId = shift.BranchId, isOpen = shift.IsOpen },
+            """, new { shiftId, branchId = shift.BranchId, isOpen = shift.IsOpen,
+                openedAt = shift.OpenedAt },
             cancellationToken: ct));
 
         // تصحيح «أول المدة» لكل وردية: الرصيد المرحّل بالحسابات وقت الفتح

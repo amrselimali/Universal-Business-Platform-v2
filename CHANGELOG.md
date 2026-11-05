@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-05 — Fix shift open error (missing openedAt parameter)
+
+### Fixed
+- خطأ `42703 column "openedat" does not exist` عند فتح/عرض الوردية: استعلام إنشاء صفوف عدّ النقدية
+  كان يستخدم `@openedAt` بدون تمريره؛ أُضيف الوسيط.
+
 ## 2026-11-05 — Opening = previous shift recorded closing per treasury
 
 ### Changed
