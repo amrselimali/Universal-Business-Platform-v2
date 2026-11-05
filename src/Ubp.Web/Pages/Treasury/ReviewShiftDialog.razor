@@ -35,7 +35,7 @@
     <DialogActions>
         <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConfirmAsync"
-                   Disabled="@(_busy || PendingCount == 0)">@T.T("treasury.approve_review")</MudButton>
+                   Disabled="@_busy">@T.T("treasury.approve_review")</MudButton>
     </DialogActions>
 </MudDialog>
 
