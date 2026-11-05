@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-11-05 — Cash handovers reduce the shift treasury cash
+
+### Fixed
+- تسليم النقدية إلى الحساب الوسيط (0080) أصبح **يخفض نقدية الخزينة داخل الوردية**:
+  يُخصم من حركة الخزينة المستخدمة في حساب النقد المتوقع (عرض وإغلاق الوردية)، إضافةً لظهوره
+  كسطر مصروف وترحيله على الحساب الوسيط.
+
 ## 2026-11-05 — Fix remaining GROUP BY error in treasury commission helper
 
 ### Fixed
