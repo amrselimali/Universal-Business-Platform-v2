@@ -215,9 +215,9 @@ public sealed partial class TreasuryRepository
         // عمولة التحصيل بنسبة الخزينة (0081): تدخل مصروفاً في الوردية.
         report.Expenses.AddRange(await connection.QueryAsync<ShiftExpenseRow>(new CommandDefinition("""
             SELECT t.treasury_type AS TreasuryType, t.name_ar AS TreasuryName,
-                   ROUND(SUM(v.total_amount) * t.collection_fee_percent / 100, 2) AS Amount,
+                   ROUND(SUM(v.total_amount) * MAX(t.collection_fee_percent) / 100, 2) AS Amount,
                    NULL::text AS ItemName, 0::numeric AS Quantity, 0::numeric AS UnitPrice,
-                   'عمولة تحصيل ' || t.collection_fee_percent || '%' AS Description,
+                   'عمولة تحصيل ' || MAX(t.collection_fee_percent) || '%' AS Description,
                    'POSTED'::varchar AS Status
             FROM vouchers v
             JOIN treasuries t ON t.id = v.treasury_id

@@ -120,7 +120,7 @@ public sealed partial class TreasuryRepository
         var fees = await connection.QueryAsync<(Guid TreasuryAccountId, Guid FeeAccountId,
             string TreasuryType, decimal Fee)>(new CommandDefinition("""
             SELECT t.account_id, t.collection_fee_account_id, t.treasury_type,
-                   ROUND(SUM(v.total_amount) * t.collection_fee_percent / 100, 2) AS fee
+                   ROUND(SUM(v.total_amount) * MAX(t.collection_fee_percent) / 100, 2) AS fee
             FROM shift_cash_counts c
             JOIN cashier_shifts s ON s.id = c.shift_id
             JOIN treasuries t ON t.id = c.treasury_id
@@ -130,8 +130,7 @@ public sealed partial class TreasuryRepository
                  AND (s.closed_at IS NULL OR v.created_at <= s.closed_at)
             WHERE c.shift_id = @shiftId AND t.collection_fee_percent > 0
               AND t.collection_fee_account_id IS NOT NULL
-            GROUP BY t.account_id, t.collection_fee_account_id, t.treasury_type,
-                     t.collection_fee_percent
+            GROUP BY t.account_id, t.collection_fee_account_id, t.treasury_type
             HAVING ROUND(SUM(v.total_amount) * t.collection_fee_percent / 100, 2) > 0
             """, new { shiftId }, tx, cancellationToken: ct));
 

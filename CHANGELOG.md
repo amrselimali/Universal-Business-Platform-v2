@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-05 — Fix GROUP BY error in shift commission query
+
+### Fixed
+- خطأ `42803 column t.collection_fee_percent must appear in the GROUP BY` عند عرض الوردية:
+  استُخدمت النسبة داخل `MAX()` في حساب مبلغ العمولة ووصفها، وأُدرجت أعمدة التجميع المطلوبة فقط.
+
 ## 2026-11-05 — Per-treasury collection commission (%) with linked posting account
 
 ### Added
