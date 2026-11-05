@@ -12,11 +12,13 @@ public sealed partial class StandardReportRepository
         CancellationToken ct = default)
     {
         const string sql = """
-            SELECT t.code AS Treasury, s.code AS ShiftCode, s.opened_at AS OpenedAt,
+            SELECT COALESCE(t.code, br.code) AS Treasury, s.code AS ShiftCode,
+                   s.opened_at AS OpenedAt,
                    s.closed_at AS ClosedAt, s.opening_cash AS Opening, s.expected_cash AS Expected,
                    s.counted_cash AS Counted, s.variance AS Variance, s.status AS Status
             FROM cashier_shifts s
-            JOIN treasuries t ON t.id = s.treasury_id
+            JOIN branches br ON br.id = s.branch_id
+            LEFT JOIN treasuries t ON t.id = s.treasury_id
             WHERE s.opened_at::date BETWEEN @from AND @to
               AND (@allBranches OR s.branch_id = ANY(@branchIds))
             ORDER BY s.opened_at DESC

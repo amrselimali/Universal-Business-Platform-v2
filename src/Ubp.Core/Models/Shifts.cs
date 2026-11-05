@@ -1,0 +1,182 @@
+namespace Ubp.Core.Models;
+
+public static class ShiftReviewStatuses
+{
+    public const string None = "none";
+    public const string Pending = "pending";
+    public const string Reviewed = "reviewed";
+}
+
+/// <summary>
+/// وردية على مستوى الفرع: تغطي كل شاشات التطبيق (لا خزينة واحدة)، وواحدة فقط
+/// مفتوحة لكل فرع، وتُغلق آلياً 5 صباحاً كل يوم (الترحيل 0074).
+/// </summary>
+public sealed class Shift
+{
+    public Guid Id { get; set; }
+    public Guid BranchId { get; set; }
+    public string? BranchName { get; set; }
+    public Guid? TreasuryId { get; set; }
+    public string? TreasuryCode { get; set; }
+    public string? TreasuryName { get; set; }
+    public Guid UserId { get; set; }
+    public string? Username { get; set; }
+    public string Code { get; set; } = "";
+    public DateTimeOffset OpenedAt { get; set; }
+    public DateTimeOffset? ClosedAt { get; set; }
+    public decimal OpeningCash { get; set; }
+    public decimal CarriedBalance { get; set; }
+    public decimal ReviewBalance { get; set; }
+    public decimal MeterBalance { get; set; }
+    public decimal ExpectedCash { get; set; }
+    public decimal? CountedCash { get; set; }
+    public decimal? Variance { get; set; }
+    public string Status { get; set; } = ShiftStatuses.Open;
+    public string? Notes { get; set; }
+    public DateTimeOffset? ReopenedAt { get; set; }
+    public string? ReopenReason { get; set; }
+    public string ReviewStatus { get; set; } = ShiftReviewStatuses.None;
+    public bool AutoClosed { get; set; }
+    public DateTimeOffset? ReviewedAt { get; set; }
+    public List<ShiftDenomination> Denominations { get; set; } = new();
+
+    public bool IsOpen => Status == ShiftStatuses.Open;
+    public bool IsPendingReview => ReviewStatus == ShiftReviewStatuses.Pending;
+}
+
+/// <summary>فتح وردية: الفرع فقط — الرصيد الافتتاحي يُحسب آلياً ولا يُدخل يدوياً.</summary>
+public sealed class ShiftInput
+{
+    public Guid BranchId { get; set; }
+    public string? Notes { get; set; }
+}
+
+/// <summary>لقطة أرصدة الافتتاح: كلها محسوبة من النظام للفرع، غير قابلة للتعديل.</summary>
+public sealed class ShiftOpeningBalances
+{
+    public Guid BranchId { get; set; }
+    /// <summary>الرصيد المرحل من حسابات خزائن الفرع في الأستاذ العام.</summary>
+    public decimal CarriedFromAccounts { get; set; }
+    /// <summary>قيمة تسجيلات الورديات المرحّلة للمراجعة لدى المحاسب (مسودات لم تُرحَّل بعد).</summary>
+    public decimal PendingReview { get; set; }
+    /// <summary>إجمالي قراءات عدادات الأجهزة للفرع.</summary>
+    public decimal MeterBalance { get; set; }
+    public int PendingReviewShifts { get; set; }
+
+    public decimal OpeningCash =>
+        Math.Round(CarriedFromAccounts + PendingReview, 2, MidpointRounding.AwayFromZero);
+}
+
+public sealed class ShiftDenominationInput
+{
+    public decimal Denomination { get; set; }
+    public int Count { get; set; }
+}
+
+public sealed class ShiftDenomination
+{
+    public Guid Id { get; set; }
+    public decimal Denomination { get; set; }
+    public int Count { get; set; }
+    public decimal Total => Math.Round(Denomination * Count, 2, MidpointRounding.AwayFromZero);
+}
+
+/// <summary>تقرير الوردية عند الإغلاق: كل تسجيلات الشيفت غير الملغاة (مسودة أو مرحّلة).</summary>
+public sealed class ShiftReport
+{
+    public Shift Shift { get; set; } = new();
+    public List<ShiftReportLine> Collections { get; set; } = new();
+    public List<ShiftReportLine> Revenues { get; set; } = new();
+    public List<ShiftMovementLine> Movements { get; set; } = new();
+    public List<ShiftCustomerRow> IdleCustomers { get; set; } = new();
+    public List<ShiftBookingRow> TomorrowBookings { get; set; } = new();
+    public List<ShiftAppointmentRow> TomorrowAppointments { get; set; } = new();
+    public List<ShiftReviewItem> ReviewItems { get; set; } = new();
+
+    public decimal CollectionsTotal => Sum(Collections);
+    public decimal RevenuesTotal => Sum(Revenues);
+    public decimal MovementInTotal =>
+        Math.Round(Movements.Where(m => m.Inflow).Sum(m => m.Amount), 2);
+    public decimal MovementOutTotal =>
+        Math.Round(Movements.Where(m => !m.Inflow).Sum(m => m.Amount), 2);
+    public int PendingReviewCount => ReviewItems.Count(i => i.Status == ShiftReviewStatuses.Pending);
+
+    private static decimal Sum(IEnumerable<ShiftReportLine> lines) =>
+        Math.Round(lines.Sum(l => l.Amount), 2, MidpointRounding.AwayFromZero);
+}
+
+public sealed class ShiftReportLine
+{
+    public Guid Id { get; set; }
+    public string? DocNo { get; set; }
+    public DateTime DocDate { get; set; }
+    public string? PartyName { get; set; }
+    public string? Description { get; set; }
+    public string Status { get; set; } = "draft";
+    public decimal Amount { get; set; }
+}
+
+
+public sealed class ShiftMovementLine
+{
+    public string? DocNo { get; set; }
+    public string DocType { get; set; } = "";
+    public DateTime DocDate { get; set; }
+    public string? TreasuryName { get; set; }
+    public string? ToTreasuryName { get; set; }
+    public string Status { get; set; } = "draft";
+    public string? PartyName { get; set; }
+    public decimal Amount { get; set; }
+    public bool Inflow { get; set; }
+}
+
+public sealed class ShiftCustomerRow
+{
+    public Guid CustomerId { get; set; }
+    public string Code { get; set; } = "";
+    public string NameAr { get; set; } = "";
+    public string? Phone { get; set; }
+    public DateTimeOffset? LastActivityAt { get; set; }
+    public string? LastActivity { get; set; }
+}
+
+public sealed class ShiftBookingRow
+{
+    public Guid Id { get; set; }
+    public string? DocNo { get; set; }
+    public string? CustomerName { get; set; }
+    public DateTime BookingDate { get; set; }
+    public DateTimeOffset? StartsAt { get; set; }
+    public string Status { get; set; } = "";
+    public decimal TotalAmount { get; set; }
+    public string? EmployeeName { get; set; }
+}
+
+public sealed class ShiftAppointmentRow
+{
+    public Guid Id { get; set; }
+    public string? EmployeeName { get; set; }
+    public string? CustomerName { get; set; }
+    public DateTimeOffset StartsAt { get; set; }
+    public DateTimeOffset EndsAt { get; set; }
+    public string Status { get; set; } = "";
+}
+
+/// <summary>تسجيل داخل الوردية حُصر عند الإغلاق ليراجعه يوزر محاسب.</summary>
+public sealed class ShiftReviewItem
+{
+    public Guid Id { get; set; }
+    public Guid ShiftId { get; set; }
+    public string ScreenCode { get; set; } = "";
+    public string EntityType { get; set; } = "";
+    public Guid EntityId { get; set; }
+    public string? DocNo { get; set; }
+    public DateTime? DocDate { get; set; }
+    public string? PartyName { get; set; }
+    public decimal Amount { get; set; }
+    public string DocStatus { get; set; } = "draft";
+    public string Status { get; set; } = ShiftReviewStatuses.Pending;
+    public DateTimeOffset? ReviewedAt { get; set; }
+    public string? ReviewedBy { get; set; }
+}
+

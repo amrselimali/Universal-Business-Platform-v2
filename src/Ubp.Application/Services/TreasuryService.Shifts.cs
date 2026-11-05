@@ -1,13 +1,14 @@
 using Npgsql;
 using Ubp.Core.Models;
-using Ubp.Core.Paging;
 using Ubp.Core.Results;
 using Ubp.Core.Security;
-using Ubp.Infrastructure.Repositories;
 
 namespace Ubp.Application.Services;
 
-/// <summary>الخزائن وطرق الدفع والسندات والورديات: صلاحيات + تحقق + تدقيق.</summary>
+/// <summary>
+/// الورديات (كل شاشات التطبيق وليس خزينة واحدة): صلاحيات + تحقق + تدقيق.
+/// الوردية للفرع، واحدة مفتوحة فقط، ورصيد الافتتاح محسوب غير قابل للتعديل (0074).
+/// </summary>
 public sealed partial class TreasuryService
 {
     public async Task<IReadOnlyList<Shift>> ListShiftsAsync(ActorContext actor, Guid? branchId,
@@ -17,18 +18,31 @@ public sealed partial class TreasuryService
         return await _treasury.ListShiftsAsync(branchId, limit, ct);
     }
 
-    public async Task<Shift?> GetOpenShiftAsync(ActorContext actor, Guid treasuryId,
+    public async Task<Shift?> GetOpenShiftAsync(ActorContext actor, Guid branchId,
         CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.View, ct: ct);
-        return await _treasury.GetOpenShiftAsync(treasuryId, ct);
+        BranchScope.Ensure(actor, branchId);
+        return await _treasury.GetOpenShiftAsync(branchId, ct);
+    }
+
+    /// <summary>أرصدة فتح الوردية للفرع: كلها محسوبة ويُعرض الرقم إجبارياً بلا تعديل.</summary>
+    public async Task<ShiftOpeningBalances> GetOpeningBalancesAsync(ActorContext actor,
+        Guid branchId, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.View, ct: ct);
+        BranchScope.Ensure(actor, branchId);
+        return await _treasury.GetShiftOpeningBalancesAsync(branchId, ct);
     }
 
     public async Task<Shift> OpenShiftAsync(ActorContext actor, ShiftInput input,
         CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.Open, ct: ct);
+        if (input.BranchId == Guid.Empty)
+            throw new ValidationAppException("validation.required_fields");
         BranchScope.Ensure(actor, input.BranchId);
+
         var id = Guid.CreateVersion7();
         try
         {
@@ -41,21 +55,50 @@ public sealed partial class TreasuryService
         return shift;
     }
 
-    /// <summary>إغلاق وردية: الفرق (زيادة/عجز) يُرحّل ويُدوَّن في التدقيق.</summary>
-    public async Task<Shift> CloseShiftAsync(ActorContext actor, Guid shiftId, decimal countedCash,
-        CancellationToken ct = default)
+    /// <summary>
+    /// إغلاق وردية: يُعرض تقرير الوردية أولاً، ثم يُرحّل كل ما سُجّل للمراجعة.
+    /// countedCash = null يعني إغلاقاً آلياً (5 صباحاً) بمطابقة المتوقع.
+    /// </summary>
+    public async Task<Shift> CloseShiftAsync(ActorContext actor, Guid shiftId,
+        decimal? countedCash, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.Close, ct: ct);
         Shift shift;
         try
         {
-            shift = await _treasury.CloseShiftAsync(shiftId, countedCash, actor.UserId, ct);
+            shift = await _treasury.CloseShiftAsync(shiftId, countedCash, actor.UserId,
+                autoClosed: false, ct);
         }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
 
-        await _audit.WriteAsync(actor, "cashier_shifts", shiftId.ToString(), "UPDATE",
-            null, new { shift.Status, shift.ExpectedCash, shift.CountedCash, shift.Variance }, ct);
+        await _audit.WriteAsync(actor, "cashier_shifts", shiftId.ToString(), "UPDATE", null,
+            new
+            {
+                shift.Status, shift.ExpectedCash, shift.CountedCash, shift.Variance,
+                shift.ReviewStatus
+            }, ct);
         return shift;
+    }
+
+    /// <summary>إغلاق آلي لكل وردية تجاوزت الخامسة صباحاً (يستدعيه العامل الخلفي).</summary>
+    public async Task<int> AutoCloseAsync(DateTimeOffset cutoff, CancellationToken ct = default)
+    {
+        var due = await _treasury.ListShiftsDueForAutoCloseAsync(cutoff, ct);
+        var closed = 0;
+        foreach (var shift in due)
+        {
+            try
+            {
+                await _treasury.CloseShiftAsync(shift.Id, countedCash: null, shift.UserId,
+                    autoClosed: true, ct);
+                closed++;
+            }
+            catch (AppException)
+            {
+                // وردية تغيّرت حالتها بين القراءة والإغلاق — تُترك للدورة التالية.
+            }
+        }
+        return closed;
     }
 
     public async Task SaveDenominationsAsync(ActorContext actor, Guid shiftId,
@@ -95,3 +138,4 @@ public sealed partial class TreasuryService
         return shift;
     }
 }
+

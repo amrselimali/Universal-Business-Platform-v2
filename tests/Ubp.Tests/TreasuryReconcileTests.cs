@@ -73,14 +73,13 @@ public sealed class TreasuryReconcileTests : IClassFixture<TestDb>
         var service = _db.TreasuryService();
         var f = await TreasuryFixtures.CreateAsync(_db, "R3");
 
-        var shift = await service.OpenShiftAsync(actor, new ShiftInput
-        { BranchId = f.Branch, TreasuryId = f.TreasuryId, OpeningCash = 500 });
+        var shift = await service.OpenShiftAsync(actor, new ShiftInput { BranchId = f.Branch });
 
         var receipt = await service.CreateVoucherAsync(actor, TreasuryFixtures.Receipt(f,
             new VoucherLineInput { TreasuryMethodId = f.CashMethod, Amount = 300 }));
         await service.PostVoucherAsync(actor, receipt.Id);
 
-        var closed = await service.CloseShiftAsync(actor, shift.Id, 790);
+        var closed = await service.CloseShiftAsync(actor, shift.Id, 290);
         Assert.Equal(-10m, closed.Variance);
 
         var reopened = await service.ReopenShiftAsync(actor, shift.Id, "إعادة عدّ النقد");
@@ -100,7 +99,7 @@ public sealed class TreasuryReconcileTests : IClassFixture<TestDb>
             Assert.True(original.IsReversed);
         }
 
-        var reclosed = await service.CloseShiftAsync(actor, shift.Id, 800);
+        var reclosed = await service.CloseShiftAsync(actor, shift.Id, 300);
         Assert.Equal(ShiftStatuses.Closed, reclosed.Status);
         Assert.Equal(0m, reclosed.Variance);
     }

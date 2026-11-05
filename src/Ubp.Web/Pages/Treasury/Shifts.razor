@@ -37,7 +37,7 @@ else
                   RowsPerPage="25" Class="ubp-table">
             <HeaderContent>
                 <MudTh>@T.T("treasury.shift_code")</MudTh>
-                <MudTh>@T.T("treasury.treasury")</MudTh>
+                <MudTh>@T.T("common.branch")</MudTh>
                 <MudTh>@T.T("treasury.cashier")</MudTh>
                 <MudTh>@T.T("treasury.opened_at")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.opening_cash")</MudTh>
@@ -45,11 +45,12 @@ else
                 <MudTh Align="Right">@T.T("treasury.counted_cash")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.variance")</MudTh>
                 <MudTh>@T.T("common.status")</MudTh>
+                <MudTh>@T.T("treasury.review_status")</MudTh>
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd><span class="ubp-code">@context.Code</span></MudTd>
-                <MudTd>@context.TreasuryName</MudTd>
+                <MudTd>@context.BranchName</MudTd>
                 <MudTd>@context.Username</MudTd>
                 <MudTd>@Fmt.DateTime(context.OpenedAt)</MudTd>
                 <MudTd Align="Right">@context.OpeningCash.ToString("N2")</MudTd>
@@ -65,12 +66,30 @@ else
                              Color="@(context.IsOpen ? Color.Warning : Color.Success)">
                         @T.T(context.IsOpen ? "treasury.shift_open" : "treasury.shift_closed")
                     </MudChip>
+                    @if (context.AutoClosed)
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                 Color="Color.Info">@T.T("treasury.auto_closed")</MudChip>
+                    }
+                </MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@ReviewColor(context.ReviewStatus)">
+                        @T.T("treasury.review_" + context.ReviewStatus)
+                    </MudChip>
                 </MudTd>
                 <MudTd Align="Right">
+                    <MudButton Size="Size.Small" Variant="Variant.Text"
+                               OnClick="@(() => ReportAsync(context))">@T.T("treasury.shift_report")</MudButton>
                     @if (context.IsOpen && Can(ActionCodes.Close))
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined"
                                    OnClick="@(() => CloseAsync(context))">@T.T("treasury.close_shift")</MudButton>
+                    }
+                    else if (context.IsPendingReview && Can(ActionCodes.Approve))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                   OnClick="@(() => ReviewAsync(context))">@T.T("treasury.review_shift")</MudButton>
                     }
                     else if (!context.IsOpen && Can(ActionCodes.Reopen))
                     {
@@ -101,6 +120,13 @@ else
 
     private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
 
+    private static Color ReviewColor(string status) => status switch
+    {
+        ShiftReviewStatuses.Pending => Color.Warning,
+        ShiftReviewStatuses.Reviewed => Color.Success,
+        _ => Color.Default
+    };
+
     private async Task OpenAsync()
     {
         var dialog = await Dialogs.ShowAsync<OpenShiftDialog>(T.T("treasury.open_shift"),
@@ -112,6 +138,12 @@ else
         }
     }
 
+    private async Task ReportAsync(Shift shift)
+    {
+        await Dialogs.ShowAsync<CloseShiftDialog>(T.T("treasury.shift_report"),
+            new DialogParameters { ["Shift"] = shift, ["ReadOnly"] = true });
+    }
+
     private async Task CloseAsync(Shift shift)
     {
         var dialog = await Dialogs.ShowAsync<CloseShiftDialog>(T.T("treasury.close_shift"),
@@ -120,6 +152,17 @@ else
         {
             await RunAsync(ReloadAsync);
             ShowSuccess("treasury.shift_closed");
+        }
+    }
+
+    private async Task ReviewAsync(Shift shift)
+    {
+        var dialog = await Dialogs.ShowAsync<ReviewShiftDialog>(T.T("treasury.review_shift"),
+            new DialogParameters { ["Shift"] = shift });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("common.saved");
         }
     }
 
@@ -134,3 +177,4 @@ else
         }
     }
 }
+

@@ -14,6 +14,7 @@ public sealed partial class UserRepository
                    u.is_super_admin AS IsSuperAdmin, u.failed_attempts AS FailedAttempts,
                    u.locked_until AS LockedUntil, u.last_login_at AS LastLoginAt,
                    u.must_change_password AS MustChangePassword,
+                   u.requires_shift AS RequiresShift,
                    u.created_at AS CreatedAt, u.updated_at AS UpdatedAt, u.version AS Version,
                    coalesce((SELECT array_agg(branch_id ORDER BY branch_id) FROM user_branches WHERE user_id = u.id), '{}') AS BranchIds,
                    (SELECT branch_id FROM user_branches WHERE user_id = u.id AND is_default LIMIT 1) AS DefaultBranchId,
@@ -85,6 +86,7 @@ public sealed partial class UserRepository
         IsSuperAdmin = row.IsSuperAdmin, FailedAttempts = row.FailedAttempts,
         LockedUntil = row.LockedUntil, LastLoginAt = row.LastLoginAt,
         MustChangePassword = row.MustChangePassword,
+        RequiresShift = row.RequiresShift,
         CreatedAt = row.CreatedAt, UpdatedAt = row.UpdatedAt, Version = row.Version
     };
 
@@ -108,6 +110,7 @@ public sealed partial class UserRepository
     {
         public string PasswordHash { get; set; } = "";
         public bool MustChangePassword { get; set; }
+        public bool RequiresShift { get; set; }
         public string Language { get; set; } = "ar";
         public short FailedAttempts { get; set; }
         public DateTimeOffset UpdatedAt { get; set; }

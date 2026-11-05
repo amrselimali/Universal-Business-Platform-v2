@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## 2026-11-05 — Branch-level shifts (all screens) + computed opening balances + review + 05:00 auto-close
+
+### Added
+- Migration `0074`: `cashier_shifts.treasury_id` becomes optional, the open-shift unique index moves
+  from **treasury** to **branch** (`ux_shift_open` on `branch_id WHERE status = 'open'`), and new
+  columns `carried_balance`, `review_balance`, `meter_balance`, `auto_closed`, `review_status`,
+  `reviewed_at/by`. New table `shift_review_items`. New user flag `users.requires_shift`.
+- Screen renamed to **«الورديات»** (`/treasury/shifts`): the shift now covers **every screen**, not a
+  single treasury. «فتح وردية» shows the **authorized branches only** (no treasury cell) and the
+  opening balances are **computed and read-only**:
+  **الرصيد المرحل من الحسابات** (branch treasury GL accounts) +
+  **رصيد الورديات تحت مراجعة المحاسب** + **رصيد عدادات الأجهزة** = **الرصيد الافتتاحي** (إجباري).
+- «تقرير الوردية» on every row and before closing: collections, revenues, treasury movements,
+  customers with no follow-up/future booking, tomorrow bookings, tomorrow employee appointments and
+  every shift registration (drafts and posted, cancelled excluded) with totals.
+- Closing a shift submits its **draft** registrations (vouchers, commercial documents, bookings,
+  operating expenses) to `shift_review_items` with `review_status = pending`; an accountant user with
+  the new **APPROVE** action on the shifts screen reviews/approves them.
+- Shift users (`requires_shift`, granted in the user editor) cannot register on **any** screen
+  without an open shift (`validation.shift_required`) and can never post/reconcile/reverse to the
+  accounts — their registrations stay drafts and go to review on close.
+- `ShiftAutoCloseWorker` closes every open shift at **05:00** every day (counted = expected,
+  variance = 0), marks it `auto_closed` and submits its registrations to review.
+- Tests: `TreasuryShiftTests` (+4: computed opening balances, drafts→review→approve, auto-close, pending-review carry),
+  `ShiftGateTests` (3), `ShiftAutoCloseTests` (3); full suite (347).
+
+### Changed
+- One open shift per **branch** (previously per treasury); `TreasuryShiftTests` and
+  `TreasuryReconcileTests` updated to the branch-level model.
+
 ## 2026-11-04 — Asset meter follow-up (month/day/single-day) with adjustments
 
 ### Added

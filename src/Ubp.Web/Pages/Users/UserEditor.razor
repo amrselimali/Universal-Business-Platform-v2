@@ -22,6 +22,9 @@
                             <MudSelectItem Value="@("en")">@T.T("language.en")</MudSelectItem>
                         </MudSelect>
                         <MudSwitch @bind-Value="_input.IsActive" Label="@T.T("common.active")" Color="Color.Success" />
+                        <MudSwitch @bind-Value="_input.RequiresShift" Label="@T.T("users.requires_shift")"
+                                   Color="Color.Warning" />
+                        <MudText Typo="Typo.caption">@T.T("users.requires_shift_hint")</MudText>
                     </div>
                     @if (Actor!.IsSuperAdmin)
                     {

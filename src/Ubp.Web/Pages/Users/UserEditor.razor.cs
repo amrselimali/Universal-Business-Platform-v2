@@ -49,7 +49,8 @@ public partial class UserEditor
             {
                 Name = Detail.User.Name, Username = Detail.User.Username,
                 IsActive = Detail.User.IsActive, Language = Detail.User.Language,
-                IsAdmin = Detail.User.IsAdmin, IsSuperAdmin = Detail.User.IsSuperAdmin
+                IsAdmin = Detail.User.IsAdmin, IsSuperAdmin = Detail.User.IsSuperAdmin,
+                RequiresShift = Detail.User.RequiresShift
             };
             _selectedBranches = Detail.BranchIds.ToList();
             _selectedWarehouses = Detail.WarehouseIds.ToList();

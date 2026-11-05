@@ -1,66 +1,91 @@
-@inherits ComponentBase
+﻿@inherits ComponentBase
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">@T.T("treasury.close_shift") — @Shift.Code</MudText>
+        <MudText Typo="Typo.h6">@T.T(ReadOnly ? "treasury.shift_report" : "treasury.close_shift") — @Shift.Code</MudText>
     </TitleContent>
     <DialogContent>
         <div class="ubp-toolbar">
-            <MudText>@T.T("treasury.treasury"): <b>@Shift.TreasuryName</b></MudText>
-            <MudText>@T.T("treasury.opening_cash"): <b>@Shift.OpeningCash.ToString("N2")</b></MudText>
-            <MudText>@T.T("treasury.expected_cash"): <b>@Shift.ExpectedCash.ToString("N2")</b></MudText>
+            <MudText>@T.T("common.branch"): <b>@Shift.BranchName</b></MudText>
+            <MudText>@T.T("treasury.cashier"): <b>@Shift.Username</b></MudText>
+            <MudText>@T.T("treasury.opened_at"): <b>@Shift.OpenedAt.ToString("g")</b></MudText>
+            <MudText>@T.T("treasury.expected_cash"): <b>@Expected.ToString("N2")</b></MudText>
         </div>
 
-        <MudTable Items="_denominations" Dense="true" Elevation="0" Class="ubp-table my-2">
-            <HeaderContent>
-                <MudTh>@T.T("treasury.denomination")</MudTh>
-                <MudTh>@T.T("treasury.count")</MudTh>
-                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
-                <MudTh></MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>
-                    <MudNumericField T="decimal" Value="context.Denomination" Min="0m" Format="N2"
-                                     Dense="true" ValueChanged="@(v => context.Denomination = v)" />
-                </MudTd>
-                <MudTd>
-                    <MudNumericField T="int" Value="context.Count" Min="0" Dense="true"
-                                     ValueChanged="@(v => context.Count = v)" />
-                </MudTd>
-                <MudTd Align="Right">@(context.Denomination * context.Count).ToString("N2")</MudTd>
-                <MudTd>
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                   OnClick="@(() => _denominations.Remove(context))" />
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
+        @if (_report is null)
+        {
+            <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+        }
+        else
+        {
+            <ShiftReportView Report="_report" />
 
-        <div class="ubp-toolbar">
-            <MudButton Size="Size.Small" Variant="Variant.Outlined"
-                       StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="AddDenomination">@T.T("treasury.add_denomination")</MudButton>
-            <MudButton Size="Size.Small" Variant="Variant.Text"
-                       OnClick="UseCounted">@T.T("treasury.use_denomination_total")</MudButton>
-            <MudText>@T.T("treasury.denomination_total"): <b>@DenominatedTotal.ToString("N2")</b></MudText>
-        </div>
+            @if (!ReadOnly && Shift.IsOpen)
+            {
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.subtitle2" Class="mt-2">@T.T("treasury.cash_count")</MudText>
+                <MudTable Items="_denominations" Dense="true" Elevation="0" Class="ubp-table my-2">
+                    <HeaderContent>
+                        <MudTh>@T.T("treasury.denomination")</MudTh>
+                        <MudTh>@T.T("treasury.count")</MudTh>
+                        <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>
+                            <MudNumericField T="decimal" Value="context.Denomination" Min="0m" Format="N2"
+                                             Dense="true" ValueChanged="@(v => context.Denomination = v)" />
+                        </MudTd>
+                        <MudTd>
+                            <MudNumericField T="int" Value="context.Count" Min="0" Dense="true"
+                                             ValueChanged="@(v => context.Count = v)" />
+                        </MudTd>
+                        <MudTd Align="Right">@(context.Denomination * context.Count).ToString("N2")</MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                           OnClick="@(() => _denominations.Remove(context))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
 
-        <MudNumericField @bind-Value="_counted" Label="@T.T("treasury.counted_cash")"
-                         Variant="Variant.Outlined" Min="0m" Format="N2" Class="mt-2" />
+                <div class="ubp-toolbar">
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="AddDenomination">@T.T("treasury.add_denomination")</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text"
+                               OnClick="UseCounted">@T.T("treasury.use_denomination_total")</MudButton>
+                    <MudText>@T.T("treasury.denomination_total"): <b>@DenominatedTotal.ToString("N2")</b></MudText>
+                </div>
 
-        <MudAlert Severity="@(Variance < 0 ? Severity.Warning : (Variance > 0 ? Severity.Info : Severity.Normal))"
-                  Dense="true" Class="mt-2">
-            @T.T("treasury.variance"): @Variance.ToString("N2")
-        </MudAlert>
+                <MudNumericField @bind-Value="_counted" Label="@T.T("treasury.counted_cash")"
+                                 Variant="Variant.Outlined" Min="0m" Format="N2" Class="mt-2" />
+
+                <MudAlert Severity="@(Variance < 0 ? Severity.Warning : (Variance > 0 ? Severity.Info : Severity.Normal))"
+                          Dense="true" Class="mt-2">
+                    @T.T("treasury.variance"): @Variance.ToString("N2")
+                </MudAlert>
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    @T.T("treasury.close_posts_review")
+                </MudAlert>
+            }
+        }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConfirmAsync"
-                   Disabled="_busy">@T.T("treasury.close_shift")</MudButton>
+        <MudButton OnClick="Cancel" Disabled="_busy">
+            @T.T(ReadOnly || !Shift.IsOpen ? "common.close" : "common.cancel")
+        </MudButton>
+        @if (!ReadOnly && Shift.IsOpen)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConfirmAsync"
+                       Disabled="@(_busy || _report is null)">@T.T("treasury.close_shift")</MudButton>
+        }
     </DialogActions>
+</MudDialog>
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public Shift Shift { get; set; } = default!;
+    [Parameter] public bool ReadOnly { get; set; }
 
     [Inject] private TreasuryService Treasury { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
@@ -68,6 +93,7 @@
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
     private List<ShiftDenominationInput> _denominations = new();
+    private ShiftReport? _report;
     private decimal _counted;
     private bool _busy;
 
@@ -76,14 +102,24 @@
             MidpointRounding.AwayFromZero);
 
     private decimal Variance =>
-        Math.Round(_counted - Shift.ExpectedCash, 2, MidpointRounding.AwayFromZero);
+        Math.Round(_counted - Expected, 2, MidpointRounding.AwayFromZero);
 
-    protected override void OnInitialized()
+    private decimal Expected => _report?.Shift.ExpectedCash ?? Shift.ExpectedCash;
+
+    protected override async Task OnInitializedAsync()
     {
         _denominations = Shift.Denominations
             .Select(d => new ShiftDenominationInput { Denomination = d.Denomination, Count = d.Count })
             .ToList();
         _counted = Shift.CountedCash ?? Shift.ExpectedCash;
+
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            _report = await Treasury.GetShiftReportAsync(actor, Shift.Id);
+            if (Shift.CountedCash is null) _counted = Expected;
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
     }
 
     private void AddDenomination()
@@ -116,4 +152,3 @@
     }
 }
 
-</MudDialog>

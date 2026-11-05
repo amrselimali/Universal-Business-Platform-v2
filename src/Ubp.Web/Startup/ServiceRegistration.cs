@@ -6,6 +6,7 @@ using MudBlazor;
 using MudBlazor.Services;
 using Ubp.Application.Contracts;
 using Ubp.Application.Services;
+using Ubp.Core.Security;
 using Ubp.Infrastructure.Data;
 using Ubp.Infrastructure.Migrations;
 using Ubp.Infrastructure.Repositories;
@@ -49,6 +50,7 @@ public static class ServiceRegistration
         services.AddHostedService<BiRefreshWorker>();
         services.Configure<AssetMeterSyncOptions>(configuration.GetSection("Assets:Sync"));
         services.AddHostedService<SalesMeterSyncWorker>();
+        services.AddHostedService<ShiftAutoCloseWorker>();
         services.AddUbpRateLimiting();
 
         AddRepositories(services);
@@ -151,6 +153,7 @@ public static class ServiceRegistration
         services.AddScoped<IBranchSettingsRepository, BranchSettingsRepository>();
         services.AddScoped<ICommercialDocumentRepository, CommercialDocumentRepository>();
         services.AddScoped<ITreasuryRepository, TreasuryRepository>();
+        services.AddScoped<IShiftGate>(sp => sp.GetRequiredService<ITreasuryRepository>());
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IAppointmentRepository, AppointmentRepository>();
         services.AddScoped<IBookingExecutionRepository, BookingExecutionRepository>();

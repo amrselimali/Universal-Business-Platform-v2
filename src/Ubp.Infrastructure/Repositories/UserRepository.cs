@@ -50,6 +50,7 @@ public sealed partial class UserRepository : IUserRepository
         u.is_super_admin AS IsSuperAdmin, u.failed_attempts AS FailedAttempts,
         u.locked_until AS LockedUntil, u.last_login_at AS LastLoginAt,
         u.must_change_password AS MustChangePassword,
+        u.requires_shift AS RequiresShift,
         u.created_at AS CreatedAt, u.updated_at AS UpdatedAt, u.version AS Version
         """;
 

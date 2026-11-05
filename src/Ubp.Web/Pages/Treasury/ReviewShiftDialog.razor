@@ -1,0 +1,80 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("treasury.review_shift") — @Shift.Code</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+            @T.T("treasury.review_hint")
+        </MudAlert>
+
+        <MudTable Items="_items" Dense="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("common.screen")</MudTh>
+                <MudTh>@T.T("treasury.doc_no")</MudTh>
+                <MudTh>@T.T("common.date")</MudTh>
+                <MudTh>@T.T("common.party")</MudTh>
+                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                <MudTh>@T.T("treasury.review_status")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@T.T("screen." + context.ScreenCode.ToLowerInvariant())</MudTd>
+                <MudTd>@context.DocNo</MudTd>
+                <MudTd>@(context.DocDate is null ? "—" : context.DocDate.Value.ToString("d"))</MudTd>
+                <MudTd>@context.PartyName</MudTd>
+                <MudTd Align="Right">@context.Amount.ToString("N2")</MudTd>
+                <MudTd>@T.T("treasury.review_" + context.Status)</MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <MudText Typo="Typo.body2" Class="mt-2">
+            @string.Format(T.T("treasury.review_pending_count"), PendingCount)
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConfirmAsync"
+                   Disabled="@(_busy || PendingCount == 0)">@T.T("treasury.approve_review")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Shift Shift { get; set; } = default!;
+
+    [Inject] private TreasuryService Treasury { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private IReadOnlyList<ShiftReviewItem> _items = Array.Empty<ShiftReviewItem>();
+    private bool _busy;
+
+    private int PendingCount => _items.Count(i => i.Status == ShiftReviewStatuses.Pending);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            _items = await Treasury.ListReviewItemsAsync(actor, Shift.Id);
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task ConfirmAsync()
+    {
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var reviewed = await Treasury.ReviewShiftAsync(actor, Shift.Id);
+            MudDialog.Close(DialogResult.Ok(reviewed));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

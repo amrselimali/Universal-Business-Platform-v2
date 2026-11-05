@@ -1,5 +1,26 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-05 — Branch-level shift (all screens), computed opening balances, review & 05:00 auto-close
+
+- Migration `0074`: `cashier_shifts.treasury_id` nullable, `ux_shift_open` now on `branch_id`
+  (one open shift per branch), new columns `carried_balance` / `review_balance` / `meter_balance` /
+  `auto_closed` / `review_status` / `reviewed_at|by`, new `shift_review_items`, new
+  `users.requires_shift`.
+- `/treasury/shifts` renamed «الورديات»: open dialog shows the user's authorized branches only
+  (no treasury), and the opening figures are computed & read-only — **الرصيد المرحل من الحسابات**
+  (branch treasury GL accounts) + **رصيد الورديات تحت المراجعة** + **عدادات الأجهزة**.
+- «تقرير الوردية» (row action and before close): collections, revenues, treasury movements, idle
+  customers (no follow-up / future booking), tomorrow bookings, tomorrow employee appointments and
+  all non-cancelled registrations (drafts included) with totals.
+- Closing moves every draft registration (vouchers, commercial documents, bookings, operating
+  expenses) into `shift_review_items` (`review_status = pending`); the accountant approves through
+  the new `APPROVE` action on the shifts screen.
+- Users flagged `requires_shift` (user editor switch) are blocked on every screen without an open
+  shift (`validation.shift_required`) and never post/reconcile/reverse — their data stays drafts.
+- `ShiftAutoCloseWorker` closes open shifts at **05:00** daily (counted = expected) and submits
+  their registrations to review. Tests: `TreasuryShiftTests` (6), `ShiftGateTests` (3),
+  `ShiftAutoCloseTests` (3); full suite (347).
+
 ## 2026-11-04 — Asset meter follow-up + adjustments, idle column rename
 
 - Migration `0073`: `asset_meter_adjustments` (units ±, note, adjusted_at). New `AssetService`

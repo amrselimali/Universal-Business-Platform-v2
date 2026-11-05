@@ -11,9 +11,9 @@ public sealed partial class UserRepository
     {
         const string sql = """
             INSERT INTO users (name, username, password_hash, is_active, language, is_admin,
-                               is_super_admin, must_change_password)
+                               is_super_admin, must_change_password, requires_shift)
             VALUES (@Name, @Username, @PasswordHash, @IsActive, @Language, @IsAdmin,
-                    @IsSuperAdmin, @MustChangePassword)
+                    @IsSuperAdmin, @MustChangePassword, @RequiresShift)
             RETURNING id
             """;
         await using var connection = await _factory.OpenAsync(ct);
@@ -21,7 +21,8 @@ public sealed partial class UserRepository
         var id = await connection.ExecuteScalarAsync<Guid>(sql, new
         {
             input.Name, input.Username, PasswordHash = passwordHash, input.IsActive,
-            input.Language, input.IsAdmin, input.IsSuperAdmin, input.MustChangePassword
+            input.Language, input.IsAdmin, input.IsSuperAdmin, input.MustChangePassword,
+            input.RequiresShift
         }, tx);
         await ReplaceLinksAsync(connection, tx, id, input, ct);
         await tx.CommitAsync(ct);
@@ -35,6 +36,7 @@ public sealed partial class UserRepository
             UPDATE users SET
                 name = @Name, username = @Username, is_active = @IsActive, language = @Language,
                 is_admin = @IsAdmin, is_super_admin = @IsSuperAdmin,
+                requires_shift = @RequiresShift,
                 password_hash = coalesce(@PasswordHash, password_hash)
             WHERE id = @id AND version = @version
             RETURNING id
@@ -44,7 +46,7 @@ public sealed partial class UserRepository
         var updated = await connection.ExecuteScalarAsync<Guid?>(sql, new
         {
             id, version, input.Name, input.Username, input.IsActive, input.Language,
-            input.IsAdmin, input.IsSuperAdmin, PasswordHash = passwordHash
+            input.IsAdmin, input.IsSuperAdmin, input.RequiresShift, PasswordHash = passwordHash
         }, tx);
         if (updated is null)
         {

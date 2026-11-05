@@ -193,53 +193,6 @@ public sealed class VoucherInput
     public List<VoucherLineInput> Lines { get; set; } = new();
 }
 
-public sealed class Shift
-{
-    public Guid Id { get; set; }
-    public Guid BranchId { get; set; }
-    public Guid TreasuryId { get; set; }
-    public string? TreasuryCode { get; set; }
-    public string? TreasuryName { get; set; }
-    public Guid UserId { get; set; }
-    public string? Username { get; set; }
-    public string Code { get; set; } = "";
-    public DateTimeOffset OpenedAt { get; set; }
-    public DateTimeOffset? ClosedAt { get; set; }
-    public decimal OpeningCash { get; set; }
-    public decimal ExpectedCash { get; set; }
-    public decimal? CountedCash { get; set; }
-    public decimal? Variance { get; set; }
-    public string Status { get; set; } = ShiftStatuses.Open;
-    public string? Notes { get; set; }
-    public DateTimeOffset? ReopenedAt { get; set; }
-    public string? ReopenReason { get; set; }
-    public List<ShiftDenomination> Denominations { get; set; } = new();
-
-    public bool IsOpen => Status == ShiftStatuses.Open;
-}
-
-public sealed class ShiftInput
-{
-    public Guid BranchId { get; set; }
-    public Guid TreasuryId { get; set; }
-    public decimal OpeningCash { get; set; }
-    public string? Notes { get; set; }
-}
-
-public sealed class ShiftDenominationInput
-{
-    public decimal Denomination { get; set; }
-    public int Count { get; set; }
-}
-
-public sealed class ShiftDenomination
-{
-    public Guid Id { get; set; }
-    public decimal Denomination { get; set; }
-    public int Count { get; set; }
-    public decimal Total => Math.Round(Denomination * Count, 2, MidpointRounding.AwayFromZero);
-}
-
 /// <summary>رصيد حساب وسيط (بطاقات/محافظ/شيكات) قبل تسويته إلى البنك أو الخزينة.</summary>
 public sealed class ClearingBalance
 {

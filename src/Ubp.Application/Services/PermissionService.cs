@@ -14,11 +14,35 @@ public sealed class PermissionService
 
     private readonly IPermissionRepository _permissions;
     private readonly IMemoryCache _cache;
+    private readonly IShiftGate? _shiftGate;
 
-    public PermissionService(IPermissionRepository permissions, IMemoryCache cache)
+    public PermissionService(IPermissionRepository permissions, IMemoryCache cache,
+        IShiftGate? shiftGate = null)
     {
         _permissions = permissions;
         _cache = cache;
+        _shiftGate = shiftGate;
+    }
+
+    /// <summary>أفعال قراءة لا تتطلب وردية مفتوحة؛ وما عداها تسجيل يمنعه غياب الوردية.</summary>
+    private static bool IsReadOnlyAction(string action) =>
+        action is ActionCodes.View or ActionCodes.Print or ActionCodes.Export
+            or ActionCodes.ExportCsv or ActionCodes.ExportXlsx or ActionCodes.Preview
+            or ActionCodes.SaveFilter or ActionCodes.DeleteFilter or ActionCodes.Open;
+
+    /// <summary>أفعال الترحيل المحاسبي محجوبة عن مستخدم الوردية: تسجيلاته تبقى مسودات للمراجعة.</summary>
+    private static bool IsPostingAction(string action) =>
+        action is ActionCodes.Post or ActionCodes.Reconcile or ActionCodes.Reverse;
+
+    private async Task EnsureShiftAsync(ActorContext actor, string actionCode,
+        CancellationToken ct)
+    {
+        if (!actor.RequiresShift) return;
+        if (IsPostingAction(actionCode)) throw new ForbiddenException();
+        if (IsReadOnlyAction(actionCode)) return;
+        if (_shiftGate is null) return;
+        if (!await _shiftGate.HasOpenShiftAsync(actor.UserId, actor.CurrentBranchId, ct))
+            throw new ValidationAppException("validation.shift_required");
     }
 
     public async Task<IReadOnlyDictionary<string, EffectivePermission>> GetSnapshotAsync(
@@ -81,6 +105,8 @@ public sealed class PermissionService
 
         if (minimumScope.HasValue && permission.Scope < minimumScope.Value)
             throw new ForbiddenException();
+
+        await EnsureShiftAsync(actor, actionCode, ct);
     }
 
     public async Task<IReadOnlyList<EffectivePermission>> GetMatrixAsync(ActorContext actor,

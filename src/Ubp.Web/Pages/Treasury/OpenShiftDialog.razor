@@ -14,26 +14,40 @@
                         <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
                     }
                 </MudSelect>
-                <MudSelect T="Guid" @bind-Value="_input.TreasuryId" Label="@T.T("treasury.treasury")"
-                           Variant="Variant.Outlined" Required="true">
-                    @foreach (var treasury in _treasuries)
-                    {
-                        <MudSelectItem T="Guid" Value="@treasury.Id">
-                            @treasury.Code — @treasury.DisplayName(_english)
-                        </MudSelectItem>
-                    }
-                </MudSelect>
-                <MudNumericField @bind-Value="_input.OpeningCash" Label="@T.T("treasury.opening_cash")"
-                                 Variant="Variant.Outlined" Min="0m" Format="N2" />
+
+                <MudTextField T="string" Label="@T.T("treasury.carried_from_accounts")" ReadOnly="true"
+                              Variant="Variant.Outlined"
+                              Text="@(_balances?.CarriedFromAccounts.ToString("N2") ?? "—")" />
+                <MudTextField T="string" Label="@T.T("treasury.pending_review_balance")" ReadOnly="true"
+                              Variant="Variant.Outlined"
+                              HelperText="@PendingReviewHint"
+                              Text="@(_balances?.PendingReview.ToString("N2") ?? "—")" />
+                <MudTextField T="string" Label="@T.T("treasury.meter_balance")" ReadOnly="true"
+                              Variant="Variant.Outlined"
+                              Text="@(_balances?.MeterBalance.ToString("N2") ?? "—")" />
+                <MudTextField T="string" Label="@T.T("treasury.opening_cash")" ReadOnly="true"
+                              Variant="Variant.Outlined" Required="true"
+                              HelperText="@T.T("treasury.opening_cash_locked")"
+                              Text="@(_balances?.OpeningCash.ToString("N2") ?? "—")" />
+
                 <MudTextField @bind-Value="_input.Notes" Label="@T.T("common.notes")"
                               Variant="Variant.Outlined" MaxLength="500" />
             </div>
         </MudForm>
+
+        @if (_openShift is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
+                @T.T("validation.shift_already_open") — @_openShift.Code
+            </MudAlert>
+        }
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
-                   Disabled="_busy">@T.T("common.save")</MudButton>
+                   Disabled="@(_busy || _balances is null || _openShift is not null)">
+            @T.T("common.save")
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -49,33 +63,40 @@
 
     private MudForm _form = default!;
     private ShiftInput _input = new();
-    private IReadOnlyList<Treasury> _treasuries = Array.Empty<Treasury>();
+    private ShiftOpeningBalances? _balances;
+    private Shift? _openShift;
     private bool _busy;
-    private bool _english;
+
+    private string PendingReviewHint => _balances is null
+        ? ""
+        : string.Format(T.T("treasury.pending_review_shifts"), _balances.PendingReviewShifts);
 
     protected override async Task OnInitializedAsync()
     {
-        _english = T.Language == "en";
         _input.BranchId = DefaultBranchId ?? Branches.FirstOrDefault()?.Id ?? Guid.Empty;
-
-        var actor = await UserContext.GetAsync();
-        if (actor is not null) await ReloadTreasuriesAsync(actor);
+        await LoadAsync();
     }
 
-    private async Task ReloadTreasuriesAsync(ActorContext actor)
+    private async Task LoadAsync()
     {
-        _treasuries = await Treasury.ListTreasuriesAsync(actor, _input.BranchId);
-        _input.TreasuryId = _treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
-    }
+        _balances = null;
+        _openShift = null;
+        if (_input.BranchId == Guid.Empty) return;
 
-    private async Task OnBranchChanged(Guid value)
-    {
         try
         {
-            await ReloadTreasuriesAsync(await UserContext.RequireAsync());
+            var actor = await UserContext.RequireAsync();
+            _balances = await Treasury.GetOpeningBalancesAsync(actor, _input.BranchId);
+            _openShift = await Treasury.GetOpenShiftAsync(actor, _input.BranchId);
         }
         catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
         finally { StateHasChanged(); }
+    }
+
+    private Task OnBranchChanged(Guid value)
+    {
+        _input.BranchId = value;
+        return LoadAsync();
     }
 
     private void Cancel() => MudDialog.Cancel();
@@ -83,7 +104,7 @@
     private async Task SaveAsync()
     {
         await _form.Validate();
-        if (!_form.IsValid || _input.TreasuryId == Guid.Empty)
+        if (!_form.IsValid || _input.BranchId == Guid.Empty)
         {
             Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
             return;
@@ -100,3 +121,4 @@
         finally { _busy = false; }
     }
 }
+

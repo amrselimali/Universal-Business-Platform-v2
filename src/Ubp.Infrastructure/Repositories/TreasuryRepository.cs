@@ -2,11 +2,12 @@ using Dapper;
 using Npgsql;
 using Ubp.Core.Models;
 using Ubp.Core.Results;
+using Ubp.Core.Security;
 using Ubp.Infrastructure.Data;
 
 namespace Ubp.Infrastructure.Repositories;
 
-public interface ITreasuryRepository
+public interface ITreasuryRepository : IShiftGate
 {
     Task<Guid> CreateTreasuryAsync(Guid id, TreasuryInput input, Guid userId, CancellationToken ct = default);
     Task<Guid> CreateMethodAsync(Guid id, TreasuryMethodInput input, Guid userId, CancellationToken ct = default);
@@ -34,12 +35,24 @@ public interface ITreasuryRepository
         CancellationToken ct = default);
 
     Task<Guid> OpenShiftAsync(Guid id, ShiftInput input, Guid userId, CancellationToken ct = default);
-    Task<Shift> CloseShiftAsync(Guid shiftId, decimal countedCash, Guid userId,
+    /// <summary>إغلاق وردية الفرع؛ countedCash = null يعني إغلاقاً آلياً بمطابقة المتوقع.</summary>
+    Task<Shift> CloseShiftAsync(Guid shiftId, decimal? countedCash, Guid userId, bool autoClosed,
         CancellationToken ct = default);
-    Task<Shift?> GetOpenShiftAsync(Guid treasuryId, CancellationToken ct = default);
+    Task<Shift?> GetOpenShiftAsync(Guid branchId, CancellationToken ct = default);
     Task<Shift?> GetShiftAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<Shift>> ListShiftsAsync(Guid? branchId, int limit,
         CancellationToken ct = default);
+    /// <summary>أرصدة افتتاح الوردية للفرع: مرحل من الحسابات + تحت المراجعة + عدادات الأجهزة.</summary>
+    Task<ShiftOpeningBalances> GetShiftOpeningBalancesAsync(Guid branchId,
+        CancellationToken ct = default);
+    Task<ShiftReport> GetShiftReportAsync(Guid shiftId, CancellationToken ct = default);
+    Task<IReadOnlyList<ShiftReviewItem>> ListReviewItemsAsync(Guid shiftId,
+        CancellationToken ct = default);
+    Task<Shift> ReviewShiftAsync(Guid shiftId, Guid userId, CancellationToken ct = default);
+    /// <summary>الورديات المفتوحة التي تجاوزت موعد الإغلاق الآلي (5 صباحاً).</summary>
+    Task<IReadOnlyList<Shift>> ListShiftsDueForAutoCloseAsync(DateTimeOffset cutoff,
+        CancellationToken ct = default);
+    Task<bool> HasOpenShiftAsync(Guid userId, Guid? branchId, CancellationToken ct = default);
     Task SaveDenominationsAsync(Guid shiftId, IReadOnlyList<ShiftDenominationInput> denominations,
         CancellationToken ct = default);
     Task<IReadOnlyList<ShiftDenomination>> ListDenominationsAsync(Guid shiftId,

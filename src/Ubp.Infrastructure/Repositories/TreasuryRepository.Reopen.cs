@@ -8,8 +8,9 @@ namespace Ubp.Infrastructure.Repositories;
 public sealed partial class TreasuryRepository
 {
     /// <summary>
-    /// إعادة فتح وردية مغلقة (قرار مدير + سبب): عكس قيد الفرق إن وُجد، ثم إرجاعها
-    /// إلى الحالة 'open' مع أثر تدقيقي، فيبقى قيد «وردية واحدة مفتوحة» سارياً.
+    /// إعادة فتح وردية مغلقة (قرار مدير + سبب): عكس قيد الفرق إن وُجد، وإلغاء بنود
+    /// المراجعة المعلّقة، ثم إرجاعها إلى الحالة 'open' مع أثر تدقيقي، فيبقى قيد
+    /// «وردية واحدة مفتوحة لكل فرع» سارياً (0074).
     /// </summary>
     public async Task<Shift> ReopenShiftAsync(Guid shiftId, string reason, Guid userId,
         CancellationToken ct = default)
@@ -43,8 +44,10 @@ public sealed partial class TreasuryRepository
         {
             await connection.ExecuteAsync(new CommandDefinition("""
                 UPDATE cashier_shifts SET status = 'open', closed_at = NULL, counted_cash = NULL,
-                    variance = NULL, closed_by = NULL, reopened_by = @userId, reopened_at = now(),
-                    reopen_reason = @reason, updated_by = @userId
+                    variance = NULL, closed_by = NULL, auto_closed = false,
+                    review_status = 'none', reviewed_at = NULL, reviewed_by = NULL,
+                    reopened_by = @userId, reopened_at = now(), reopen_reason = @reason,
+                    updated_by = @userId
                 WHERE id = @shiftId
                 """, new { userId, reason = reason.Trim(), shiftId }, tx, cancellationToken: ct));
         }
@@ -53,7 +56,12 @@ public sealed partial class TreasuryRepository
             throw new ValidationAppException("validation.shift_already_open");
         }
 
+        await connection.ExecuteAsync(new CommandDefinition(
+            "DELETE FROM shift_review_items WHERE shift_id = @shiftId", new { shiftId }, tx,
+            cancellationToken: ct));
+
         await tx.CommitAsync(ct);
         return (await GetShiftAsync(shiftId, ct))!;
     }
 }
+
