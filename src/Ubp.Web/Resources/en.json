@@ -1236,6 +1236,8 @@
   "treasury.denomination": "Denomination",
   "treasury.denomination_total": "Denomination total",
   "treasury.doc_no": "Voucher no.",
+  "treasury.all_accounts": "All chart accounts",
+  "treasury.is_clearing": "Clearing account",
   "treasury.treasuries_balance": "Treasuries balance",
   "treasury.meters_balance": "Devices balance",
   "treasury.posted_review": "Shift posted for review",

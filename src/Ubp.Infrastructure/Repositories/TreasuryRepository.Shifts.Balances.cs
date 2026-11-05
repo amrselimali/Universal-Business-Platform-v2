@@ -55,7 +55,7 @@ public sealed partial class TreasuryRepository
                 WHERE s.branch_id = @branchId AND s.status = 'closed'
                   AND s.review_status IN ('none', 'pending') 
             ) unposted ON true
-            WHERE t.branch_id = @branchId AND t.is_active
+            WHERE t.branch_id = @branchId AND t.is_active AND NOT t.is_main
               AND EXISTS (SELECT 1 FROM treasury_methods m
                           WHERE m.treasury_id = t.id AND m.is_active AND m.follow_in_shift)
             ORDER BY t.code

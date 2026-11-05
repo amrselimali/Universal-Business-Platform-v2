@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-11-05 — Main treasury excluded from shift cash counts, reconciliation over all accounts
+
+### Fixed
+- الخزينة **الرئيسية** (`is_main`) لم تعد تظهر/تُجمع داخل عدّ النقدية وأول المدة في الورديات
+  (تُستثنى من صفوف عدّ النقدية في العرض والفتح والإغلاق).
+
+### Added
+- شاشة **تسوية الحسابات الوسيطة**: مفتاح **«كل حسابات الشجرة»** لعرض كل الحسابات القابلة للترحيل
+  وأرصدتها، مع عمود **«حساب وسيط»** يوضح أيها مكوَّد كوسيط في طرق الدفع.
+
 ## 2026-11-05 — Treasury opening no longer leaks the main treasury balance
 
 ### Fixed

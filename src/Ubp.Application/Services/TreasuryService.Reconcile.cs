@@ -10,11 +10,12 @@ namespace Ubp.Application.Services;
 public sealed partial class TreasuryService
 {
     public async Task<IReadOnlyList<ClearingBalance>> ListClearingBalancesAsync(
-        ActorContext actor, Guid? branchId, CancellationToken ct = default)
+        ActorContext actor, Guid? branchId, bool includeAllAccounts = false,
+        CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.TreasuryReconciliation,
             ActionCodes.View, ct: ct);
-        return await _treasury.ListClearingBalancesAsync(branchId, ct);
+        return await _treasury.ListClearingBalancesAsync(branchId, includeAllAccounts, ct);
     }
 
     /// <summary>تسوية رصيد وسيط بقيد واحد؛ موجب = من الوسيط إلى الخزينة، سالب = العكس.</summary>

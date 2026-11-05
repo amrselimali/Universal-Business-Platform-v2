@@ -23,6 +23,9 @@ else
                     <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
                 }
             </MudSelect>
+            <MudSwitch T="bool" Value="_allAccounts" Color="Color.Primary"
+                       Label="@T.T("treasury.all_accounts")"
+                       ValueChanged="OnAllAccountsChanged" />
         </div>
 
         <MudTable Items="_balances" Dense="true" Hover="true" Striped="true" Elevation="0"
@@ -33,6 +36,7 @@ else
                 <MudTh Align="Right">@T.T("treasury.debit")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.credit")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.balance")</MudTh>
+                <MudTh>@T.T("treasury.is_clearing")</MudTh>
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
             <RowTemplate>
@@ -41,6 +45,7 @@ else
                 <MudTd Align="Right">@context.Debit.ToString("N2")</MudTd>
                 <MudTd Align="Right">@context.Credit.ToString("N2")</MudTd>
                 <MudTd Align="Right">@context.Balance.ToString("N2")</MudTd>
+                <MudTd>@(context.IsClearing ? "✓" : "—")</MudTd>
                 <MudTd Align="Right">
                     @if (Can(ActionCodes.Post) && context.Balance != 0)
                     {
@@ -55,6 +60,7 @@ else
 
 @code {
     private IReadOnlyList<ClearingBalance> _balances = Array.Empty<ClearingBalance>();
+    private bool _allAccounts;
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private Guid? _branchId;
 
@@ -67,9 +73,15 @@ else
     }
 
     private async Task ReloadAsync() =>
-        _balances = await Treasury.ListClearingBalancesAsync(Actor!, _branchId);
+        _balances = await Treasury.ListClearingBalancesAsync(Actor!, _branchId, _allAccounts);
 
     private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+
+    private Task OnAllAccountsChanged(bool value)
+    {
+        _allAccounts = value;
+        return RunAsync(ReloadAsync);
+    }
 
     private async Task SettleAsync(ClearingBalance balance)
     {

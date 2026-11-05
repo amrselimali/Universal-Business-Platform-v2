@@ -12,21 +12,38 @@ public sealed partial class TreasuryRepository
     /// بلا تكرار عند مشاركة أكثر من طريقة دفع لنفس الحساب.
     /// </summary>
     public async Task<IReadOnlyList<ClearingBalance>> ListClearingBalancesAsync(Guid? branchId,
-        CancellationToken ct = default)
+        bool includeAllAccounts = false, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
-        return (await connection.QueryAsync<ClearingBalance>(new CommandDefinition("""
-            SELECT a.id AS AccountId, a.code AS AccountCode, a.name_ar AS AccountName,
-                   COALESCE(SUM(g.debit), 0) AS Debit, COALESCE(SUM(g.credit), 0) AS Credit
-            FROM (SELECT DISTINCT clearing_account_id AS id FROM treasury_methods
-                  WHERE is_active AND clearing_account_id IS NOT NULL) m
-            JOIN accounts a ON a.id = m.id
-            LEFT JOIN gl_balances g
-                   ON g.account_id = m.id
-                  AND (@branchId::uuid IS NULL OR g.branch_id = @branchId::uuid)
-            GROUP BY a.id, a.code, a.name_ar
-            ORDER BY a.code
-            """, new { branchId }, cancellationToken: ct))).ToList();
+        var sql = includeAllAccounts
+            ? """
+              SELECT a.id AS AccountId, a.code AS AccountCode, a.name_ar AS AccountName,
+                     COALESCE(SUM(g.debit), 0) AS Debit, COALESCE(SUM(g.credit), 0) AS Credit,
+                     EXISTS (SELECT 1 FROM treasury_methods m
+                             WHERE m.is_active AND m.clearing_account_id = a.id) AS IsClearing
+              FROM accounts a
+              LEFT JOIN gl_balances g
+                     ON g.account_id = a.id
+                    AND (@branchId::uuid IS NULL OR g.branch_id = @branchId::uuid)
+              WHERE a.is_active AND a.is_postable
+              GROUP BY a.id, a.code, a.name_ar
+              ORDER BY a.code
+              """
+            : """
+              SELECT a.id AS AccountId, a.code AS AccountCode, a.name_ar AS AccountName,
+                     COALESCE(SUM(g.debit), 0) AS Debit, COALESCE(SUM(g.credit), 0) AS Credit,
+                     true AS IsClearing
+              FROM (SELECT DISTINCT clearing_account_id AS id FROM treasury_methods
+                    WHERE is_active AND clearing_account_id IS NOT NULL) m
+              JOIN accounts a ON a.id = m.id
+              LEFT JOIN gl_balances g
+                     ON g.account_id = m.id
+                    AND (@branchId::uuid IS NULL OR g.branch_id = @branchId::uuid)
+              GROUP BY a.id, a.code, a.name_ar
+              ORDER BY a.code
+              """;
+        return (await connection.QueryAsync<ClearingBalance>(new CommandDefinition(sql,
+            new { branchId }, cancellationToken: ct))).ToList();
     }
 
     /// <summary>

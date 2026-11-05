@@ -81,7 +81,7 @@ public interface ITreasuryRepository : IShiftGate
         CancellationToken ct = default);
 
     Task<IReadOnlyList<ClearingBalance>> ListClearingBalancesAsync(Guid? branchId,
-        CancellationToken ct = default);
+        bool includeAllAccounts = false, CancellationToken ct = default);
     Task<Guid> SettleClearingAsync(Guid treasuryId, Guid clearingAccountId, decimal amount,
         DateTime docDate, string? reference, Guid userId, CancellationToken ct = default);
 }

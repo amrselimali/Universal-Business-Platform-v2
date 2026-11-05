@@ -205,6 +205,8 @@ public sealed class VoucherInput
 public sealed class ClearingBalance
 {
     public Guid AccountId { get; set; }
+    /// <summary>هل الحساب مكوَّد كحساب وسيط في إحدى طرق الدفع؟</summary>
+    public bool IsClearing { get; set; }
     public string AccountCode { get; set; } = "";
     public string AccountName { get; set; } = "";
     public decimal Debit { get; set; }

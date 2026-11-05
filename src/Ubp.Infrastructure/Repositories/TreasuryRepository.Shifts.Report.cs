@@ -101,7 +101,7 @@ public sealed partial class TreasuryRepository
                      AND (s.closed_at IS NULL OR v.created_at <= s.closed_at)
                 WHERE s.branch_id = t.branch_id AND s.review_status = 'pending' 
             ) carry ON true
-            WHERE t.branch_id = @branchId AND t.is_active
+            WHERE t.branch_id = @branchId AND t.is_active AND NOT t.is_main
               AND EXISTS (SELECT 1 FROM treasury_methods m
                           WHERE m.treasury_id = t.id AND m.is_active AND m.follow_in_shift)
             ON CONFLICT (shift_id, treasury_id) DO NOTHING
@@ -158,7 +158,7 @@ public sealed partial class TreasuryRepository
                     WHERE s2.branch_id = t.branch_id AND s2.status = 'closed'
                       AND s2.review_status IN ('none', 'pending') AND s2.id <> @shiftId
                 ) carry ON true
-                WHERE t.branch_id = @branchId AND t.is_active
+                WHERE t.branch_id = @branchId AND t.is_active AND NOT t.is_main
             ) x
             WHERE c.shift_id = @shiftId AND c.treasury_id = x.treasury_id
             """, new { shiftId, branchId = shift.BranchId, openedAt = shift.OpenedAt },

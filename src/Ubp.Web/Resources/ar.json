@@ -1236,6 +1236,8 @@
   "treasury.denomination": "الفئة",
   "treasury.denomination_total": "مجموع الفئات",
   "treasury.doc_no": "رقم السند",
+  "treasury.all_accounts": "كل حسابات الشجرة",
+  "treasury.is_clearing": "حساب وسيط",
   "treasury.treasuries_balance": "أرصدة الخزائن",
   "treasury.meters_balance": "أرصدة الأجهزة",
   "treasury.posted_review": "تم ترحيل الوردية للمراجعة",
