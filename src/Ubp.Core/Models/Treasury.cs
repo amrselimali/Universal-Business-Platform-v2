@@ -96,6 +96,8 @@ public sealed class TreasuryMethod
     public decimal FeeFixed { get; set; }
     public bool RequiresReference { get; set; }
     public bool IsActive { get; set; } = true;
+    /// <summary>طريقة الدفع متابَعة في الوردية (تظهر أرصدتها في شاشة فتح الوردية) — 0075.</summary>
+    public bool FollowInShift { get; set; } = true;
     public string? TreasuryName { get; set; }
 }
 
@@ -111,6 +113,8 @@ public sealed class TreasuryMethodInput
     public decimal FeePercent { get; set; }
     public decimal FeeFixed { get; set; }
     public bool RequiresReference { get; set; }
+    /// <summary>متابعة طريقة الدفع في الوردية (افتراضي: نعم) — 0075.</summary>
+    public bool FollowInShift { get; set; } = true;
 }
 
 public sealed class Voucher

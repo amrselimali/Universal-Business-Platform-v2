@@ -130,16 +130,23 @@ public sealed partial class BookingRepository : IBookingRepository
         await using var connection = await _factory.OpenAsync(ct);
         var where = new List<string>();
         if (filter.BranchId.HasValue) where.Add("b.branch_id = @branchId");
-        if (!string.IsNullOrWhiteSpace(filter.Status)) where.Add("b.status = @status");
+        if (filter.BranchIds.Count > 0) where.Add("b.branch_id = ANY(@branchIds)");
+        if (filter.Statuses.Count > 0) where.Add("b.status = ANY(@statuses)");
+        else if (!string.IsNullOrWhiteSpace(filter.Status)) where.Add("b.status = @status");
         if (filter.CustomerId.HasValue) where.Add("b.customer_id = @customerId");
         if (filter.Date.HasValue) where.Add("b.booking_date = @date");
+        if (filter.From.HasValue) where.Add("b.booking_date >= @from");
+        if (filter.To.HasValue) where.Add("b.booking_date <= @to");
         if (!string.IsNullOrWhiteSpace(filter.Source)) where.Add("b.source = @source");
         if (!string.IsNullOrWhiteSpace(filter.Search))
-            where.Add("(b.doc_no ILIKE '%' || @search || '%' OR c.name_ar ILIKE '%' || @search || '%')");
+            where.Add("(b.doc_no ILIKE '%' || @search || '%' OR " +
+                      "c.search_text LIKE '%' || normalize_search(@search) || '%')");
         var whereSql = where.Count == 0 ? "WHERE true" : "WHERE " + string.Join(" AND ", where);
-        var args = new { branchId = filter.BranchId, status = filter.Status,
+        var args = new { branchId = filter.BranchId, branchIds = filter.BranchIds.ToArray(),
+            status = filter.Status, statuses = filter.Statuses.ToArray(),
             customerId = filter.CustomerId, search = filter.Search, source = filter.Source,
-            date = filter.Date?.Date, take = request.SafePageSize, offset = request.Offset };
+            date = filter.Date?.Date, from = filter.From?.Date, to = filter.To?.Date,
+            take = request.SafePageSize, offset = request.Offset };
 
         var items = await connection.QueryAsync<BookingRow>(new CommandDefinition(
             HeadSelect + " " + whereSql +

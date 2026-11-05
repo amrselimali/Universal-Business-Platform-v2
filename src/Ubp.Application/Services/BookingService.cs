@@ -30,6 +30,8 @@ public sealed class BookingService
         PageRequest request, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings, ActionCodes.View, ct: ct);
+        if (filter.BranchId is { } branchId) BranchScope.Ensure(actor, branchId);
+        else if (!actor.IsSuperAdmin) filter.BranchIds = actor.AllowedBranchIds;
         return await _bookings.ListAsync(filter, request, ct);
     }
 

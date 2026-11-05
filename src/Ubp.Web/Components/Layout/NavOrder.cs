@@ -4,15 +4,15 @@ namespace Ubp.Web.Components.Layout;
 
 /// <summary>
 /// ترتيب عرض القائمة الجانبية فقط (لا يغيّر سجل الشاشات ولا الصلاحيات ولا المسارات):
-/// تبدأ مجموعة المبيعات بالحجوزات (حجز موعد) ثم متابعات العملاء ثم نقطة البيع ثم الخدمات
-/// المحجوزة، وبعدها بقية الشاشات بنفس ترتيب السجل الرسمي (ترتيب مستقر).
+/// تبدأ مجموعة المبيعات بشاشة الورديات ثم الحجوزات (حجز موعد) ثم متابعات العملاء ثم
+/// نقطة البيع ثم الخدمات المحجوزة، وبعدها بقية الشاشات بنفس ترتيب السجل (ترتيب مستقر).
 /// </summary>
 public static class NavOrder
 {
     private static readonly string[] SalesPriority =
     {
-        ScreenCodes.SalesBookings, ScreenCodes.FollowUps, ScreenCodes.PosTerminal,
-        ScreenCodes.Reservations
+        ScreenCodes.TreasuryShifts, ScreenCodes.SalesBookings, ScreenCodes.FollowUps,
+        ScreenCodes.PosTerminal, ScreenCodes.Reservations
     };
 
     /// <summary>يعيد نفس الشاشات بترتيب العرض، مع الحفاظ على ترتيب السجل لغير المذكورين.</summary>

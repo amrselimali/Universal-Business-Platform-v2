@@ -226,7 +226,7 @@ public static partial class AppRegistry
             "treasury.vouchers"),
 
         new(ScreenCodes.TreasuryShifts, "/treasury/shifts", "PointOfSale",
-            "screen.treasury_shifts", GroupAccounting,
+            "screen.treasury_shifts", GroupSales,
             new[] { A(ActionCodes.View), A(ActionCodes.Open), A(ActionCodes.Close),
                     A(ActionCodes.Reopen), A(ActionCodes.Approve) },
             "treasury.shifts"),

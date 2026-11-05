@@ -112,9 +112,18 @@ public sealed class BookingAssignment
 public sealed class BookingFilter
 {
     public Guid? BranchId { get; set; }
+    /// <summary>نطاق فروع المستخدم (يُملأ من الخدمة عندما لا يُحدد فرع) — ربط الشاشات باليوزر.</summary>
+    public IReadOnlyCollection<Guid> BranchIds { get; set; } = Array.Empty<Guid>();
     public DateTime? Date { get; set; }
+    /// <summary>تاريخ البداية (شامل) لفلتر «من تاريخ».</summary>
+    public DateTime? From { get; set; }
+    /// <summary>تاريخ النهاية (شامل) لفلتر «إلى تاريخ».</summary>
+    public DateTime? To { get; set; }
     public string? Status { get; set; }
+    /// <summary>أكثر من حالة معاً (مسودة/مؤكد/ملغى).</summary>
+    public List<string> Statuses { get; set; } = new();
     public Guid? CustomerId { get; set; }
+    /// <summary>بحث باسم العميل أو كوده أو رقم هاتفه أو رقم الحجز.</summary>
     public string? Search { get; set; }
 
     /// <summary>مصدر الحجز: manual للحجوزات/المواعيد، pos لمبيعات نقطة البيع.</summary>

@@ -207,6 +207,60 @@ public sealed class TreasuryShiftTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Follow_in_shift_flag_controls_opening_rows()
+    {
+        var actor = await _db.AdminActorAsync();
+        var service = _db.TreasuryService();
+        var f = await SetupAsync("7");
+        await PostVoucherAsync(f, VoucherTypes.Receipt, f.Customer, 400);
+
+        var balances = await service.GetOpeningBalancesAsync(actor, f.Branch);
+        var row = Assert.Single(balances.Treasuries);
+        Assert.Equal(400m, row.PostedBalance);
+        Assert.Equal(400m, balances.OpeningCash);
+        Assert.Contains(row.Methods, m => m.MethodId == f.CashMethod);
+
+        await service.SetMethodFollowInShiftAsync(actor, f.CashMethod, false);
+        var after = await service.GetOpeningBalancesAsync(actor, f.Branch);
+        Assert.Empty(after.Treasuries);
+        Assert.Equal(0m, after.OpeningCash);
+
+        await service.SetMethodFollowInShiftAsync(actor, f.CashMethod, true);
+        var restored = await service.GetOpeningBalancesAsync(actor, f.Branch);
+        Assert.Single(restored.Treasuries);
+    }
+
+    [Fact]
+    public async Task Meters_are_listed_per_device_even_when_zero()
+    {
+        var actor = await _db.AdminActorAsync();
+        var service = _db.TreasuryService();
+        var f = await SetupAsync("8");
+
+        await using (var connection = new NpgsqlConnection(TestDb.AdminConnection))
+        {
+            await connection.OpenAsync();
+            await connection.ExecuteAsync("""
+                INSERT INTO fixed_assets (id, code, name_ar, category_id, branch_id,
+                    purchase_date, cost, is_metered, meter_type, current_meter_value)
+                SELECT gen_random_uuid(), @code, @name, (SELECT id FROM asset_categories LIMIT 1),
+                       @branch, current_date, 0, true, 'PAGES', @value
+                """, new object[]
+            {
+                new { code = "MTR-0-" + Guid.NewGuid().ToString("N")[..6], name = "جهاز صفر",
+                    branch = f.Branch, value = 0m },
+                new { code = "MTR-1-" + Guid.NewGuid().ToString("N")[..6], name = "جهاز 120",
+                    branch = f.Branch, value = 120m }
+            });
+        }
+
+        var balances = await service.GetOpeningBalancesAsync(actor, f.Branch);
+        Assert.Equal(2, balances.Meters.Count);
+        Assert.Contains(balances.Meters, m => m.Value == 0m);
+        Assert.Equal(120m, balances.MeterBalance);
+    }
+
+    [Fact]
     public async Task Auto_close_closes_open_shifts_that_passed_five_am()
     {
         var actor = await _db.AdminActorAsync();

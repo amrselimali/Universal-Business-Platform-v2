@@ -104,24 +104,23 @@ public partial class Terminal : SecurePageBase
 
     private async Task LoadBranchAsync()
     {
-        _warehouses = await Warehouses.OptionsAsync(Actor!);
+        _warehouses = await Lookup.WarehousesAsync(Actor!);
         if (BranchWarehouses.All(w => w.Id != _warehouseId))
             _warehouseId = BranchWarehouses.FirstOrDefault()?.Id ?? Guid.Empty;
-        var treasuries = await Treasury.ListTreasuriesAsync(Actor!, _branchId);
+        var treasuries = await Lookup.TreasuriesAsync(Actor!, _branchId);
         _treasuryId = treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
-        _methods = await Treasury.ListBranchMethodsAsync(Actor!, _branchId);
+        _methods = await Lookup.TreasuryMethodsAsync(Actor!, _branchId);
         await SearchAsync();
     }
 
     private async Task SearchAsync() =>
-        _products = await Items.OptionsAsync(Actor!, _search, true);
+        _products = await Lookup.ItemsAsync(Actor!, _search, 50, true);
 
     private static decimal PriceOf(ItemOption product) => product.DefaultPrice;
 
     private async Task SearchCustomersAsync()
     {
-        _customers = (await Partners.ListAsync(Actor!, PartnerKind.Customer,
-            new PageRequest { Page = 1, PageSize = 25, Search = _customerSearch }, null)).Items;
+        _customers = await Lookup.PartnersAsync(Actor!, PartnerKind.Customer, _customerSearch);
         if (_customers.All(c => c.Id != _customerId))
             await OnCustomerChanged(_customers.FirstOrDefault()?.Id ?? Guid.Empty);
         StateHasChanged();
@@ -136,7 +135,7 @@ public partial class Terminal : SecurePageBase
 
         // تحديث طرق التحصيل المكوَّدة في شاشة الخزائن عند اختيار العميل (بدون إعادة تحميل الصفحة).
         if (_branchId != Guid.Empty)
-            _methods = await Treasury.ListBranchMethodsAsync(Actor!, _branchId);
+            _methods = await Lookup.TreasuryMethodsAsync(Actor!, _branchId);
         StateHasChanged();
     }
 

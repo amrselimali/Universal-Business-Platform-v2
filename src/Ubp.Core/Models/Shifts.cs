@@ -55,16 +55,57 @@ public sealed class ShiftInput
 public sealed class ShiftOpeningBalances
 {
     public Guid BranchId { get; set; }
-    /// <summary>الرصيد المرحل من حسابات خزائن الفرع في الأستاذ العام.</summary>
+    /// <summary>الرصيد المرحل من حسابات خزائن الفرع في الأستاذ العام (كل الخزائن).</summary>
     public decimal CarriedFromAccounts { get; set; }
     /// <summary>قيمة تسجيلات الورديات المرحّلة للمراجعة لدى المحاسب (مسودات لم تُرحَّل بعد).</summary>
     public decimal PendingReview { get; set; }
     /// <summary>إجمالي قراءات عدادات الأجهزة للفرع.</summary>
     public decimal MeterBalance { get; set; }
     public int PendingReviewShifts { get; set; }
+    /// <summary>الخزائن وطرق الدفع المعلَّمة «يتم متابعتها في الوردية» مع أرصدتها.</summary>
+    public List<ShiftTreasuryRow> Treasuries { get; set; } = new();
+    /// <summary>عدادات أجهزة الفرع — كل جهاز صف مستقل حتى لو كان بصفر.</summary>
+    public List<ShiftMeterRow> Meters { get; set; } = new();
 
-    public decimal OpeningCash =>
-        Math.Round(CarriedFromAccounts + PendingReview, 2, MidpointRounding.AwayFromZero);
+    /// <summary>الرصيد الافتتاحي = مجموع أرصدة الخزائن المتابَعة في الوردية.</summary>
+    public decimal OpeningCash { get; set; }
+}
+
+/// <summary>خزينة متابَعة في الوردية: رصيدها من الحسابات المرحّلة + الحركات غير المرحّلة.</summary>
+public sealed class ShiftTreasuryRow
+{
+    public Guid TreasuryId { get; set; }
+    public string Code { get; set; } = "";
+    public string NameAr { get; set; } = "";
+    public string TreasuryType { get; set; } = TreasuryTypes.Cash;
+    /// <summary>الرصيد من القيود المرحّلة لحساب الخزينة في فرعها.</summary>
+    public decimal PostedBalance { get; set; }
+    /// <summary>حركات مسودة ما زالت تحت المراجعة (غير مرحّلة).</summary>
+    public decimal UnpostedBalance { get; set; }
+    public List<ShiftMethodRow> Methods { get; set; } = new();
+
+    public decimal Total =>
+        Math.Round(PostedBalance + UnpostedBalance, 2, MidpointRounding.AwayFromZero);
+}
+
+public sealed class ShiftMethodRow
+{
+    public Guid MethodId { get; set; }
+    public Guid TreasuryId { get; set; }
+    public string Code { get; set; } = "";
+    public string NameAr { get; set; } = "";
+    public string MethodType { get; set; } = PaymentMethodTypes.Cash;
+    public bool FollowInShift { get; set; }
+}
+
+/// <summary>عداد جهاز في الفرع: يُعرض في خلية مستقلة في شاشة فتح الوردية.</summary>
+public sealed class ShiftMeterRow
+{
+    public Guid AssetId { get; set; }
+    public string Code { get; set; } = "";
+    public string NameAr { get; set; } = "";
+    public string? MeterType { get; set; }
+    public decimal Value { get; set; }
 }
 
 public sealed class ShiftDenominationInput

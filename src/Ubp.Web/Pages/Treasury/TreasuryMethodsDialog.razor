@@ -15,6 +15,8 @@
                 <MudTh Align="Right">@T.T("treasury.fee_percent")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.fee_fixed")</MudTh>
                 <MudTh>@T.T("treasury.requires_reference")</MudTh>
+                <MudTh>@T.T("treasury.follow_in_shift")</MudTh>
+                <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd><span class="ubp-code">@context.Code</span></MudTd>
@@ -25,11 +27,21 @@
                 <MudTd Align="Right">@context.FeePercent.ToString("N2")</MudTd>
                 <MudTd Align="Right">@context.FeeFixed.ToString("N2")</MudTd>
                 <MudTd>@(context.RequiresReference ? "✓" : "—")</MudTd>
+                <MudTd>
+                    <MudSwitch T="bool" Value="context.FollowInShift" Color="Color.Success"
+                               ValueChanged="@(v => ToggleFollowAsync(context, v))" />
+                </MudTd>
+                <MudTd Align="Right">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                   OnClick="@(() => Edit(context))" />
+                </MudTd>
             </RowTemplate>
         </MudTable>
 
         <MudDivider Class="my-4" />
-        <MudText Typo="Typo.subtitle2" Class="mb-2">@T.T("treasury.add_method")</MudText>
+        <MudText Typo="Typo.subtitle2" Class="mb-2">
+            @T.T(_editingId is null ? "treasury.add_method" : "treasury.edit_method")
+        </MudText>
         <MudForm @ref="_form">
             <div class="ubp-form-grid">
                 <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true"
@@ -70,13 +82,21 @@
                                  Variant="Variant.Outlined" Min="0m" Format="N2" />
                 <MudSwitch @bind-Value="_input.RequiresReference" Color="Color.Primary"
                            Label="@T.T("treasury.requires_reference")" />
+                <MudSwitch @bind-Value="_input.FollowInShift" Color="Color.Success"
+                           Label="@T.T("treasury.follow_in_shift")" />
             </div>
         </MudForm>
     </DialogContent>
     <DialogActions>
+        @if (_editingId is not null)
+        {
+            <MudButton OnClick="CancelEdit" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        }
         <MudButton OnClick="Close">@T.T("common.close")</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AddAsync"
-                   Disabled="_busy">@T.T("treasury.add_method")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">
+            @T.T(_editingId is null ? "treasury.add_method" : "common.save")
+        </MudButton>
     </DialogActions>
 
 @code {
@@ -92,6 +112,7 @@
     private TreasuryMethodInput _input = new();
     private IReadOnlyList<TreasuryMethod> _methods = Array.Empty<TreasuryMethod>();
     private IReadOnlyList<Account> _accounts = Array.Empty<Account>();
+    private Guid? _editingId;
     private bool _busy;
     private bool _english;
 
@@ -113,7 +134,7 @@
         return account is null ? "—" : account.Code + " — " + account.DisplayName(_english);
     }
 
-    private async Task AddAsync()
+    private async Task SaveAsync()
     {
         await _form.Validate();
         if (!_form.IsValid) return;
@@ -122,8 +143,46 @@
         try
         {
             var actor = await UserContext.RequireAsync();
-            await Service.CreateMethodAsync(actor, _input);
-            _input = new TreasuryMethodInput { TreasuryId = Treasury.Id };
+            if (_editingId is { } id)
+                await Service.UpdateMethodAsync(actor, id, _input);
+            else
+                await Service.CreateMethodAsync(actor, _input);
+            ResetForm();
+            _methods = await Service.ListMethodsAsync(actor, Treasury.Id);
+            Snackbar.Add(T.T("common.saved"), Severity.Success);
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private void Edit(TreasuryMethod method)
+    {
+        _editingId = method.Id;
+        _input = new TreasuryMethodInput
+        {
+            TreasuryId = method.TreasuryId, Code = method.Code, NameAr = method.NameAr,
+            MethodType = method.MethodType, ClearingAccountId = method.ClearingAccountId,
+            FeeAccountId = method.FeeAccountId, FeePercent = method.FeePercent,
+            FeeFixed = method.FeeFixed, RequiresReference = method.RequiresReference,
+            FollowInShift = method.FollowInShift
+        };
+    }
+
+    private void CancelEdit() => ResetForm();
+
+    private void ResetForm()
+    {
+        _editingId = null;
+        _input = new TreasuryMethodInput { TreasuryId = Treasury.Id };
+    }
+
+    private async Task ToggleFollowAsync(TreasuryMethod method, bool followInShift)
+    {
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            await Service.SetMethodFollowInShiftAsync(actor, method.Id, followInShift);
             _methods = await Service.ListMethodsAsync(actor, Treasury.Id);
             Snackbar.Add(T.T("common.saved"), Severity.Success);
         }

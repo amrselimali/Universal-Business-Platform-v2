@@ -15,10 +15,7 @@ public partial class OperatingExpenseDialog : ComponentBase
 
     [Inject] private OperatingExpenseService Expenses { get; set; } = default!;
     [Inject] private LookupService Lookup { get; set; } = default!;
-    [Inject] private AccountService Accounts { get; set; } = default!;
     [Inject] private BranchService BranchApi { get; set; } = default!;
-    [Inject] private TreasuryService TreasuryApi { get; set; } = default!;
-    [Inject] private CostCenterService CostCenters { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
     [Inject] private UiCulture T { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
@@ -65,7 +62,7 @@ public partial class OperatingExpenseDialog : ComponentBase
         Branches = await BranchApi.OptionsAsync(actor);
         _branchId = BranchId ?? actor.CurrentBranchId ?? Branches.FirstOrDefault()?.Id ?? Guid.Empty;
         _warehouses = await Lookup.WarehousesAsync(actor);
-        _accounts = await Accounts.PostableAsync(actor);
+        _accounts = await Lookup.PostableAccountsAsync(actor);
         await ReloadBranchAsync();
         AddLine();
     }
@@ -73,10 +70,10 @@ public partial class OperatingExpenseDialog : ComponentBase
     private async Task ReloadBranchAsync()
     {
         var actor = await UserContext.RequireAsync();
-        _costCenters = await CostCenters.OptionsAsync(actor,
+        _costCenters = await Lookup.CostCentersAsync(actor,
             _branchId == Guid.Empty ? actor.CurrentBranchId : _branchId);
-        _treasuries = await TreasuryApi.ListTreasuriesAsync(actor, _branchId);
-        _methods = await TreasuryApi.ListBranchMethodsAsync(actor, _branchId);
+        _treasuries = await Lookup.TreasuriesAsync(actor, _branchId);
+        _methods = await Lookup.TreasuryMethodsAsync(actor, _branchId);
         _treasuryId = _treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
         _methodId = _methods.FirstOrDefault(m => m.TreasuryId == _treasuryId)?.Id ?? Guid.Empty;
     }

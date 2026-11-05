@@ -31,17 +31,24 @@ else
                     <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
                 }
             </MudSelect>
-            <MudDatePicker Date="_date" Label="@T.T("sales.booking_date")" Clearable="true"
+            <MudTextField @bind-Value="_search" Label="@T.T("sales.customer_search")"
+                          Placeholder="@T.T("sales.customer_search_hint")" Immediate="true"
+                          DebounceInterval="400" OnDebounceIntervalElapsed="OnSearchAsync"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+            <MudDatePicker Date="_from" Label="@T.T("common.from_date")"
                            Variant="Variant.Outlined" Margin="Margin.Dense"
-                           DateChanged="OnDateChanged" />
-            <MudSelect T="string?" Value="_status" Label="@T.T("common.status")"
-                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
-                       ValueChanged="OnStatusChanged">
-                <MudSelectItem T="string?" Value="@BookingStatuses.Draft">@T.T("sales.status_draft")</MudSelectItem>
-                <MudSelectItem T="string?" Value="@BookingStatuses.Confirmed">@T.T("sales.status_confirmed")</MudSelectItem>
-                <MudSelectItem T="string?" Value="@BookingStatuses.PartiallyDelivered">@T.T("sales.status_partial")</MudSelectItem>
-                <MudSelectItem T="string?" Value="@BookingStatuses.Completed">@T.T("sales.status_completed")</MudSelectItem>
-                <MudSelectItem T="string?" Value="@BookingStatuses.Cancelled">@T.T("sales.status_cancelled")</MudSelectItem>
+                           DateChanged="OnFromChanged" />
+            <MudDatePicker Date="_to" Label="@T.T("common.to_date")"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           DateChanged="OnToChanged" />
+            <MudSelect T="string" SelectedValues="_statuses" MultiSelection="true"
+                       Label="@T.T("common.status")" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" SelectAll="false" SelectAllText="@T.T("common.select_all")"
+                       SelectedValuesChanged="OnStatusesChanged">
+                <MudSelectItem T="string" Value="@BookingStatuses.Draft">@T.T("sales.status_draft")</MudSelectItem>
+                <MudSelectItem T="string" Value="@BookingStatuses.Confirmed">@T.T("sales.status_confirmed")</MudSelectItem>
+                <MudSelectItem T="string" Value="@BookingStatuses.Cancelled">@T.T("sales.status_cancelled")</MudSelectItem>
             </MudSelect>
         </div>
 
@@ -116,10 +123,16 @@ else
     private MudTable<Booking> _table = default!;
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private Guid? _branchId;
-    private string? _status;
+    private string? _search;
+    // فلتر الحالة: 3 خيارات فقط (مسودة/مؤكد/ملغى) والافتراضي مسودة + مؤكد.
+    private HashSet<string> _statuses = new()
+    {
+        BookingStatuses.Draft, BookingStatuses.Confirmed
+    };
     // شاشة الحجوزات = مواعيد عملاء فقط؛ لا مصدر لنقطة البيع ولا فلتر مصدر.
     private const string ScreenSource = BookingSources.Manual;
-    private DateTime? _date = DateTime.Today;
+    private DateTime? _from = DateTime.Today;
+    private DateTime? _to = DateTime.Today;
 
     protected override string ScreenCode => ScreenCodes.SalesBookings;
 
@@ -131,14 +144,24 @@ else
     private async Task<TableData<Booking>> LoadServerData(TableState state, CancellationToken ct)
     {
         var result = await BookingApi.ListAsync(Actor!, new BookingFilter
-        { BranchId = _branchId, Status = _status, Source = ScreenSource, Date = _date },
-        new PageRequest { Page = state.Page + 1, PageSize = 25 }, ct);
+        {
+            BranchId = _branchId, Statuses = _statuses.ToList(), Source = ScreenSource,
+            Search = _search, From = _from, To = _to
+        }, new PageRequest { Page = state.Page + 1, PageSize = 25 }, ct);
         return new TableData<Booking> { Items = result.Items, TotalItems = result.Total };
     }
 
     private Task OnBranchChanged(Guid? value) { _branchId = value; return _table.ReloadServerData(); }
-    private Task OnStatusChanged(string? value) { _status = value; return _table.ReloadServerData(); }
-    private Task OnDateChanged(DateTime? value) { _date = value; return _table.ReloadServerData(); }
+    private Task OnSearchAsync(string? value) { _search = value; return _table.ReloadServerData(); }
+
+    private Task OnStatusesChanged(IEnumerable<string> values)
+    {
+        _statuses = values.ToHashSet();
+        return _table.ReloadServerData();
+    }
+
+    private Task OnFromChanged(DateTime? value) { _from = value; return _table.ReloadServerData(); }
+    private Task OnToChanged(DateTime? value) { _to = value; return _table.ReloadServerData(); }
 
     private static Color StatusColor(string status) => status switch
     {

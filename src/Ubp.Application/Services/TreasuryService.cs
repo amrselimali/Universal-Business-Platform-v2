@@ -83,6 +83,52 @@ public sealed partial class TreasuryService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.Treasuries, ActionCodes.ManageMethods,
             ct: ct);
+        await ValidateMethodAsync(input, ct);
+
+        var id = Guid.CreateVersion7();
+        try
+        {
+            await _treasury.CreateMethodAsync(id, input, actor.UserId, ct);
+        }
+        catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
+
+        await _audit.WriteAsync(actor, "treasury_methods", id.ToString(), "INSERT", null, input, ct);
+        return (await _treasury.ListMethodsAsync(input.TreasuryId, ct)).First(m => m.Id == id);
+    }
+
+    /// <summary>تعديل طريقة دفع مسجّلة (تظهر بها زر تعديل في شاشة الخزائن) — 0075.</summary>
+    public async Task<TreasuryMethod> UpdateMethodAsync(ActorContext actor, Guid id,
+        TreasuryMethodInput input, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.Treasuries, ActionCodes.ManageMethods,
+            ct: ct);
+        await ValidateMethodAsync(input, ct);
+
+        try
+        {
+            if (!await _treasury.UpdateMethodAsync(id, input, ct))
+                throw new NotFoundAppException();
+        }
+        catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
+
+        await _audit.WriteAsync(actor, "treasury_methods", id.ToString(), "UPDATE", null, input, ct);
+        return (await _treasury.ListMethodsAsync(input.TreasuryId, ct)).First(m => m.Id == id);
+    }
+
+    /// <summary>تفعيل/إيقاف «يتم متابعتها في الوردية» لطريقة دفع — 0075.</summary>
+    public async Task SetMethodFollowInShiftAsync(ActorContext actor, Guid id, bool followInShift,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.Treasuries, ActionCodes.ManageMethods,
+            ct: ct);
+        if (!await _treasury.SetMethodFollowInShiftAsync(id, followInShift, ct))
+            throw new NotFoundAppException();
+        await _audit.WriteAsync(actor, "treasury_methods", id.ToString(), "UPDATE", null,
+            new { follow_in_shift = followInShift }, ct);
+    }
+
+    private async Task ValidateMethodAsync(TreasuryMethodInput input, CancellationToken ct)
+    {
         if (string.IsNullOrWhiteSpace(input.Code) || string.IsNullOrWhiteSpace(input.NameAr) ||
             input.TreasuryId == Guid.Empty)
             throw new ValidationAppException("validation.required_fields");
@@ -98,16 +144,6 @@ public sealed partial class TreasuryService
             if (postable.All(a => a.Id != feeAccountId))
                 throw new ValidationAppException("validation.account_not_postable");
         }
-
-        var id = Guid.CreateVersion7();
-        try
-        {
-            await _treasury.CreateMethodAsync(id, input, actor.UserId, ct);
-        }
-        catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
-
-        await _audit.WriteAsync(actor, "treasury_methods", id.ToString(), "INSERT", null, input, ct);
-        return (await _treasury.ListMethodsAsync(input.TreasuryId, ct)).First(m => m.Id == id);
     }
 
     /// <summary>حسابات الترحيل المتاحة لشاشات الخزينة (بدون اشتراط صلاحية شاشة الحسابات).</summary>

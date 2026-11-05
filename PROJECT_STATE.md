@@ -1,5 +1,25 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-05 — Followed treasuries/methods in shift opening, method editing, booking filters, user-scope linking
+
+- Migration `0075`: `treasury_methods.follow_in_shift` (default true) + partial index.
+- `/treasury/management`: edit any registered payment method and toggle «يتم متابعتها في الوردية»
+  per method (saved immediately, audited).
+- `OpenShiftDialog`: removed «الرصيد المرحل من الحسابات» and «رصيد الورديات تحت المراجعة» cells;
+  shows a table of the **treasuries/payment methods followed in the shift** with each treasury's
+  **posted** and **unposted (under review)** balances (opening cash = their sum, read-only), and
+  **one cell per branch device meter** (even when zero) inside a grid.
+- `/sales/bookings`: customer search (name/code/phone/booking no, empty by default), status filter
+  limited to 3 options (draft/confirmed/cancelled) multi-select defaulting to draft+confirmed, and
+  from/to date range defaulting to today. `BookingFilter` gained `Statuses`/`From`/`To`, and
+  `BookingService.ListAsync` now enforces the actor's branch scope when no branch is chosen.
+- `LookupService` is the unified, permission-free but scope-limited lookup source (partners, items,
+  warehouses via `user_warehouses`, treasuries, treasury methods, postable accounts, cost centers)
+  used by POS, booking dialog and operating expenses so restricted reception users see their branch
+  and warehouse data (fixes `ForbiddenException` on new booking and empty POS/expense lists).
+- Nav: «الورديات» moved to the **Sales** group and ranked first (before bookings).
+- Tests: `BookingFilterTests` (3), `LookupScopeTests` (2), `TreasuryShiftTests` (+2); full suite (354).
+
 ## 2026-11-05 — Branch-level shift (all screens), computed opening balances, review & 05:00 auto-close
 
 - Migration `0074`: `cashier_shifts.treasury_id` nullable, `ux_shift_open` now on `branch_id`

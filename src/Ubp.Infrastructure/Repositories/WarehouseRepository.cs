@@ -11,6 +11,12 @@ public interface IWarehouseRepository
         IReadOnlyCollection<Guid> branchIds, bool isAdmin, CancellationToken ct = default);
     Task<IReadOnlyList<Warehouse>> ListOptionsAsync(short scope, Guid actorId,
         IReadOnlyCollection<Guid> branchIds, bool isAdmin, CancellationToken ct = default);
+    /// <summary>
+    /// مخازن المستخدم: المخازن المربوطة به (user_warehouses) وإن لم يُربط أي مخزن
+    /// تُعرض مخازن فروعه — لإصلاح ربط الشاشات بالمخزن/الفرع المصرح به.
+    /// </summary>
+    Task<IReadOnlyList<Warehouse>> ListOptionsForUserAsync(Guid userId,
+        IReadOnlyCollection<Guid> branchIds, bool isAdmin, CancellationToken ct = default);
     Task<Warehouse?> GetAsync(Guid id, CancellationToken ct = default);
     Task<Warehouse> CreateAsync(WarehouseInput input, CancellationToken ct = default);
     Task<Warehouse?> UpdateAsync(Guid id, int version, WarehouseInput input, CancellationToken ct = default);
@@ -109,6 +115,30 @@ public sealed partial class WarehouseRepository : IWarehouseRepository
         var rows = await connection.QueryAsync<WarehouseRow>(new CommandDefinition(sql, new
         {
             actorId, branchIds = branchIds.ToArray()
+        }, cancellationToken: ct));
+        return rows.Select(Map).ToList();
+    }
+
+    public async Task<IReadOnlyList<Warehouse>> ListOptionsForUserAsync(Guid userId,
+        IReadOnlyCollection<Guid> branchIds, bool isAdmin, CancellationToken ct = default)
+    {
+        // المربوط بمخازن: يراها فقط. غير المربوط: مخازن فروعه المصرح بها (أو الكل للمدير).
+        var sql = $"""
+            SELECT {SelectColumns} FROM warehouses w {Joins}
+            WHERE w.is_active AND (
+                @isAdmin
+                OR EXISTS (SELECT 1 FROM user_warehouses uw
+                           WHERE uw.warehouse_id = w.id AND uw.user_id = @userId)
+                OR (NOT EXISTS (SELECT 1 FROM user_warehouses uw2 WHERE uw2.user_id = @userId)
+                    AND EXISTS (SELECT 1 FROM warehouse_branches wbx
+                                WHERE wbx.warehouse_id = w.id
+                                  AND wbx.branch_id = ANY(@branchIds))))
+            GROUP BY w.id ORDER BY w.name_ar
+            """;
+        await using var connection = await _factory.OpenAsync(ct);
+        var rows = await connection.QueryAsync<WarehouseRow>(new CommandDefinition(sql, new
+        {
+            userId, branchIds = branchIds.ToArray(), isAdmin
         }, cancellationToken: ct));
         return rows.Select(Map).ToList();
     }

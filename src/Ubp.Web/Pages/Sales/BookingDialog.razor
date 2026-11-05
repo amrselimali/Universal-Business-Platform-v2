@@ -88,9 +88,7 @@
     [Parameter] public Guid? DefaultBranchId { get; set; }
 
     [Inject] private BookingService Bookings { get; set; } = default!;
-    [Inject] private ItemService Items { get; set; } = default!;
-    [Inject] private WarehouseService Warehouses { get; set; } = default!;
-    [Inject] private PartnerService Partners { get; set; } = default!;
+    [Inject] private LookupService Lookup { get; set; } = default!;
     [Inject] private MasterDataService MasterData { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
     [Inject] private UiCulture T { get; set; } = default!;
@@ -114,11 +112,10 @@
         var actor = await UserContext.GetAsync();
         if (actor is null) return;
 
-        _items = await Items.OptionsAsync(actor, null, true);
-        _warehouses = await Warehouses.OptionsAsync(actor);
+        _items = await Lookup.ItemsAsync(actor, null, 100, true);
+        _warehouses = await Lookup.WarehousesAsync(actor);
         _employees = await MasterData.EmployeeOptionsAsync(actor);
-        _customers = (await Partners.ListAsync(actor, PartnerKind.Customer,
-            new PageRequest { Page = 1, PageSize = 25 }, null)).Items;
+        _customers = await Lookup.PartnersAsync(actor, PartnerKind.Customer);
         AddLine();
     }
 
@@ -126,7 +123,7 @@
     {
         _input.BranchId = value;
         var actor = await UserContext.RequireAsync();
-        _warehouses = await Warehouses.OptionsAsync(actor);
+        _warehouses = await Lookup.WarehousesAsync(actor);
         StateHasChanged();
     }
 

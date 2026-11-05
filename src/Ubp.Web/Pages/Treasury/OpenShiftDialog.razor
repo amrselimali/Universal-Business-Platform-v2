@@ -14,26 +14,61 @@
                         <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
                     }
                 </MudSelect>
-
-                <MudTextField T="string" Label="@T.T("treasury.carried_from_accounts")" ReadOnly="true"
-                              Variant="Variant.Outlined"
-                              Text="@(_balances?.CarriedFromAccounts.ToString("N2") ?? "—")" />
-                <MudTextField T="string" Label="@T.T("treasury.pending_review_balance")" ReadOnly="true"
-                              Variant="Variant.Outlined"
-                              HelperText="@PendingReviewHint"
-                              Text="@(_balances?.PendingReview.ToString("N2") ?? "—")" />
-                <MudTextField T="string" Label="@T.T("treasury.meter_balance")" ReadOnly="true"
-                              Variant="Variant.Outlined"
-                              Text="@(_balances?.MeterBalance.ToString("N2") ?? "—")" />
-                <MudTextField T="string" Label="@T.T("treasury.opening_cash")" ReadOnly="true"
-                              Variant="Variant.Outlined" Required="true"
-                              HelperText="@T.T("treasury.opening_cash_locked")"
-                              Text="@(_balances?.OpeningCash.ToString("N2") ?? "—")" />
-
                 <MudTextField @bind-Value="_input.Notes" Label="@T.T("common.notes")"
                               Variant="Variant.Outlined" MaxLength="500" />
             </div>
         </MudForm>
+
+        @if (_balances is not null)
+        {
+            <MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("treasury.shift_followed_treasuries")</MudText>
+            <MudTable Items="_balances.Treasuries" Dense="true" Elevation="0" Class="ubp-table">
+                <HeaderContent>
+                    <MudTh>@T.T("treasury.treasury")</MudTh>
+                    <MudTh>@T.T("treasury.followed_methods")</MudTh>
+                    <MudTh Align="Right">@T.T("treasury.posted_balance")</MudTh>
+                    <MudTh Align="Right">@T.T("treasury.unposted_balance")</MudTh>
+                    <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><span class="ubp-code">@context.Code</span> — @context.NameAr</MudTd>
+                    <MudTd>@MethodsLabel(context)</MudTd>
+                    <MudTd Align="Right">@context.PostedBalance.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.UnpostedBalance.ToString("N2")</MudTd>
+                    <MudTd Align="Right"><b>@context.Total.ToString("N2")</b></MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudTextField T="string" Label="@T.T("treasury.opening_cash")" ReadOnly="true"
+                          Variant="Variant.Outlined" Required="true" Class="mt-3"
+                          HelperText="@T.T("treasury.opening_cash_locked")"
+                          Text="@_balances.OpeningCash.ToString("N2")" />
+
+            <MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("treasury.meter_balance")</MudText>
+            @if (_balances.Meters.Count == 0)
+            {
+                <MudText Typo="Typo.caption">@T.T("treasury.no_meters")</MudText>
+            }
+            else
+            {
+                <MudGrid Spacing="2">
+                    @foreach (var meter in _balances.Meters)
+                    {
+                        <MudItem xs="6" sm="4" md="3">
+                            <MudPaper Outlined="true" Class="pa-2">
+                                <MudText Typo="Typo.caption">@meter.Code — @meter.NameAr</MudText>
+                                <MudText Typo="Typo.body1"><b>@meter.Value.ToString("N2")</b></MudText>
+                                <MudText Typo="Typo.caption">@meter.MeterType</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+        }
+        else
+        {
+            <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+        }
 
         @if (_openShift is not null)
         {
@@ -70,6 +105,11 @@
     private string PendingReviewHint => _balances is null
         ? ""
         : string.Format(T.T("treasury.pending_review_shifts"), _balances.PendingReviewShifts);
+
+    private static string MethodsLabel(ShiftTreasuryRow treasury) =>
+        treasury.Methods.Count == 0
+            ? "—"
+            : string.Join(" · ", treasury.Methods.Select(m => $"{m.Code} — {m.NameAr}"));
 
     protected override async Task OnInitializedAsync()
     {

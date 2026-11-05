@@ -12,18 +12,18 @@ namespace Ubp.Tests;
 public sealed class NavOrderTests
 {
     [Fact]
-    public void Sales_group_starts_with_bookings_followups_pos_then_reserved_services()
+    public void Sales_group_starts_with_shifts_then_bookings_followups_pos_reserved_services()
     {
         var sales = AppRegistry.Screens
             .Where(s => s.GroupKey == AppRegistry.GroupSales)
             .ToList();
 
-        var ordered = NavOrder.Apply(sales).Select(s => s.Code).Take(4).ToArray();
+        var ordered = NavOrder.Apply(sales).Select(s => s.Code).Take(5).ToArray();
 
         Assert.Equal(new[]
         {
-            ScreenCodes.SalesBookings, ScreenCodes.FollowUps, ScreenCodes.PosTerminal,
-            ScreenCodes.Reservations
+            ScreenCodes.TreasuryShifts, ScreenCodes.SalesBookings, ScreenCodes.FollowUps,
+            ScreenCodes.PosTerminal, ScreenCodes.Reservations
         }, ordered);
     }
 
@@ -34,8 +34,8 @@ public sealed class NavOrderTests
             .Where(s => s.GroupKey == AppRegistry.GroupSales).ToList();
         var priority = new[]
         {
-            ScreenCodes.SalesBookings, ScreenCodes.FollowUps, ScreenCodes.PosTerminal,
-            ScreenCodes.Reservations
+            ScreenCodes.TreasuryShifts, ScreenCodes.SalesBookings, ScreenCodes.FollowUps,
+            ScreenCodes.PosTerminal, ScreenCodes.Reservations
         };
         var expected = sales.Where(s => !priority.Contains(s.Code)).Select(s => s.Code);
         var actual = NavOrder.Apply(sales).Skip(priority.Length).Select(s => s.Code);

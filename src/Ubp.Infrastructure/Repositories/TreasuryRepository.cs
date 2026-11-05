@@ -11,6 +11,10 @@ public interface ITreasuryRepository : IShiftGate
 {
     Task<Guid> CreateTreasuryAsync(Guid id, TreasuryInput input, Guid userId, CancellationToken ct = default);
     Task<Guid> CreateMethodAsync(Guid id, TreasuryMethodInput input, Guid userId, CancellationToken ct = default);
+    /// <summary>تعديل طريقة دفع مسجّلة (نفس خزينتها) — 0075.</summary>
+    Task<bool> UpdateMethodAsync(Guid id, TreasuryMethodInput input, CancellationToken ct = default);
+    /// <summary>تحديد متابعة طريقة الدفع في الوردية — 0075.</summary>
+    Task<bool> SetMethodFollowInShiftAsync(Guid id, bool followInShift, CancellationToken ct = default);
     Task<IReadOnlyList<Treasury>> ListTreasuriesAsync(Guid? branchId, CancellationToken ct = default);
     /// <summary>يجعل الخزينة رئيسية ويلغي غيرها (خزينة رئيسية واحدة فقط).</summary>
     Task<bool> SetMainAsync(Guid treasuryId, Guid userId, CancellationToken ct = default);
@@ -93,13 +97,43 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
         return await connection.ExecuteScalarAsync<Guid>(new CommandDefinition("""
             INSERT INTO treasury_methods (id, treasury_id, code, name_ar, name_en, method_type,
                 clearing_account_id, fee_account_id, fee_percent, fee_fixed, requires_reference,
-                created_by)
+                follow_in_shift, created_by)
             VALUES (@id, @TreasuryId, @Code, @NameAr, @NameEn, @MethodType, @ClearingAccountId,
-                    @FeeAccountId, @FeePercent, @FeeFixed, @RequiresReference, @userId)
+                    @FeeAccountId, @FeePercent, @FeeFixed, @RequiresReference, @FollowInShift,
+                    @userId)
             RETURNING id
             """, new { id, input.TreasuryId, input.Code, input.NameAr, input.NameEn,
                 input.MethodType, input.ClearingAccountId, input.FeeAccountId, input.FeePercent,
-                input.FeeFixed, input.RequiresReference, userId }, cancellationToken: ct));
+                input.FeeFixed, input.RequiresReference, input.FollowInShift, userId },
+            cancellationToken: ct));
+    }
+
+    /// <summary>تعديل طريقة دفع مسجّلة: كل الحقول ما عدا الخزينة (تبقى كما هي) — 0075.</summary>
+    public async Task<bool> UpdateMethodAsync(Guid id, TreasuryMethodInput input,
+        CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE treasury_methods SET code = @Code, name_ar = @NameAr, name_en = @NameEn,
+                method_type = @MethodType, clearing_account_id = @ClearingAccountId,
+                fee_account_id = @FeeAccountId, fee_percent = @FeePercent,
+                fee_fixed = @FeeFixed, requires_reference = @RequiresReference,
+                follow_in_shift = @FollowInShift
+            WHERE id = @id AND treasury_id = @TreasuryId AND is_active
+            """, new { id, input.TreasuryId, input.Code, input.NameAr, input.NameEn,
+                input.MethodType, input.ClearingAccountId, input.FeeAccountId, input.FeePercent,
+                input.FeeFixed, input.RequiresReference, input.FollowInShift },
+            cancellationToken: ct)) > 0;
+    }
+
+    /// <summary>تشغيل/إيقاف متابعة طريقة الدفع في الوردية — 0075.</summary>
+    public async Task<bool> SetMethodFollowInShiftAsync(Guid id, bool followInShift,
+        CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE treasury_methods SET follow_in_shift = @followInShift " +
+            "WHERE id = @id AND is_active", new { id, followInShift }, cancellationToken: ct)) > 0;
     }
 
     public async Task<IReadOnlyList<Treasury>> ListTreasuriesAsync(Guid? branchId,
@@ -128,7 +162,7 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
                    m.fee_account_id AS FeeAccountId,
                    m.fee_percent AS FeePercent, m.fee_fixed AS FeeFixed,
                    m.requires_reference AS RequiresReference, m.is_active AS IsActive,
-                   t.name_ar AS TreasuryName
+                   m.follow_in_shift AS FollowInShift, t.name_ar AS TreasuryName
             FROM treasury_methods m
             JOIN treasuries t ON t.id = m.treasury_id
             WHERE m.treasury_id = @treasuryId AND m.is_active
@@ -146,7 +180,7 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
                    m.fee_account_id AS FeeAccountId,
                    m.fee_percent AS FeePercent, m.fee_fixed AS FeeFixed,
                    m.requires_reference AS RequiresReference, m.is_active AS IsActive,
-                   t.name_ar AS TreasuryName
+                   m.follow_in_shift AS FollowInShift, t.name_ar AS TreasuryName
             FROM treasury_methods m
             JOIN treasuries t ON t.id = m.treasury_id
             WHERE t.branch_id = @branchId AND t.is_active AND m.is_active
