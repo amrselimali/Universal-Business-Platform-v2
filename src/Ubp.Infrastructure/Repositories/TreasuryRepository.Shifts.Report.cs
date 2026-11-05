@@ -103,8 +103,7 @@ public sealed partial class TreasuryRepository
             SET opening_cash = x.opening
             FROM (
                 SELECT t.id AS treasury_id,
-                       COALESCE(gl.balance, 0) - COALESCE(mv.amount, 0)
-                       + COALESCE(carry.total, 0) AS opening
+                       COALESCE(gl.balance, 0) + COALESCE(carry.total, 0) AS opening
                 FROM treasuries t
                 LEFT JOIN LATERAL (
                     SELECT COALESCE((SELECT SUM(l.debit - l.credit)
@@ -114,21 +113,6 @@ public sealed partial class TreasuryRepository
                                  WHERE e.status = 'posted' AND l.account_id = t.account_id), 0)
                        AS balance
                 ) gl ON true
-                LEFT JOIN LATERAL (
-                    SELECT SUM(CASE
-                               WHEN v.treasury_id = t.id AND v.voucher_type = 'receipt'
-                                   THEN v.total_amount
-                               WHEN v.treasury_id = t.id AND v.voucher_type = 'payment'
-                                   THEN -v.total_amount
-                               WHEN v.treasury_id = t.id AND v.voucher_type = 'transfer'
-                                   THEN -(v.total_amount + v.fee_total)
-                               WHEN v.to_treasury_id = t.id AND v.voucher_type = 'transfer'
-                                   THEN v.total_amount
-                               ELSE 0 END) AS amount
-                    FROM vouchers v
-                    WHERE v.status = 'posted' AND v.created_at >= @openedAt
-                      AND (v.treasury_id = t.id OR v.to_treasury_id = t.id)
-                ) mv ON true
                 LEFT JOIN LATERAL (
                     SELECT COALESCE(SUM(v2.total_amount), 0) AS total
                     FROM vouchers v2

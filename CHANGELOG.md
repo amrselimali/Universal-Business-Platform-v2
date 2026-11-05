@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-05 — Opening includes the whole posted GL balance (manual + opening entries)
+
+### Changed
+- «أول المدة» لكل خزينة = **كامل رصيد حسابها المرحّل** (يشمل القيود الافتتاحية والقيود اليدوية
+  والسندات المرحّلة) **+ إيصالات التحصيل غير المرحّلة** (مسودات) — بدون أي خصم لحركة الوردية.
+
 ## 2026-11-05 — Simple treasury balances: all branch treasuries + GL closing + unposted receipts
 
 ### Changed
