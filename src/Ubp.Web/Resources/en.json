@@ -1290,7 +1290,7 @@
   "treasury.opening_balance": "Opening balance",
   "treasury.opening_cash": "Opening cash",
   "treasury.party": "Party",
-  "treasury.reconciliation_hint": "Card, wallet and cheque clearing balances before settlement",
+  "treasury.reconciliation_hint": "Clearing accounts are set per payment method (clearing account field for card/wallet/cheque) in Treasuries & payment methods. Collections post there instead of the bank; this screen shows their unsettled balance so you can settle it to the bank/treasury.",
   "treasury.reference": "Reference",
   "treasury.reopen_hint": "Reopening reverses the variance entry and marks the shift open; the reason is audited",
   "treasury.reopen_reason": "Reopen reason",

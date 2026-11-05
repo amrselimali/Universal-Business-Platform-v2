@@ -89,20 +89,17 @@ else
                         <MudButton Size="Size.Small" Variant="Variant.Outlined"
                                    OnClick="@(() => CloseAsync(context))">@T.T("treasury.close_shift")</MudButton>
                     }
-                    else if (Can(ActionCodes.Approve))
+                    else if (Can(ActionCodes.Approve) && context.ReviewStatus == ShiftReviewStatuses.None)
                     {
-                        @if (!context.IsPendingReview)
-                        {
-                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Filled.PostAdd"
-                                       OnClick="@(() => PostAsync(context))">@T.T("treasury.post_shift")</MudButton>
-                        }
-                        else
-                        {
-                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                                       StartIcon="@Icons.Material.Filled.FactCheck"
-                                       OnClick="@(() => ReviewAsync(context))">@T.T("treasury.approve_review")</MudButton>
-                        }
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.PostAdd"
+                                   OnClick="@(() => PostAsync(context))">@T.T("treasury.post_shift")</MudButton>
+                    }
+                    else if (Can(ActionCodes.Approve) && context.IsPendingReview)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                                   StartIcon="@Icons.Material.Filled.FactCheck"
+                                   OnClick="@(() => ReviewAsync(context))">@T.T("treasury.approve_review")</MudButton>
                     }
                 </MudTd>
             </RowTemplate>

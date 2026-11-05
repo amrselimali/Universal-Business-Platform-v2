@@ -73,8 +73,8 @@ public sealed partial class TreasuryRepository
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO shift_cash_counts (id, shift_id, treasury_id, opening_cash, expected_cash, status)
             SELECT gen_random_uuid(), @shiftId, t.id,
-                   COALESCE(gl.balance, 0),
-                   COALESCE(gl.balance, 0),
+                   COALESCE(gl.balance, 0) + COALESCE(carry.total, 0),
+                   COALESCE(gl.balance, 0) + COALESCE(carry.total, 0),
                    CASE WHEN @isOpen THEN 'open' ELSE 'draft' END
             FROM treasuries t
             LEFT JOIN LATERAL (
@@ -83,6 +83,15 @@ public sealed partial class TreasuryRepository
                 JOIN journal_entries e ON e.id = l.entry_id AND e.branch_id = t.branch_id
                 WHERE e.status = 'posted' AND l.account_id = t.account_id
             ) gl ON true
+            LEFT JOIN LATERAL (
+                SELECT SUM(v.total_amount) AS total
+                FROM cashier_shifts s
+                JOIN vouchers v ON v.branch_id = s.branch_id AND v.treasury_id = t.id
+                     AND v.voucher_type = 'receipt' AND v.status <> 'cancelled'
+                     AND v.created_at >= s.opened_at
+                     AND (s.closed_at IS NULL OR v.created_at <= s.closed_at)
+                WHERE s.branch_id = t.branch_id AND s.review_status = 'pending' 
+            ) carry ON true
             WHERE t.branch_id = @branchId AND t.is_active
               AND EXISTS (SELECT 1 FROM treasury_methods m
                           WHERE m.treasury_id = t.id AND m.is_active AND m.follow_in_shift)
@@ -97,7 +106,8 @@ public sealed partial class TreasuryRepository
             SET opening_cash = x.opening
             FROM (
                 SELECT t.id AS treasury_id,
-                       COALESCE(gl.balance, 0) - COALESCE(mv.amount, 0) AS opening
+                       COALESCE(gl.balance, 0) - COALESCE(mv.amount, 0)
+                       + COALESCE(carry.total, 0) AS opening
                 FROM treasuries t
                 LEFT JOIN LATERAL (
                     SELECT SUM(l.debit - l.credit) AS balance
@@ -120,6 +130,16 @@ public sealed partial class TreasuryRepository
                     WHERE v.status = 'posted' AND v.created_at >= @openedAt
                       AND (v.treasury_id = t.id OR v.to_treasury_id = t.id)
                 ) mv ON true
+                LEFT JOIN LATERAL (
+                    SELECT SUM(v2.total_amount) AS total
+                    FROM cashier_shifts s2
+                    JOIN vouchers v2 ON v2.branch_id = s2.branch_id AND v2.treasury_id = t.id
+                         AND v2.voucher_type = 'receipt' AND v2.status = 'draft'
+                         AND v2.created_at >= s2.opened_at
+                         AND (s2.closed_at IS NULL OR v2.created_at <= s2.closed_at)
+                    WHERE s2.branch_id = t.branch_id AND s2.status = 'closed'
+                      AND s2.review_status IN ('none', 'pending') AND s2.id <> @shiftId
+                ) carry ON true
                 WHERE t.branch_id = @branchId AND t.is_active
             ) x
             WHERE c.shift_id = @shiftId AND c.treasury_id = x.treasury_id

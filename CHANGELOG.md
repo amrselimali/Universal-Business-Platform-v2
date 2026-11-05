@@ -1,11 +1,5 @@
 # CHANGELOG
 
-## 2026-11-05 — Opening = treasury linked-account balance only
-
-### Changed
-- «أول المدة» لكل خزينة أصبح **رصيد حساب الخزينة المرحّل فقط** (للخزائن/طرق التحصيل المعلَّمة
-  «يتم متابعتها في الوردية»)، وأُزيل إضافة إيصالات الورديات غير المرحّلة.
-
 ## 2026-11-05 — Opening recalculation for all shifts and approve without data
 
 ### Fixed
