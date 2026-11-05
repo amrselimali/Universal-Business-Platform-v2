@@ -1,5 +1,14 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-05 — POS draft posting + full outstanding collections
+
+- POS checkout accepts `DraftOnly`: receipt vouchers are created as **draft** (no journal entry, no
+  receipt numbering, no `booking_payments`), so nothing touches the accounts until the accountant posts.
+- «تحصيل الخدمات المحجوزة» lists **every unpaid amount of the customer in the branch**: bookings of
+  any item type (not just services) plus open **posted sales invoices** (executed services/revenue).
+  Collection allocates invoices through `document_allocations` and bookings through `booking_payments`.
+- Tests: `PosDraftTests` (1).
+
 ## 2026-11-05 — Shift carry per treasury, per-treasury cash count draft, over/short account
 
 - Migration `0076`: `shift_cash_counts` (opening snapshot per treasury at shift open; expected/counted/

@@ -187,20 +187,24 @@ public sealed partial class PosRepository : IPosRepository
                 await NeedAsync(connection, tx, PostingKeys.CustomerAdvances, ct), 0, amount,
                 input.CustomerId));
 
-            var entryId = await PostEntryAsync(connection, tx,
-                treasuryType == TreasuryTypes.Cash ? "cash" : "bank", input.BranchId,
-                input.DocDate, voucherNo, $"تحصيل POS {voucherNo}", gl, userId, "voucher",
-                voucherId, ct);
+            if (!input.DraftOnly)
+            {
+                var entryId = await PostEntryAsync(connection, tx,
+                    treasuryType == TreasuryTypes.Cash ? "cash" : "bank", input.BranchId,
+                    input.DocDate, voucherNo, $"تحصيل POS {voucherNo}", gl, userId, "voucher",
+                    voucherId, ct);
 
-            await connection.ExecuteAsync(new CommandDefinition("""
-                UPDATE vouchers SET status = 'posted', doc_no = @voucherNo, posted_at = now(),
-                    posted_by = @userId, journal_entry_id = @entryId WHERE id = @voucherId
-                """, new { voucherNo, userId, entryId, voucherId }, tx, cancellationToken: ct));
+                await connection.ExecuteAsync(new CommandDefinition("""
+                    UPDATE vouchers SET status = 'posted', doc_no = @voucherNo, posted_at = now(),
+                        posted_by = @userId, journal_entry_id = @entryId WHERE id = @voucherId
+                    """, new { voucherNo, userId, entryId, voucherId }, tx, cancellationToken: ct));
+            }
 
             receipt.Vouchers.Add(new PosPaymentResult
             {
-                VoucherId = voucherId, VoucherNo = voucherNo, TreasuryId = group.Key,
-                Amount = amount, Fee = group.Sum(p => p.Fee), Lines = group.Count()
+                VoucherId = voucherId, VoucherNo = input.DraftOnly ? null : voucherNo,
+                TreasuryId = group.Key, Amount = amount, Fee = group.Sum(p => p.Fee),
+                Lines = group.Count()
             });
         }
 
@@ -209,7 +213,8 @@ public sealed partial class PosRepository : IPosRepository
         receipt.TaxTotal = lines.Sum(l => l.TaxAmount);
 
         // تسجيل المبالغ المحصلة على الحجز: أساس «المسدد سابقًا» في تحصيل الخدمات المحجوزة.
-        foreach (var voucher in receipt.Vouchers)
+        // ترحيل المسودة لا يثبت أي سداد (لا أثر على الحسابات).
+        foreach (var voucher in input.DraftOnly ? new List<PosPaymentResult>() : receipt.Vouchers)
         {
             await connection.ExecuteAsync(new CommandDefinition("""
                 INSERT INTO booking_payments (booking_id, voucher_id, amount, created_by, notes)

@@ -42,15 +42,26 @@ public sealed partial class BookingCollectionRepository : IBookingCollectionRepo
     {
         await using var connection = await _factory.OpenAsync(ct);
         var rows = await connection.QueryAsync<BookingCollectionRow>(new CommandDefinition("""
-            SELECT booking_id AS BookingId, booking_no AS BookingNo, booking_date AS BookingDate,
-                   services AS Services, total_amount AS TotalAmount, paid_amount AS PaidAmount,
+            SELECT 'booking'::varchar AS Kind, booking_id AS BookingId, booking_no AS BookingNo,
+                   booking_date AS BookingDate, COALESCE(services, items) AS Services,
+                   total_amount AS TotalAmount, paid_amount AS PaidAmount,
                    remaining_amount AS RemainingAmount
             FROM v_customer_booking_balances
             WHERE branch_id = @branchId AND customer_id = @customerId
-              AND status IN ('confirmed', 'partially_delivered', 'completed')
-              AND services IS NOT NULL
+              AND status NOT IN ('cancelled', 'reversed')
               AND remaining_amount > 0
-            ORDER BY booking_date, booking_no
+            UNION ALL
+            SELECT 'invoice', d.id, d.doc_no, d.doc_date,
+                   COALESCE((SELECT string_agg(i.name_ar, ' • ')
+                             FROM commercial_document_lines l
+                             JOIN items i ON i.id = l.item_id
+                             WHERE l.document_id = d.id), 'فاتورة/خدمة منفذة'),
+                   d.total, d.allocated_total, d.total - d.allocated_total
+            FROM commercial_documents d
+            WHERE d.branch_id = @branchId AND d.customer_id = @customerId
+              AND d.doc_type = 'sales_invoice' AND d.status = 'posted'
+              AND d.total - d.allocated_total > 0
+            ORDER BY 3, 2
             LIMIT 200
             """, new { branchId, customerId }, cancellationToken: ct));
         return rows.ToList();

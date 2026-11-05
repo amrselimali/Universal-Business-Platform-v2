@@ -205,6 +205,11 @@ else
                                    Disabled="@(_busy || _cart.Count == 0)">
                             @T.T("pos.save_and_send_whatsapp")
                         </MudButton>
+                        <MudButton Color="Color.Warning" Variant="Variant.Outlined"
+                                   StartIcon="@Icons.Material.Filled.Save" OnClick="DraftAsync"
+                                   Disabled="@(_busy || _cart.Count == 0)">
+                            @T.T("pos.save_draft_only")
+                        </MudButton>
                     }
                 </div>
 

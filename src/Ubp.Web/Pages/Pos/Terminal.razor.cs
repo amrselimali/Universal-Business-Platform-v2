@@ -236,7 +236,11 @@ public partial class Terminal : SecurePageBase
 
     private Task CheckoutAndSendAsync() => CheckoutCoreAsync(sendWhatsApp: true);
 
-    private async Task CheckoutCoreAsync(bool sendWhatsApp) => await RunAsync(async () =>
+    /// <summary>ترحيل مسودة: إيصالات القبض تُحفظ مسودات بلا أي أثر على الحسابات.</summary>
+    private Task DraftAsync() => CheckoutCoreAsync(sendWhatsApp: false, draftOnly: true);
+
+    private async Task CheckoutCoreAsync(bool sendWhatsApp, bool draftOnly = false) =>
+        await RunAsync(async () =>
     {
         if (_customerId == Guid.Empty || _branchId == Guid.Empty || _cart.Count == 0 ||
             _expiryDate is null)
@@ -258,7 +262,7 @@ public partial class Terminal : SecurePageBase
             _receipt = await Pos.CheckoutAsync(Actor!, new PosCheckoutInput
             {
                 BranchId = _branchId, CustomerId = _customerId, WarehouseId = _warehouseId,
-                DocDate = DateTime.Today,
+                DocDate = DateTime.Today, DraftOnly = draftOnly,
                 ExpiresAt = new DateTimeOffset(_expiryDate.Value.Date),
                 Lines = _cart.Select(l => new PosLineInput
                 {

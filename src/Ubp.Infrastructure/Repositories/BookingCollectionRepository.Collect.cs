@@ -171,14 +171,35 @@ public sealed partial class BookingCollectionRepository
             var amount = Math.Min(cap, collectedRemaining);
             collectedRemaining = Math.Round(collectedRemaining - amount, 2,
                 MidpointRounding.AwayFromZero);
+            var isInvoice = string.Equals(line.Kind, "invoice", StringComparison.OrdinalIgnoreCase);
             while (amount > 0)
             {
                 var take = Math.Min(amount, voucherRemaining);
-                await connection.ExecuteAsync(new CommandDefinition("""
-                    INSERT INTO booking_payments (booking_id, voucher_id, amount, created_by, notes)
-                    VALUES (@bookingId, @voucherId, @amount, @userId, @notes)
-                    """, new { bookingId = line.BookingId, voucherId = vouchers[voucherIndex].Id,
-                        amount = take, userId, notes = input.Notes }, tx, cancellationToken: ct));
+                var allocationVoucherId = vouchers[voucherIndex].Id;
+                if (isInvoice)
+                {
+                    // فاتورة/خدمة منفذة صارت إيراداً: تُخصَّص عليها دفعة العميل.
+                    await connection.ExecuteAsync(new CommandDefinition("""
+                        INSERT INTO document_allocations (source_voucher_id, target_document_id, amount)
+                        VALUES (@allocationVoucherId, @documentId, @amount)
+                        ON CONFLICT (source_voucher_id, target_document_id)
+                        DO UPDATE SET amount = document_allocations.amount + EXCLUDED.amount
+                        """, new { allocationVoucherId, documentId = line.BookingId, amount = take }, tx,
+                        cancellationToken: ct));
+                    await connection.ExecuteAsync(new CommandDefinition("""
+                        UPDATE commercial_documents SET allocated_total = allocated_total + @take
+                        WHERE id = @documentId
+                        """, new { take, documentId = line.BookingId }, tx, cancellationToken: ct));
+                }
+                else
+                {
+                    await connection.ExecuteAsync(new CommandDefinition("""
+                        INSERT INTO booking_payments (booking_id, voucher_id, amount, created_by, notes)
+                        VALUES (@bookingId, @voucherId, @amount, @userId, @notes)
+                        """, new { bookingId = line.BookingId, voucherId = allocationVoucherId,
+                            amount = take, userId,
+                            notes = input.Notes }, tx, cancellationToken: ct));
+                }
                 amount -= take;
                 voucherRemaining -= take;
                 if (amount > 0)

@@ -30,6 +30,9 @@ public sealed class PosCheckoutInput
     /// <summary>تاريخ نهاية صلاحية العرض؛ الافتراضي 6 أشهر من اليوم.</summary>
     public DateTimeOffset? ExpiresAt { get; set; }
 
+    /// <summary>ترحيل مسودة: تُنشأ إيصالات القبض كمسودات بلا أي أثر على الحسابات.</summary>
+    public bool DraftOnly { get; set; }
+
     public List<PosLineInput> Lines { get; set; } = new();
     public List<PosPaymentInput> Payments { get; set; } = new();
 }

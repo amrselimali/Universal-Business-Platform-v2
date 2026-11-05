@@ -3,6 +3,8 @@ namespace Ubp.Core.Models;
 /// <summary>صف خدمة محجوزة في شاشة تحصيل نقطة البيع: الإجمالي والمسدد سابقًا والمستحق.</summary>
 public sealed class BookingCollectionRow
 {
+    /// <summary>نوع المستند: booking (حجز) أو invoice (فاتورة خدمة منفذة/إيراد).</summary>
+    public string Kind { get; set; } = "booking";
     public Guid BookingId { get; set; }
     public string? BookingNo { get; set; }
     public DateTime BookingDate { get; set; }
@@ -17,6 +19,8 @@ public sealed class BookingCollectionRow
 public sealed class BookingCollectionLineInput
 {
     public Guid BookingId { get; set; }
+    /// <summary>booking أو invoice — يحدد طريقة التخصيص (booking_payments / document_allocations).</summary>
+    public string Kind { get; set; } = "booking";
     public decimal Amount { get; set; }
 }
 

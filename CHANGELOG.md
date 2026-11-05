@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-11-05 — POS draft posting and full customer outstanding in collections
+
+### Added
+- زر **«ترحيل مسودة»** في نقطة البيع: يُنشئ إيصالات القبض **مسودات** (`DraftOnly`) بلا أي قيد
+  محاسبي ولا تحديث «المسدد سابقاً» — لا أثر على الحسابات حتى يرحّلها المحاسب.
+- زر **«تحصيل الخدمات المحجوزة»** يعرض الآن **كل المبالغ غير المسددة للعميل** في الفرع:
+  الحجوزات (أي خدمة/بضاعة، وليس الخدمات فقط) **+ فواتير الخدمات المنفذة/الإيرادات** المفتوحة،
+  والتحصيل يُخصَّص على الفواتير عبر `document_allocations` وعلى الحجوزات عبر `booking_payments`.
+- Tests: `PosDraftTests` (1) — يتحقق أن المسودة لا تنشئ قيداً ولا `booking_payments`.
+
 ## 2026-11-05 — Shift carry per treasury, per-treasury cash count (draft) and over/short account
 
 ### Added
