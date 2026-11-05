@@ -164,6 +164,20 @@ public sealed partial class TreasuryService
             new { over_short_account_id = accountId }, ct);
     }
 
+    /// <summary>تسليم نقدية من خزينة إلى حساب وسيط لنقدية الفرع (0080).</summary>
+    public async Task<Guid> CreateCashHandoverAsync(ActorContext actor, CashHandoverInput input,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.OperatingExpenses, ActionCodes.Create,
+            ct: ct);
+        BranchScope.Ensure(actor, input.BranchId);
+        var id = Guid.CreateVersion7();
+        try { await _treasury.CreateCashHandoverAsync(id, input, actor.UserId, ct); }
+        catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
+        await _audit.WriteAsync(actor, "cash_handovers", id.ToString(), "INSERT", null, input, ct);
+        return id;
+    }
+
     /// <summary>حسابات الترحيل المتاحة لشاشات الخزينة (بدون اشتراط صلاحية شاشة الحسابات).</summary>
     public async Task<IReadOnlyList<Account>> PostableAccountsAsync(ActorContext actor,
         CancellationToken ct = default)

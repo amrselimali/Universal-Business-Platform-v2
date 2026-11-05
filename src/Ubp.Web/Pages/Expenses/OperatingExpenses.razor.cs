@@ -61,6 +61,20 @@ public partial class OperatingExpenses
         }
     }
 
+    /// <summary>تسليم نقدية من خزينة إلى حساب وسيط لنقدية الفرع (0080).</summary>
+    private async Task HandoverAsync()
+    {
+        var branchId = _branchId ?? Actor!.CurrentBranchId;
+        if (branchId is null) return;
+        var dialog = await Dialogs.ShowAsync<CashHandoverDialog>(T.T("expenses.cash_handover"),
+            new DialogParameters { ["BranchId"] = branchId.Value });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await ReloadAsync();
+            ShowSuccess("common.saved");
+        }
+    }
+
     private async Task PostAsync(OperatingExpense expense) => await RunAsync(async () =>
     {
         _busy = true;

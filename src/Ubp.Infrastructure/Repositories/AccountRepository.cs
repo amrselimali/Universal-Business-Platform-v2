@@ -10,6 +10,8 @@ public interface IAccountRepository
     Task<PagedResult<Account>> ListAsync(AccountFilter filter, PageRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<Account>> ListAllAsync(bool includeInactive, CancellationToken ct = default);
     Task<IReadOnlyList<Account>> ListPostableAsync(CancellationToken ct = default);
+    /// <summary>الحسابات المعلَّمة «وسيط لنقدية الفرع» — 0080.</summary>
+    Task<IReadOnlyList<Account>> ListCashClearingAsync(CancellationToken ct = default);
     Task<Account?> GetAsync(Guid id, CancellationToken ct = default);
     Task<Account?> GetByCodeAsync(string code, CancellationToken ct = default);
     Task<Account?> FindByTypeAsync(string accountType, CancellationToken ct = default);
@@ -30,7 +32,8 @@ public sealed partial class AccountRepository : IAccountRepository
         a.id AS Id, a.code AS Code, a.name_ar AS NameAr, a.name_en AS NameEn,
         a.parent_id AS ParentId, a.path AS Path, a.level AS Level, a.is_group AS IsGroup,
         a.account_type AS AccountType, a.cost_center_policy AS CostCenterPolicy,
-        a.is_system AS IsSystem, a.notes AS Notes, a.is_active AS IsActive,
+        a.is_system AS IsSystem, a.is_cash_clearing AS IsCashClearing,
+        a.notes AS Notes, a.is_active AS IsActive,
         a.version AS Version, a.created_at AS CreatedAt, a.updated_at AS UpdatedAt,
         (SELECT count(*)::int FROM accounts c WHERE c.parent_id = a.id) AS ChildrenCount,
         (SELECT count(*)::int FROM journal_entry_lines l WHERE l.account_id = a.id) AS LinesCount

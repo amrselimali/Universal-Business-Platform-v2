@@ -11,17 +11,19 @@ public sealed partial class AccountRepository
     {
         const string sql = """
             INSERT INTO accounts (id, code, name_ar, name_en, parent_id, path, level, is_group,
-                                  account_type, cost_center_policy, is_system, notes, is_active,
-                                  created_by)
+                                  account_type, cost_center_policy, is_system, is_cash_clearing,
+                                  notes, is_active, created_by)
             VALUES (@id, @Code, @NameAr, @NameEn, @ParentId, @path, @level, @IsGroup,
-                    @AccountType, @CostCenterPolicy, @isSystem, @Notes, @IsActive, @userId)
+                    @AccountType, @CostCenterPolicy, @isSystem, @IsCashClearing, @Notes,
+                    @IsActive, @userId)
             RETURNING id
             """;
         await using var connection = await _factory.OpenAsync(ct);
         return await connection.ExecuteScalarAsync<Guid>(new CommandDefinition(sql, new
         {
             id, input.Code, input.NameAr, input.NameEn, input.ParentId, path, level, input.IsGroup,
-            input.AccountType, input.CostCenterPolicy, isSystem, input.Notes, input.IsActive, userId
+            input.AccountType, input.CostCenterPolicy, isSystem, input.IsCashClearing,
+            input.Notes, input.IsActive, userId
         }, cancellationToken: ct));
     }
 
@@ -48,15 +50,16 @@ public sealed partial class AccountRepository
         var updated = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition("""
             UPDATE accounts SET code = @Code, name_ar = @NameAr, name_en = @NameEn,
                                 is_group = @IsGroup, account_type = @AccountType,
-                                cost_center_policy = @CostCenterPolicy, notes = @Notes,
+                                cost_center_policy = @CostCenterPolicy,
+                                is_cash_clearing = @IsCashClearing, notes = @Notes,
                                 is_active = @IsActive, path = @path, updated_by = @userId
             WHERE id = @id AND version = @version
             RETURNING id
             """, new
         {
             id, version, input.Code, input.NameAr, input.NameEn, input.IsGroup,
-            input.AccountType, input.CostCenterPolicy, input.Notes, input.IsActive,
-            path = newPath, userId
+            input.AccountType, input.CostCenterPolicy, input.IsCashClearing, input.Notes,
+            input.IsActive, path = newPath, userId
         }, tx, cancellationToken: ct));
 
         if (updated is null)

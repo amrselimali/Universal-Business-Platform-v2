@@ -15,6 +15,14 @@ public sealed partial class AccountRepository
         return rows.ToList();
     }
 
+    public async Task<IReadOnlyList<Account>> ListCashClearingAsync(CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return (await connection.QueryAsync<Account>(new CommandDefinition(
+            $"SELECT {Columns} FROM accounts a WHERE a.is_active AND NOT a.is_group " +
+            "AND a.is_cash_clearing ORDER BY a.code", cancellationToken: ct))).ToList();
+    }
+
     public async Task<IReadOnlyList<Account>> ListPostableAsync(CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);

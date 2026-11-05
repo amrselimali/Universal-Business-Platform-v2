@@ -244,6 +244,8 @@ public sealed class ShiftCollectionRow
     public string CustomerName { get; set; } = "";
     public string? TreasuryType { get; set; }
     public decimal Collected { get; set; }
+    /// <summary>عمولة التحصيل المخصومة من الخزينة وتُضاف للمصروف — 0080.</summary>
+    public decimal Fee { get; set; }
     public decimal Revenue { get; set; }
     public decimal Quantity { get; set; }
     public decimal MeterUnits { get; set; }
@@ -294,3 +296,30 @@ public sealed class ShiftReviewItem
     public string? ReviewedBy { get; set; }
 }
 
+
+/// <summary>تسليم نقدية من خزينة إلى حساب وسيط لنقدية الفرع — 0080.</summary>
+public sealed class CashHandover
+{
+    public Guid Id { get; set; }
+    public Guid BranchId { get; set; }
+    public Guid TreasuryId { get; set; }
+    public string TreasuryCode { get; set; } = "";
+    public string TreasuryName { get; set; } = "";
+    public string TreasuryType { get; set; } = TreasuryTypes.Cash;
+    public Guid ClearingAccountId { get; set; }
+    public string AccountCode { get; set; } = "";
+    public string AccountName { get; set; } = "";
+    public decimal Amount { get; set; }
+    public DateTime DocDate { get; set; }
+    public string? Notes { get; set; }
+}
+
+public sealed class CashHandoverInput
+{
+    public Guid BranchId { get; set; }
+    public Guid TreasuryId { get; set; }
+    public Guid ClearingAccountId { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime DocDate { get; set; } = DateTime.Today;
+    public string? Notes { get; set; }
+}

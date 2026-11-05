@@ -94,7 +94,8 @@ public sealed partial class TreasuryRepository
         await connection.ExecuteScalarAsync<decimal>(new CommandDefinition("""
             SELECT COALESCE(SUM(CASE
                        WHEN v.treasury_id = @treasuryId AND v.voucher_type = 'receipt'
-                           THEN v.total_amount
+                           THEN v.total_amount - COALESCE((SELECT SUM(l.fee_amount)
+                                FROM voucher_lines l WHERE l.voucher_id = v.id), 0)
                        WHEN v.treasury_id = @treasuryId AND v.voucher_type = 'payment'
                            THEN -v.total_amount
                        WHEN v.treasury_id = @treasuryId AND v.voucher_type = 'transfer'

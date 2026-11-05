@@ -92,6 +92,14 @@ public sealed class LookupService
         return await _accounts.ListPostableAsync(ct);
     }
 
+    /// <summary>حسابات «وسيط لنقدية الفرع» لتسليم النقدية — 0080.</summary>
+    public async Task<IReadOnlyList<Account>> CashClearingAccountsAsync(ActorContext actor,
+        CancellationToken ct = default)
+    {
+        EnsureActor(actor);
+        return await _accounts.ListCashClearingAsync(ct);
+    }
+
     /// <summary>مراكز التكلفة داخل الفرع المصرح به.</summary>
     public async Task<IReadOnlyList<CostCenter>> CostCentersAsync(ActorContext actor,
         Guid? branchId, CancellationToken ct = default)

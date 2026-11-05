@@ -41,6 +41,8 @@
                            Color="Color.Primary" />
                 <MudSwitch @bind-Value="_input.IsActive" Label="@T.T("common.active")"
                            Color="Color.Success" Disabled="@IsSystem" />
+                <MudSwitch @bind-Value="_input.IsCashClearing" Color="Color.Warning"
+                           Label="@T.T("account.is_cash_clearing")" />
                 <MudTextField @bind-Value="_input.Notes" Label="@T.T("common.notes")"
                               Variant="Variant.Outlined" Lines="2" />
             </div>

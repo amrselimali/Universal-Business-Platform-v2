@@ -26,6 +26,8 @@ public sealed partial class TreasuryRepository
             WITH receipts AS (
                 SELECT v.party_name AS CustomerName, t.treasury_type AS TreasuryType,
                        v.total_amount AS Collected,
+                       COALESCE((SELECT SUM(l.fee_amount) FROM voucher_lines l
+                                 WHERE l.voucher_id = v.id), 0) AS Fee,
                        0::numeric AS Revenue, 0::numeric AS Quantity, 0::numeric AS MeterUnits,
                        NULL::text AS EmployeeName
                 FROM vouchers v
@@ -35,7 +37,7 @@ public sealed partial class TreasuryRepository
                   AND (@until::timestamptz IS NULL OR v.created_at <= @until::timestamptz)
             ), revenues AS (
                 SELECT COALESCE(c.name_ar, d.party_name) AS CustomerName, NULL::varchar AS TreasuryType,
-                       0::numeric AS Collected,
+                       0::numeric AS Collected, 0::numeric AS Fee,
                        d.total AS Revenue, 0::numeric AS Quantity, 0::numeric AS MeterUnits,
                        NULL::text AS EmployeeName
                 FROM commercial_documents d
@@ -45,7 +47,8 @@ public sealed partial class TreasuryRepository
                   AND (@until::timestamptz IS NULL OR d.created_at <= @until::timestamptz)
             ), executions AS (
                 SELECT c.name_ar AS CustomerName, NULL::varchar AS TreasuryType,
-                       0::numeric AS Collected, 0::numeric AS Revenue,
+                       0::numeric AS Collected, 0::numeric AS Fee,
+                       0::numeric AS Revenue,
                        SUM(el.quantity) AS Quantity, SUM(el.meter_units) AS MeterUnits,
                        MAX(e.name_ar) AS EmployeeName
                 FROM booking_executions be
@@ -59,7 +62,7 @@ public sealed partial class TreasuryRepository
                 GROUP BY c.name_ar
             )
             SELECT CustomerName, MAX(TreasuryType) AS TreasuryType,
-                   SUM(Collected) AS Collected, SUM(Revenue) AS Revenue,
+                   SUM(Collected) AS Collected, SUM(Fee) AS Fee, SUM(Revenue) AS Revenue,
                    SUM(Quantity) AS Quantity, SUM(MeterUnits) AS MeterUnits,
                    MAX(EmployeeName) AS EmployeeName
             FROM (SELECT * FROM receipts
@@ -191,6 +194,36 @@ public sealed partial class TreasuryRepository
               AND (@until::timestamptz IS NULL OR o.created_at <= @until::timestamptz)
             ORDER BY o.doc_date, o.doc_no, el.line_no
             """, args, cancellationToken: ct))).ToList();
+
+        // تسليمات النقدية للحساب الوسيط تظهر كمصروف في الوردية (0080).
+        report.Expenses.AddRange(await connection.QueryAsync<ShiftExpenseRow>(new CommandDefinition("""
+            SELECT t.treasury_type AS TreasuryType, t.name_ar AS TreasuryName,
+                   h.amount AS Amount, NULL::text AS ItemName, 0::numeric AS Quantity,
+                   0::numeric AS UnitPrice,
+                   COALESCE(h.notes, 'تسليم نقدية إلى ' || a.name_ar) AS Description,
+                   'POSTED'::varchar AS Status
+            FROM cash_handovers h
+            JOIN treasuries t ON t.id = h.treasury_id
+            JOIN accounts a ON a.id = h.clearing_account_id
+            WHERE h.branch_id = @branchId AND h.created_at >= @openedAt
+              AND (@until::timestamptz IS NULL OR h.created_at <= @until::timestamptz)
+            ORDER BY h.created_at
+            """, args, cancellationToken: ct)));
+
+        // عمولات التحصيل المخصومة من الخزينة تُضاف للمصروف (0080).
+        report.Expenses.AddRange(await connection.QueryAsync<ShiftExpenseRow>(new CommandDefinition("""
+            SELECT t.treasury_type AS TreasuryType, t.name_ar AS TreasuryName,
+                   SUM(l.fee_amount) AS Amount, NULL::text AS ItemName, 0::numeric AS Quantity,
+                   0::numeric AS UnitPrice, 'عمولات تحصيل' AS Description, v.status AS Status
+            FROM voucher_lines l
+            JOIN vouchers v ON v.id = l.voucher_id
+            JOIN treasuries t ON t.id = v.treasury_id
+            WHERE v.branch_id = @branchId AND v.voucher_type = 'receipt'
+              AND v.status <> 'cancelled' AND v.created_at >= @openedAt
+              AND (@until::timestamptz IS NULL OR v.created_at <= @until::timestamptz)
+            GROUP BY t.treasury_type, t.name_ar, v.status
+            HAVING SUM(l.fee_amount) > 0
+            """, args, cancellationToken: ct)));
 
         report.IdleCustomers = (await connection.QueryAsync<ShiftCustomerRow>(new CommandDefinition("""
             SELECT c.id AS CustomerId, c.code AS Code, c.name_ar AS NameAr, c.phone AS Phone,

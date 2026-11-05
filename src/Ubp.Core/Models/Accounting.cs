@@ -93,6 +93,8 @@ public sealed class Account
     public string AccountType { get; set; } = AccountTypes.AssetCurrent;
     public short CostCenterPolicy { get; set; }
     public bool IsSystem { get; set; }
+    /// <summary>حساب وسيط لنقدية الفرع (يقبل تسليم النقدية) — 0080.</summary>
+    public bool IsCashClearing { get; set; }
     public string? Notes { get; set; }
     public bool IsActive { get; set; } = true;
     public int Version { get; set; } = 1;
@@ -118,6 +120,8 @@ public sealed class AccountInput
     public bool IsGroup { get; set; }
     public string AccountType { get; set; } = AccountTypes.AssetCurrent;
     public short CostCenterPolicy { get; set; } = CostCenterPolicies.Optional;
+    /// <summary>حساب وسيط لنقدية الفرع — 0080.</summary>
+    public bool IsCashClearing { get; set; }
     public string? Notes { get; set; }
     public bool IsActive { get; set; } = true;
 }

@@ -52,6 +52,12 @@ public interface ITreasuryRepository : IShiftGate
     /// <summary>ترحيل الوردية للحسابات (تحويل حالتها إلى «تحت المراجعة») — 0079.</summary>
     Task<bool> PostShiftAsync(Guid shiftId, Guid userId, CancellationToken ct = default);
 
+    /// <summary>تسليم نقدية من خزينة إلى حساب وسيط لنقدية الفرع — 0080.</summary>
+    Task<Guid> CreateCashHandoverAsync(Guid id, CashHandoverInput input, Guid userId,
+        CancellationToken ct = default);
+    Task<IReadOnlyList<CashHandover>> ListCashHandoversAsync(Guid branchId, DateTime? from,
+        DateTime? to, int limit, CancellationToken ct = default);
+
     /// <summary>حفظ ملاحظات الوردية (0078).</summary>
     Task<bool> SaveShiftNotesAsync(Guid shiftId, string? notes, CancellationToken ct = default);
     /// <summary>حساب زيادة/عجز خاص بالخزينة يُستخدم عند اعتماد المحاسب — 0076.</summary>
