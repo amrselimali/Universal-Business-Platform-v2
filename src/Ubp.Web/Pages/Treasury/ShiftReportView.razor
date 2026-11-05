@@ -106,6 +106,7 @@
     <HeaderContent>
         <MudTh>@T.T("treasury.treasury")</MudTh>
         <MudTh>@T.T("treasury.type")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.opening_period")</MudTh>
         <MudTh Align="Right">@T.T("treasury.expected_cash")</MudTh>
         <MudTh Align="Right">@T.T("treasury.counted_cash")</MudTh>
         <MudTh Align="Right">@T.T("treasury.variance")</MudTh>
@@ -113,6 +114,7 @@
     <RowTemplate>
         <MudTd>@context.TreasuryCode — @context.TreasuryName</MudTd>
         <MudTd>@TreasuryTypeText(context.TreasuryType)</MudTd>
+        <MudTd Align="Right">@context.OpeningCash.ToString("N2")</MudTd>
         <MudTd Align="Right">@context.ExpectedCash.ToString("N2")</MudTd>
         <MudTd Align="Right">
             @if (Editable)

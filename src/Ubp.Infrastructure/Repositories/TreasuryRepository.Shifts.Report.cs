@@ -72,9 +72,24 @@ public sealed partial class TreasuryRepository
         // ضمان ظهور كل خزائن الفرع المتابَعة حتى للورديات المفتوحة قبل الترحيل 0076.
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO shift_cash_counts (id, shift_id, treasury_id, opening_cash, expected_cash, status)
-            SELECT gen_random_uuid(), @shiftId, t.id, 0, 0,
+            SELECT gen_random_uuid(), @shiftId, t.id,
+                   COALESCE(gl.balance, 0) + COALESCE(carry.total, 0),
+                   COALESCE(gl.balance, 0) + COALESCE(carry.total, 0),
                    CASE WHEN @isOpen THEN 'open' ELSE 'draft' END
             FROM treasuries t
+            LEFT JOIN LATERAL (
+                SELECT SUM(l.debit - l.credit) AS balance
+                FROM journal_entry_lines l
+                JOIN journal_entries e ON e.id = l.entry_id AND e.branch_id = t.branch_id
+                WHERE e.status = 'posted' AND l.account_id = t.account_id
+            ) gl ON true
+            LEFT JOIN LATERAL (
+                SELECT SUM(c.counted_cash) AS total
+                FROM shift_cash_counts c
+                JOIN cashier_shifts s ON s.id = c.shift_id
+                WHERE s.branch_id = t.branch_id AND s.review_status = 'pending'
+                  AND c.status = 'draft' AND c.treasury_id = t.id
+            ) carry ON true
             WHERE t.branch_id = @branchId AND t.is_active
               AND EXISTS (SELECT 1 FROM treasury_methods m
                           WHERE m.treasury_id = t.id AND m.is_active AND m.follow_in_shift)
@@ -90,8 +105,9 @@ public sealed partial class TreasuryRepository
             {
                 var movement = await TreasuryMovementAsync(connection, null, count.TreasuryId,
                     shift.OpenedAt, ct);
-                // النقد المتوقع = المحصل − المنصرف للخزينة خلال الوردية (0078).
-                count.ExpectedCash = Math.Round(movement, 2, MidpointRounding.AwayFromZero);
+                // النقد المتوقع = أول المدة + (المحصل − المنصرف) — 0079.
+                count.ExpectedCash = Math.Round(count.OpeningCash + movement, 2,
+                    MidpointRounding.AwayFromZero);
                 expected += count.ExpectedCash;
             }
             shift.ExpectedCash = Math.Round(expected, 2, MidpointRounding.AwayFromZero);

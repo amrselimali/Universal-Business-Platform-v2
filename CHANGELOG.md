@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-11-05 — Cash count opening column and expected formula
+
+### Changed
+- جزء عدّ النقدية: عمود **أول المدة** = رصيد الخزينة المرحّل بالحسابات + مجموع تحصيلات الورديات
+  غير المرحّلة (عدّ النقدية المسجّل يدوياً).
+- **النقد المتوقع = أول المدة + تحصيلات الوردية − المنصرف** لكل خزينة (في العرض والإغلاق وترحيل الفرق).
+
 ## 2026-11-05 — Shift view/close fixes: separators, treasury/meter data, editable fields
 
 ### Fixed

@@ -35,8 +35,9 @@ public sealed partial class TreasuryRepository
         {
             var movement = await TreasuryMovementAsync(connection, tx, row.TreasuryId,
                 shift.OpenedAt, ct);
-            // النقد المتوقع = المحصل − المنصرف للخزينة خلال الوردية (0078).
-            var expected = Math.Round(movement, 2, MidpointRounding.AwayFromZero);
+            // النقد المتوقع = أول المدة + (المحصل − المنصرف) للخزينة خلال الوردية (0079).
+            var expected = Math.Round(row.OpeningCash + movement, 2,
+                MidpointRounding.AwayFromZero);
             var counted = counts?.FirstOrDefault(c => c.TreasuryId == row.TreasuryId)?.CountedCash
                           ?? expected;
             counted = Math.Round(counted, 2, MidpointRounding.AwayFromZero);
