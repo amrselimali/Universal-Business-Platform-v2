@@ -37,6 +37,19 @@
                 </MudSelect>
                 <MudNumericField @bind-Value="_input.OpeningBalance" Label="@T.T("treasury.opening_balance")"
                                  Variant="Variant.Outlined" Min="0m" Format="N2" />
+                <MudNumericField @bind-Value="_input.CollectionFeePercent"
+                                 Label="@T.T("treasury.collection_fee_percent")"
+                                 Variant="Variant.Outlined" Min="0" Max="100" Format="N2" />
+                <MudSelect T="Guid?" @bind-Value="_input.CollectionFeeAccountId" Clearable="true"
+                           Label="@T.T("treasury.collection_fee_account")"
+                           Variant="Variant.Outlined">
+                    @foreach (var account in _accounts)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)account.Id)">
+                            @account.Code — @account.DisplayName(_english)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
             </div>
         </MudForm>
     </DialogContent>

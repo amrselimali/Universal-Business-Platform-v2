@@ -131,7 +131,7 @@ public sealed partial class TreasuryRepository
             WHERE c.shift_id = @shiftId AND t.collection_fee_percent > 0
               AND t.collection_fee_account_id IS NOT NULL
             GROUP BY t.account_id, t.collection_fee_account_id, t.treasury_type
-            HAVING ROUND(SUM(v.total_amount) * t.collection_fee_percent / 100, 2) > 0
+            HAVING ROUND(SUM(v.total_amount) * MAX(t.collection_fee_percent) / 100, 2) > 0
             """, new { shiftId }, tx, cancellationToken: ct));
 
         foreach (var fee in fees)

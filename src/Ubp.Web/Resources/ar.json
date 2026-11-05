@@ -1240,6 +1240,7 @@
   "treasury.denomination": "الفئة",
   "treasury.denomination_total": "مجموع الفئات",
   "treasury.doc_no": "رقم السند",
+  "treasury.settings_menu": "إعدادات الخزينة (زيادة/عجز + عمولة التحصيل)",
   "treasury.collection_fee_percent": "نسبة عمولة التحصيل %",
   "treasury.collection_fee_account": "حساب ترحيل عمولة التحصيل",
   "treasury.collection_fee_hint": "تُحسب عند إغلاق الوردية: تحصيلات الخزينة × النسبة وتُرحَّل على هذا الحساب",

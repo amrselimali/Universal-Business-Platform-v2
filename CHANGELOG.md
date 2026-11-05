@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-11-05 — Fix HAVING GROUP BY error and expose commission fields
+
+### Fixed
+- خطأ `42803 column t.collection_fee_percent` عاد من عبارة **HAVING** في استعلام اعتماد المراجعة؛ أصبحت
+  تستخدم `MAX(t.collection_fee_percent)`.
+
+### Changed
+- حقول **نسبة عمولة التحصيل %** و**حساب ترحيل العمولة** ظاهرة الآن أيضًا في حوار **إنشاء خزينة**
+  وفي حوار **إعدادات الخزينة** (تم تغيير اسم عنصر القائمة إلى «إعدادات الخزينة»).
+
 ## 2026-11-05 — Fix GROUP BY error in shift commission query
 
 ### Fixed
