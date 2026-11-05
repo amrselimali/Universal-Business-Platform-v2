@@ -72,7 +72,8 @@ public sealed partial class TestDb
         SalesRepo, CommercialRepo, Permissions(), new AuditService(AuditRepo));
 
     public SalesFinanceService SalesFinance() => new(
-        SalesFinanceRepo, CommercialRepo, Permissions(), new AuditService(AuditRepo));
+        SalesFinanceRepo, CommercialRepo, AccountingReportRepo, Permissions(),
+        new AuditService(AuditRepo));
 
     public PosService Pos() => new(
         PosRepo, Settings(), Permissions(), new AuditService(AuditRepo), new NullReceiptNotifier());

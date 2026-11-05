@@ -25,7 +25,7 @@ public sealed partial class TreasuryRepository
               LEFT JOIN gl_balances g
                      ON g.account_id = a.id
                     AND (@branchId::uuid IS NULL OR g.branch_id = @branchId::uuid)
-              WHERE a.is_active AND a.is_postable
+              WHERE a.is_active AND NOT a.is_group
               GROUP BY a.id, a.code, a.name_ar
               ORDER BY a.code
               """

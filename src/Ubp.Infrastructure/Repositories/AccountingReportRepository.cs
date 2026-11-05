@@ -14,6 +14,9 @@ public interface IAccountingReportRepository
     Task<IReadOnlyList<CostCenterAnalysisRow>> CostCenterAsync(DateTime from, DateTime to,
         Guid[] branchIds, CancellationToken ct = default);
     Task<IReadOnlyList<StockVsGlRow>> StockVsGlAsync(Guid[] branchIds, CancellationToken ct = default);
+    /// <summary>الحسابات المرتبطة بمستندات مع تحليل فروق قيود المستندات مقابل الأستاذ — 0080.</summary>
+    Task<IReadOnlyList<DocumentAccountRow>> DocumentAccountsAsync(Guid[] branchIds,
+        CancellationToken ct = default);
 }
 
 public sealed partial class AccountingReportRepository : IAccountingReportRepository

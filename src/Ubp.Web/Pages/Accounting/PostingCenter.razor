@@ -44,6 +44,34 @@ else
     </MudPaper>
 
     <MudPaper Elevation="0" Class="ubp-card">
+        <MudText Typo="Typo.subtitle2" Class="pa-3">@T.T("posting.document_accounts")</MudText>
+        <MudTable Items="_accounts" Dense="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("common.code")</MudTh>
+                <MudTh>@T.T("common.name_ar")</MudTh>
+                <MudTh Align="Right">@T.T("posting.documents")</MudTh>
+                <MudTh Align="Right">@T.T("posting.gl")</MudTh>
+                <MudTh Align="Right">@T.T("posting.difference")</MudTh>
+                <MudTh>@T.T("posting.treatment")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="ubp-code">@context.Code</span></MudTd>
+                <MudTd>@context.NameAr</MudTd>
+                <MudTd Align="Right">@context.DocumentsNet.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.GlNet.ToString("N2")</MudTd>
+                <MudTd Align="Right">
+                    <MudText Color="@(context.HasVariance ? Color.Error : Color.Success)">
+                        @context.Difference.ToString("N2")
+                    </MudText>
+                </MudTd>
+                <MudTd>
+                    @T.T(context.HasVariance ? "posting.treatment_review" : "posting.treatment_ok")
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="ubp-card">
         <MudText Typo="Typo.subtitle1" Class="pa-3">@T.T("posting.unposted")</MudText>
         <MudTable Items="_unposted" Dense="true" Hover="true" Striped="true" Elevation="0"
                   RowsPerPage="25" Class="ubp-table">
@@ -66,6 +94,7 @@ else
 @code {
     private IReadOnlyList<ReconciliationCheck> _checks = Array.Empty<ReconciliationCheck>();
     private IReadOnlyList<UnpostedDocument> _unposted = Array.Empty<UnpostedDocument>();
+    private IReadOnlyList<DocumentAccountRow> _accounts = Array.Empty<DocumentAccountRow>();
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private Guid? _branchId;
 
@@ -81,6 +110,7 @@ else
     {
         _checks = await Finance.ReconcileAsync(Actor!, _branchId);
         _unposted = await Finance.ListUnpostedAsync(Actor!, _branchId);
+        _accounts = await Finance.DocumentAccountsAsync(Actor!, _branchId);
     }
 
     private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }

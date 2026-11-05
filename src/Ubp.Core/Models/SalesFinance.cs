@@ -107,6 +107,23 @@ public sealed class UnpostedDocument
     public decimal Amount { get; set; }
 }
 
+/// <summary>حساب مرتبط بمستندات: مقارنة قيود المستندات مع أرصدة الأستاذ لتحليل الفروق (0080).</summary>
+public sealed class DocumentAccountRow
+{
+    public Guid AccountId { get; set; }
+    public string Code { get; set; } = "";
+    public string NameAr { get; set; } = "";
+    public decimal DocumentDebit { get; set; }
+    public decimal DocumentCredit { get; set; }
+    public decimal GlDebit { get; set; }
+    public decimal GlCredit { get; set; }
+    public decimal DocumentsNet => Math.Round(DocumentDebit - DocumentCredit, 2,
+        MidpointRounding.AwayFromZero);
+    public decimal GlNet => Math.Round(GlDebit - GlCredit, 2, MidpointRounding.AwayFromZero);
+    public decimal Difference => Math.Round(DocumentsNet - GlNet, 2, MidpointRounding.AwayFromZero);
+    public bool HasVariance => Difference != 0;
+}
+
 public sealed class ReconciliationCheck
 {
     public string Key { get; set; } = "";

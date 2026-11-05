@@ -17,8 +17,8 @@ public sealed partial class AccountService
         var old = await _repository.GetAsync(id, ct) ?? throw new NotFoundAppException();
         if (old.IsSystem && (!input.IsActive || input.AccountType != old.AccountType))
             throw new ValidationAppException("validation.system_account");
-        if (old.LinesCount > 0 && input.AccountType != old.AccountType)
-            throw new ValidationAppException("validation.account_used_type_change");
+        // تغيير نوع الحساب مسموح حتى مع وجود قيود: الأثر يسري على القيود الجديدة فقط
+        // (لا يُعاد تصنيف القيود السابقة)، مع تسجيل التغيير في التدقيق.
         if (old.ChildrenCount > 0 && !string.Equals(old.Code, input.Code, StringComparison.Ordinal))
             throw new ValidationAppException("validation.account_has_children");
         if (old.ChildrenCount > 0 && old.IsGroup && !input.IsGroup)

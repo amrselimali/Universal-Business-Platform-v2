@@ -11,13 +11,16 @@ public sealed class SalesFinanceService
 {
     private readonly ISalesFinanceRepository _finance;
     private readonly ICommercialDocumentRepository _documents;
+    private readonly IAccountingReportRepository _reports;
     private readonly PermissionService _permissions;
     private readonly AuditService _audit;
 
     public SalesFinanceService(ISalesFinanceRepository finance,
-        ICommercialDocumentRepository documents, PermissionService permissions, AuditService audit)
+        ICommercialDocumentRepository documents, IAccountingReportRepository reports,
+        PermissionService permissions, AuditService audit)
     {
-        _finance = finance; _documents = documents; _permissions = permissions; _audit = audit;
+        _finance = finance; _documents = documents; _reports = reports;
+        _permissions = permissions; _audit = audit;
     }
 
     public async Task<IReadOnlyList<Settlement>> ListSettlementsAsync(ActorContext actor,
@@ -135,6 +138,17 @@ public sealed class SalesFinanceService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.AgingReport, ActionCodes.View, ct: ct);
         return await _finance.BookingQuantityAgingAsync(branchId, asOf, search, ct);
+    }
+
+    /// <summary>حسابات مرتبطة بمستندات مع تحليل فروق قيودها مقابل الأستاذ — 0080.</summary>
+    public async Task<IReadOnlyList<DocumentAccountRow>> DocumentAccountsAsync(ActorContext actor,
+        Guid? branchId, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.PostingCenter, ActionCodes.View, ct: ct);
+        var branchIds = branchId is { } id
+            ? new[] { id }
+            : (actor.IsSuperAdmin ? Array.Empty<Guid>() : actor.AllowedBranchIds.ToArray());
+        return await _reports.DocumentAccountsAsync(branchIds, ct);
     }
 
     public async Task<IReadOnlyList<UnpostedDocument>> ListUnpostedAsync(ActorContext actor,
