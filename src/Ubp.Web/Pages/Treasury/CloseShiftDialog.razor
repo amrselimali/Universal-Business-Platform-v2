@@ -1,63 +1,29 @@
-﻿@inherits ComponentBase
+@inherits ComponentBase
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">@T.T(ReadOnly ? "treasury.shift_report" : "treasury.close_shift") — @Shift.Code</MudText>
+        <MudText Typo="Typo.h6">
+            @T.T("treasury.shift_report") — @Shift.Code — @T.T("treasury.opened_at"):
+            @Shift.OpenedAt.ToString("yyyy-MM-dd HH:mm") — @T.T("treasury.closed_at"):
+            @(Shift.ClosedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—") — @Shift.Username —
+            @Shift.BranchName
+        </MudText>
     </TitleContent>
     <DialogContent>
-        <div class="ubp-toolbar">
-            <MudText>@T.T("common.branch"): <b>@Shift.BranchName</b></MudText>
-            <MudText>@T.T("treasury.cashier"): <b>@Shift.Username</b></MudText>
-            <MudText>@T.T("treasury.opened_at"): <b>@Shift.OpenedAt.ToString("g")</b></MudText>
-            <MudText>@T.T("treasury.expected_cash"): <b>@Expected.ToString("N2")</b></MudText>
-        </div>
-
         @if (_report is null)
         {
             <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
         }
         else
         {
-            <ShiftReportView Report="_report" />
-
-            @if (!ReadOnly && Shift.IsOpen)
-            {
-                <MudDivider Class="my-2" />
-                <MudText Typo="Typo.subtitle2" Class="mt-2">@T.T("treasury.cash_count")</MudText>
-                <MudTable Items="_counts" Dense="true" Elevation="0" Class="ubp-table my-2">
-                    <HeaderContent>
-                        <MudTh>@T.T("treasury.treasury")</MudTh>
-                        <MudTh Align="Right">@T.T("treasury.expected_cash")</MudTh>
-                        <MudTh Align="Right">@T.T("treasury.counted_cash")</MudTh>
-                        <MudTh Align="Right">@T.T("treasury.variance")</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd><span class="ubp-code">@context.TreasuryCode</span> — @context.TreasuryName</MudTd>
-                        <MudTd Align="Right">@context.ExpectedCash.ToString("N2")</MudTd>
-                        <MudTd Align="Right">
-                            <MudNumericField T="decimal" Value="context.CountedCash ?? 0m" Min="0m"
-                                             Format="N2" Dense="true"
-                                             ValueChanged="@(v => SetCounted(context, v))" />
-                        </MudTd>
-                        <MudTd Align="Right">
-                            <MudText Color="@(RowVariance(context) < 0 ? Color.Error : Color.Default)">
-                                @RowVariance(context).ToString("N2")
-                            </MudText>
-                        </MudTd>
-                    </RowTemplate>
-                </MudTable>
-
-                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
-                    @T.T("treasury.close_posts_review")
-                </MudAlert>
-            }
+            <ShiftReportView Report="_report" Editable="@(CanEdit)" />
         }
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel" Disabled="_busy">
             @T.T(ReadOnly || !Shift.IsOpen ? "common.close" : "common.cancel")
         </MudButton>
-        @if (!ReadOnly && Shift.IsOpen)
+        @if (CanEdit)
         {
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConfirmAsync"
                        Disabled="@(_busy || _report is null)">@T.T("treasury.close_shift")</MudButton>
@@ -75,17 +41,10 @@
     [Inject] private UiCulture T { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
-    private readonly List<ShiftCashCount> _counts = new();
     private ShiftReport? _report;
     private bool _busy;
 
-    private decimal Expected => _report?.Shift.ExpectedCash ?? Shift.ExpectedCash;
-
-    private static decimal RowVariance(ShiftCashCount row) => Math.Round(
-        (row.CountedCash ?? 0m) - row.ExpectedCash, 2, MidpointRounding.AwayFromZero);
-
-    private static void SetCounted(ShiftCashCount row, decimal value) =>
-        row.CountedCash = Math.Max(value, 0m);
+    private bool CanEdit => !ReadOnly && Shift.IsOpen;
 
     protected override async Task OnInitializedAsync()
     {
@@ -93,17 +52,9 @@
         {
             var actor = await UserContext.RequireAsync();
             _report = await Treasury.GetShiftReportAsync(actor, Shift.Id);
-            if (Shift.IsOpen)
-            {
-                // نفس بيانات عرض الوردية: المتوقع محسوب لكل خزينة (0077).
-                var rows = _report.CashCounts;
-                _counts.AddRange(rows.Select(r => new ShiftCashCount
-                {
-                    Id = r.Id, TreasuryId = r.TreasuryId, TreasuryCode = r.TreasuryCode,
-                    TreasuryName = r.TreasuryName, ExpectedCash = r.ExpectedCash,
-                    CountedCash = r.CountedCash ?? r.ExpectedCash
-                }));
-            }
+            if (CanEdit)
+                foreach (var row in _report.CashCounts)
+                    row.CountedCash ??= row.ExpectedCash;
         }
         catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
     }
@@ -116,7 +67,7 @@
         try
         {
             var actor = await UserContext.RequireAsync();
-            var counts = _counts
+            var counts = _report!.CashCounts
                 .Select(c => new ShiftCashCountInput
                 {
                     TreasuryId = c.TreasuryId, CountedCash = c.CountedCash ?? c.ExpectedCash
@@ -129,5 +80,3 @@
         finally { _busy = false; }
     }
 }
-}
-

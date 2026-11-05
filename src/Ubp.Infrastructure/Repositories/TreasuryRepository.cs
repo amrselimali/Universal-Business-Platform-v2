@@ -45,6 +45,8 @@ public interface ITreasuryRepository : IShiftGate
     /// <summary>عدّ النقدية المسجّل لكل خزينة في الوردية — 0076.</summary>
     Task<IReadOnlyList<ShiftCashCount>> ListCashCountsAsync(Guid shiftId,
         CancellationToken ct = default);
+    /// <summary>حفظ ملاحظات الوردية (0078).</summary>
+    Task<bool> SaveShiftNotesAsync(Guid shiftId, string? notes, CancellationToken ct = default);
     /// <summary>حساب زيادة/عجز خاص بالخزينة يُستخدم عند اعتماد المحاسب — 0076.</summary>
     Task<bool> SetTreasuryOverShortAccountAsync(Guid treasuryId, Guid? accountId,
         CancellationToken ct = default);

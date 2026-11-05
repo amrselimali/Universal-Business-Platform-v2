@@ -118,6 +118,7 @@ public sealed class ShiftCashCount
     public Guid TreasuryId { get; set; }
     public string TreasuryCode { get; set; } = "";
     public string TreasuryName { get; set; } = "";
+    public string TreasuryType { get; set; } = TreasuryTypes.Cash;
     public decimal OpeningCash { get; set; }
     public decimal ExpectedCash { get; set; }
     public decimal? CountedCash { get; set; }
@@ -166,6 +167,10 @@ public sealed class ShiftReport
     public List<ShiftCashCount> CashCounts { get; set; } = new();
     /// <summary>حركة عدادات الأجهزة في الوردية (أول المدة/المستهلك/آخر المدة/الفعلي/الفرق) — 0077.</summary>
     public List<ShiftMeterMovementRow> Meters { get; set; } = new();
+    /// <summary>المصروفات التشغيلية المسجلة خلال الوردية — 0078.</summary>
+    public List<ShiftExpenseRow> Expenses { get; set; } = new();
+    public decimal ExpensesTotal =>
+        Math.Round(Expenses.Sum(e => e.Amount), 2, MidpointRounding.AwayFromZero);
     public string? Notes { get; set; }
 
     public decimal CollectionsTotal =>
@@ -235,11 +240,25 @@ public sealed class ShiftAppointmentRow
 public sealed class ShiftCollectionRow
 {
     public string CustomerName { get; set; } = "";
+    public string? TreasuryType { get; set; }
     public decimal Collected { get; set; }
     public decimal Revenue { get; set; }
     public decimal Quantity { get; set; }
     public decimal MeterUnits { get; set; }
     public string? EmployeeName { get; set; }
+}
+
+/// <summary>مصروف تشغيلي مسجّل داخل الوردية (0078).</summary>
+public sealed class ShiftExpenseRow
+{
+    public string? TreasuryType { get; set; }
+    public string? TreasuryName { get; set; }
+    public decimal Amount { get; set; }
+    public string? ItemName { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public string? Description { get; set; }
+    public string Status { get; set; } = "DRAFT";
 }
 
 /// <summary>حركة عداد جهاز خلال الوردية: القراءة الفعلية هي التي تُرحَّل من الشيفت — 0077.</summary>

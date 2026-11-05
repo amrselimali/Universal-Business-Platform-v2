@@ -24,15 +24,18 @@ public sealed partial class TreasuryRepository
 
         report.Lines = (await connection.QueryAsync<ShiftCollectionRow>(new CommandDefinition("""
             WITH receipts AS (
-                SELECT v.party_name AS CustomerName, v.total_amount AS Collected,
+                SELECT v.party_name AS CustomerName, t.treasury_type AS TreasuryType,
+                       v.total_amount AS Collected,
                        0::numeric AS Revenue, 0::numeric AS Quantity, 0::numeric AS MeterUnits,
                        NULL::text AS EmployeeName
                 FROM vouchers v
+                JOIN treasuries t ON t.id = v.treasury_id
                 WHERE v.branch_id = @branchId AND v.voucher_type = 'receipt'
                   AND v.status <> 'cancelled' AND v.created_at >= @openedAt
                   AND (@until::timestamptz IS NULL OR v.created_at <= @until::timestamptz)
             ), revenues AS (
-                SELECT COALESCE(c.name_ar, d.party_name) AS CustomerName, 0::numeric AS Collected,
+                SELECT COALESCE(c.name_ar, d.party_name) AS CustomerName, NULL::varchar AS TreasuryType,
+                       0::numeric AS Collected,
                        d.total AS Revenue, 0::numeric AS Quantity, 0::numeric AS MeterUnits,
                        NULL::text AS EmployeeName
                 FROM commercial_documents d
@@ -41,7 +44,8 @@ public sealed partial class TreasuryRepository
                   AND d.status <> 'cancelled' AND d.created_at >= @openedAt
                   AND (@until::timestamptz IS NULL OR d.created_at <= @until::timestamptz)
             ), executions AS (
-                SELECT c.name_ar AS CustomerName, 0::numeric AS Collected, 0::numeric AS Revenue,
+                SELECT c.name_ar AS CustomerName, NULL::varchar AS TreasuryType,
+                       0::numeric AS Collected, 0::numeric AS Revenue,
                        SUM(el.quantity) AS Quantity, SUM(el.meter_units) AS MeterUnits,
                        MAX(e.name_ar) AS EmployeeName
                 FROM booking_executions be
@@ -54,7 +58,8 @@ public sealed partial class TreasuryRepository
                   AND (@until::timestamptz IS NULL OR be.created_at <= @until::timestamptz)
                 GROUP BY c.name_ar
             )
-            SELECT CustomerName, SUM(Collected) AS Collected, SUM(Revenue) AS Revenue,
+            SELECT CustomerName, MAX(TreasuryType) AS TreasuryType,
+                   SUM(Collected) AS Collected, SUM(Revenue) AS Revenue,
                    SUM(Quantity) AS Quantity, SUM(MeterUnits) AS MeterUnits,
                    MAX(EmployeeName) AS EmployeeName
             FROM (SELECT * FROM receipts
@@ -72,12 +77,26 @@ public sealed partial class TreasuryRepository
             {
                 var movement = await TreasuryMovementAsync(connection, null, count.TreasuryId,
                     shift.OpenedAt, ct);
-                count.ExpectedCash = Math.Round(count.OpeningCash + movement, 2,
-                    MidpointRounding.AwayFromZero);
+                // النقد المتوقع = المحصل − المنصرف للخزينة خلال الوردية (0078).
+                count.ExpectedCash = Math.Round(movement, 2, MidpointRounding.AwayFromZero);
                 expected += count.ExpectedCash;
             }
             shift.ExpectedCash = Math.Round(expected, 2, MidpointRounding.AwayFromZero);
         }
+
+        report.Expenses = (await connection.QueryAsync<ShiftExpenseRow>(new CommandDefinition("""
+            SELECT t.treasury_type AS TreasuryType, t.name_ar AS TreasuryName,
+                   el.amount AS Amount, i.name_ar AS ItemName, el.quantity AS Quantity,
+                   el.unit_price AS UnitPrice, COALESCE(el.description, o.notes) AS Description,
+                   o.status AS Status
+            FROM operating_expenses o
+            JOIN operating_expense_lines el ON el.expense_id = o.id
+            LEFT JOIN treasuries t ON t.id = o.treasury_id
+            LEFT JOIN items i ON i.id = el.item_id
+            WHERE o.branch_id = @branchId AND o.created_at >= @openedAt
+              AND (@until::timestamptz IS NULL OR o.created_at <= @until::timestamptz)
+            ORDER BY o.doc_date, o.doc_no, el.line_no
+            """, args, cancellationToken: ct))).ToList();
 
         report.IdleCustomers = (await connection.QueryAsync<ShiftCustomerRow>(new CommandDefinition("""
             SELECT c.id AS CustomerId, c.code AS Code, c.name_ar AS NameAr, c.phone AS Phone,

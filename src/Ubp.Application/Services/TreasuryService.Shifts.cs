@@ -20,6 +20,17 @@ public sealed partial class TreasuryService
         return await _treasury.ListShiftsAsync(branchId, from, to, limit, ct);
     }
 
+    /// <summary>حفظ ملاحظات الوردية (تظهر في العرض والإغلاق).</summary>
+    public async Task SaveNotesAsync(ActorContext actor, Guid shiftId, string? notes,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.Open, ct: ct);
+        if (!await _treasury.SaveShiftNotesAsync(shiftId, notes?.Trim(), ct))
+            throw new NotFoundAppException();
+        await _audit.WriteAsync(actor, "cashier_shifts", shiftId.ToString(), "UPDATE", null,
+            new { notes }, ct);
+    }
+
     /// <summary>عدّ النقدية المسجّل لكل خزينة في وردية (مسودة حتى اعتماد المحاسب).</summary>
     public async Task<IReadOnlyList<ShiftCashCount>> ListCashCountsAsync(ActorContext actor,
         Guid shiftId, CancellationToken ct = default)

@@ -35,8 +35,8 @@ public sealed partial class TreasuryRepository
         {
             var movement = await TreasuryMovementAsync(connection, tx, row.TreasuryId,
                 shift.OpenedAt, ct);
-            var expected = Math.Round(row.OpeningCash + movement, 2,
-                MidpointRounding.AwayFromZero);
+            // النقد المتوقع = المحصل − المنصرف للخزينة خلال الوردية (0078).
+            var expected = Math.Round(movement, 2, MidpointRounding.AwayFromZero);
             var counted = counts?.FirstOrDefault(c => c.TreasuryId == row.TreasuryId)?.CountedCash
                           ?? expected;
             counted = Math.Round(counted, 2, MidpointRounding.AwayFromZero);
@@ -112,7 +112,8 @@ public sealed partial class TreasuryRepository
         CancellationToken ct) =>
         (await connection.QueryAsync<ShiftCashCount>(new CommandDefinition("""
             SELECT c.id AS Id, c.shift_id AS ShiftId, c.treasury_id AS TreasuryId,
-                   t.code AS TreasuryCode, t.name_ar AS TreasuryName, c.opening_cash AS OpeningCash,
+                   t.code AS TreasuryCode, t.name_ar AS TreasuryName,
+                   t.treasury_type AS TreasuryType, c.opening_cash AS OpeningCash,
                    c.expected_cash AS ExpectedCash, c.counted_cash AS CountedCash,
                    c.variance AS Variance, c.status AS Status
             FROM shift_cash_counts c
@@ -120,6 +121,16 @@ public sealed partial class TreasuryRepository
             WHERE c.shift_id = @shiftId
             ORDER BY t.code
             """, new { shiftId }, tx, cancellationToken: ct))).ToList();
+
+    /// <summary>حفظ ملاحظات الوردية لتظهر في العرض والإغلاق كل مرة — 0078.</summary>
+    public async Task<bool> SaveShiftNotesAsync(Guid shiftId, string? notes,
+        CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE cashier_shifts SET notes = @notes WHERE id = @shiftId",
+            new { shiftId, notes }, cancellationToken: ct)) > 0;
+    }
 
     public async Task<IReadOnlyList<ShiftCashCount>> ListCashCountsAsync(Guid shiftId,
         CancellationToken ct = default)

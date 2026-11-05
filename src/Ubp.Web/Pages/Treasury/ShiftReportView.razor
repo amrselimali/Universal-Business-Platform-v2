@@ -1,51 +1,16 @@
 @inject UiCulture T
 @inject IDisplayFormatter Fmt
+@inject TreasuryService Treasury
+@inject UserContext UserContext
+@inject ISnackbar Snackbar
 
-<MudGrid Spacing="2" Class="mb-2">
-    <MudItem xs="6" sm="3">
-        <MudText Typo="Typo.caption">@T.T("treasury.opening_cash")</MudText>
-        <MudText Typo="Typo.body2"><b>@Report.Shift.OpeningCash.ToString("N2")</b></MudText>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudText Typo="Typo.caption">@T.T("treasury.expected_cash")</MudText>
-        <MudText Typo="Typo.body2"><b>@Report.Shift.ExpectedCash.ToString("N2")</b></MudText>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudText Typo="Typo.caption">@T.T("treasury.receipts_total")</MudText>
-        <MudText Typo="Typo.body2"><b>@Report.Shift.ReceiptsTotal.ToString("N2")</b></MudText>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudText Typo="Typo.caption">@T.T("treasury.variance")</MudText>
-        <MudText Typo="Typo.body2"><b>@(Report.Shift.Variance?.ToString("N2") ?? "—")</b></MudText>
-    </MudItem>
-</MudGrid>
-
-<MudText Typo="Typo.subtitle2" Class="mt-2">@T.T("treasury.cash_count")</MudText>
-<MudTable Items="Report.CashCounts" Dense="true" Elevation="0" Class="ubp-table">
-    <HeaderContent>
-        <MudTh>@T.T("treasury.treasury")</MudTh>
-        <MudTh Align="Right">@T.T("treasury.expected_cash")</MudTh>
-        <MudTh Align="Right">@T.T("treasury.counted_cash")</MudTh>
-        <MudTh Align="Right">@T.T("treasury.variance")</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd>@context.TreasuryCode — @context.TreasuryName</MudTd>
-        <MudTd Align="Right">@context.ExpectedCash.ToString("N2")</MudTd>
-        <MudTd Align="Right">@(context.CountedCash?.ToString("N2") ?? "—")</MudTd>
-        <MudTd Align="Right">
-            <MudText Color="@(context.Variance is < 0 ? Color.Error : Color.Default)">
-                @(context.Variance?.ToString("N2") ?? "—")
-            </MudText>
-        </MudTd>
-    </RowTemplate>
-</MudTable>
-
-<MudText Typo="Typo.subtitle2" Class="mt-3">
+<MudText Typo="Typo.subtitle2" Class="mt-2">
     @T.T("treasury.report_collections") / @T.T("treasury.report_revenues")
 </MudText>
 <MudTable Items="Report.Lines" Dense="true" Elevation="0" Class="ubp-table">
     <HeaderContent>
         <MudTh>@T.T("common.customer")</MudTh>
+        <MudTh>@T.T("treasury.type")</MudTh>
         <MudTh Align="Right">@T.T("pos.collected_amount")</MudTh>
         <MudTh Align="Right">@T.T("treasury.revenue_value")</MudTh>
         <MudTh Align="Right">@T.T("common.quantity")</MudTh>
@@ -54,6 +19,7 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd>@context.CustomerName</MudTd>
+        <MudTd>@TreasuryTypeText(context.TreasuryType)</MudTd>
         <MudTd Align="Right">@context.Collected.ToString("N2")</MudTd>
         <MudTd Align="Right">@context.Revenue.ToString("N2")</MudTd>
         <MudTd Align="Right">@context.Quantity.ToString("N2")</MudTd>
@@ -64,6 +30,29 @@
 <MudText Typo="Typo.body2" Class="mt-1">
     @T.T("pos.collected_amount"): <b>@Report.CollectionsTotal.ToString("N2")</b> —
     @T.T("treasury.revenue_value"): <b>@Report.RevenuesTotal.ToString("N2")</b>
+</MudText>
+
+<MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("expenses.title")</MudText>
+<MudTable Items="Report.Expenses" Dense="true" Elevation="0" Class="ubp-table">
+    <HeaderContent>
+        <MudTh>@T.T("treasury.type")</MudTh>
+        <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+        <MudTh>@T.T("sales.item")</MudTh>
+        <MudTh Align="Right">@T.T("common.quantity")</MudTh>
+        <MudTh Align="Right">@T.T("inventory.unit_price")</MudTh>
+        <MudTh>@T.T("common.notes")</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@TreasuryTypeText(context.TreasuryType)</MudTd>
+        <MudTd Align="Right">@context.Amount.ToString("N2")</MudTd>
+        <MudTd>@context.ItemName</MudTd>
+        <MudTd Align="Right">@(context.ItemName is null ? "—" : context.Quantity.ToString("N2"))</MudTd>
+        <MudTd Align="Right">@(context.ItemName is null ? "—" : context.UnitPrice.ToString("N2"))</MudTd>
+        <MudTd>@context.Description</MudTd>
+    </RowTemplate>
+</MudTable>
+<MudText Typo="Typo.body2" Class="mt-1">
+    @T.T("accounting.total"): <b>@Report.ExpensesTotal.ToString("N2")</b>
 </MudText>
 
 <MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("treasury.meter_balance")</MudText>
@@ -90,11 +79,49 @@
     </RowTemplate>
 </MudTable>
 
-<MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("common.notes")</MudText>
-<MudTextField T="string" Value="@Report.Notes" ReadOnly="true" Variant="Variant.Outlined"
-              Lines="2" Class="mb-2" />
+<MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("treasury.cash_count")</MudText>
+<MudTable Items="Report.CashCounts" Dense="true" Elevation="0" Class="ubp-table">
+    <HeaderContent>
+        <MudTh>@T.T("treasury.treasury")</MudTh>
+        <MudTh>@T.T("treasury.type")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.expected_cash")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.counted_cash")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.variance")</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.TreasuryCode — @context.TreasuryName</MudTd>
+        <MudTd>@TreasuryTypeText(context.TreasuryType)</MudTd>
+        <MudTd Align="Right">@context.ExpectedCash.ToString("N2")</MudTd>
+        <MudTd Align="Right">
+            @if (Editable)
+            {
+                <MudNumericField T="decimal" Value="context.CountedCash ?? 0m" Min="0m" Format="N2"
+                                 Dense="true" ValueChanged="@(v => context.CountedCash = v)" />
+            }
+            else
+            {
+                @(context.CountedCash?.ToString("N2") ?? "—")
+            }
+        </MudTd>
+        <MudTd Align="Right">
+            @(context.CountedCash is null
+                ? "—"
+                : Math.Round(context.CountedCash.Value - context.ExpectedCash, 2,
+                    MidpointRounding.AwayFromZero).ToString("N2"))
+        </MudTd>
+    </RowTemplate>
+</MudTable>
 
-<MudExpansionPanels MultiExpansion="true" Elevation="0" Dense="true">
+<MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("common.notes")</MudText>
+<MudTextField T="string" Value="Report.Notes" ValueChanged="OnNotesChanged"
+              ReadOnly="@(!Editable)" Variant="Variant.Outlined" Lines="2" Class="mb-2" />
+@if (Editable)
+{
+    <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="SaveNotesAsync"
+               Disabled="@_saving">@T.T("common.save")</MudButton>
+}
+
+<MudExpansionPanels MultiExpansion="true" Elevation="0" Dense="true" Class="mt-3">
     <MudExpansionPanel Text="@($"{T.T("treasury.report_idle_customers")} ({Report.IdleCustomers.Count})")">
         <MudTable Items="Report.IdleCustomers" Dense="true" Elevation="0" Class="ubp-table">
             <HeaderContent>
@@ -155,8 +182,32 @@
     </MudExpansionPanel>
 </MudExpansionPanels>
 
+
 @code {
     [Parameter] public ShiftReport Report { get; set; } = new();
+    /// <summary>وضع الإغلاق: خانة النقد المعدود قابلة للكتابة والملاحظات قابلة للحفظ.</summary>
+    [Parameter] public bool Editable { get; set; }
+
+    private bool _saving;
+
+    private string TreasuryTypeText(string? type) => string.IsNullOrWhiteSpace(type)
+        ? "—"
+        : T.T("treasury.type_" + type);
+
+    private void OnNotesChanged(string? value) => Report.Notes = value;
+
+    private async Task SaveNotesAsync()
+    {
+        _saving = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            await Treasury.SaveNotesAsync(actor, Report.Shift.Id, Report.Notes);
+            Snackbar.Add(T.T("common.saved"), Severity.Success);
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _saving = false; }
+    }
 
     private string StatusText(string status) => T.T(status switch
     {
