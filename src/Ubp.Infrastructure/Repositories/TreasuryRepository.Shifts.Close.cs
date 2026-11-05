@@ -36,7 +36,9 @@ public sealed partial class TreasuryRepository
             var movement = await TreasuryMovementAsync(connection, tx, row.TreasuryId,
                 shift.OpenedAt, ct);
             // النقد المتوقع = أول المدة + (المحصل − المنصرف) للخزينة خلال الوردية (0079).
-            var expected = Math.Round(row.OpeningCash + movement, 2,
+            var fee = await CollectionFeeAsync(connection, tx, row.TreasuryId, shift.OpenedAt,
+                shift.ClosedAt, ct);
+            var expected = Math.Round(row.OpeningCash + movement - fee, 2,
                 MidpointRounding.AwayFromZero);
             var counted = counts?.FirstOrDefault(c => c.TreasuryId == row.TreasuryId)?.CountedCash
                           ?? expected;
@@ -160,5 +162,17 @@ public sealed partial class TreasuryRepository
         await using var connection = await _factory.OpenAsync(ct);
         return await QueryCashCountsAsync(connection, shiftId, null, ct);
     }
-}
 
+    /// <summary>عمولة التحصيل لكل خزينة = مجموع تحصيلات الوردية × نسبة العمولة — 0081.</summary>
+    private static async Task<decimal> CollectionFeeAsync(NpgsqlConnection connection,
+        NpgsqlTransaction? tx, Guid treasuryId, DateTimeOffset openedAt, DateTimeOffset? until,
+        CancellationToken ct) =>
+        await connection.ExecuteScalarAsync<decimal>(new CommandDefinition("""
+            SELECT COALESCE(ROUND(SUM(v.total_amount) * t.collection_fee_percent / 100, 2), 0)
+            FROM vouchers v
+            JOIN treasuries t ON t.id = v.treasury_id
+            WHERE t.id = @treasuryId AND v.voucher_type = 'receipt' AND v.status <> 'cancelled'
+              AND v.created_at >= @openedAt
+              AND (@until::timestamptz IS NULL OR v.created_at <= @until::timestamptz)
+            """, new { treasuryId, openedAt, until }, tx, cancellationToken: ct));
+}

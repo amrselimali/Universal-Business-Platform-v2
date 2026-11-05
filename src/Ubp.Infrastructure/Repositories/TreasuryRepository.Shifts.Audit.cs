@@ -116,6 +116,36 @@ public sealed partial class TreasuryRepository
                 """, new { userId, entryId, id = row.Id }, tx, cancellationToken: ct));
         }
 
+        // ترحيل عمولة التحصيل بنسبة الخزينة إلى حسابها المربوط (0081).
+        var fees = await connection.QueryAsync<(Guid TreasuryAccountId, Guid FeeAccountId,
+            string TreasuryType, decimal Fee)>(new CommandDefinition("""
+            SELECT t.account_id, t.collection_fee_account_id, t.treasury_type,
+                   ROUND(SUM(v.total_amount) * t.collection_fee_percent / 100, 2) AS fee
+            FROM shift_cash_counts c
+            JOIN cashier_shifts s ON s.id = c.shift_id
+            JOIN treasuries t ON t.id = c.treasury_id
+            JOIN vouchers v ON v.branch_id = s.branch_id AND v.treasury_id = t.id
+                 AND v.voucher_type = 'receipt' AND v.status <> 'cancelled'
+                 AND v.created_at >= s.opened_at
+                 AND (s.closed_at IS NULL OR v.created_at <= s.closed_at)
+            WHERE c.shift_id = @shiftId AND t.collection_fee_percent > 0
+              AND t.collection_fee_account_id IS NOT NULL
+            GROUP BY t.account_id, t.collection_fee_account_id, t.treasury_type,
+                     t.collection_fee_percent
+            HAVING ROUND(SUM(v.total_amount) * t.collection_fee_percent / 100, 2) > 0
+            """, new { shiftId }, tx, cancellationToken: ct));
+
+        foreach (var fee in fees)
+        {
+            var feeGl = new List<JournalLine>
+            {
+                new(fee.FeeAccountId, fee.Fee, 0), new(fee.TreasuryAccountId, 0, fee.Fee)
+            };
+            await CreateVoucherEntryAsync(connection, tx, Guid.CreateVersion7(),
+                fee.TreasuryType, shift.BranchId, DateTime.Today, shift.Code,
+                $"عمولة تحصيل وردية {shift.Code}", feeGl, userId, null, ct, "cash_shift");
+        }
+
         await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE shift_review_items
             SET status = 'reviewed', reviewed_at = now(), reviewed_by = @userId

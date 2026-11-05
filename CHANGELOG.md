@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-11-05 — Per-treasury collection commission (%) with linked posting account
+
+### Added
+- Migration `0081`: `treasuries.collection_fee_percent` + `treasuries.collection_fee_account_id`.
+- شاشة الخزائن: حوار إعدادات الخزينة أصبح يضم **نسبة عمولة التحصيل %** و**حساب ترحيل العمولة**
+  (بجانب حساب زيادة/عجز الخزينة).
+- عند إغلاق/عرض الوردية: تُحسب العمولة = **تحصيلات الخزينة × النسبة**، تُخصم من النقد المتوقع،
+  وتظهر كسطر **مصروف** في تقرير الوردية، وتُرحَّل عند اعتماد المحاسب على الحساب المربوط
+  (مدين حساب العمولة / دائن حساب الخزينة).
+
+### Note
+- عمولة طرق الدفع القديمة تبقى كما هي دون أي تغيير في سلوكها.
+
 ## 2026-11-05 — Branch-cash clearing flag, cash handover document, collection fees in shift
 
 ### Added

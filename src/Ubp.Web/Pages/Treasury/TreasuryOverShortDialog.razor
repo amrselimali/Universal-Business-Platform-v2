@@ -15,6 +15,19 @@
                 </MudSelectItem>
             }
         </MudSelect>
+
+        <MudNumericField @bind-Value="_feePercent" Label="@T.T("treasury.collection_fee_percent")"
+                         Variant="Variant.Outlined" Min="0" Max="100" Format="N2" Class="mt-3" />
+        <MudSelect T="Guid?" @bind-Value="_feeAccountId" Clearable="true" Class="mt-3"
+                   Label="@T.T("treasury.collection_fee_account")" Variant="Variant.Outlined"
+                   HelperText="@T.T("treasury.collection_fee_hint")">
+            @foreach (var account in _accounts)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)account.Id)">
+                    @account.Code — @account.DisplayName(_english)
+                </MudSelectItem>
+            }
+        </MudSelect>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
@@ -34,6 +47,8 @@
 
     private IReadOnlyList<Account> _accounts = Array.Empty<Account>();
     private Guid? _accountId;
+    private Guid? _feeAccountId;
+    private decimal _feePercent;
     private bool _busy;
     private bool _english;
 
@@ -41,6 +56,8 @@
     {
         _english = T.Language == "en";
         _accountId = Treasury.OverShortAccountId;
+        _feePercent = Treasury.CollectionFeePercent;
+        _feeAccountId = Treasury.CollectionFeeAccountId;
         try
         {
             var actor = await UserContext.RequireAsync();
@@ -58,6 +75,7 @@
         {
             var actor = await UserContext.RequireAsync();
             await Service.SetTreasuryOverShortAccountAsync(actor, Treasury.Id, _accountId);
+            await Service.SetCollectionFeeAsync(actor, Treasury.Id, _feePercent, _feeAccountId);
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }

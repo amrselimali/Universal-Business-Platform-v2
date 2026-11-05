@@ -62,6 +62,10 @@ public sealed class Treasury
     public Guid AccountId { get; set; }
     /// <summary>حساب ترحيل زيادة/عجز هذه الخزينة عند اعتماد المحاسب (0076).</summary>
     public Guid? OverShortAccountId { get; set; }
+    /// <summary>نسبة عمولة التحصيل المخصومة في الوردية (0081).</summary>
+    public decimal CollectionFeePercent { get; set; }
+    /// <summary>حساب ترحيل عمولة التحصيل (0081).</summary>
+    public Guid? CollectionFeeAccountId { get; set; }
     public string? AccountCode { get; set; }
     public string? AccountName { get; set; }
     public decimal OpeningBalance { get; set; }
@@ -84,6 +88,10 @@ public sealed class TreasuryInput
     public Guid AccountId { get; set; }
     /// <summary>حساب زيادة/عجز الخزينة (اختياري) — يُستخدم عند ترحيل فرق الوردية.</summary>
     public Guid? OverShortAccountId { get; set; }
+    /// <summary>نسبة عمولة التحصيل (0081).</summary>
+    public decimal CollectionFeePercent { get; set; }
+    /// <summary>حساب ترحيل عمولة التحصيل (0081).</summary>
+    public Guid? CollectionFeeAccountId { get; set; }
     public decimal OpeningBalance { get; set; }
 }
 

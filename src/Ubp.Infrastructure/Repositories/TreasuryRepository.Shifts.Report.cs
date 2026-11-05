@@ -145,8 +145,10 @@ public sealed partial class TreasuryRepository
             {
                 var movement = await TreasuryMovementAsync(connection, null, count.TreasuryId,
                     shift.OpenedAt, ct);
-                // النقد المتوقع = أول المدة + (المحصل − المنصرف) — 0079.
-                count.ExpectedCash = Math.Round(count.OpeningCash + movement, 2,
+                // النقد المتوقع = أول المدة + (المحصل − المنصرف) − عمولة التحصيل — 0081.
+                var fee = await CollectionFeeAsync(connection, null, count.TreasuryId,
+                    shift.OpenedAt, shift.ClosedAt, ct);
+                count.ExpectedCash = Math.Round(count.OpeningCash + movement - fee, 2,
                     MidpointRounding.AwayFromZero);
                 expected += count.ExpectedCash;
             }
@@ -208,6 +210,22 @@ public sealed partial class TreasuryRepository
             WHERE h.branch_id = @branchId AND h.created_at >= @openedAt
               AND (@until::timestamptz IS NULL OR h.created_at <= @until::timestamptz)
             ORDER BY h.created_at
+            """, args, cancellationToken: ct)));
+
+        // عمولة التحصيل بنسبة الخزينة (0081): تدخل مصروفاً في الوردية.
+        report.Expenses.AddRange(await connection.QueryAsync<ShiftExpenseRow>(new CommandDefinition("""
+            SELECT t.treasury_type AS TreasuryType, t.name_ar AS TreasuryName,
+                   ROUND(SUM(v.total_amount) * t.collection_fee_percent / 100, 2) AS Amount,
+                   NULL::text AS ItemName, 0::numeric AS Quantity, 0::numeric AS UnitPrice,
+                   'عمولة تحصيل ' || t.collection_fee_percent || '%' AS Description,
+                   'POSTED'::varchar AS Status
+            FROM vouchers v
+            JOIN treasuries t ON t.id = v.treasury_id
+            WHERE v.branch_id = @branchId AND v.voucher_type = 'receipt'
+              AND v.status <> 'cancelled' AND v.created_at >= @openedAt
+              AND (@until::timestamptz IS NULL OR v.created_at <= @until::timestamptz)
+              AND t.collection_fee_percent > 0
+            GROUP BY t.treasury_type, t.name_ar, t.collection_fee_percent
             """, args, cancellationToken: ct)));
 
         // عمولات التحصيل المخصومة من الخزينة تُضاف للمصروف (0080).

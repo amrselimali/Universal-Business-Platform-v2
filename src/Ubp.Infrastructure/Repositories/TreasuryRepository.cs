@@ -52,6 +52,10 @@ public interface ITreasuryRepository : IShiftGate
     /// <summary>ترحيل الوردية للحسابات (تحويل حالتها إلى «تحت المراجعة») — 0079.</summary>
     Task<bool> PostShiftAsync(Guid shiftId, Guid userId, CancellationToken ct = default);
 
+    /// <summary>نسبة عمولة التحصيل وحساب ترحيلها لكل خزينة — 0081.</summary>
+    Task<bool> SetCollectionFeeAsync(Guid treasuryId, decimal percent, Guid? accountId,
+        CancellationToken ct = default);
+
     /// <summary>تسليم نقدية من خزينة إلى حساب وسيط لنقدية الفرع — 0080.</summary>
     Task<Guid> CreateCashHandoverAsync(Guid id, CashHandoverInput input, Guid userId,
         CancellationToken ct = default);
@@ -103,13 +107,16 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
         await using var connection = await _factory.OpenAsync(ct);
         return await connection.ExecuteScalarAsync<Guid>(new CommandDefinition("""
             INSERT INTO treasuries (id, branch_id, code, name_ar, name_en, treasury_type, account_id,
-                opening_balance, over_short_account_id, created_by)
+                opening_balance, over_short_account_id, collection_fee_percent,
+                collection_fee_account_id, created_by)
             VALUES (@id, @BranchId, @Code, @NameAr, @NameEn, @TreasuryType, @AccountId,
-                    @OpeningBalance, @OverShortAccountId, @userId)
+                    @OpeningBalance, @OverShortAccountId, @CollectionFeePercent,
+                    @CollectionFeeAccountId, @userId)
             RETURNING id
             """, new { id, input.BranchId, input.Code, input.NameAr, input.NameEn,
                 input.TreasuryType, input.AccountId, input.OpeningBalance,
-                input.OverShortAccountId, userId },
+                input.OverShortAccountId, input.CollectionFeePercent,
+                input.CollectionFeeAccountId, userId },
             cancellationToken: ct));
     }
 
@@ -159,6 +166,17 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
             "WHERE id = @id AND is_active", new { id, followInShift }, cancellationToken: ct)) > 0;
     }
 
+    /// <summary>نسبة عمولة التحصيل وحساب ترحيلها — 0081.</summary>
+    public async Task<bool> SetCollectionFeeAsync(Guid treasuryId, decimal percent,
+        Guid? accountId, CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE treasuries SET collection_fee_percent = @percent,
+                collection_fee_account_id = @accountId WHERE id = @treasuryId
+            """, new { treasuryId, percent, accountId }, cancellationToken: ct)) > 0;
+    }
+
     /// <summary>تحديد حساب زيادة/عجز الخزينة الذي يُرحّل عليه المحاسب — 0076.</summary>
     public async Task<bool> SetTreasuryOverShortAccountAsync(Guid treasuryId, Guid? accountId,
         CancellationToken ct = default)
@@ -178,7 +196,10 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
                    t.name_en AS NameEn, t.treasury_type AS TreasuryType, t.account_id AS AccountId,
                    t.is_main AS IsMain,
                    a.code AS AccountCode, a.name_ar AS AccountName, t.opening_balance AS OpeningBalance,
-                   t.over_short_account_id AS OverShortAccountId, t.is_active AS IsActive
+                   t.over_short_account_id AS OverShortAccountId,
+                   t.collection_fee_percent AS CollectionFeePercent,
+                   t.collection_fee_account_id AS CollectionFeeAccountId,
+                   t.is_active AS IsActive
             FROM treasuries t JOIN accounts a ON a.id = t.account_id
             WHERE t.is_active AND (@branchId::uuid IS NULL OR t.branch_id = @branchId::uuid)
             ORDER BY t.code

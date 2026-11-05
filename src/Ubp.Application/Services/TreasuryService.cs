@@ -164,6 +164,26 @@ public sealed partial class TreasuryService
             new { over_short_account_id = accountId }, ct);
     }
 
+    /// <summary>نسبة عمولة التحصيل وحساب ترحيلها (0081).</summary>
+    public async Task SetCollectionFeeAsync(ActorContext actor, Guid treasuryId, decimal percent,
+        Guid? accountId, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.Treasuries, ActionCodes.ManageMethods,
+            ct: ct);
+        if (percent is < 0 or > 100)
+            throw new ValidationAppException("validation.payment_fee");
+        if (accountId is { } id)
+        {
+            var postable = await _accounts.ListPostableAsync(ct);
+            if (postable.All(a => a.Id != id))
+                throw new ValidationAppException("validation.account_not_postable");
+        }
+        if (!await _treasury.SetCollectionFeeAsync(treasuryId, percent, accountId, ct))
+            throw new NotFoundAppException();
+        await _audit.WriteAsync(actor, "treasuries", treasuryId.ToString(), "UPDATE", null,
+            new { collection_fee_percent = percent, collection_fee_account_id = accountId }, ct);
+    }
+
     /// <summary>تسليم نقدية من خزينة إلى حساب وسيط لنقدية الفرع (0080).</summary>
     public async Task<Guid> CreateCashHandoverAsync(ActorContext actor, CashHandoverInput input,
         CancellationToken ct = default)
