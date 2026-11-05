@@ -27,47 +27,23 @@ public sealed partial class TreasuryRepository
                    COALESCE(gl.balance, 0) AS PostedBalance,
                    COALESCE(unposted.amount, 0) AS UnpostedBalance
             FROM treasuries t
-            -- رصيد الخزينة = افتتاحيها + سنداتها المرحّلة فقط (وليس رصيد الحساب المشترك
-            -- مع خزائن أخرى مثل الخزينة الرئيسية).
+            -- رصيد الخزينة = رصيد آخر المدة لحسابها في الأستاذ (حساب مستقل لكل خزينة)
             LEFT JOIN LATERAL (
-                SELECT CASE
-                         WHEN (SELECT count(*) FROM treasuries t2
-                               WHERE t2.branch_id = t.branch_id AND t2.account_id = t.account_id
-                                 AND t2.is_active) = 1
-                         THEN COALESCE((SELECT SUM(l.debit - l.credit)
-                                        FROM journal_entry_lines l
-                                        JOIN journal_entries e ON e.id = l.entry_id
-                                                               AND e.branch_id = t.branch_id
-                                        WHERE e.status = 'posted' AND l.account_id = t.account_id), 0)
-                         ELSE COALESCE((SELECT SUM(CASE
-                                   WHEN v.treasury_id = t.id AND v.voucher_type = 'receipt'
-                                       THEN v.total_amount
-                                   WHEN v.treasury_id = t.id AND v.voucher_type = 'payment'
-                                       THEN -v.total_amount
-                                   WHEN v.treasury_id = t.id AND v.voucher_type = 'transfer'
-                                       THEN -(v.total_amount + v.fee_total)
-                                   WHEN v.to_treasury_id = t.id AND v.voucher_type = 'transfer'
-                                       THEN v.total_amount
-                                   ELSE 0 END)
-                                        FROM vouchers v
-                                        WHERE v.status = 'posted' AND v.branch_id = t.branch_id
-                                          AND (v.treasury_id = t.id OR v.to_treasury_id = t.id)), 0)
-                       END AS balance
+                SELECT COALESCE((SELECT SUM(l.debit - l.credit)
+                                 FROM journal_entry_lines l
+                                 JOIN journal_entries e ON e.id = l.entry_id
+                                                        AND e.branch_id = t.branch_id
+                                 WHERE e.status = 'posted' AND l.account_id = t.account_id), 0)
+                       AS balance
             ) gl ON true
+            -- + إيصالات التحصيل غير المرحّلة للحسابات (مسودات) لهذه الخزينة
             LEFT JOIN LATERAL (
-                -- إيصالات التحصيل في الورديات غير المرحّلة (وليس رصيد/عدّ الورديات)
-                SELECT SUM(v.total_amount) AS amount
-                FROM cashier_shifts s
-                JOIN vouchers v ON v.branch_id = s.branch_id AND v.treasury_id = t.id
-                     AND v.voucher_type = 'receipt' AND v.status = 'draft'
-                     AND v.created_at >= s.opened_at
-                     AND (s.closed_at IS NULL OR v.created_at <= s.closed_at)
-                WHERE s.branch_id = @branchId AND s.status = 'closed'
-                  AND s.review_status IN ('none', 'pending') 
+                SELECT COALESCE(SUM(v.total_amount), 0) AS amount
+                FROM vouchers v
+                WHERE v.branch_id = t.branch_id AND v.treasury_id = t.id
+                  AND v.voucher_type = 'receipt' AND v.status = 'draft'
             ) unposted ON true
-            WHERE t.branch_id = @branchId AND t.is_active AND NOT t.is_main
-              AND EXISTS (SELECT 1 FROM treasury_methods m
-                          WHERE m.treasury_id = t.id AND m.is_active AND m.follow_in_shift)
+            WHERE t.branch_id = @branchId AND t.is_active
             ORDER BY t.code
             """, new { branchId }, tx, cancellationToken: ct))).ToList();
 

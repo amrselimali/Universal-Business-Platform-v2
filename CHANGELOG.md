@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-11-05 — Simple treasury balances: all branch treasuries + GL closing + unposted receipts
+
+### Changed
+- شاشة الوردية تعرض **كل خزائن الفرع** (بدون شرط «يتم متابعتها في الوردية» وبدون استثناء الرئيسية).
+- رصيد أول المدة لكل خزينة = **رصيد آخر المدة لحسابها في الأستاذ** (كل خزينة بحساب مستقل)
+  **+ إيصالات التحصيل غير المرحّلة للحسابات** (سندات قبض مسودة) الخاصة بالخزينة.
+
 ## 2026-11-05 — Treasury balance uses its GL account when the account is exclusive
 
 ### Fixed

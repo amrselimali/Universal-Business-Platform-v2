@@ -78,42 +78,20 @@ public sealed partial class TreasuryRepository
                    CASE WHEN @isOpen THEN 'open' ELSE 'draft' END
             FROM treasuries t
             LEFT JOIN LATERAL (
-                SELECT CASE
-                         WHEN (SELECT count(*) FROM treasuries t2
-                               WHERE t2.branch_id = t.branch_id AND t2.account_id = t.account_id
-                                 AND t2.is_active) = 1
-                         THEN COALESCE((SELECT SUM(l.debit - l.credit)
-                                        FROM journal_entry_lines l
-                                        JOIN journal_entries e ON e.id = l.entry_id
-                                                               AND e.branch_id = t.branch_id
-                                        WHERE e.status = 'posted' AND l.account_id = t.account_id), 0)
-                         ELSE COALESCE((SELECT SUM(CASE
-                                   WHEN v.treasury_id = t.id AND v.voucher_type = 'receipt'
-                                       THEN v.total_amount
-                                   WHEN v.treasury_id = t.id AND v.voucher_type = 'payment'
-                                       THEN -v.total_amount
-                                   WHEN v.treasury_id = t.id AND v.voucher_type = 'transfer'
-                                       THEN -(v.total_amount + v.fee_total)
-                                   WHEN v.to_treasury_id = t.id AND v.voucher_type = 'transfer'
-                                       THEN v.total_amount
-                                   ELSE 0 END)
-                                        FROM vouchers v
-                                        WHERE v.status = 'posted' AND v.branch_id = t.branch_id
-                                          AND (v.treasury_id = t.id OR v.to_treasury_id = t.id)), 0)
-                       END AS balance
+                SELECT COALESCE((SELECT SUM(l.debit - l.credit)
+                                 FROM journal_entry_lines l
+                                 JOIN journal_entries e ON e.id = l.entry_id
+                                                        AND e.branch_id = t.branch_id
+                                 WHERE e.status = 'posted' AND l.account_id = t.account_id), 0)
+                       AS balance
             ) gl ON true
             LEFT JOIN LATERAL (
-                SELECT SUM(v.total_amount) AS total
-                FROM cashier_shifts s
-                JOIN vouchers v ON v.branch_id = s.branch_id AND v.treasury_id = t.id
-                     AND v.voucher_type = 'receipt' AND v.status <> 'cancelled'
-                     AND v.created_at >= s.opened_at
-                     AND (s.closed_at IS NULL OR v.created_at <= s.closed_at)
-                WHERE s.branch_id = t.branch_id AND s.review_status = 'pending' 
+                SELECT COALESCE(SUM(v.total_amount), 0) AS total
+                FROM vouchers v
+                WHERE v.branch_id = t.branch_id AND v.treasury_id = t.id
+                  AND v.voucher_type = 'receipt' AND v.status = 'draft'
             ) carry ON true
-            WHERE t.branch_id = @branchId AND t.is_active AND NOT t.is_main
-              AND EXISTS (SELECT 1 FROM treasury_methods m
-                          WHERE m.treasury_id = t.id AND m.is_active AND m.follow_in_shift)
+            WHERE t.branch_id = @branchId AND t.is_active
             ON CONFLICT (shift_id, treasury_id) DO NOTHING
             """, new { shiftId, branchId = shift.BranchId, isOpen = shift.IsOpen },
             cancellationToken: ct));
@@ -129,30 +107,13 @@ public sealed partial class TreasuryRepository
                        + COALESCE(carry.total, 0) AS opening
                 FROM treasuries t
                 LEFT JOIN LATERAL (
-                SELECT CASE
-                         WHEN (SELECT count(*) FROM treasuries t2
-                               WHERE t2.branch_id = t.branch_id AND t2.account_id = t.account_id
-                                 AND t2.is_active) = 1
-                         THEN COALESCE((SELECT SUM(l.debit - l.credit)
-                                        FROM journal_entry_lines l
-                                        JOIN journal_entries e ON e.id = l.entry_id
-                                                               AND e.branch_id = t.branch_id
-                                        WHERE e.status = 'posted' AND l.account_id = t.account_id), 0)
-                         ELSE COALESCE((SELECT SUM(CASE
-                                   WHEN v.treasury_id = t.id AND v.voucher_type = 'receipt'
-                                       THEN v.total_amount
-                                   WHEN v.treasury_id = t.id AND v.voucher_type = 'payment'
-                                       THEN -v.total_amount
-                                   WHEN v.treasury_id = t.id AND v.voucher_type = 'transfer'
-                                       THEN -(v.total_amount + v.fee_total)
-                                   WHEN v.to_treasury_id = t.id AND v.voucher_type = 'transfer'
-                                       THEN v.total_amount
-                                   ELSE 0 END)
-                                        FROM vouchers v
-                                        WHERE v.status = 'posted' AND v.branch_id = t.branch_id
-                                          AND (v.treasury_id = t.id OR v.to_treasury_id = t.id)), 0)
-                       END AS balance
-            ) gl ON true
+                    SELECT COALESCE((SELECT SUM(l.debit - l.credit)
+                                 FROM journal_entry_lines l
+                                 JOIN journal_entries e ON e.id = l.entry_id
+                                                        AND e.branch_id = t.branch_id
+                                 WHERE e.status = 'posted' AND l.account_id = t.account_id), 0)
+                       AS balance
+                ) gl ON true
                 LEFT JOIN LATERAL (
                     SELECT SUM(CASE
                                WHEN v.treasury_id = t.id AND v.voucher_type = 'receipt'
@@ -169,16 +130,12 @@ public sealed partial class TreasuryRepository
                       AND (v.treasury_id = t.id OR v.to_treasury_id = t.id)
                 ) mv ON true
                 LEFT JOIN LATERAL (
-                    SELECT SUM(v2.total_amount) AS total
-                    FROM cashier_shifts s2
-                    JOIN vouchers v2 ON v2.branch_id = s2.branch_id AND v2.treasury_id = t.id
-                         AND v2.voucher_type = 'receipt' AND v2.status = 'draft'
-                         AND v2.created_at >= s2.opened_at
-                         AND (s2.closed_at IS NULL OR v2.created_at <= s2.closed_at)
-                    WHERE s2.branch_id = t.branch_id AND s2.status = 'closed'
-                      AND s2.review_status IN ('none', 'pending') AND s2.id <> @shiftId
+                    SELECT COALESCE(SUM(v2.total_amount), 0) AS total
+                    FROM vouchers v2
+                    WHERE v2.branch_id = t.branch_id AND v2.treasury_id = t.id
+                      AND v2.voucher_type = 'receipt' AND v2.status = 'draft'
                 ) carry ON true
-                WHERE t.branch_id = @branchId AND t.is_active AND NOT t.is_main
+                WHERE t.branch_id = @branchId AND t.is_active
             ) x
             WHERE c.shift_id = @shiftId AND c.treasury_id = x.treasury_id
             """, new { shiftId, branchId = shift.BranchId, openedAt = shift.OpenedAt },
