@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-11-05 — Opening equals the treasury GL account balance; main-treasury option removed
+
+### Changed
+- «أول المدة» لكل خزينة = **رصيد حساب الأستاذ المربوط بها** فقط (القيود المرحّلة بما فيها الافتتاحية
+  واليدوية والسندات) بدون أي إضافات.
+- أُزيل خيار **«خزينة رئيسية»** من شاشة الخزائن وطرق الدفع (العمود وزر التعيين).
+
 ## 2026-11-05 — Opening includes the whole posted GL balance (manual + opening entries)
 
 ### Changed

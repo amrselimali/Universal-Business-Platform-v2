@@ -25,7 +25,7 @@ public sealed partial class TreasuryRepository
             SELECT t.id AS TreasuryId, t.code AS Code, t.name_ar AS NameAr,
                    t.treasury_type AS TreasuryType,
                    COALESCE(gl.balance, 0) AS PostedBalance,
-                   COALESCE(unposted.amount, 0) AS UnpostedBalance
+                   0::numeric AS UnpostedBalance
             FROM treasuries t
             -- رصيد الخزينة = رصيد آخر المدة لحسابها في الأستاذ (حساب مستقل لكل خزينة)
             LEFT JOIN LATERAL (

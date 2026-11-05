@@ -73,8 +73,8 @@ public sealed partial class TreasuryRepository
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO shift_cash_counts (id, shift_id, treasury_id, opening_cash, expected_cash, status)
             SELECT gen_random_uuid(), @shiftId, t.id,
-                   COALESCE(gl.balance, 0) + COALESCE(carry.total, 0),
-                   COALESCE(gl.balance, 0) + COALESCE(carry.total, 0),
+                   COALESCE(gl.balance, 0),
+                   COALESCE(gl.balance, 0),
                    CASE WHEN @isOpen THEN 'open' ELSE 'draft' END
             FROM treasuries t
             LEFT JOIN LATERAL (
@@ -103,7 +103,7 @@ public sealed partial class TreasuryRepository
             SET opening_cash = x.opening
             FROM (
                 SELECT t.id AS treasury_id,
-                       COALESCE(gl.balance, 0) + COALESCE(carry.total, 0) AS opening
+                       COALESCE(gl.balance, 0) AS opening
                 FROM treasuries t
                 LEFT JOIN LATERAL (
                     SELECT COALESCE((SELECT SUM(l.debit - l.credit)
