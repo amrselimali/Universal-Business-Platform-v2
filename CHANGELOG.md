@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-05 — Restore new commission posting (as before)
+
+### Fixed
+- أُعيد ترحيل **عمولة التحصيل الجديدة** (نسبة الخزينة) عند اعتماد المراجعة كما كان:
+  مدين حساب العمولة / دائن حساب الخزينة. عمولة طرق الدفع القديمة تبقى كما رجعت (بلا علاقة بالمصروف).
+
 ## 2026-11-05 — Old method fee restored; new commission separated from treasury account
 
 ### Changed
