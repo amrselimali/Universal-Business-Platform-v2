@@ -20,6 +20,17 @@ public sealed partial class TreasuryService
         return await _treasury.ListShiftsAsync(branchId, from, to, limit, ct);
     }
 
+    /// <summary>حفظ القراءة الفعلية لعداد جهاز (تُرحَّل من الوردية).</summary>
+    public async Task SetMeterReadingAsync(ActorContext actor, Guid assetId, decimal value,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.Open, ct: ct);
+        if (!await _treasury.SetMeterReadingAsync(assetId, value, actor.UserId, ct))
+            throw new NotFoundAppException();
+        await _audit.WriteAsync(actor, "fixed_assets", assetId.ToString(), "UPDATE", null,
+            new { current_meter_value = value }, ct);
+    }
+
     /// <summary>حفظ ملاحظات الوردية (تظهر في العرض والإغلاق).</summary>
     public async Task SaveNotesAsync(ActorContext actor, Guid shiftId, string? notes,
         CancellationToken ct = default)

@@ -1236,6 +1236,8 @@
   "treasury.denomination": "الفئة",
   "treasury.denomination_total": "مجموع الفئات",
   "treasury.doc_no": "رقم السند",
+  "treasury.open_date": "تاريخ الفتح",
+  "treasury.save_meter_readings": "حفظ القراءات الفعلية",
   "treasury.closed_at": "تاريخ الإقفال",
   "expenses.title": "المصروفات التشغيلية",
   "inventory.unit_price": "سعر الوحدة",

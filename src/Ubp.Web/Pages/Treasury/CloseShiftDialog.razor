@@ -44,7 +44,8 @@
     private ShiftReport? _report;
     private bool _busy;
 
-    private bool CanEdit => !ReadOnly && Shift.IsOpen;
+    // العرض والإغلاق كلاهما يسمح بإدخال النقد المعدود/الملاحظات/القراءات للوردية المفتوحة.
+    private bool CanEdit => Shift.IsOpen;
 
     protected override async Task OnInitializedAsync()
     {

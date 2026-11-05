@@ -122,6 +122,26 @@ public sealed partial class TreasuryRepository
             ORDER BY t.code
             """, new { shiftId }, tx, cancellationToken: ct))).ToList();
 
+    /// <summary>تحديث القراءة الفعلية لعداد جهاز مع تسجيل قراءة في سجل العدّاد — 0078.</summary>
+    public async Task<bool> SetMeterReadingAsync(Guid assetId, decimal value, Guid userId,
+        CancellationToken ct = default)
+    {
+        if (value < 0) throw new ValidationAppException("validation.meter_units_required");
+        await using var connection = await _factory.OpenAsync(ct);
+        await using var tx = await connection.BeginTransactionAsync(ct);
+        var updated = await connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE fixed_assets SET current_meter_value = @value, updated_by = @userId " +
+            "WHERE id = @assetId AND is_metered", new { assetId, value, userId }, tx,
+            cancellationToken: ct));
+        if (updated == 0) { await tx.RollbackAsync(ct); return false; }
+        await connection.ExecuteAsync(new CommandDefinition("""
+            INSERT INTO asset_meter_readings (asset_id, value, delta, source, created_by)
+            VALUES (@assetId, @value, 0, 'MANUAL', @userId)
+            """, new { assetId, value, userId }, tx, cancellationToken: ct));
+        await tx.CommitAsync(ct);
+        return true;
+    }
+
     /// <summary>حفظ ملاحظات الوردية لتظهر في العرض والإغلاق كل مرة — 0078.</summary>
     public async Task<bool> SaveShiftNotesAsync(Guid shiftId, string? notes,
         CancellationToken ct = default)

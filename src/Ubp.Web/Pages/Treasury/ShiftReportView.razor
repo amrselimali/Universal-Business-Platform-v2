@@ -32,6 +32,8 @@
     @T.T("treasury.revenue_value"): <b>@Report.RevenuesTotal.ToString("N2")</b>
 </MudText>
 
+<div class="text-center ubp-muted my-2">----------</div>
+
 <MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("expenses.title")</MudText>
 <MudTable Items="Report.Expenses" Dense="true" Elevation="0" Class="ubp-table">
     <HeaderContent>
@@ -55,6 +57,8 @@
     @T.T("accounting.total"): <b>@Report.ExpensesTotal.ToString("N2")</b>
 </MudText>
 
+<div class="text-center ubp-muted my-2">----------</div>
+
 <MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("treasury.meter_balance")</MudText>
 <MudTable Items="Report.Meters" Dense="true" Elevation="0" Class="ubp-table">
     <HeaderContent>
@@ -70,7 +74,17 @@
         <MudTd Align="Right">@context.Opening.ToString("N2")</MudTd>
         <MudTd Align="Right">@context.Consumed.ToString("N2")</MudTd>
         <MudTd Align="Right">@context.Closing.ToString("N2")</MudTd>
-        <MudTd Align="Right"><b>@context.Actual.ToString("N2")</b></MudTd>
+        <MudTd Align="Right">
+            @if (Editable)
+            {
+                <MudNumericField T="decimal" Value="context.Actual" Min="0m" Format="N2"
+                                 Dense="true" ValueChanged="@(v => context.Actual = v)" />
+            }
+            else
+            {
+                <b>@context.Actual.ToString("N2")</b>
+            }
+        </MudTd>
         <MudTd Align="Right">
             <MudText Color="@(context.Variance < 0 ? Color.Error : Color.Default)">
                 @context.Variance.ToString("N2")
@@ -78,6 +92,14 @@
         </MudTd>
     </RowTemplate>
 </MudTable>
+
+@if (Editable)
+{
+    <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="SaveMetersAsync"
+               Disabled="@_saving">@T.T("treasury.save_meter_readings")</MudButton>
+}
+
+<div class="text-center ubp-muted my-2">----------</div>
 
 <MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("treasury.cash_count")</MudText>
 <MudTable Items="Report.CashCounts" Dense="true" Elevation="0" Class="ubp-table">
@@ -111,6 +133,8 @@
         </MudTd>
     </RowTemplate>
 </MudTable>
+
+<div class="text-center ubp-muted my-2">----------</div>
 
 <MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("common.notes")</MudText>
 <MudTextField T="string" Value="Report.Notes" ValueChanged="OnNotesChanged"
@@ -195,6 +219,20 @@
         : T.T("treasury.type_" + type);
 
     private void OnNotesChanged(string? value) => Report.Notes = value;
+
+    private async Task SaveMetersAsync()
+    {
+        _saving = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            foreach (var row in Report.Meters)
+                await Treasury.SetMeterReadingAsync(actor, row.AssetId, row.Actual);
+            Snackbar.Add(T.T("common.saved"), Severity.Success);
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _saving = false; }
+    }
 
     private async Task SaveNotesAsync()
     {

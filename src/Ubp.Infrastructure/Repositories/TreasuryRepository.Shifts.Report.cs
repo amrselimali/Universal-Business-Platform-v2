@@ -69,6 +69,19 @@ public sealed partial class TreasuryRepository
             ORDER BY CustomerName
             """, args, cancellationToken: ct))).ToList();
 
+        // ضمان ظهور كل خزائن الفرع المتابَعة حتى للورديات المفتوحة قبل الترحيل 0076.
+        await connection.ExecuteAsync(new CommandDefinition("""
+            INSERT INTO shift_cash_counts (id, shift_id, treasury_id, opening_cash, expected_cash, status)
+            SELECT gen_random_uuid(), @shiftId, t.id, 0, 0,
+                   CASE WHEN @isOpen THEN 'open' ELSE 'draft' END
+            FROM treasuries t
+            WHERE t.branch_id = @branchId AND t.is_active
+              AND EXISTS (SELECT 1 FROM treasury_methods m
+                          WHERE m.treasury_id = t.id AND m.is_active AND m.follow_in_shift)
+            ON CONFLICT (shift_id, treasury_id) DO NOTHING
+            """, new { shiftId, branchId = shift.BranchId, isOpen = shift.IsOpen },
+            cancellationToken: ct));
+
         report.CashCounts = (await QueryCashCountsAsync(connection, shiftId, null, ct)).ToList();
         if (shift.IsOpen)
         {
@@ -83,6 +96,34 @@ public sealed partial class TreasuryRepository
             }
             shift.ExpectedCash = Math.Round(expected, 2, MidpointRounding.AwayFromZero);
         }
+
+        report.Meters = (await connection.QueryAsync<ShiftMeterMovementRow>(new CommandDefinition("""
+            SELECT fa.id AS AssetId, fa.code AS Code, fa.name_ar AS NameAr,
+                   COALESCE((SELECT r.value FROM asset_meter_readings r
+                             WHERE r.asset_id = fa.id AND r.reading_at < @openedAt
+                             ORDER BY r.reading_at DESC LIMIT 1),
+                            fa.current_meter_value - COALESCE(cons.consumed, 0)) AS Opening,
+                   COALESCE(cons.consumed, 0) AS Consumed,
+                   COALESCE((SELECT r.value FROM asset_meter_readings r
+                             WHERE r.asset_id = fa.id AND r.reading_at < @openedAt
+                             ORDER BY r.reading_at DESC LIMIT 1),
+                            fa.current_meter_value - COALESCE(cons.consumed, 0))
+                       + COALESCE(cons.consumed, 0) AS Closing,
+                   fa.current_meter_value AS Actual
+            FROM fixed_assets fa
+            LEFT JOIN LATERAL (
+                SELECT SUM(el.meter_units) AS consumed
+                FROM booking_execution_lines el
+                JOIN booking_executions be ON be.id = el.execution_id
+                WHERE el.metered_asset_id = fa.id AND be.status = 'posted'
+                  AND be.created_at >= @openedAt
+                  AND (@until::timestamptz IS NULL OR be.created_at <= @until::timestamptz)
+            ) cons ON true
+            WHERE fa.branch_id = @branchId AND fa.status <> 'DISPOSED'
+              AND (fa.is_metered OR EXISTS (SELECT 1 FROM asset_meter_readings r
+                                            WHERE r.asset_id = fa.id))
+            ORDER BY fa.code
+            """, args, cancellationToken: ct))).ToList();
 
         report.Expenses = (await connection.QueryAsync<ShiftExpenseRow>(new CommandDefinition("""
             SELECT t.treasury_type AS TreasuryType, t.name_ar AS TreasuryName,
