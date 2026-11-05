@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-11-05 — Treasury opening no longer leaks the main treasury balance
+
+### Fixed
+- كان رصيد «أول المدة» يُحسب من **إجمالي حساب الأستاذ** (`account_id`)، فإذا كانت الخزينة الرئيسية
+  تشترك في نفس الحساب مع خزينة الفرع كان رصيد الرئيسية يُضاف لرصيد الفرع. الآن يُحسب رصيد كل خزينة
+  من **رصيدها الافتتاحي + سنداتها المرحّلة فقط** (استلام/صرف/تحويلات خاصة بها)، فلا يظهر رصيد أي خزينة
+  أخرى (ومنها الرئيسية) داخل خزينة الفرع.
+
 ## 2026-11-05 — Opening = posted treasury balance + unreviewed-shift receipts; post button after review
 
 ### Fixed

@@ -27,11 +27,22 @@ public sealed partial class TreasuryRepository
                    COALESCE(gl.balance, 0) AS PostedBalance,
                    COALESCE(unposted.amount, 0) AS UnpostedBalance
             FROM treasuries t
+            -- رصيد الخزينة = افتتاحيها + سنداتها المرحّلة فقط (وليس رصيد الحساب المشترك
+            -- مع خزائن أخرى مثل الخزينة الرئيسية).
             LEFT JOIN LATERAL (
-                SELECT SUM(l.debit - l.credit) AS balance
-                FROM journal_entry_lines l
-                JOIN journal_entries e ON e.id = l.entry_id AND e.branch_id = t.branch_id
-                WHERE e.status = 'posted' AND l.account_id = t.account_id
+                SELECT t.opening_balance + SUM(CASE
+                           WHEN v.treasury_id = t.id AND v.voucher_type = 'receipt'
+                               THEN v.total_amount
+                           WHEN v.treasury_id = t.id AND v.voucher_type = 'payment'
+                               THEN -v.total_amount
+                           WHEN v.treasury_id = t.id AND v.voucher_type = 'transfer'
+                               THEN -(v.total_amount + v.fee_total)
+                           WHEN v.to_treasury_id = t.id AND v.voucher_type = 'transfer'
+                               THEN v.total_amount
+                           ELSE 0 END) AS balance
+                FROM vouchers v
+                WHERE v.status = 'posted' AND v.branch_id = t.branch_id
+                  AND (v.treasury_id = t.id OR v.to_treasury_id = t.id)
             ) gl ON true
             LEFT JOIN LATERAL (
                 -- إيصالات التحصيل في الورديات غير المرحّلة (وليس رصيد/عدّ الورديات)
