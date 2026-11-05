@@ -7,71 +7,77 @@ namespace Ubp.Infrastructure.Repositories;
 public sealed partial class TreasuryRepository
 {
     /// <summary>
-    /// تقرير الوردية عند الإغلاق: كل تسجيلات الشيفت غير الملغاة (مسودة أو مرحّلة) —
-    /// تحصيلات وإيرادات وحركة خزائن، وعملاء بلا متابعة/حجز مستقبلي، وحجوزات ومواعيد الغد.
+    /// تقرير الوردية (0077): جدول واحد للتحصيلات والإيرادات مرتب بالعميل، عدّ نقدية كل خزينة
+    /// (بالمتوقع الحالي للوردية المفتوحة)، حركة عدادات الأجهزة، والملاحظات — ثم عملاء بلا
+    /// متابعة وحجوزات/مواعيد الغد في نهاية التقرير.
     /// </summary>
     public async Task<ShiftReport> GetShiftReportAsync(Guid shiftId, CancellationToken ct = default)
     {
         var shift = await GetShiftAsync(shiftId, ct) ?? throw new NotFoundAppException();
         await using var connection = await _factory.OpenAsync(ct);
-        if (shift.IsOpen)
-        {
-            var openCounts = await QueryCashCountsAsync(connection, shiftId, null, ct);
-            decimal expected = 0;
-            foreach (var count in openCounts)
-                expected += count.OpeningCash +
-                            await TreasuryMovementAsync(connection, null, count.TreasuryId,
-                                shift.OpenedAt, ct);
-            shift.ExpectedCash = Math.Round(expected, 2, MidpointRounding.AwayFromZero);
-        }
         var args = new
         {
             branchId = shift.BranchId, openedAt = shift.OpenedAt, until = shift.ClosedAt
         };
 
-        var report = new ShiftReport { Shift = shift };
+        var report = new ShiftReport { Shift = shift, Notes = shift.Notes };
 
-        report.Collections = (await connection.QueryAsync<ShiftReportLine>(new CommandDefinition("""
-            SELECT v.id AS Id, v.doc_no AS DocNo, v.doc_date AS DocDate, v.party_name AS PartyName,
-                   v.notes AS Description, v.status AS Status, v.total_amount AS Amount
-            FROM vouchers v
-            WHERE v.branch_id = @branchId AND v.voucher_type = 'receipt'
-              AND v.status <> 'cancelled' AND v.created_at >= @openedAt
-              AND (@until::timestamptz IS NULL OR v.created_at <= @until::timestamptz)
-            ORDER BY v.doc_date, v.doc_no
+        report.Lines = (await connection.QueryAsync<ShiftCollectionRow>(new CommandDefinition("""
+            WITH receipts AS (
+                SELECT v.party_name AS CustomerName, v.total_amount AS Collected,
+                       0::numeric AS Revenue, 0::numeric AS Quantity, 0::numeric AS MeterUnits,
+                       NULL::text AS EmployeeName
+                FROM vouchers v
+                WHERE v.branch_id = @branchId AND v.voucher_type = 'receipt'
+                  AND v.status <> 'cancelled' AND v.created_at >= @openedAt
+                  AND (@until::timestamptz IS NULL OR v.created_at <= @until::timestamptz)
+            ), revenues AS (
+                SELECT COALESCE(c.name_ar, d.party_name) AS CustomerName, 0::numeric AS Collected,
+                       d.total AS Revenue, 0::numeric AS Quantity, 0::numeric AS MeterUnits,
+                       NULL::text AS EmployeeName
+                FROM commercial_documents d
+                LEFT JOIN customers c ON c.id = d.customer_id
+                WHERE d.branch_id = @branchId AND d.doc_type = 'sales_invoice'
+                  AND d.status <> 'cancelled' AND d.created_at >= @openedAt
+                  AND (@until::timestamptz IS NULL OR d.created_at <= @until::timestamptz)
+            ), executions AS (
+                SELECT c.name_ar AS CustomerName, 0::numeric AS Collected, 0::numeric AS Revenue,
+                       SUM(el.quantity) AS Quantity, SUM(el.meter_units) AS MeterUnits,
+                       MAX(e.name_ar) AS EmployeeName
+                FROM booking_executions be
+                JOIN booking_execution_lines el ON el.execution_id = be.id
+                JOIN bookings b ON b.id = be.booking_id
+                JOIN customers c ON c.id = b.customer_id
+                LEFT JOIN employees e ON e.id = b.assigned_employee_id
+                WHERE be.branch_id = @branchId AND be.status = 'posted'
+                  AND be.created_at >= @openedAt
+                  AND (@until::timestamptz IS NULL OR be.created_at <= @until::timestamptz)
+                GROUP BY c.name_ar
+            )
+            SELECT CustomerName, SUM(Collected) AS Collected, SUM(Revenue) AS Revenue,
+                   SUM(Quantity) AS Quantity, SUM(MeterUnits) AS MeterUnits,
+                   MAX(EmployeeName) AS EmployeeName
+            FROM (SELECT * FROM receipts
+                  UNION ALL SELECT * FROM revenues
+                  UNION ALL SELECT * FROM executions) x
+            GROUP BY CustomerName
+            ORDER BY CustomerName
             """, args, cancellationToken: ct))).ToList();
 
-        report.Revenues = (await connection.QueryAsync<ShiftReportLine>(new CommandDefinition("""
-            SELECT d.id AS Id, d.doc_no AS DocNo, d.doc_date AS DocDate, d.party_name AS PartyName,
-                   d.notes AS Description, d.status AS Status, d.total AS Amount
-            FROM commercial_documents d
-            WHERE d.branch_id = @branchId AND d.doc_type = 'sales_invoice'
-              AND d.status <> 'cancelled' AND d.created_at >= @openedAt
-              AND (@until::timestamptz IS NULL OR d.created_at <= @until::timestamptz)
-            ORDER BY d.doc_date, d.doc_no
-            """, args, cancellationToken: ct))).ToList();
-
-        report.Movements = (await connection.QueryAsync<ShiftMovementLine>(new CommandDefinition("""
-            SELECT v.doc_no AS DocNo, v.voucher_type AS DocType, v.doc_date AS DocDate,
-                   st.name_ar AS TreasuryName, tt.name_ar AS ToTreasuryName, v.status AS Status,
-                   v.party_name AS PartyName, v.total_amount AS Amount,
-                   (v.voucher_type = 'receipt') AS Inflow
-            FROM vouchers v
-            JOIN treasuries st ON st.id = v.treasury_id
-            LEFT JOIN treasuries tt ON tt.id = v.to_treasury_id
-            WHERE v.branch_id = @branchId AND v.status <> 'cancelled'
-              AND v.created_at >= @openedAt
-              AND (@until::timestamptz IS NULL OR v.created_at <= @until::timestamptz)
-            UNION ALL
-            SELECT v.doc_no, v.voucher_type, v.doc_date, tt.name_ar, NULL, v.status,
-                   v.party_name, v.total_amount, true
-            FROM vouchers v
-            JOIN treasuries tt ON tt.id = v.to_treasury_id
-            WHERE v.branch_id = @branchId AND v.voucher_type = 'transfer'
-              AND v.status <> 'cancelled' AND v.created_at >= @openedAt
-              AND (@until::timestamptz IS NULL OR v.created_at <= @until::timestamptz)
-            ORDER BY 3, 1
-            """, args, cancellationToken: ct))).ToList();
+        report.CashCounts = (await QueryCashCountsAsync(connection, shiftId, null, ct)).ToList();
+        if (shift.IsOpen)
+        {
+            decimal expected = 0;
+            foreach (var count in report.CashCounts)
+            {
+                var movement = await TreasuryMovementAsync(connection, null, count.TreasuryId,
+                    shift.OpenedAt, ct);
+                count.ExpectedCash = Math.Round(count.OpeningCash + movement, 2,
+                    MidpointRounding.AwayFromZero);
+                expected += count.ExpectedCash;
+            }
+            shift.ExpectedCash = Math.Round(expected, 2, MidpointRounding.AwayFromZero);
+        }
 
         report.IdleCustomers = (await connection.QueryAsync<ShiftCustomerRow>(new CommandDefinition("""
             SELECT c.id AS CustomerId, c.code AS Code, c.name_ar AS NameAr, c.phone AS Phone,
@@ -139,9 +145,15 @@ public sealed partial class TreasuryRepository
             ORDER BY a.starts_at
             """, args, cancellationToken: ct))).ToList();
 
-        report.ReviewItems = (await QueryReviewItemsAsync(connection, shiftId, ct)).ToList();
-        report.CashCounts = (await QueryCashCountsAsync(connection, shiftId, null, ct)).ToList();
         return report;
+    }
+
+    /// <summary>حركة عدادات الأجهزة في الوردية (للجزء المستقل في شاشة الورديات).</summary>
+    public async Task<IReadOnlyList<ShiftMeterMovementRow>> ListShiftMetersAsync(Guid shiftId,
+        CancellationToken ct = default)
+    {
+        var report = await GetShiftReportAsync(shiftId, ct);
+        return report.Meters;
     }
 }
 

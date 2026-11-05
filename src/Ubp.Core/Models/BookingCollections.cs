@@ -36,6 +36,8 @@ public sealed class BookingCollectionInput
     public List<BookingCollectionLineInput> Lines { get; set; } = new();
     /// <summary>سطور السداد (طريقة + إجمالي مدفوع)؛ تدعم أكثر من طريقة.</summary>
     public List<PosPaymentInput> Payments { get; set; } = new();
+    /// <summary>ترحيل مسودة: سند القبض مسودة بلا أثر على الحسابات ولا تخصيص — 0077.</summary>
+    public bool DraftOnly { get; set; }
 }
 
 public sealed class BookingCollectionResult

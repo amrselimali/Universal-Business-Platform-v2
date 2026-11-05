@@ -118,9 +118,15 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">@T.T("common.cancel")</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
-                   Disabled="@(_busy || _loading || SelectedTotal <= 0 || CollectedTotal <= 0 ||
-                               CollectedTotal > SelectedTotal)">@T.T("pos.collect_confirm")</MudButton>
+        <MudButton Color="Color.Warning" Variant="Variant.Outlined" OnClick="DraftAsync"
+                   Disabled="@CannotSave">@T.T("pos.save_draft_only")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Outlined" OnClick="CollectAsync"
+                   Disabled="@CannotSave">@T.T("pos.collect_confirm")</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Outlined" OnClick="WhatsAppAsync"
+                   StartIcon="@Icons.Material.Filled.Send"
+                   Disabled="@CannotSave">@T.T("pos.save_and_send_whatsapp")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CompleteAsync"
+                   Disabled="@CannotSave">@T.T("pos.complete")</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -158,6 +164,14 @@
         MidpointRounding.AwayFromZero);
     private decimal RemainingOnServices => Math.Max(Math.Round(SelectedTotal - CollectedTotal, 2,
         MidpointRounding.AwayFromZero), 0);
+
+    private async Task ReloadRowsAsync(ActorContext actor)
+    {
+        _rows = (await Collections.ListOutstandingAsync(actor, BranchId, CustomerId)).ToList();
+        _payments.Clear();
+        AddPayment();
+        StateHasChanged();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -213,7 +227,15 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private async Task SaveAsync()
+    private bool CannotSave => _busy || _loading || SelectedTotal <= 0 || CollectedTotal <= 0 ||
+                               CollectedTotal > SelectedTotal;
+
+    private Task DraftAsync() => SaveAsync(draftOnly: true, closeAfter: false);
+    private Task CollectAsync() => SaveAsync(draftOnly: false, closeAfter: false);
+    private Task CompleteAsync() => SaveAsync(draftOnly: false, closeAfter: true);
+    private Task WhatsAppAsync() => SaveAsync(draftOnly: false, closeAfter: true);
+
+    private async Task SaveAsync(bool draftOnly = false, bool closeAfter = true)
     {
         var lines = _rows.Where(r => r.Selected && r.Amount > 0)
             .Select(r => new BookingCollectionLineInput
@@ -233,10 +255,13 @@
             var result = await Collections.CollectAsync(actor, new BookingCollectionInput
             {
                 BranchId = BranchId, CustomerId = CustomerId, DocDate = DateTime.Today,
-                Lines = lines, Payments = payments
+                Lines = lines, Payments = payments, DraftOnly = draftOnly
             });
-            Snackbar.Add(T.T("pos.collected") + $" — {result.VoucherNo}", Severity.Success);
-            MudDialog.Close(DialogResult.Ok(result));
+            Snackbar.Add(T.T(draftOnly ? "common.saved" : "pos.collected") +
+                         (result.VoucherNo is null ? "" : $" — {result.VoucherNo}"),
+                Severity.Success);
+            if (closeAfter) MudDialog.Close(DialogResult.Ok(result));
+            else await ReloadRowsAsync(actor);
         }
         catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
         finally { _busy = false; }

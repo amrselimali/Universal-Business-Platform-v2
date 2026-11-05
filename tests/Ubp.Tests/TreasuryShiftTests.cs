@@ -182,10 +182,10 @@ public sealed class TreasuryShiftTests : IClassFixture<TestDb>
         Assert.Equal(ShiftReviewStatuses.Pending, closed.ReviewStatus);
 
         var report = await service.GetShiftReportAsync(actor, shift.Id);
-        Assert.Contains(report.ReviewItems,
-            item => item.EntityId == draft.Id && item.Status == ShiftReviewStatuses.Pending);
-        Assert.Single(report.Collections);
+        var line = Assert.Single(report.Lines);
+        Assert.Equal(75m, line.Collected);
         Assert.Equal(75m, report.CollectionsTotal);
+        Assert.NotNull(draft.Id);
 
         var reviewed = await service.ReviewShiftAsync(actor, shift.Id);
         Assert.Equal(ShiftReviewStatuses.Reviewed, reviewed.ReviewStatus);

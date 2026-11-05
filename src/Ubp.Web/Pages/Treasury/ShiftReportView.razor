@@ -3,97 +3,98 @@
 
 <MudGrid Spacing="2" Class="mb-2">
     <MudItem xs="6" sm="3">
-        <MudText Typo="Typo.caption">@T.T("treasury.carried_from_accounts")</MudText>
-        <MudText Typo="Typo.body2"><b>@Report.Shift.CarriedBalance.ToString("N2")</b></MudText>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudText Typo="Typo.caption">@T.T("treasury.pending_review_balance")</MudText>
-        <MudText Typo="Typo.body2"><b>@Report.Shift.ReviewBalance.ToString("N2")</b></MudText>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudText Typo="Typo.caption">@T.T("treasury.meter_balance")</MudText>
-        <MudText Typo="Typo.body2"><b>@Report.Shift.MeterBalance.ToString("N2")</b></MudText>
-    </MudItem>
-    <MudItem xs="6" sm="3">
         <MudText Typo="Typo.caption">@T.T("treasury.opening_cash")</MudText>
         <MudText Typo="Typo.body2"><b>@Report.Shift.OpeningCash.ToString("N2")</b></MudText>
     </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudText Typo="Typo.caption">@T.T("treasury.expected_cash")</MudText>
+        <MudText Typo="Typo.body2"><b>@Report.Shift.ExpectedCash.ToString("N2")</b></MudText>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudText Typo="Typo.caption">@T.T("treasury.receipts_total")</MudText>
+        <MudText Typo="Typo.body2"><b>@Report.Shift.ReceiptsTotal.ToString("N2")</b></MudText>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudText Typo="Typo.caption">@T.T("treasury.variance")</MudText>
+        <MudText Typo="Typo.body2"><b>@(Report.Shift.Variance?.ToString("N2") ?? "—")</b></MudText>
+    </MudItem>
 </MudGrid>
 
+<MudText Typo="Typo.subtitle2" Class="mt-2">@T.T("treasury.cash_count")</MudText>
+<MudTable Items="Report.CashCounts" Dense="true" Elevation="0" Class="ubp-table">
+    <HeaderContent>
+        <MudTh>@T.T("treasury.treasury")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.expected_cash")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.counted_cash")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.variance")</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.TreasuryCode — @context.TreasuryName</MudTd>
+        <MudTd Align="Right">@context.ExpectedCash.ToString("N2")</MudTd>
+        <MudTd Align="Right">@(context.CountedCash?.ToString("N2") ?? "—")</MudTd>
+        <MudTd Align="Right">
+            <MudText Color="@(context.Variance is < 0 ? Color.Error : Color.Default)">
+                @(context.Variance?.ToString("N2") ?? "—")
+            </MudText>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+<MudText Typo="Typo.subtitle2" Class="mt-3">
+    @T.T("treasury.report_collections") / @T.T("treasury.report_revenues")
+</MudText>
+<MudTable Items="Report.Lines" Dense="true" Elevation="0" Class="ubp-table">
+    <HeaderContent>
+        <MudTh>@T.T("common.customer")</MudTh>
+        <MudTh Align="Right">@T.T("pos.collected_amount")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.revenue_value")</MudTh>
+        <MudTh Align="Right">@T.T("common.quantity")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.meter_units")</MudTh>
+        <MudTh>@T.T("common.employee")</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.CustomerName</MudTd>
+        <MudTd Align="Right">@context.Collected.ToString("N2")</MudTd>
+        <MudTd Align="Right">@context.Revenue.ToString("N2")</MudTd>
+        <MudTd Align="Right">@context.Quantity.ToString("N2")</MudTd>
+        <MudTd Align="Right">@context.MeterUnits.ToString("N2")</MudTd>
+        <MudTd>@context.EmployeeName</MudTd>
+    </RowTemplate>
+</MudTable>
+<MudText Typo="Typo.body2" Class="mt-1">
+    @T.T("pos.collected_amount"): <b>@Report.CollectionsTotal.ToString("N2")</b> —
+    @T.T("treasury.revenue_value"): <b>@Report.RevenuesTotal.ToString("N2")</b>
+</MudText>
+
+<MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("treasury.meter_balance")</MudText>
+<MudTable Items="Report.Meters" Dense="true" Elevation="0" Class="ubp-table">
+    <HeaderContent>
+        <MudTh>@T.T("assets.meter")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.meter_opening")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.meter_consumed")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.meter_closing")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.meter_actual")</MudTh>
+        <MudTh Align="Right">@T.T("treasury.variance")</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Code — @context.NameAr</MudTd>
+        <MudTd Align="Right">@context.Opening.ToString("N2")</MudTd>
+        <MudTd Align="Right">@context.Consumed.ToString("N2")</MudTd>
+        <MudTd Align="Right">@context.Closing.ToString("N2")</MudTd>
+        <MudTd Align="Right"><b>@context.Actual.ToString("N2")</b></MudTd>
+        <MudTd Align="Right">
+            <MudText Color="@(context.Variance < 0 ? Color.Error : Color.Default)">
+                @context.Variance.ToString("N2")
+            </MudText>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+<MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("common.notes")</MudText>
+<MudTextField T="string" Value="@Report.Notes" ReadOnly="true" Variant="Variant.Outlined"
+              Lines="2" Class="mb-2" />
+
 <MudExpansionPanels MultiExpansion="true" Elevation="0" Dense="true">
-    <MudExpansionPanel Text="@($"{T.T("treasury.report_collections")} ({Report.Collections.Count})")">
-        <MudTable Items="Report.Collections" Dense="true" Elevation="0" Class="ubp-table">
-            <HeaderContent>
-                <MudTh>@T.T("treasury.doc_no")</MudTh>
-                <MudTh>@T.T("common.date")</MudTh>
-                <MudTh>@T.T("common.party")</MudTh>
-                <MudTh>@T.T("common.status")</MudTh>
-                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.DocNo</MudTd>
-                <MudTd>@Fmt.Date(context.DocDate)</MudTd>
-                <MudTd>@context.PartyName</MudTd>
-                <MudTd>@StatusText(context.Status)</MudTd>
-                <MudTd Align="Right">@context.Amount.ToString("N2")</MudTd>
-            </RowTemplate>
-        </MudTable>
-        <MudText Typo="Typo.body2" Class="mt-1">
-            @T.T("accounting.total"): <b>@Report.CollectionsTotal.ToString("N2")</b>
-        </MudText>
-    </MudExpansionPanel>
-
-    <MudExpansionPanel Text="@($"{T.T("treasury.report_revenues")} ({Report.Revenues.Count})")">
-        <MudTable Items="Report.Revenues" Dense="true" Elevation="0" Class="ubp-table">
-            <HeaderContent>
-                <MudTh>@T.T("treasury.doc_no")</MudTh>
-                <MudTh>@T.T("common.date")</MudTh>
-                <MudTh>@T.T("common.party")</MudTh>
-                <MudTh>@T.T("common.status")</MudTh>
-                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.DocNo</MudTd>
-                <MudTd>@Fmt.Date(context.DocDate)</MudTd>
-                <MudTd>@context.PartyName</MudTd>
-                <MudTd>@StatusText(context.Status)</MudTd>
-                <MudTd Align="Right">@context.Amount.ToString("N2")</MudTd>
-            </RowTemplate>
-        </MudTable>
-        <MudText Typo="Typo.body2" Class="mt-1">
-            @T.T("accounting.total"): <b>@Report.RevenuesTotal.ToString("N2")</b>
-        </MudText>
-    </MudExpansionPanel>
-
-    <MudExpansionPanel Text="@($"{T.T("treasury.report_movements")} ({Report.Movements.Count})")">
-        <MudTable Items="Report.Movements" Dense="true" Elevation="0" Class="ubp-table">
-            <HeaderContent>
-                <MudTh>@T.T("treasury.doc_no")</MudTh>
-                <MudTh>@T.T("treasury.voucher_type")</MudTh>
-                <MudTh>@T.T("common.date")</MudTh>
-                <MudTh>@T.T("treasury.treasury")</MudTh>
-                <MudTh>@T.T("common.status")</MudTh>
-                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.DocNo</MudTd>
-                <MudTd>@T.T("treasury.voucher_" + context.DocType)</MudTd>
-                <MudTd>@Fmt.Date(context.DocDate)</MudTd>
-                <MudTd>@context.TreasuryName @(string.IsNullOrWhiteSpace(context.ToTreasuryName) ? "" : $"→ {context.ToTreasuryName}")</MudTd>
-                <MudTd>@StatusText(context.Status)</MudTd>
-                <MudTd Align="Right">
-                    <MudText Color="@(context.Inflow ? Color.Success : Color.Error)">
-                        @(context.Inflow ? "+" : "−")@context.Amount.ToString("N2")
-                    </MudText>
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
-        <MudText Typo="Typo.body2" Class="mt-1">
-            @T.T("treasury.movement_in"): <b>@Report.MovementInTotal.ToString("N2")</b> —
-            @T.T("treasury.movement_out"): <b>@Report.MovementOutTotal.ToString("N2")</b>
-        </MudText>
-    </MudExpansionPanel>
-
     <MudExpansionPanel Text="@($"{T.T("treasury.report_idle_customers")} ({Report.IdleCustomers.Count})")">
         <MudTable Items="Report.IdleCustomers" Dense="true" Elevation="0" Class="ubp-table">
             <HeaderContent>
@@ -122,18 +123,13 @@
                 <MudTh>@T.T("common.customer")</MudTh>
                 <MudTh>@T.T("sales.booking_date")</MudTh>
                 <MudTh>@T.T("common.employee")</MudTh>
-                <MudTh>@T.T("common.status")</MudTh>
                 <MudTh Align="Right">@T.T("accounting.total")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd>@context.DocNo</MudTd>
                 <MudTd>@context.CustomerName</MudTd>
-                <MudTd>
-                    @Fmt.Date(context.BookingDate)
-                    @(context.StartsAt is null ? "" : $" {Fmt.DateTime(context.StartsAt.Value)}")
-                </MudTd>
+                <MudTd>@Fmt.Date(context.BookingDate)</MudTd>
                 <MudTd>@context.EmployeeName</MudTd>
-                <MudTd>@StatusText(context.Status)</MudTd>
                 <MudTd Align="Right">@context.TotalAmount.ToString("N2")</MudTd>
             </RowTemplate>
         </MudTable>
@@ -154,49 +150,6 @@
                 <MudTd>@Fmt.DateTime(context.StartsAt)</MudTd>
                 <MudTd>@Fmt.DateTime(context.EndsAt)</MudTd>
                 <MudTd>@StatusText(context.Status)</MudTd>
-            </RowTemplate>
-        </MudTable>
-    </MudExpansionPanel>
-
-    <MudExpansionPanel Text="@($"{T.T("treasury.report_review_items")} ({Report.ReviewItems.Count})")">
-        <MudTable Items="Report.ReviewItems" Dense="true" Elevation="0" Class="ubp-table">
-            <HeaderContent>
-                <MudTh>@T.T("common.screen")</MudTh>
-                <MudTh>@T.T("treasury.doc_no")</MudTh>
-                <MudTh>@T.T("common.date")</MudTh>
-                <MudTh>@T.T("common.party")</MudTh>
-                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
-                <MudTh>@T.T("treasury.review_status")</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@T.T("screen." + context.ScreenCode.ToLowerInvariant())</MudTd>
-                <MudTd>@context.DocNo</MudTd>
-                <MudTd>@(context.DocDate is null ? "—" : Fmt.Date(context.DocDate.Value))</MudTd>
-                <MudTd>@context.PartyName</MudTd>
-                <MudTd Align="Right">@context.Amount.ToString("N2")</MudTd>
-                <MudTd>@T.T("treasury.review_" + context.Status)</MudTd>
-            </RowTemplate>
-        </MudTable>
-    </MudExpansionPanel>
-    <MudExpansionPanel Text="@($"{T.T("treasury.cash_count")} ({Report.CashCounts.Count})")">
-        <MudTable Items="Report.CashCounts" Dense="true" Elevation="0" Class="ubp-table">
-            <HeaderContent>
-                <MudTh>@T.T("treasury.treasury")</MudTh>
-                <MudTh Align="Right">@T.T("treasury.expected_cash")</MudTh>
-                <MudTh Align="Right">@T.T("treasury.counted_cash")</MudTh>
-                <MudTh Align="Right">@T.T("treasury.variance")</MudTh>
-                <MudTh>@T.T("treasury.review_status")</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.TreasuryCode — @context.TreasuryName</MudTd>
-                <MudTd Align="Right">@context.ExpectedCash.ToString("N2")</MudTd>
-                <MudTd Align="Right">@(context.CountedCash?.ToString("N2") ?? "—")</MudTd>
-                <MudTd Align="Right">
-                    <MudText Color="@(context.Variance is < 0 ? Color.Error : Color.Default)">
-                        @(context.Variance?.ToString("N2") ?? "—")
-                    </MudText>
-                </MudTd>
-                <MudTd>@T.T("treasury.review_" + (context.Status == "posted" ? "reviewed" : "pending"))</MudTd>
             </RowTemplate>
         </MudTable>
     </MudExpansionPanel>

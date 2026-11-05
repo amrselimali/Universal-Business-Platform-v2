@@ -149,15 +149,29 @@ public sealed partial class BookingCollectionRepository
             gl.Add(new EntryLine(await NeedAsync(connection, tx, PostingKeys.CustomerAdvances, ct),
                 0, groupGross, input.CustomerId));
 
-            var entryId = await PostEntryAsync(connection, tx,
-                rows[0].TreasuryType == TreasuryTypes.Cash ? "cash" : "bank", input.BranchId,
-                docDate, no, $"تحصيل خدمات محجوزة {no}", gl, userId, "voucher", id, ct);
+            if (!input.DraftOnly)
+            {
+                var entryId = await PostEntryAsync(connection, tx,
+                    rows[0].TreasuryType == TreasuryTypes.Cash ? "cash" : "bank", input.BranchId,
+                    docDate, no, $"تحصيل خدمات محجوزة {no}", gl, userId, "voucher", id, ct);
 
-            await connection.ExecuteAsync(new CommandDefinition("""
-                UPDATE vouchers SET status = 'posted', doc_no = @no, posted_at = now(),
-                    posted_by = @userId, journal_entry_id = @entryId WHERE id = @id
-                """, new { no, userId, entryId, id }, tx, cancellationToken: ct));
-            vouchers.Add((id, no, groupCollected));
+                await connection.ExecuteAsync(new CommandDefinition("""
+                    UPDATE vouchers SET status = 'posted', doc_no = @no, posted_at = now(),
+                        posted_by = @userId, journal_entry_id = @entryId WHERE id = @id
+                    """, new { no, userId, entryId, id }, tx, cancellationToken: ct));
+            }
+            vouchers.Add((id, input.DraftOnly ? null : no, groupCollected));
+        }
+
+        // ترحيل المسودة لا يخصّص أي مبلغ (لا أثر على الحسابات).
+        if (input.DraftOnly)
+        {
+            await tx.CommitAsync(ct);
+            return new BookingCollectionResult
+            {
+                VoucherId = vouchers[0].Id, VoucherNo = null, Total = collectedTotal,
+                Fee = feeTotal, Bookings = lines.Count
+            };
         }
 
         // توزيع المبلغ المحصل (قد يكون جزئيًا) على الحجوزات المحددة بحدود المتبقي لكل حجز.

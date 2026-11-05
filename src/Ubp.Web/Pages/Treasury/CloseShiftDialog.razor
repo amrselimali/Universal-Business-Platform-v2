@@ -95,7 +95,8 @@
             _report = await Treasury.GetShiftReportAsync(actor, Shift.Id);
             if (Shift.IsOpen)
             {
-                var rows = await Treasury.ListCashCountsAsync(actor, Shift.Id);
+                // نفس بيانات عرض الوردية: المتوقع محسوب لكل خزينة (0077).
+                var rows = _report.CashCounts;
                 _counts.AddRange(rows.Select(r => new ShiftCashCount
                 {
                     Id = r.Id, TreasuryId = r.TreasuryId, TreasuryCode = r.TreasuryCode,

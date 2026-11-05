@@ -157,26 +157,21 @@ public sealed class ShiftDenomination
 public sealed class ShiftReport
 {
     public Shift Shift { get; set; } = new();
-    public List<ShiftReportLine> Collections { get; set; } = new();
-    public List<ShiftReportLine> Revenues { get; set; } = new();
-    public List<ShiftMovementLine> Movements { get; set; } = new();
+    /// <summary>التحصيلات والإيرادات في جدول واحد مرتب بالعميل (0077).</summary>
+    public List<ShiftCollectionRow> Lines { get; set; } = new();
     public List<ShiftCustomerRow> IdleCustomers { get; set; } = new();
     public List<ShiftBookingRow> TomorrowBookings { get; set; } = new();
     public List<ShiftAppointmentRow> TomorrowAppointments { get; set; } = new();
-    public List<ShiftReviewItem> ReviewItems { get; set; } = new();
     /// <summary>عدّ النقدية لكل خزينة (مسودة حتى اعتماد المحاسب) — 0076.</summary>
     public List<ShiftCashCount> CashCounts { get; set; } = new();
+    /// <summary>حركة عدادات الأجهزة في الوردية (أول المدة/المستهلك/آخر المدة/الفعلي/الفرق) — 0077.</summary>
+    public List<ShiftMeterMovementRow> Meters { get; set; } = new();
+    public string? Notes { get; set; }
 
-    public decimal CollectionsTotal => Sum(Collections);
-    public decimal RevenuesTotal => Sum(Revenues);
-    public decimal MovementInTotal =>
-        Math.Round(Movements.Where(m => m.Inflow).Sum(m => m.Amount), 2);
-    public decimal MovementOutTotal =>
-        Math.Round(Movements.Where(m => !m.Inflow).Sum(m => m.Amount), 2);
-    public int PendingReviewCount => ReviewItems.Count(i => i.Status == ShiftReviewStatuses.Pending);
-
-    private static decimal Sum(IEnumerable<ShiftReportLine> lines) =>
-        Math.Round(lines.Sum(l => l.Amount), 2, MidpointRounding.AwayFromZero);
+    public decimal CollectionsTotal =>
+        Math.Round(Lines.Sum(l => l.Collected), 2, MidpointRounding.AwayFromZero);
+    public decimal RevenuesTotal =>
+        Math.Round(Lines.Sum(l => l.Revenue), 2, MidpointRounding.AwayFromZero);
 }
 
 public sealed class ShiftReportLine
@@ -234,6 +229,30 @@ public sealed class ShiftAppointmentRow
     public DateTimeOffset StartsAt { get; set; }
     public DateTimeOffset EndsAt { get; set; }
     public string Status { get; set; } = "";
+}
+
+/// <summary>سطر التحصيلات/الإيرادات في تقرير الوردية (مرتب بالعميل) — 0077.</summary>
+public sealed class ShiftCollectionRow
+{
+    public string CustomerName { get; set; } = "";
+    public decimal Collected { get; set; }
+    public decimal Revenue { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal MeterUnits { get; set; }
+    public string? EmployeeName { get; set; }
+}
+
+/// <summary>حركة عداد جهاز خلال الوردية: القراءة الفعلية هي التي تُرحَّل من الشيفت — 0077.</summary>
+public sealed class ShiftMeterMovementRow
+{
+    public Guid AssetId { get; set; }
+    public string Code { get; set; } = "";
+    public string NameAr { get; set; } = "";
+    public decimal Opening { get; set; }
+    public decimal Consumed { get; set; }
+    public decimal Closing { get; set; }
+    public decimal Actual { get; set; }
+    public decimal Variance => Math.Round(Actual - Closing, 2, MidpointRounding.AwayFromZero);
 }
 
 /// <summary>تسجيل داخل الوردية حُصر عند الإغلاق ليراجعه يوزر محاسب.</summary>
