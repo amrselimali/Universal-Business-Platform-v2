@@ -35,7 +35,7 @@ public sealed partial class TreasuryRepository
                   AND (@until::timestamptz IS NULL OR v.created_at <= @until::timestamptz)
             ), revenues AS (
                 SELECT COALESCE(c.name_ar, d.party_name) AS CustomerName, NULL::varchar AS TreasuryType,
-                       0::numeric AS Collected, 0::numeric AS Fee,
+                       0::numeric AS Collected,
                        d.total AS Revenue, 0::numeric AS Quantity, 0::numeric AS MeterUnits,
                        NULL::text AS EmployeeName
                 FROM commercial_documents d

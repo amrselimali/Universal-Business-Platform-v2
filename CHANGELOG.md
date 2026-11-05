@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-05 — Fix UNION column mismatch in shift report
+
+### Fixed
+- خطأ `42601 each UNION query must have the same number of columns`: بقي عمود `Fee` في CTE الإيرادات
+  بعد إزالة العمود من بقية الفروع؛ أُزيل لتتساوى أعمدة الفروع الثلاثة (7 أعمدة).
+
 ## 2026-11-05 — Restore new commission posting (as before)
 
 ### Fixed
