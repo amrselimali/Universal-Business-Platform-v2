@@ -24,10 +24,20 @@ public sealed partial class TreasuryRepository
         var treasuries = (await connection.QueryAsync<ShiftTreasuryRow>(new CommandDefinition("""
             SELECT t.id AS TreasuryId, t.code AS Code, t.name_ar AS NameAr,
                    t.treasury_type AS TreasuryType,
-                   COALESCE(gl.balance, 0) AS PostedBalance,
+                   COALESCE(prev.closing, gl.balance, 0) AS PostedBalance,
                    0::numeric AS UnpostedBalance
             FROM treasuries t
-            -- رصيد الخزينة = رصيد آخر المدة لحسابها في الأستاذ (حساب مستقل لكل خزينة)
+            -- أول المدة = آخر مدة مكتوبة (النقد المعدود) في الوردية السابقة لنفس الخزينة
+            LEFT JOIN LATERAL (
+                SELECT c2.counted_cash AS closing
+                FROM shift_cash_counts c2
+                JOIN cashier_shifts s2 ON s2.id = c2.shift_id
+                WHERE c2.treasury_id = t.id AND s2.status = 'closed'
+                  AND c2.counted_cash IS NOT NULL
+                ORDER BY s2.closed_at DESC NULLS LAST
+                LIMIT 1
+            ) prev ON true
+            -- احتياطي فقط عند عدم وجود وردية سابقة: رصيد حساب الأستاذ
             LEFT JOIN LATERAL (
                 SELECT COALESCE((SELECT SUM(l.debit - l.credit)
                                  FROM journal_entry_lines l
@@ -36,13 +46,6 @@ public sealed partial class TreasuryRepository
                                  WHERE e.status = 'posted' AND l.account_id = t.account_id), 0)
                        AS balance
             ) gl ON true
-            -- + إيصالات التحصيل غير المرحّلة للحسابات (مسودات) لهذه الخزينة
-            LEFT JOIN LATERAL (
-                SELECT COALESCE(SUM(v.total_amount), 0) AS amount
-                FROM vouchers v
-                WHERE v.branch_id = t.branch_id AND v.treasury_id = t.id
-                  AND v.voucher_type = 'receipt' AND v.status = 'draft'
-            ) unposted ON true
             WHERE t.branch_id = @branchId AND t.is_active
             ORDER BY t.code
             """, new { branchId }, tx, cancellationToken: ct))).ToList();

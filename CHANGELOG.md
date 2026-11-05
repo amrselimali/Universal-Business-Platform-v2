@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-11-05 — Opening = previous shift recorded closing per treasury
+
+### Changed
+- أُلغي منطق «أول المدة» المعتمد على الأستاذ/الإيصالات: أصبح **رصيد أول المدة لكل خزينة = النقد
+  المعدود (آخر المدة) المسجّل في الوردية السابقة لنفس الخزينة** أياً كانت حالة ترحيلها،
+  ويُستخدم رصيد حساب الأستاذ فقط عند عدم وجود وردية سابقة.
+
 ## 2026-11-05 — Opening equals the treasury GL account balance; main-treasury option removed
 
 ### Changed

@@ -73,10 +73,20 @@ public sealed partial class TreasuryRepository
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO shift_cash_counts (id, shift_id, treasury_id, opening_cash, expected_cash, status)
             SELECT gen_random_uuid(), @shiftId, t.id,
-                   COALESCE(gl.balance, 0),
-                   COALESCE(gl.balance, 0),
+                   COALESCE(prev.closing, gl.balance, 0),
+                   COALESCE(prev.closing, gl.balance, 0),
                    CASE WHEN @isOpen THEN 'open' ELSE 'draft' END
             FROM treasuries t
+            LEFT JOIN LATERAL (
+                SELECT c2.counted_cash AS closing
+                FROM shift_cash_counts c2
+                JOIN cashier_shifts s2 ON s2.id = c2.shift_id
+                WHERE c2.treasury_id = t.id AND s2.status = 'closed'
+                  AND c2.counted_cash IS NOT NULL
+                  AND s2.closed_at < @openedAt
+                ORDER BY s2.closed_at DESC NULLS LAST
+                LIMIT 1
+            ) prev ON true
             LEFT JOIN LATERAL (
                 SELECT COALESCE((SELECT SUM(l.debit - l.credit)
                                  FROM journal_entry_lines l
@@ -85,12 +95,6 @@ public sealed partial class TreasuryRepository
                                  WHERE e.status = 'posted' AND l.account_id = t.account_id), 0)
                        AS balance
             ) gl ON true
-            LEFT JOIN LATERAL (
-                SELECT COALESCE(SUM(v.total_amount), 0) AS total
-                FROM vouchers v
-                WHERE v.branch_id = t.branch_id AND v.treasury_id = t.id
-                  AND v.voucher_type = 'receipt' AND v.status = 'draft'
-            ) carry ON true
             WHERE t.branch_id = @branchId AND t.is_active
             ON CONFLICT (shift_id, treasury_id) DO NOTHING
             """, new { shiftId, branchId = shift.BranchId, isOpen = shift.IsOpen },
@@ -103,22 +107,26 @@ public sealed partial class TreasuryRepository
             SET opening_cash = x.opening
             FROM (
                 SELECT t.id AS treasury_id,
-                       COALESCE(gl.balance, 0) AS opening
+                       COALESCE(prev.closing, gl.balance, 0) AS opening
                 FROM treasuries t
                 LEFT JOIN LATERAL (
-                    SELECT COALESCE((SELECT SUM(l.debit - l.credit)
-                                 FROM journal_entry_lines l
-                                 JOIN journal_entries e ON e.id = l.entry_id
-                                                        AND e.branch_id = t.branch_id
-                                 WHERE e.status = 'posted' AND l.account_id = t.account_id), 0)
-                       AS balance
-                ) gl ON true
+                    SELECT c2.counted_cash AS closing
+                    FROM shift_cash_counts c2
+                    JOIN cashier_shifts s2 ON s2.id = c2.shift_id
+                    WHERE c2.treasury_id = t.id AND s2.status = 'closed'
+                      AND c2.counted_cash IS NOT NULL
+                      AND s2.closed_at < @openedAt
+                    ORDER BY s2.closed_at DESC NULLS LAST
+                    LIMIT 1
+                ) prev ON true
                 LEFT JOIN LATERAL (
-                    SELECT COALESCE(SUM(v2.total_amount), 0) AS total
-                    FROM vouchers v2
-                    WHERE v2.branch_id = t.branch_id AND v2.treasury_id = t.id
-                      AND v2.voucher_type = 'receipt' AND v2.status = 'draft'
-                ) carry ON true
+                    SELECT COALESCE((SELECT SUM(l.debit - l.credit)
+                                     FROM journal_entry_lines l
+                                     JOIN journal_entries e ON e.id = l.entry_id
+                                                            AND e.branch_id = t.branch_id
+                                     WHERE e.status = 'posted' AND l.account_id = t.account_id), 0)
+                           AS balance
+                ) gl ON true
                 WHERE t.branch_id = @branchId AND t.is_active
             ) x
             WHERE c.shift_id = @shiftId AND c.treasury_id = x.treasury_id
