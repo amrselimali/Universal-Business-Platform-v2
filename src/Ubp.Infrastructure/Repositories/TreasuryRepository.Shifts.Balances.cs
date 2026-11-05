@@ -34,11 +34,14 @@ public sealed partial class TreasuryRepository
                 WHERE e.status = 'posted' AND l.account_id = t.account_id
             ) gl ON true
             LEFT JOIN LATERAL (
-                SELECT SUM(c.counted_cash) AS amount
-                FROM shift_cash_counts c
-                JOIN cashier_shifts s ON s.id = c.shift_id
-                WHERE s.branch_id = @branchId AND s.review_status = 'pending'
-                  AND c.status = 'draft' AND c.treasury_id = t.id
+                -- إيصالات التحصيل في الورديات غير المرحّلة (وليس رصيد/عدّ الورديات)
+                SELECT SUM(v.total_amount) AS amount
+                FROM cashier_shifts s
+                JOIN vouchers v ON v.branch_id = s.branch_id AND v.treasury_id = t.id
+                     AND v.voucher_type = 'receipt' AND v.status <> 'cancelled'
+                     AND v.created_at >= s.opened_at
+                     AND (s.closed_at IS NULL OR v.created_at <= s.closed_at)
+                WHERE s.branch_id = @branchId AND s.review_status = 'pending' 
             ) unposted ON true
             WHERE t.branch_id = @branchId AND t.is_active
               AND EXISTS (SELECT 1 FROM treasury_methods m

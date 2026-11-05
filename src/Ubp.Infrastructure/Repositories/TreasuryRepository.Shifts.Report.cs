@@ -84,11 +84,13 @@ public sealed partial class TreasuryRepository
                 WHERE e.status = 'posted' AND l.account_id = t.account_id
             ) gl ON true
             LEFT JOIN LATERAL (
-                SELECT SUM(c.counted_cash) AS total
-                FROM shift_cash_counts c
-                JOIN cashier_shifts s ON s.id = c.shift_id
-                WHERE s.branch_id = t.branch_id AND s.review_status = 'pending'
-                  AND c.status = 'draft' AND c.treasury_id = t.id
+                SELECT SUM(v.total_amount) AS total
+                FROM cashier_shifts s
+                JOIN vouchers v ON v.branch_id = s.branch_id AND v.treasury_id = t.id
+                     AND v.voucher_type = 'receipt' AND v.status <> 'cancelled'
+                     AND v.created_at >= s.opened_at
+                     AND (s.closed_at IS NULL OR v.created_at <= s.closed_at)
+                WHERE s.branch_id = t.branch_id AND s.review_status = 'pending' 
             ) carry ON true
             WHERE t.branch_id = @branchId AND t.is_active
               AND EXISTS (SELECT 1 FROM treasury_methods m
@@ -131,11 +133,14 @@ public sealed partial class TreasuryRepository
                           AND (v.treasury_id = t.id OR v.to_treasury_id = t.id)
                     ) mv ON true
                     LEFT JOIN LATERAL (
-                        SELECT SUM(c2.counted_cash) AS total
-                        FROM shift_cash_counts c2
-                        JOIN cashier_shifts s2 ON s2.id = c2.shift_id
+                        SELECT SUM(v2.total_amount) AS total
+                        FROM cashier_shifts s2
+                        JOIN vouchers v2 ON v2.branch_id = s2.branch_id AND v2.treasury_id = t.id
+                             AND v2.voucher_type = 'receipt' AND v2.status <> 'cancelled'
+                             AND v2.created_at >= s2.opened_at
+                             AND (s2.closed_at IS NULL OR v2.created_at <= s2.closed_at)
                         WHERE s2.branch_id = t.branch_id AND s2.review_status = 'pending'
-                          AND c2.status = 'draft' AND c2.treasury_id = t.id
+                          AND s2.id <> @shiftId
                     ) carry ON true
                     WHERE t.branch_id = @branchId AND t.is_active
                 ) x

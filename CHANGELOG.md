@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-05 — Cash-count opening uses unreviewed shift receipts
+
+### Fixed
+- «أول المدة» لكل خزينة = **رصيد الخزينة المرحّل بالحسابات** + **إيصالات التحصيل في الورديات
+  غير المرحّلة** (وليس رصيد/عدّ الورديات كما كان).
+
 ## 2026-11-05 — Shifts list columns and explicit post/approve flow
 
 ### Changed
