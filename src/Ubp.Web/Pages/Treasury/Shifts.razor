@@ -31,6 +31,12 @@ else
                     <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
                 }
             </MudSelect>
+            <MudDatePicker Date="_from" Label="@T.T("common.from_date")"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           DateChanged="OnFromChanged" />
+            <MudDatePicker Date="_to" Label="@T.T("common.to_date")"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           DateChanged="OnToChanged" />
         </div>
 
         <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
@@ -41,6 +47,7 @@ else
                 <MudTh>@T.T("treasury.cashier")</MudTh>
                 <MudTh>@T.T("treasury.opened_at")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.opening_cash")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.receipts_total")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.expected_cash")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.counted_cash")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.variance")</MudTh>
@@ -54,6 +61,7 @@ else
                 <MudTd>@context.Username</MudTd>
                 <MudTd>@Fmt.DateTime(context.OpenedAt)</MudTd>
                 <MudTd Align="Right">@context.OpeningCash.ToString("N2")</MudTd>
+                <MudTd Align="Right">@context.ReceiptsTotal.ToString("N2")</MudTd>
                 <MudTd Align="Right">@context.ExpectedCash.ToString("N2")</MudTd>
                 <MudTd Align="Right">@(context.CountedCash?.ToString("N2") ?? "—")</MudTd>
                 <MudTd Align="Right">
@@ -80,7 +88,8 @@ else
                 </MudTd>
                 <MudTd Align="Right">
                     <MudButton Size="Size.Small" Variant="Variant.Text"
-                               OnClick="@(() => ReportAsync(context))">@T.T("treasury.shift_report")</MudButton>
+                               StartIcon="@Icons.Material.Filled.Visibility"
+                               OnClick="@(() => ReportAsync(context))">@T.T("treasury.view_shift")</MudButton>
                     @if (context.IsOpen && Can(ActionCodes.Close))
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined"
@@ -90,11 +99,6 @@ else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
                                    OnClick="@(() => ReviewAsync(context))">@T.T("treasury.review_shift")</MudButton>
-                    }
-                    else if (!context.IsOpen && Can(ActionCodes.Reopen))
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning"
-                                   OnClick="@(() => ReopenAsync(context))">@T.T("treasury.reopen_shift")</MudButton>
                     }
                 </MudTd>
             </RowTemplate>
@@ -106,6 +110,8 @@ else
     private IReadOnlyList<Shift> _items = Array.Empty<Shift>();
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private Guid? _branchId;
+    private DateTime? _from = DateTime.Today.AddDays(-30);
+    private DateTime? _to = DateTime.Today;
 
     protected override string ScreenCode => ScreenCodes.TreasuryShifts;
 
@@ -116,9 +122,11 @@ else
     }
 
     private async Task ReloadAsync() =>
-        _items = await Treasury.ListShiftsAsync(Actor!, _branchId, 200);
+        _items = await Treasury.ListShiftsAsync(Actor!, _branchId, _from, _to, 300);
 
     private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+    private Task OnFromChanged(DateTime? value) { _from = value; return RunAsync(ReloadAsync); }
+    private Task OnToChanged(DateTime? value) { _to = value; return RunAsync(ReloadAsync); }
 
     private static Color ReviewColor(string status) => status switch
     {
@@ -166,15 +174,5 @@ else
         }
     }
 
-    private async Task ReopenAsync(Shift shift)
-    {
-        var dialog = await Dialogs.ShowAsync<ReopenShiftDialog>(T.T("treasury.reopen_shift"),
-            new DialogParameters { ["Shift"] = shift });
-        if ((await dialog.Result) is { Canceled: false })
-        {
-            await RunAsync(ReloadAsync);
-            ShowSuccess("treasury.shift_open");
-        }
-    }
 }
 

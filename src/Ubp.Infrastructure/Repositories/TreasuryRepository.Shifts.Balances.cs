@@ -34,22 +34,11 @@ public sealed partial class TreasuryRepository
                 WHERE e.status = 'posted' AND l.account_id = t.account_id
             ) gl ON true
             LEFT JOIN LATERAL (
-                SELECT SUM(CASE
-                           WHEN v.treasury_id = t.id AND v.voucher_type = 'receipt'
-                               THEN v.total_amount
-                           WHEN v.treasury_id = t.id AND v.voucher_type = 'payment'
-                               THEN -v.total_amount
-                           WHEN v.treasury_id = t.id AND v.voucher_type = 'transfer'
-                               THEN -(v.total_amount + v.fee_total)
-                           WHEN v.to_treasury_id = t.id AND v.voucher_type = 'transfer'
-                               THEN v.total_amount
-                           ELSE 0 END) AS amount
-                FROM shift_review_items i
-                JOIN vouchers v ON v.id = i.entity_id
-                JOIN cashier_shifts s ON s.id = i.shift_id
-                WHERE i.entity_type = 'voucher' AND i.status = 'pending'
-                  AND s.branch_id = @branchId AND s.review_status = 'pending'
-                  AND (v.treasury_id = t.id OR v.to_treasury_id = t.id)
+                SELECT SUM(c.counted_cash) AS amount
+                FROM shift_cash_counts c
+                JOIN cashier_shifts s ON s.id = c.shift_id
+                WHERE s.branch_id = @branchId AND s.review_status = 'pending'
+                  AND c.status = 'draft' AND c.treasury_id = t.id
             ) unposted ON true
             WHERE t.branch_id = @branchId AND t.is_active
               AND EXISTS (SELECT 1 FROM treasury_methods m

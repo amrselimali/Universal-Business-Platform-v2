@@ -39,13 +39,19 @@ public interface ITreasuryRepository : IShiftGate
         CancellationToken ct = default);
 
     Task<Guid> OpenShiftAsync(Guid id, ShiftInput input, Guid userId, CancellationToken ct = default);
-    /// <summary>إغلاق وردية الفرع؛ countedCash = null يعني إغلاقاً آلياً بمطابقة المتوقع.</summary>
-    Task<Shift> CloseShiftAsync(Guid shiftId, decimal? countedCash, Guid userId, bool autoClosed,
+    /// <summary>إغلاق وردية الفرع بعدّ نقدية لكل خزينة (مسودة)؛ counts = null إغلاق آلي.</summary>
+    Task<Shift> CloseShiftAsync(Guid shiftId, IReadOnlyList<ShiftCashCountInput>? counts,
+        Guid userId, bool autoClosed, CancellationToken ct = default);
+    /// <summary>عدّ النقدية المسجّل لكل خزينة في الوردية — 0076.</summary>
+    Task<IReadOnlyList<ShiftCashCount>> ListCashCountsAsync(Guid shiftId,
+        CancellationToken ct = default);
+    /// <summary>حساب زيادة/عجز خاص بالخزينة يُستخدم عند اعتماد المحاسب — 0076.</summary>
+    Task<bool> SetTreasuryOverShortAccountAsync(Guid treasuryId, Guid? accountId,
         CancellationToken ct = default);
     Task<Shift?> GetOpenShiftAsync(Guid branchId, CancellationToken ct = default);
     Task<Shift?> GetShiftAsync(Guid id, CancellationToken ct = default);
-    Task<IReadOnlyList<Shift>> ListShiftsAsync(Guid? branchId, int limit,
-        CancellationToken ct = default);
+    Task<IReadOnlyList<Shift>> ListShiftsAsync(Guid? branchId, DateTime? from, DateTime? to,
+        int limit, CancellationToken ct = default);
     /// <summary>أرصدة افتتاح الوردية للفرع: مرحل من الحسابات + تحت المراجعة + عدادات الأجهزة.</summary>
     Task<ShiftOpeningBalances> GetShiftOpeningBalancesAsync(Guid branchId,
         CancellationToken ct = default);
@@ -82,12 +88,13 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
         await using var connection = await _factory.OpenAsync(ct);
         return await connection.ExecuteScalarAsync<Guid>(new CommandDefinition("""
             INSERT INTO treasuries (id, branch_id, code, name_ar, name_en, treasury_type, account_id,
-                opening_balance, created_by)
+                opening_balance, over_short_account_id, created_by)
             VALUES (@id, @BranchId, @Code, @NameAr, @NameEn, @TreasuryType, @AccountId,
-                    @OpeningBalance, @userId)
+                    @OpeningBalance, @OverShortAccountId, @userId)
             RETURNING id
             """, new { id, input.BranchId, input.Code, input.NameAr, input.NameEn,
-                input.TreasuryType, input.AccountId, input.OpeningBalance, userId },
+                input.TreasuryType, input.AccountId, input.OpeningBalance,
+                input.OverShortAccountId, userId },
             cancellationToken: ct));
     }
 
@@ -137,6 +144,16 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
             "WHERE id = @id AND is_active", new { id, followInShift }, cancellationToken: ct)) > 0;
     }
 
+    /// <summary>تحديد حساب زيادة/عجز الخزينة الذي يُرحّل عليه المحاسب — 0076.</summary>
+    public async Task<bool> SetTreasuryOverShortAccountAsync(Guid treasuryId, Guid? accountId,
+        CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE treasuries SET over_short_account_id = @accountId WHERE id = @treasuryId",
+            new { treasuryId, accountId }, cancellationToken: ct)) > 0;
+    }
+
     public async Task<IReadOnlyList<Treasury>> ListTreasuriesAsync(Guid? branchId,
         CancellationToken ct = default)
     {
@@ -146,7 +163,7 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
                    t.name_en AS NameEn, t.treasury_type AS TreasuryType, t.account_id AS AccountId,
                    t.is_main AS IsMain,
                    a.code AS AccountCode, a.name_ar AS AccountName, t.opening_balance AS OpeningBalance,
-                   t.is_active AS IsActive
+                   t.over_short_account_id AS OverShortAccountId, t.is_active AS IsActive
             FROM treasuries t JOIN accounts a ON a.id = t.account_id
             WHERE t.is_active AND (@branchId::uuid IS NULL OR t.branch_id = @branchId::uuid)
             ORDER BY t.code

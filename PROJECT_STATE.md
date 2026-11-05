@@ -1,5 +1,19 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-05 — Shift carry per treasury, per-treasury cash count draft, over/short account
+
+- Migration `0076`: `shift_cash_counts` (opening snapshot per treasury at shift open; expected/counted/
+  variance at close; `open → draft → posted`) and `treasuries.over_short_account_id`.
+- Shift opening table keeps **only the total** per followed treasury = its **posted GL balance** +
+  **manually counted amounts of unreviewed shifts** (not vouchers).
+- Shift close shows **treasury / expected cash / actual cash / variance** per treasury and saves it as
+  **draft**; no over/short journal entry is created at close.
+- Accountant `APPROVE` posts each treasury variance to its **over/short account** (or the global
+  `cash_over_short` default) and marks the counts `posted`.
+- Shifts screen: view action per shift, **total receipts** column (all receipt vouchers in the shift,
+  any treasury type), from/to date filter; reopen action removed from the UI.
+- Tests: `ShiftBalancesTests` (4) including over/short account posting; suite (356).
+
 ## 2026-11-05 — Shift gate crash fix on reservation execution
 
 - `ExecutionDialog` (الخدمات المحجوزة → تنفيذ) catches `AppException` from the preview call:

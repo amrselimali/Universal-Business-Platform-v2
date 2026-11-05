@@ -30,12 +30,12 @@ public sealed partial class TreasuryRepository
         if (shift.Status != ShiftStatuses.Closed)
             throw new ValidationAppException("validation.shift_not_closed");
 
-        var entryId = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition("""
+        var entryIds = (await connection.QueryAsync<Guid>(new CommandDefinition("""
             SELECT id FROM journal_entries
             WHERE source_type = 'cash_shift' AND reference = @code
               AND reversal_of_id IS NULL AND NOT is_reversed
-            """, new { code = shift.Code }, tx, cancellationToken: ct));
-        if (entryId is not null)
+            """, new { code = shift.Code }, tx, cancellationToken: ct))).ToList();
+        foreach (var entryId in entryIds)
             await connection.ExecuteAsync(new CommandDefinition(
                 "SELECT fn_gl_reverse_entry(@entryId, @userId, @date::date)",
                 new { entryId, userId, date = DateTime.Today }, tx, cancellationToken: ct));
@@ -55,6 +55,13 @@ public sealed partial class TreasuryRepository
         {
             throw new ValidationAppException("validation.shift_already_open");
         }
+
+        await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE shift_cash_counts
+            SET status = 'open', counted_cash = NULL, variance = NULL, expected_cash = opening_cash,
+                posted_at = NULL, posted_by = NULL, journal_entry_id = NULL
+            WHERE shift_id = @shiftId
+            """, new { shiftId }, tx, cancellationToken: ct));
 
         await connection.ExecuteAsync(new CommandDefinition(
             "DELETE FROM shift_review_items WHERE shift_id = @shiftId", new { shiftId }, tx,

@@ -8,14 +8,15 @@ namespace Ubp.Infrastructure.Repositories;
 public sealed partial class TreasuryRepository
 {
     /// <summary>
-    /// إغلاق وردية الفرع: المتوقع = افتتاحي + صافي حركة النقد في كل خزائن الفرع،
-    /// ويُحصر كل ما سُجّل خلال الوردية (مسودات ومرحّل، غير الملغى) في
-    /// shift_review_items ليُراجَع بواسطة يوزر محاسب. countedCash = null إغلاق آلي.
+    /// إغلاق وردية الفرع (0076): المتوقع لكل خزينة = لقطة افتتاحها + حركتها خلال الوردية،
+    /// والنقد الفعلي يُدخل يدوياً لكل خزينة ويُحفظ **مسودة** (draft) مع الفرق — بلا أي
+    /// ترحيل للحسابات؛ الترحيل يتم باعتماد المحاسب. counts = null يعني إغلاقاً آلياً.
     /// </summary>
-    public async Task<Shift> CloseShiftAsync(Guid shiftId, decimal? countedCash, Guid userId,
-        bool autoClosed, CancellationToken ct = default)
+    public async Task<Shift> CloseShiftAsync(Guid shiftId,
+        IReadOnlyList<ShiftCashCountInput>? counts, Guid userId, bool autoClosed,
+        CancellationToken ct = default)
     {
-        if (countedCash is < 0)
+        if (counts is not null && counts.Any(c => c.CountedCash < 0))
             throw new ValidationAppException("validation.shift_counted_cash");
 
         await using var connection = await _factory.OpenAsync(ct);
@@ -24,111 +25,107 @@ public sealed partial class TreasuryRepository
         var shift = await connection.QuerySingleOrDefaultAsync<ShiftRow>(new CommandDefinition(
             ShiftSelect + " WHERE s.id = @shiftId FOR UPDATE OF s", new { shiftId }, tx,
             cancellationToken: ct)) ?? throw new NotFoundAppException();
-
         if (shift.Status != ShiftStatuses.Open)
             throw new ValidationAppException("validation.shift_not_open");
 
-        var movement = await CashMovementAsync(connection, tx, shift.BranchId, shift.OpenedAt, ct);
+        var rows = (await QueryCashCountsAsync(connection, shiftId, tx, ct)).ToList();
+        decimal totalExpected = 0, totalCounted = 0, totalVariance = 0;
 
-        var expected = Math.Round(shift.OpeningCash + movement, 2, MidpointRounding.AwayFromZero);
-        var counted = Math.Round(countedCash ?? expected, 2, MidpointRounding.AwayFromZero);
-        var variance = Math.Round(counted - expected, 2, MidpointRounding.AwayFromZero);
+        foreach (var row in rows)
+        {
+            var movement = await TreasuryMovementAsync(connection, tx, row.TreasuryId,
+                shift.OpenedAt, ct);
+            var expected = Math.Round(row.OpeningCash + movement, 2,
+                MidpointRounding.AwayFromZero);
+            var counted = counts?.FirstOrDefault(c => c.TreasuryId == row.TreasuryId)?.CountedCash
+                          ?? expected;
+            counted = Math.Round(counted, 2, MidpointRounding.AwayFromZero);
+            var variance = Math.Round(counted - expected, 2, MidpointRounding.AwayFromZero);
 
-        if (variance != 0)
-            await PostOverShortAsync(connection, tx, shift, variance, userId, ct);
+            await connection.ExecuteAsync(new CommandDefinition("""
+                UPDATE shift_cash_counts
+                SET expected_cash = @expected, counted_cash = @counted, variance = @variance,
+                    status = 'draft'
+                WHERE id = @id
+                """, new { expected, counted, variance, id = row.Id }, tx, cancellationToken: ct));
+
+            totalExpected += expected; totalCounted += counted; totalVariance += variance;
+        }
+
+        // خزائن أُضيفت بعد فتح الوردية: تُسجَّل مسودة كذلك حتى تُراجَع.
+        foreach (var input in (counts ?? Array.Empty<ShiftCashCountInput>())
+                 .Where(c => rows.All(r => r.TreasuryId != c.TreasuryId)))
+        {
+            await connection.ExecuteAsync(new CommandDefinition("""
+                INSERT INTO shift_cash_counts (id, shift_id, treasury_id, opening_cash,
+                    expected_cash, counted_cash, variance, status)
+                VALUES (@id, @shiftId, @treasuryId, 0, 0, @counted, @counted, 'draft')
+                ON CONFLICT (shift_id, treasury_id) DO NOTHING
+                """, new
+            {
+                id = Guid.CreateVersion7(), shiftId, treasuryId = input.TreasuryId,
+                counted = Math.Round(input.CountedCash, 2, MidpointRounding.AwayFromZero)
+            }, tx, cancellationToken: ct));
+            totalCounted += input.CountedCash;
+            totalVariance += input.CountedCash;
+        }
 
         await CaptureReviewItemsAsync(connection, tx, shift, ct);
-        var pending = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
-            "SELECT count(*)::int FROM shift_review_items WHERE shift_id = @shiftId AND status = 'pending'",
-            new { shiftId }, tx, cancellationToken: ct));
 
         await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE cashier_shifts SET expected_cash = @expected, counted_cash = @counted,
                 variance = @variance, status = 'closed', closed_at = now(), closed_by = @userId,
-                auto_closed = @autoClosed,
-                review_status = CASE WHEN @pending > 0 THEN 'pending' ELSE 'none' END,
-                updated_by = @userId
+                auto_closed = @autoClosed, review_status = 'pending', updated_by = @userId
             WHERE id = @shiftId
             """, new
         {
-            expected, counted, variance, userId, autoClosed, pending, shiftId
+            expected = Math.Round(totalExpected, 2), counted = Math.Round(totalCounted, 2),
+            variance = Math.Round(totalVariance, 2), userId, autoClosed, shiftId
         }, tx, cancellationToken: ct));
 
         await tx.CommitAsync(ct);
         return (await GetShiftAsync(shiftId, ct))!;
     }
 
-    /// <summary>صافي حركة النقد في كل خزائن الفرع منذ فتح الوردية (نقدي فقط).</summary>
-    private static async Task<decimal> CashMovementAsync(NpgsqlConnection connection,
-        NpgsqlTransaction? tx, Guid branchId, DateTimeOffset openedAt, CancellationToken ct) =>
+    /// <summary>صافي حركة خزينة واحدة منذ فتح الوردية (المرحّل + المسودات، أياً كانت طريقة الدفع).</summary>
+    private static async Task<decimal> TreasuryMovementAsync(NpgsqlConnection connection,
+        NpgsqlTransaction? tx, Guid treasuryId, DateTimeOffset openedAt, CancellationToken ct) =>
         await connection.ExecuteScalarAsync<decimal>(new CommandDefinition("""
             SELECT COALESCE(SUM(CASE
-                       WHEN v.voucher_type = 'receipt' AND m.method_type = 'cash'
-                            AND st.branch_id = @branchId THEN l.amount - l.fee_amount
-                       WHEN v.voucher_type = 'payment' AND m.method_type = 'cash'
-                            AND st.branch_id = @branchId THEN -(l.amount - l.fee_amount)
-                       WHEN v.voucher_type = 'transfer' AND m.method_type = 'cash'
-                            AND st.branch_id = @branchId
-                            AND (tt.branch_id IS NULL OR tt.branch_id <> @branchId)
-                           THEN -(l.amount + l.fee_amount)
-                       WHEN v.voucher_type = 'transfer' AND m.method_type = 'cash'
-                            AND tt.branch_id = @branchId
-                            AND (st.branch_id IS NULL OR st.branch_id <> @branchId)
-                           THEN l.amount
+                       WHEN v.treasury_id = @treasuryId AND v.voucher_type = 'receipt'
+                           THEN v.total_amount
+                       WHEN v.treasury_id = @treasuryId AND v.voucher_type = 'payment'
+                           THEN -v.total_amount
+                       WHEN v.treasury_id = @treasuryId AND v.voucher_type = 'transfer'
+                           THEN -(v.total_amount + v.fee_total)
+                       WHEN v.to_treasury_id = @treasuryId AND v.voucher_type = 'transfer'
+                           THEN v.total_amount
                        ELSE 0 END), 0)
-            FROM voucher_lines l
-            JOIN vouchers v ON v.id = l.voucher_id
-            JOIN treasury_methods m ON m.id = l.treasury_method_id
-            JOIN treasuries st ON st.id = v.treasury_id
-            LEFT JOIN treasuries tt ON tt.id = v.to_treasury_id
-            WHERE v.status = 'posted' AND v.posted_at >= @openedAt
-              AND (st.branch_id = @branchId OR tt.branch_id = @branchId)
-            """, new { branchId, openedAt }, tx, cancellationToken: ct));
+            FROM vouchers v
+            WHERE v.status <> 'cancelled' AND v.created_at >= @openedAt
+              AND (v.treasury_id = @treasuryId OR v.to_treasury_id = @treasuryId)
+            """, new { treasuryId, openedAt }, tx, cancellationToken: ct));
 
-    /// <summary>قيد زيادة/عجز الوردية على حساب الخزينة الرئيسية للفرع (أو أول خزينة).</summary>
-    private static async Task PostOverShortAsync(NpgsqlConnection connection, NpgsqlTransaction tx,
-        ShiftRow shift, decimal variance, Guid userId, CancellationToken ct)
+    /// <summary>عدّ النقدية لكل خزينة في الوردية.</summary>
+    private static async Task<IReadOnlyList<ShiftCashCount>> QueryCashCountsAsync(
+        NpgsqlConnection connection, Guid shiftId, NpgsqlTransaction? tx,
+        CancellationToken ct) =>
+        (await connection.QueryAsync<ShiftCashCount>(new CommandDefinition("""
+            SELECT c.id AS Id, c.shift_id AS ShiftId, c.treasury_id AS TreasuryId,
+                   t.code AS TreasuryCode, t.name_ar AS TreasuryName, c.opening_cash AS OpeningCash,
+                   c.expected_cash AS ExpectedCash, c.counted_cash AS CountedCash,
+                   c.variance AS Variance, c.status AS Status
+            FROM shift_cash_counts c
+            JOIN treasuries t ON t.id = c.treasury_id
+            WHERE c.shift_id = @shiftId
+            ORDER BY t.code
+            """, new { shiftId }, tx, cancellationToken: ct))).ToList();
+
+    public async Task<IReadOnlyList<ShiftCashCount>> ListCashCountsAsync(Guid shiftId,
+        CancellationToken ct = default)
     {
-        var treasury = await connection.QuerySingleOrDefaultAsync<TreasuryRow>(new CommandDefinition("""
-            SELECT id AS Id, branch_id AS BranchId, account_id AS AccountId,
-                   treasury_type AS TreasuryType
-            FROM treasuries
-            WHERE branch_id = @branchId AND is_active
-            ORDER BY is_main DESC, code
-            LIMIT 1
-            """, new { branchId = shift.BranchId }, tx, cancellationToken: ct))
-            ?? throw new ValidationAppException("validation.treasury_not_found");
-
-        var defaults = (await connection.QueryAsync<(string Key, Guid? AccountId)>(
-            new CommandDefinition("SELECT setting_key, account_id FROM posting_defaults",
-                transaction: tx, cancellationToken: ct)))
-            .Where(r => r.AccountId.HasValue)
-            .ToDictionary(r => r.Key, r => r.AccountId!.Value, StringComparer.OrdinalIgnoreCase);
-
-        if (!defaults.TryGetValue(PostingKeys.CashOverShort, out var overShort))
-            throw new ValidationAppException("validation.posting_account_missing",
-                new Dictionary<string, string>
-                {
-                    ["key"] = PostingKeys.CashOverShort, ["module"] = "treasury"
-                });
-
-        var amount = Math.Abs(variance);
-        var gl = variance > 0
-            ? new List<JournalLine>
-            {
-                new(treasury.AccountId, amount, 0),
-                new(overShort, 0, amount)
-            }
-            : new List<JournalLine>
-            {
-                new(overShort, amount, 0),
-                new(treasury.AccountId, 0, amount)
-            };
-
-        await CreateVoucherEntryAsync(connection, tx, Guid.CreateVersion7(), treasury.TreasuryType,
-            shift.BranchId, DateTime.Today, shift.Code,
-            $"{(variance > 0 ? "زيادة" : "عجز")} وردية {shift.Code}", gl, userId, null, ct,
-            "cash_shift");
+        await using var connection = await _factory.OpenAsync(ct);
+        return await QueryCashCountsAsync(connection, shiftId, null, ct);
     }
 }
 

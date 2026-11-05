@@ -79,8 +79,12 @@ public sealed class TreasuryReconcileTests : IClassFixture<TestDb>
             new VoucherLineInput { TreasuryMethodId = f.CashMethod, Amount = 300 }));
         await service.PostVoucherAsync(actor, receipt.Id);
 
-        var closed = await service.CloseShiftAsync(actor, shift.Id, 290);
+        var closed = await service.CloseShiftAsync(actor, shift.Id, new List<ShiftCashCountInput>
+        { new() { TreasuryId = f.TreasuryId, CountedCash = 290 } });
         Assert.Equal(-10m, closed.Variance);
+
+        // الفرق يُرحَّل عند اعتماد المحاسب فقط (0076) ثم يُعكس بإعادة الفتح.
+        await service.ReviewShiftAsync(actor, shift.Id);
 
         var reopened = await service.ReopenShiftAsync(actor, shift.Id, "إعادة عدّ النقد");
         Assert.True(reopened.IsOpen);
@@ -99,7 +103,8 @@ public sealed class TreasuryReconcileTests : IClassFixture<TestDb>
             Assert.True(original.IsReversed);
         }
 
-        var reclosed = await service.CloseShiftAsync(actor, shift.Id, 300);
+        var reclosed = await service.CloseShiftAsync(actor, shift.Id, new List<ShiftCashCountInput>
+        { new() { TreasuryId = f.TreasuryId, CountedCash = 300 } });
         Assert.Equal(ShiftStatuses.Closed, reclosed.Status);
         Assert.Equal(0m, reclosed.Variance);
     }

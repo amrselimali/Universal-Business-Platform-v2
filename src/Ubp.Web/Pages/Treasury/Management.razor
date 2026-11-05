@@ -69,6 +69,10 @@ else
                                          Icon="@Icons.Material.Filled.CreditCard">
                                 @T.T("treasury.methods")
                             </MudMenuItem>
+                            <MudMenuItem OnClick="@(() => OverShortAsync(context))"
+                                         Icon="@Icons.Material.Filled.AccountBalanceWallet">
+                                @T.T("treasury.over_short_account")
+                            </MudMenuItem>
                         }
                     </MudMenu>
                 </MudTd>
@@ -117,6 +121,18 @@ else
             {
                 ["Branches"] = _branches, ["DefaultBranchId"] = _branchId
             });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task OverShortAsync(Treasury treasury)
+    {
+        var dialog = await Dialogs.ShowAsync<TreasuryOverShortDialog>(
+            T.T("treasury.over_short_account"),
+            new DialogParameters { ["Treasury"] = treasury });
         if ((await dialog.Result) is { Canceled: false })
         {
             await RunAsync(ReloadAsync);

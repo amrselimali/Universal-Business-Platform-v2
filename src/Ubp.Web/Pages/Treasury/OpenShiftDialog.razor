@@ -26,15 +26,11 @@
                 <HeaderContent>
                     <MudTh>@T.T("treasury.treasury")</MudTh>
                     <MudTh>@T.T("treasury.followed_methods")</MudTh>
-                    <MudTh Align="Right">@T.T("treasury.posted_balance")</MudTh>
-                    <MudTh Align="Right">@T.T("treasury.unposted_balance")</MudTh>
                     <MudTh Align="Right">@T.T("accounting.total")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd><span class="ubp-code">@context.Code</span> — @context.NameAr</MudTd>
                     <MudTd>@MethodsLabel(context)</MudTd>
-                    <MudTd Align="Right">@context.PostedBalance.ToString("N2")</MudTd>
-                    <MudTd Align="Right">@context.UnpostedBalance.ToString("N2")</MudTd>
                     <MudTd Align="Right"><b>@context.Total.ToString("N2")</b></MudTd>
                 </RowTemplate>
             </MudTable>

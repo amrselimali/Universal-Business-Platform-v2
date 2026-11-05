@@ -178,6 +178,28 @@
             </RowTemplate>
         </MudTable>
     </MudExpansionPanel>
+    <MudExpansionPanel Text="@($"{T.T("treasury.cash_count")} ({Report.CashCounts.Count})")">
+        <MudTable Items="Report.CashCounts" Dense="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("treasury.treasury")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.expected_cash")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.counted_cash")</MudTh>
+                <MudTh Align="Right">@T.T("treasury.variance")</MudTh>
+                <MudTh>@T.T("treasury.review_status")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.TreasuryCode — @context.TreasuryName</MudTd>
+                <MudTd Align="Right">@context.ExpectedCash.ToString("N2")</MudTd>
+                <MudTd Align="Right">@(context.CountedCash?.ToString("N2") ?? "—")</MudTd>
+                <MudTd Align="Right">
+                    <MudText Color="@(context.Variance is < 0 ? Color.Error : Color.Default)">
+                        @(context.Variance?.ToString("N2") ?? "—")
+                    </MudText>
+                </MudTd>
+                <MudTd>@T.T("treasury.review_" + (context.Status == "posted" ? "reviewed" : "pending"))</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudExpansionPanel>
 </MudExpansionPanels>
 
 @code {

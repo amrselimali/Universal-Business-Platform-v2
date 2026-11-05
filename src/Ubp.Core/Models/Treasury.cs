@@ -60,6 +60,8 @@ public sealed class Treasury
     public string? NameEn { get; set; }
     public string TreasuryType { get; set; } = TreasuryTypes.Cash;
     public Guid AccountId { get; set; }
+    /// <summary>حساب ترحيل زيادة/عجز هذه الخزينة عند اعتماد المحاسب (0076).</summary>
+    public Guid? OverShortAccountId { get; set; }
     public string? AccountCode { get; set; }
     public string? AccountName { get; set; }
     public decimal OpeningBalance { get; set; }
@@ -80,6 +82,8 @@ public sealed class TreasuryInput
     public string? NameEn { get; set; }
     public string TreasuryType { get; set; } = TreasuryTypes.Cash;
     public Guid AccountId { get; set; }
+    /// <summary>حساب زيادة/عجز الخزينة (اختياري) — يُستخدم عند ترحيل فرق الوردية.</summary>
+    public Guid? OverShortAccountId { get; set; }
     public decimal OpeningBalance { get; set; }
 }
 

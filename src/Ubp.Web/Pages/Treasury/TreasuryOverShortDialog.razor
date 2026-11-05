@@ -1,0 +1,66 @@
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@T.T("treasury.over_short_account") — @Treasury.DisplayName(_english)</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudSelect T="Guid?" @bind-Value="_accountId" Clearable="true"
+                   Label="@T.T("treasury.over_short_account")" Variant="Variant.Outlined"
+                   HelperText="@T.T("treasury.over_short_account_hint")">
+            @foreach (var account in _accounts)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)account.Id)">
+                    @account.Code — @account.DisplayName(_english)
+                </MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="_busy">@T.T("common.save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Treasury Treasury { get; set; } = default!;
+
+    [Inject] private TreasuryService Service { get; set; } = default!;
+    [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private UiCulture T { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private IReadOnlyList<Account> _accounts = Array.Empty<Account>();
+    private Guid? _accountId;
+    private bool _busy;
+    private bool _english;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _english = T.Language == "en";
+        _accountId = Treasury.OverShortAccountId;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            _accounts = await Service.PostableAccountsAsync(actor);
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            await Service.SetTreasuryOverShortAccountAsync(actor, Treasury.Id, _accountId);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

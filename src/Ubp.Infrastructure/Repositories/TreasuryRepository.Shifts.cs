@@ -27,6 +27,7 @@ public sealed partial class TreasuryRepository
         public decimal ExpectedCash { get; set; }
         public decimal? CountedCash { get; set; }
         public decimal? Variance { get; set; }
+        public decimal ReceiptsTotal { get; set; }
         public string Status { get; set; } = ShiftStatuses.Open;
         public string? Notes { get; set; }
         public DateTimeOffset? ReopenedAt { get; set; }
@@ -46,7 +47,13 @@ public sealed partial class TreasuryRepository
                s.counted_cash AS CountedCash, s.variance AS Variance, s.status AS Status,
                s.notes AS Notes, s.reopened_at AS ReopenedAt, s.reopen_reason AS ReopenReason,
                s.review_status AS ReviewStatus, s.auto_closed AS AutoClosed,
-               s.reviewed_at AS ReviewedAt
+               s.reviewed_at AS ReviewedAt,
+               COALESCE((SELECT SUM(v.total_amount) FROM vouchers v
+                         WHERE v.branch_id = s.branch_id AND v.voucher_type = 'receipt'
+                           AND v.status <> 'cancelled'
+                           AND v.created_at >= s.opened_at
+                           AND (s.closed_at IS NULL OR v.created_at <= s.closed_at)), 0)
+                   AS ReceiptsTotal
         FROM cashier_shifts s
         JOIN branches br ON br.id = s.branch_id
         LEFT JOIN treasuries t ON t.id = s.treasury_id
@@ -101,6 +108,21 @@ public sealed partial class TreasuryRepository
             throw new ValidationAppException("validation.shift_already_open");
         }
 
+        // لقطة افتتاح كل خزينة متابَعة: تُستخدم لحساب المتوقع عند الإغلاق وترحيل الفرق.
+        foreach (var row in balances.Treasuries)
+        {
+            await connection.ExecuteAsync(new CommandDefinition("""
+                INSERT INTO shift_cash_counts (id, shift_id, treasury_id, opening_cash,
+                    expected_cash, status)
+                VALUES (@id, @shiftId, @treasuryId, @opening, @opening, 'open')
+                ON CONFLICT (shift_id, treasury_id) DO NOTHING
+                """, new
+            {
+                id = Guid.CreateVersion7(), shiftId = id, treasuryId = row.TreasuryId,
+                opening = row.Total
+            }, tx, cancellationToken: ct));
+        }
+
         await tx.CommitAsync(ct);
         return id;
     }
@@ -138,21 +160,25 @@ public sealed partial class TreasuryRepository
         OpeningCash = row.OpeningCash, CarriedBalance = row.CarriedBalance,
         ReviewBalance = row.ReviewBalance, MeterBalance = row.MeterBalance,
         ExpectedCash = row.ExpectedCash, CountedCash = row.CountedCash, Variance = row.Variance,
+        ReceiptsTotal = row.ReceiptsTotal,
         Status = row.Status, Notes = row.Notes, ReopenedAt = row.ReopenedAt,
         ReopenReason = row.ReopenReason, ReviewStatus = row.ReviewStatus,
         AutoClosed = row.AutoClosed, ReviewedAt = row.ReviewedAt
     };
 
-    public async Task<IReadOnlyList<Shift>> ListShiftsAsync(Guid? branchId, int limit,
-        CancellationToken ct = default)
+    public async Task<IReadOnlyList<Shift>> ListShiftsAsync(Guid? branchId, DateTime? from,
+        DateTime? to, int limit, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         var rows = await connection.QueryAsync<ShiftRow>(new CommandDefinition(
             ShiftSelect + """
              WHERE (@branchId::uuid IS NULL OR s.branch_id = @branchId::uuid)
+               AND (@from::date IS NULL OR s.opened_at::date >= @from::date)
+               AND (@to::date IS NULL OR s.opened_at::date <= @to::date)
              ORDER BY s.opened_at DESC, s.id DESC
              LIMIT @limit
-            """, new { branchId, limit = Math.Clamp(limit, 1, 500) }, cancellationToken: ct));
+            """, new { branchId, from = from?.Date, to = to?.Date,
+                limit = Math.Clamp(limit, 1, 500) }, cancellationToken: ct));
         return rows.Select(Map).ToList();
     }
 

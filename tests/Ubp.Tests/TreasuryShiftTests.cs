@@ -105,7 +105,8 @@ public sealed class TreasuryShiftTests : IClassFixture<TestDb>
         Assert.Equal(2, denominations.Count);
         Assert.Equal(700m, denominations.Sum(d => d.Total));
 
-        var closed = await service.CloseShiftAsync(actor, shift.Id, 190);
+        var closed = await service.CloseShiftAsync(actor, shift.Id, new List<ShiftCashCountInput>
+        { new() { TreasuryId = f.TreasuryId, CountedCash = 190 } });
 
         Assert.Equal(ShiftStatuses.Closed, closed.Status);
         Assert.Equal(0m, closed.OpeningCash);
@@ -116,6 +117,17 @@ public sealed class TreasuryShiftTests : IClassFixture<TestDb>
 
         await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
         await connection.OpenAsync();
+        // عدّ النقدية يُحفظ مسودة عند الإغلاق ولا يُرحَّل أي فرق قبل اعتماد المحاسب.
+        var draftCounts = await service.ListCashCountsAsync(actor, shift.Id);
+        var draft = Assert.Single(draftCounts);
+        Assert.Equal(ShiftCashCountStatuses.Draft, draft.Status);
+        Assert.Equal(-10m, draft.Variance);
+        Assert.Null(await connection.ExecuteScalarAsync<Guid?>(
+            "SELECT id FROM journal_entries WHERE source_type = 'cash_shift' AND reference = @code",
+            new { code = shift.Code }));
+
+        await service.ReviewShiftAsync(actor, shift.Id);
+
         var entryId = await connection.ExecuteScalarAsync<Guid?>(
             "SELECT id FROM journal_entries WHERE source_type = 'cash_shift' AND reference = @code",
             new { code = shift.Code });
@@ -166,7 +178,7 @@ public sealed class TreasuryShiftTests : IClassFixture<TestDb>
             Lines = { new VoucherLineInput { TreasuryMethodId = f.CashMethod, Amount = 75 } }
         });
 
-        var closed = await service.CloseShiftAsync(actor, shift.Id, null);
+        var closed = await service.CloseShiftAsync(actor, shift.Id);
         Assert.Equal(ShiftReviewStatuses.Pending, closed.ReviewStatus);
 
         var report = await service.GetShiftReportAsync(actor, shift.Id);
@@ -194,7 +206,7 @@ public sealed class TreasuryShiftTests : IClassFixture<TestDb>
             TreasuryId = f.TreasuryId,
             Lines = { new VoucherLineInput { TreasuryMethodId = f.CashMethod, Amount = 75 } }
         });
-        await service.CloseShiftAsync(actor, first.Id, null);
+        await service.CloseShiftAsync(actor, first.Id);
 
         var balances = await service.GetOpeningBalancesAsync(actor, f.Branch);
         Assert.Equal(75m, balances.PendingReview);

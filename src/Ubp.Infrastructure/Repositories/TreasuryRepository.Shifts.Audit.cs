@@ -28,17 +28,83 @@ public sealed partial class TreasuryRepository
             ORDER BY i.doc_date, i.doc_no, i.entity_id
             """, new { shiftId }, cancellationToken: ct))).ToList();
 
-    /// <summary>اعتماد مراجعة الوردية بواسطة يوزر محاسب (صلاحية APPROVE على شاشة الورديات).</summary>
+    /// <summary>
+    /// اعتماد مراجعة الوردية بواسطة يوزر محاسب (صلاحية APPROVE على شاشة الورديات):
+    /// يُرحّل فرق كل خزينة (زيادة/عجز) على حساب الخزينة المخصص أو الافتراضي، ويحوّل
+    /// مسودات عدّ النقدية إلى «posted»، ثم يغلق المراجعة — 0076.
+    /// </summary>
     public async Task<Shift> ReviewShiftAsync(Guid shiftId, Guid userId, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
 
-        var status = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
-            "SELECT status FROM cashier_shifts WHERE id = @shiftId FOR UPDATE",
-            new { shiftId }, tx, cancellationToken: ct)) ?? throw new NotFoundAppException();
-        if (status == ShiftStatuses.Open)
+        var shift = await connection.QuerySingleOrDefaultAsync<ShiftRow>(new CommandDefinition(
+            ShiftSelect + " WHERE s.id = @shiftId FOR UPDATE OF s", new { shiftId }, tx,
+            cancellationToken: ct)) ?? throw new NotFoundAppException();
+        if (shift.Status == ShiftStatuses.Open)
             throw new ValidationAppException("validation.shift_not_closed");
+
+        var defaults = (await connection.QueryAsync<(string Key, Guid? AccountId)>(
+            new CommandDefinition("SELECT setting_key, account_id FROM posting_defaults",
+                transaction: tx, cancellationToken: ct)))
+            .Where(r => r.AccountId.HasValue)
+            .ToDictionary(r => r.Key, r => r.AccountId!.Value, StringComparer.OrdinalIgnoreCase);
+
+        var counts = await connection.QueryAsync<(Guid Id, Guid TreasuryId, Guid AccountId,
+            Guid? OverShortAccountId, string TreasuryType, decimal? Variance)>(
+            new CommandDefinition("""
+                SELECT c.id, c.treasury_id, t.account_id, t.over_short_account_id, t.treasury_type,
+                       c.variance
+                FROM shift_cash_counts c
+                JOIN treasuries t ON t.id = c.treasury_id
+                WHERE c.shift_id = @shiftId AND c.status = 'draft'
+                FOR UPDATE OF c
+                """, new { shiftId }, tx, cancellationToken: ct));
+
+        foreach (var row in counts)
+        {
+            var variance = Math.Round(row.Variance ?? 0, 2, MidpointRounding.AwayFromZero);
+            Guid? entryId = null;
+            if (variance != 0)
+            {
+                var overShort = row.OverShortAccountId
+                    ?? (defaults.TryGetValue(PostingKeys.CashOverShort, out var fallback)
+                        ? fallback
+                        : throw new ValidationAppException("validation.posting_account_missing",
+                            new Dictionary<string, string>
+                            {
+                                ["key"] = PostingKeys.CashOverShort, ["module"] = "treasury"
+                            }));
+
+                var amount = Math.Abs(variance);
+                var gl = variance > 0
+                    ? new List<JournalLine>
+                    {
+                        new(row.AccountId, amount, 0), new(overShort, 0, amount)
+                    }
+                    : new List<JournalLine>
+                    {
+                        new(overShort, amount, 0), new(row.AccountId, 0, amount)
+                    };
+
+                await CreateVoucherEntryAsync(connection, tx, Guid.CreateVersion7(),
+                    row.TreasuryType, shift.BranchId, DateTime.Today, shift.Code,
+                    $"{(variance > 0 ? "زيادة" : "عجز")} وردية {shift.Code}", gl, userId,
+                    row.Id, ct, "cash_shift");
+
+                entryId = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition("""
+                    SELECT id FROM journal_entries
+                    WHERE source_type = 'cash_shift' AND source_id = @countId
+                    """, new { countId = row.Id }, tx, cancellationToken: ct));
+            }
+
+            await connection.ExecuteAsync(new CommandDefinition("""
+                UPDATE shift_cash_counts
+                SET status = 'posted', posted_at = now(), posted_by = @userId,
+                    journal_entry_id = @entryId
+                WHERE id = @id
+                """, new { userId, entryId, id = row.Id }, tx, cancellationToken: ct));
+        }
 
         await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE shift_review_items

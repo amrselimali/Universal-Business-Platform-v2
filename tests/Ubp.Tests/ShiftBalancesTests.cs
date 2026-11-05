@@ -118,6 +118,37 @@ public sealed class ShiftBalancesTests : IClassFixture<TestDb>
 
 
     [Fact]
+    public async Task Review_posts_variance_to_the_treasury_over_short_account()
+    {
+        var actor = await _db.AdminActorAsync();
+        var service = _db.TreasuryService();
+        var f = await SetupAsync("10");
+
+        // حساب زيادة/عجز مخصص للخزينة (بديل الافتراضي 5490) = حساب مصاريف التحصيل 5200.
+        await service.SetTreasuryOverShortAccountAsync(actor, f.TreasuryId, f.Chart["5200"].Id);
+
+        var shift = await service.OpenShiftAsync(actor, new ShiftInput { BranchId = f.Branch });
+        await PostReceiptAsync(f, 100);
+        await service.CloseShiftAsync(actor, shift.Id, new List<ShiftCashCountInput>
+        { new() { TreasuryId = f.TreasuryId, CountedCash = 90 } });
+        await service.ReviewShiftAsync(actor, shift.Id);
+
+        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
+        await connection.OpenAsync();
+        var entryId = await connection.ExecuteScalarAsync<Guid?>(
+            "SELECT journal_entry_id FROM shift_cash_counts WHERE shift_id = @shiftId",
+            new { shiftId = shift.Id });
+        Assert.NotNull(entryId);
+
+        var lines = (await connection.QueryAsync<(string Code, decimal Debit, decimal Credit)>(
+            "SELECT a.code, l.debit, l.credit FROM journal_entry_lines l " +
+            "JOIN accounts a ON a.id = l.account_id WHERE l.entry_id = @id ORDER BY a.code",
+            new { id = entryId })).ToList();
+        Assert.Equal(10m, lines.Single(x => x.Code == "5200").Debit);
+        Assert.Equal(10m, lines.Single(x => x.Code == "1101").Credit);
+    }
+
+    [Fact]
     public async Task Gate_accepts_any_open_shift_of_the_branch_or_of_the_user()
     {
         var admin = await _db.AdminActorAsync();

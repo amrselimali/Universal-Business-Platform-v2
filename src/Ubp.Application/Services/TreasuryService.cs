@@ -146,6 +146,24 @@ public sealed partial class TreasuryService
         }
     }
 
+    /// <summary>حساب زيادة/عجز الخزينة عند اعتماد المحاسب (بديل الافتراضي العام) — 0076.</summary>
+    public async Task SetTreasuryOverShortAccountAsync(ActorContext actor, Guid treasuryId,
+        Guid? accountId, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.Treasuries, ActionCodes.ManageMethods,
+            ct: ct);
+        if (accountId is { } id)
+        {
+            var postable = await _accounts.ListPostableAsync(ct);
+            if (postable.All(a => a.Id != id))
+                throw new ValidationAppException("validation.account_not_postable");
+        }
+        if (!await _treasury.SetTreasuryOverShortAccountAsync(treasuryId, accountId, ct))
+            throw new NotFoundAppException();
+        await _audit.WriteAsync(actor, "treasuries", treasuryId.ToString(), "UPDATE", null,
+            new { over_short_account_id = accountId }, ct);
+    }
+
     /// <summary>حسابات الترحيل المتاحة لشاشات الخزينة (بدون اشتراط صلاحية شاشة الحسابات).</summary>
     public async Task<IReadOnlyList<Account>> PostableAccountsAsync(ActorContext actor,
         CancellationToken ct = default)

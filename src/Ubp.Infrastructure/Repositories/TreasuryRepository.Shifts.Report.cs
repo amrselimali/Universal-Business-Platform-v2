@@ -16,10 +16,13 @@ public sealed partial class TreasuryRepository
         await using var connection = await _factory.OpenAsync(ct);
         if (shift.IsOpen)
         {
-            var movement = await CashMovementAsync(connection, null, shift.BranchId,
-                shift.OpenedAt, ct);
-            shift.ExpectedCash = Math.Round(shift.OpeningCash + movement, 2,
-                MidpointRounding.AwayFromZero);
+            var openCounts = await QueryCashCountsAsync(connection, shiftId, null, ct);
+            decimal expected = 0;
+            foreach (var count in openCounts)
+                expected += count.OpeningCash +
+                            await TreasuryMovementAsync(connection, null, count.TreasuryId,
+                                shift.OpenedAt, ct);
+            shift.ExpectedCash = Math.Round(expected, 2, MidpointRounding.AwayFromZero);
         }
         var args = new
         {
@@ -137,6 +140,7 @@ public sealed partial class TreasuryRepository
             """, args, cancellationToken: ct))).ToList();
 
         report.ReviewItems = (await QueryReviewItemsAsync(connection, shiftId, ct)).ToList();
+        report.CashCounts = (await QueryCashCountsAsync(connection, shiftId, null, ct)).ToList();
         return report;
     }
 }

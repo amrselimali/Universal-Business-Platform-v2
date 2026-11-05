@@ -31,6 +31,8 @@ public sealed class Shift
     public decimal ExpectedCash { get; set; }
     public decimal? CountedCash { get; set; }
     public decimal? Variance { get; set; }
+    /// <summary>إجمالي تحصيلات الوردية: كل سندات القبض الصادرة خلالها أياً كان نوع الخزينة.</summary>
+    public decimal ReceiptsTotal { get; set; }
     public string Status { get; set; } = ShiftStatuses.Open;
     public string? Notes { get; set; }
     public DateTimeOffset? ReopenedAt { get; set; }
@@ -108,6 +110,35 @@ public sealed class ShiftMeterRow
     public decimal Value { get; set; }
 }
 
+/// <summary>عدّ نقدية خزينة داخل الوردية (مسودة حتى يعتمدها المحاسب) — 0076.</summary>
+public sealed class ShiftCashCount
+{
+    public Guid Id { get; set; }
+    public Guid ShiftId { get; set; }
+    public Guid TreasuryId { get; set; }
+    public string TreasuryCode { get; set; } = "";
+    public string TreasuryName { get; set; } = "";
+    public decimal OpeningCash { get; set; }
+    public decimal ExpectedCash { get; set; }
+    public decimal? CountedCash { get; set; }
+    public decimal? Variance { get; set; }
+    public string Status { get; set; } = ShiftCashCountStatuses.Open;
+}
+
+public static class ShiftCashCountStatuses
+{
+    public const string Open = "open";
+    public const string Draft = "draft";
+    public const string Posted = "posted";
+}
+
+/// <summary>النقد الفعلي المُدخل عند إغلاق الوردية لكل خزينة.</summary>
+public sealed class ShiftCashCountInput
+{
+    public Guid TreasuryId { get; set; }
+    public decimal CountedCash { get; set; }
+}
+
 public sealed class ShiftDenominationInput
 {
     public decimal Denomination { get; set; }
@@ -133,6 +164,8 @@ public sealed class ShiftReport
     public List<ShiftBookingRow> TomorrowBookings { get; set; } = new();
     public List<ShiftAppointmentRow> TomorrowAppointments { get; set; } = new();
     public List<ShiftReviewItem> ReviewItems { get; set; } = new();
+    /// <summary>عدّ النقدية لكل خزينة (مسودة حتى اعتماد المحاسب) — 0076.</summary>
+    public List<ShiftCashCount> CashCounts { get; set; } = new();
 
     public decimal CollectionsTotal => Sum(Collections);
     public decimal RevenuesTotal => Sum(Revenues);

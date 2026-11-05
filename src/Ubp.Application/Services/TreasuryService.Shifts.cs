@@ -12,10 +12,20 @@ namespace Ubp.Application.Services;
 public sealed partial class TreasuryService
 {
     public async Task<IReadOnlyList<Shift>> ListShiftsAsync(ActorContext actor, Guid? branchId,
-        int limit = 100, CancellationToken ct = default)
+        DateTime? from = null, DateTime? to = null, int limit = 200,
+        CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.View, ct: ct);
-        return await _treasury.ListShiftsAsync(branchId, limit, ct);
+        if (branchId is { } value) BranchScope.Ensure(actor, value);
+        return await _treasury.ListShiftsAsync(branchId, from, to, limit, ct);
+    }
+
+    /// <summary>عدّ النقدية المسجّل لكل خزينة في وردية (مسودة حتى اعتماد المحاسب).</summary>
+    public async Task<IReadOnlyList<ShiftCashCount>> ListCashCountsAsync(ActorContext actor,
+        Guid shiftId, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.View, ct: ct);
+        return await _treasury.ListCashCountsAsync(shiftId, ct);
     }
 
     public async Task<Shift?> GetOpenShiftAsync(ActorContext actor, Guid branchId,
@@ -60,13 +70,13 @@ public sealed partial class TreasuryService
     /// countedCash = null يعني إغلاقاً آلياً (5 صباحاً) بمطابقة المتوقع.
     /// </summary>
     public async Task<Shift> CloseShiftAsync(ActorContext actor, Guid shiftId,
-        decimal? countedCash, CancellationToken ct = default)
+        IReadOnlyList<ShiftCashCountInput>? counts = null, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.Close, ct: ct);
         Shift shift;
         try
         {
-            shift = await _treasury.CloseShiftAsync(shiftId, countedCash, actor.UserId,
+            shift = await _treasury.CloseShiftAsync(shiftId, counts, actor.UserId,
                 autoClosed: false, ct);
         }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
@@ -89,7 +99,7 @@ public sealed partial class TreasuryService
         {
             try
             {
-                await _treasury.CloseShiftAsync(shift.Id, countedCash: null, shift.UserId,
+                await _treasury.CloseShiftAsync(shift.Id, counts: null, shift.UserId,
                     autoClosed: true, ct);
                 closed++;
             }
