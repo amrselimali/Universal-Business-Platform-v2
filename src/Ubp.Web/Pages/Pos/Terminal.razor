@@ -62,7 +62,8 @@ else
                     <div class="pos-grid">
                         @foreach (var product in VisibleProducts)
                         {
-                            <div class="pos-tile" @onclick="@(() => AddToCart(product))">
+                            <div class="pos-tile" title="@product.NameAr"
+                                 @onclick="@(() => AddToCart(product))">
                                 <div class="pos-tile-name">@product.NameAr</div>
                                 <div class="pos-tile-price">@PriceOf(product).ToString("N2")</div>
                             </div>

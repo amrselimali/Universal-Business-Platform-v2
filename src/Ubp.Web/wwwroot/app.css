@@ -169,19 +169,26 @@ a { color: inherit; text-decoration: none; }
 }
 .pos-grid {
     display: grid; gap: 10px;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    /* مربعات متساوية الحجم: أعمدة ثابتة وارتفاع الخلية = العرض (مربع) */
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    grid-auto-rows: 1fr;
 }
 .pos-tile {
     background: #fff; border: 1px solid var(--ubp-line, #E2E8F0); border-radius: 14px;
-    padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 6px;
+    padding: 12px; cursor: pointer; display: flex; flex-direction: column;
+    justify-content: space-between; gap: 8px; overflow: hidden;
+    aspect-ratio: 1 / 1; width: 100%; height: 100%;
     transition: border-color .15s ease, box-shadow .15s ease, transform .1s ease;
-    min-height: 92px;
 }
 .pos-tile:hover {
     border-color: var(--ubp-primary); transform: translateY(-1px);
     box-shadow: 0 8px 20px rgba(15, 23, 42, .08);
 }
-.pos-tile-name { font-weight: 700; font-size: .9rem; line-height: 1.25; color: #0F172A; }
+.pos-tile-name {
+    font-weight: 700; font-size: .88rem; line-height: 1.25; color: #0F172A;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden; word-break: break-word;
+}
 .pos-tile-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     font-size: .72rem; color: #64748B; min-height: 18px; }
 .pos-badge {
@@ -189,7 +196,7 @@ a { color: inherit; text-decoration: none; }
     padding: 1px 8px; font-weight: 700; font-size: .68rem;
 }
 .pos-tile-price { margin-top: auto; font-weight: 800; color: var(--ubp-primary-dark);
-    font-size: 1rem; direction: ltr; }
+    font-size: 1rem; direction: ltr; text-align: start; }
 .pos-totals { display: grid; gap: 2px; }
 .pos-totals > div { display: flex; justify-content: space-between; }
 .pos-totals .pos-grand { font-size: 1.1rem; border-top: 1px dashed #ccc; padding-top: 4px; }
