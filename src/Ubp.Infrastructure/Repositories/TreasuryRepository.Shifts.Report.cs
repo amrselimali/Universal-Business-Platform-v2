@@ -70,7 +70,7 @@ public sealed partial class TreasuryRepository
                 JOIN service_transfer_lines stl ON stl.transfer_id = st.id
                 JOIN items i ON i.id = stl.item_id
                 JOIN customers fc ON fc.id = st.from_customer_id
-                WHERE st.branch_id = @branchId AND st.status = 'posted'
+                WHERE st.branch_id = @branchId AND st.status IN ('draft', 'posted')
                   AND st.created_at >= @openedAt
                   AND (@until::timestamptz IS NULL OR st.created_at <= @until::timestamptz)
                 UNION ALL
@@ -81,7 +81,7 @@ public sealed partial class TreasuryRepository
                 JOIN service_transfer_lines stl ON stl.transfer_id = st.id
                 JOIN items i ON i.id = stl.item_id
                 JOIN customers tc ON tc.id = st.to_customer_id
-                WHERE st.branch_id = @branchId AND st.status = 'posted'
+                WHERE st.branch_id = @branchId AND st.status IN ('draft', 'posted')
                   AND st.created_at >= @openedAt
                   AND (@until::timestamptz IS NULL OR st.created_at <= @until::timestamptz)
             )

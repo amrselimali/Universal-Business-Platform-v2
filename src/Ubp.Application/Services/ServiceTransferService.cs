@@ -44,6 +44,18 @@ public sealed class ServiceTransferService
                 transfer.DocNo, input.FromCustomerId, input.ToCustomerId,
                 transfer.TotalQuantity, transfer.TotalAmount
             }, ct);
+
+        // من يملك صلاحية اعتماد المراجعة يُرحّل التحويل فورًا فيتأثر على الخدمات المحجوزة
+        // وكشوف حسابات العميلين والوردية؛ وإلا يبقى مسودة ليعتمده المحاسب عند المراجعة.
+        if (await _permissions.HasAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.Approve,
+                ct))
+        {
+            var posted = await _repo.PostAsync(transfer.Id, actor.UserId, ct);
+            await _audit.WriteAsync(actor, "service_transfers", transfer.Id.ToString(), "UPDATE",
+                new { status = ServiceTransferStatuses.Draft },
+                new { status = posted.Status, posted.JournalEntryId }, ct);
+            return posted;
+        }
         return transfer;
     }
 

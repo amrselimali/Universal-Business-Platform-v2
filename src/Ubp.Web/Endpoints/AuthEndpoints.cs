@@ -12,16 +12,17 @@ public static partial class AuthEndpoints
 
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/auth").DisableAntiforgery()
+        var group = app.MapGroup("/auth").DisableAntiforgery();
+        group.MapPost("/login", LoginForm)
             .RequireRateLimiting(RateLimitingRegistration.LoginPolicy);
-        group.MapPost("/login", LoginForm);
+        // تبديل الفرع/اللغة/الخروج ليست محاولات دخول؛ لا تُحتسب على حد الدخول (كانت تسبب 429).
         group.MapPost("/logout", LogoutForm);
         group.MapPost("/branch", SwitchBranch);
         group.MapPost("/language", SwitchLanguage);
 
-        var api = app.MapGroup("/api/v1/auth").DisableAntiforgery()
+        var api = app.MapGroup("/api/v1/auth").DisableAntiforgery();
+        api.MapPost("/login", ApiLogin)
             .RequireRateLimiting(RateLimitingRegistration.LoginPolicy);
-        api.MapPost("/login", ApiLogin);
         api.MapPost("/refresh", ApiRefresh);
         api.MapPost("/logout", ApiLogout).RequireAuthorization();
         return app;
