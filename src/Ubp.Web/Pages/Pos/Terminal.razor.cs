@@ -103,7 +103,7 @@ public partial class Terminal : SecurePageBase
     {
         _branches = await Branches.OptionsAsync(Actor!);
         _branchId = _branches.FirstOrDefault()?.Id ?? Guid.Empty;
-        _employees = await EmployeeRepository.ListOptionsAsync();
+        _employees = await MasterData.EmployeeOptionsAsync(Actor!);
         await SearchCustomersAsync();
         await LoadBranchAsync();
     }

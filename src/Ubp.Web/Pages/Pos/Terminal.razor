@@ -6,7 +6,7 @@
 @inject LookupService Lookup
 @inject IDialogService Dialogs
 @inject IJSRuntime JS
-@inject Ubp.Infrastructure.Repositories.IEmployeeRepository EmployeeRepository
+@inject MasterDataService MasterData
 <PageTitle>@T.T("screen.pos_terminal")</PageTitle>
 
 @if (Denied) { <ForbiddenView /> }
@@ -138,7 +138,6 @@ else
                                        ValueChanged="@(v => SetOperation(context, v))"
                                        Variant="Variant.Outlined" Class="mt-1">
                                 <MudSelectItem T="string" Value="@ServiceOperationTypes.Normal">عادي</MudSelectItem>
-                                <MudSelectItem T="string" Value="@ServiceOperationTypes.Gift">هدية</MudSelectItem>
                                 <MudSelectItem T="string" Value="@ServiceOperationTypes.Treatment">علاجي</MudSelectItem>
                             </MudSelect>
                             @if (context.IsTreatment)

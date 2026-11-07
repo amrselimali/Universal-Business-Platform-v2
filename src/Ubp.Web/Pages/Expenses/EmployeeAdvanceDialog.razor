@@ -1,6 +1,6 @@
 @inject EmployeeAdvanceService Advances
 @inject LookupService Lookup
-@inject Ubp.Infrastructure.Repositories.IEmployeeRepository Employees
+@inject MasterDataService MasterData
 @inject UserContext UserContext
 @inject UiCulture T
 @inject ISnackbar Snackbar
@@ -73,7 +73,7 @@
         try
         {
             var actor = await UserContext.RequireAsync();
-            _employees = await Employees.ListOptionsAsync();
+            _employees = await MasterData.EmployeeOptionsAsync(actor);
             _treasuries = await Lookup.TreasuriesAsync(actor, BranchId);
             _accounts = await Lookup.PostableAccountsAsync(actor);
             _treasuryId = _treasuries.FirstOrDefault()?.Id ?? Guid.Empty;

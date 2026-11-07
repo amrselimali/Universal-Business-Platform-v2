@@ -13,6 +13,9 @@ public static partial class AppRegistry
     {
         new(Reservations, "/sales/reservations", "BookmarkAdded", "screen.reservations", GroupSales,
             new[] { SA(View), SA(Execute), SA(ReleaseReservation), SA(ExtendReservation),
-                    SA(ExportCsv), SA(Print) })
+                    SA(ExportCsv), SA(Print) }),
+
+        new(Complaints, "/sales/complaints", "ReportProblem", "screen.complaints", GroupSales,
+            new[] { SA(View), SA(Create), SA(Edit) })
     };
 }
