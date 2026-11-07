@@ -50,6 +50,9 @@ public sealed class Employee
     public int BookingsCount { get; set; }
     /// <summary>حساب تحميل قيمة الجلسة العلاجية على الموظف — 0084.</summary>
     public Guid? TreatmentAccountId { get; set; }
+    /// <summary>فرع الموظف؛ null = موظف على مستوى الشركة — 0091.</summary>
+    public Guid? BranchId { get; set; }
+    public string? BranchName { get; set; }
 
     public string DisplayName(bool english) =>
         english && !string.IsNullOrWhiteSpace(NameEn) ? NameEn! : NameAr;
@@ -73,6 +76,9 @@ public sealed class EmployeeInput
     public bool IsActive { get; set; } = true;
     /// <summary>حساب تحميل قيمة الجلسة العلاجية على الموظف — 0084.</summary>
     public Guid? TreatmentAccountId { get; set; }
+    /// <summary>فرع الموظف؛ null = موظف على مستوى الشركة — 0091.</summary>
+    public Guid? BranchId { get; set; }
+    public string? BranchName { get; set; }
 }
 
 public sealed class Tax

@@ -44,6 +44,7 @@ else
                 <MudTh>@T.T("common.name_ar")</MudTh>
                 <MudTh>@T.T("settings.job_title")</MudTh>
                 <MudTh>@T.T("settings.admin_role")</MudTh>
+                <MudTh>الفرع</MudTh>
                 <MudTh>@T.T("common.phone")</MudTh>
                 <MudTh>@T.T("settings.employee_roles")</MudTh>
                 <MudTh>@T.T("common.status")</MudTh>
@@ -54,6 +55,7 @@ else
                 <MudTd DataLabel="@T.T("common.name_ar")">@context.DisplayName(IsEnglish)</MudTd>
                 <MudTd DataLabel="@T.T("settings.job_title")">@(context.JobTitle ?? "—")</MudTd>
                 <MudTd DataLabel="@T.T("settings.admin_role")">@(context.RoleName ?? "—")</MudTd>
+                <MudTd DataLabel="الفرع">@(context.BranchName ?? "الشركة")</MudTd>
                 <MudTd DataLabel="@T.T("common.phone")">@context.Phone</MudTd>
                 <MudTd DataLabel="@T.T("settings.employee_roles")">
                     @if (context.IsBookingReceiver) { <MudChip T="string" Size="Size.Small">@T.T("settings.role_receiver")</MudChip> }

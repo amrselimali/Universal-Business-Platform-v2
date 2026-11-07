@@ -27,6 +27,8 @@ public sealed class EmployeeRepository : IEmployeeRepository
         e.is_booking_receiver AS IsBookingReceiver, e.is_seller AS IsSeller,
         e.is_service_executor AS IsServiceExecutor, e.hire_date AS HireDate,
         e.treatment_account_id AS TreatmentAccountId,
+        e.branch_id AS BranchId,
+        (SELECT b.name_ar FROM branches b WHERE b.id = e.branch_id) AS BranchName,
         e.notes AS Notes, e.is_active AS IsActive, e.version AS Version
         """;
 
@@ -90,14 +92,15 @@ public sealed class EmployeeRepository : IEmployeeRepository
         return await connection.ExecuteScalarAsync<Guid>(new CommandDefinition("""
             INSERT INTO employees (id, code, name_ar, name_en, phone, email, user_id,
                 role_id, job_title, is_booking_receiver, is_seller, is_service_executor, hire_date,
-                treatment_account_id, notes, is_active, created_by)
+                treatment_account_id, branch_id, notes, is_active, created_by)
             VALUES (@id, @Code, @NameAr, @NameEn, @Phone, @Email, @UserId, @RoleId, @JobTitle,
                     @IsBookingReceiver, @IsSeller, @IsServiceExecutor, @HireDate,
-                    @TreatmentAccountId, @Notes, @IsActive, @userId)
+                    @TreatmentAccountId, @BranchId, @Notes, @IsActive, @userId)
             RETURNING id
             """, new { id, i.Code, i.NameAr, i.NameEn, i.Phone, i.Email, i.UserId, i.RoleId,
                 i.JobTitle, i.IsBookingReceiver, i.IsSeller, i.IsServiceExecutor, i.HireDate,
-                i.TreatmentAccountId, i.Notes, i.IsActive, userId }, cancellationToken: ct));
+                i.TreatmentAccountId, i.BranchId, i.Notes, i.IsActive, userId },
+            cancellationToken: ct));
     }
 
     public async Task<Employee?> UpdateAsync(Guid id, int version, EmployeeInput i, Guid userId,
@@ -109,12 +112,12 @@ public sealed class EmployeeRepository : IEmployeeRepository
                 email = @Email, user_id = @UserId, role_id = @RoleId, job_title = @JobTitle,
                 is_booking_receiver = @IsBookingReceiver, is_seller = @IsSeller,
                 is_service_executor = @IsServiceExecutor, hire_date = @HireDate,
-                treatment_account_id = @TreatmentAccountId, notes = @Notes,
+                treatment_account_id = @TreatmentAccountId, branch_id = @BranchId, notes = @Notes,
                 is_active = @IsActive, updated_by = @userId
             WHERE id = @id AND version = @version RETURNING id
             """, new { id, version, i.Code, i.NameAr, i.NameEn, i.Phone, i.Email, i.UserId,
                 i.RoleId, i.JobTitle, i.IsBookingReceiver, i.IsSeller, i.IsServiceExecutor,
-                i.HireDate, i.TreatmentAccountId, i.Notes, i.IsActive, userId },
+                i.HireDate, i.TreatmentAccountId, i.BranchId, i.Notes, i.IsActive, userId },
             cancellationToken: ct));
         return updated is null ? null : await GetAsync(id, ct);
     }
