@@ -39,7 +39,7 @@ else
             <MudSelect T="Guid" SelectedValues="_branchIds" MultiSelection="true"
                        Label="@T.T("common.branch")" Variant="Variant.Outlined" Margin="Margin.Dense"
                        SelectAll="true" SelectAllText="@T.T("common.select_all")"
-                       SelectedValuesChanged="OnBranchesChanged">
+                       ToStringFunc="@BranchLabel" SelectedValuesChanged="OnBranchesChanged">
                 @foreach (var branch in _branches)
                 {
                     <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
@@ -110,6 +110,9 @@ else
         _branches = await Branches.OptionsAsync(Actor!);
         _branchIds = _branches.Select(b => b.Id).ToHashSet();
     }
+
+    private string BranchLabel(Guid id) =>
+        _branches.FirstOrDefault(b => b.Id == id)?.NameAr ?? "—";
 
     private Task OnBranchesChanged(IEnumerable<Guid> values)
     {

@@ -1,5 +1,30 @@
 @namespace Ubp.Web.Components
 @inject UiCulture Culture
+@inject SettingsService Settings
+@code {
+    private string _primary = "#0F766E";
+    private string _primaryDark = "#115E59";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var s = await Settings.GetAsync();
+        if (!string.IsNullOrWhiteSpace(s.ThemeColor) &&
+            System.Text.RegularExpressions.Regex.IsMatch(s.ThemeColor, "^#[0-9A-Fa-f]{6}$"))
+        {
+            _primary = s.ThemeColor;
+            _primaryDark = Darken(s.ThemeColor);
+        }
+    }
+
+    private static string Darken(string hex)
+    {
+        var r = Convert.ToInt32(hex.Substring(1, 2), 16);
+        var g = Convert.ToInt32(hex.Substring(3, 2), 16);
+        var b = Convert.ToInt32(hex.Substring(5, 2), 16);
+        int F(int c) => Math.Max(0, (int)Math.Round(c * 0.78));
+        return $"#{F(r):X2}{F(g):X2}{F(b):X2}";
+    }
+}
 <!DOCTYPE html>
 <html lang="@Culture.Language" dir="@Culture.Dir">
 <head>
@@ -7,6 +32,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Universal Business Platform</title>
     <base href="/" />
+    <style>
+        :root { --ubp-primary: @_primary; --ubp-primary-dark: @_primaryDark; }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />

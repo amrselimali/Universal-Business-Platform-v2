@@ -29,7 +29,7 @@ else
         <div class="ubp-toolbar">
             <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
                        Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
-                       ValueChanged="OnBranchChanged">
+                       ToStringFunc="@BranchLabel" ValueChanged="OnBranchChanged">
                 @foreach (var branch in _branches)
                 {
                     <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>

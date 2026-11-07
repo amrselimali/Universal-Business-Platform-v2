@@ -25,7 +25,7 @@ else
         <div class="ubp-toolbar">
             <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
                        Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
-                       ValueChanged="OnBranchChanged">
+                       ToStringFunc="@BranchLabel" ValueChanged="OnBranchChanged">
                 @foreach (var branch in _branches)
                 {
                     <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
@@ -127,6 +127,9 @@ else
         _items = await Treasury.ListShiftsAsync(Actor!, _branchId, _from, _to, 300);
 
     private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+    // يعرض اسم الفرع (لا الكود/GUID) داخل القائمة.
+    private string BranchLabel(Guid? id) =>
+        id is null ? "—" : _branches.FirstOrDefault(b => b.Id == id)?.NameAr ?? "—";
     private Task OnFromChanged(DateTime? value) { _from = value; return RunAsync(ReloadAsync); }
     private Task OnToChanged(DateTime? value) { _to = value; return RunAsync(ReloadAsync); }
 

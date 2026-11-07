@@ -16,7 +16,7 @@ else
         <div class="ubp-toolbar">
             <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
                        Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
-                       ValueChanged="OnBranchChanged">
+                       ToStringFunc="@BranchLabel" ValueChanged="OnBranchChanged">
                 @foreach (var branch in _branches)
                 {
                     <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
@@ -71,6 +71,8 @@ else
         _items = await Pos.ListReceiptsAsync(Actor!, _branchId, 200);
 
     private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+    private string BranchLabel(Guid? id) =>
+        id is null ? "—" : _branches.FirstOrDefault(b => b.Id == id)?.NameAr ?? "—";
 
     private async Task ViewAsync(CommercialDocument doc) =>
         await Dialogs.ShowAsync<ViewReceiptDialog>(T.T("pos.view_receipt"),

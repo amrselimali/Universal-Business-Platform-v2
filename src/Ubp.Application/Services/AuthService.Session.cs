@@ -94,6 +94,8 @@ public sealed partial class AuthService
         if (user is null) return false;
         var allowed = await _users.GetBranchIdsAsync(userId, ct);
         var chosen = branchIds.Where(allowed.Contains).Distinct().ToArray();
+        // حد أدنى فرع واحد: أي محاولة لإلغاء كل الفروع تُعاد لكل فروع المستخدم (لا فلتر فارغ أبدًا).
+        if (chosen.Length == 0) chosen = allowed.Distinct().ToArray();
         var settings = await _settings.GetAsync(ct);
         var expires = DateTimeOffset.UtcNow.AddMinutes(settings.SessionTimeoutMinutes);
 
@@ -102,7 +104,7 @@ public sealed partial class AuthService
             await _sessions.SetSessionBranchFilterAsync(sessionId, null, ct);
             return true;
         }
-        if (chosen.Length == 0) chosen = allowed.ToArray(); // حد أدنى فرع واحد (لا فلتر فارغ).
+        if (chosen.Length == 0) return false; // مستخدم بلا أي فرع مربوط.
 
         var current = await _sessions.GetSessionAsync(sessionId, ct);
         var currentBranch = current?.BranchId is { } cb && chosen.Contains(cb) ? cb : chosen[0];

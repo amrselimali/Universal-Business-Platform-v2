@@ -40,6 +40,9 @@ public partial class OperatingExpenses
         await ReloadAsync();
     }
 
+    private string BranchLabel(Guid? id) =>
+        id is null ? "—" : _branches.FirstOrDefault(b => b.Id == id)?.NameAr ?? "—";
+
     private async Task OnStatusChanged(string? status)
     {
         _status = status;
