@@ -44,12 +44,17 @@ else
             <HeaderContent>
                 <MudTh>@T.T("treasury.shift_code")</MudTh>
                 <MudTh>@T.T("common.branch")</MudTh>
-                <MudTh>@T.T("treasury.cashier")</MudTh>
+                <MudTh>@T.T("treasury.user")</MudTh>
                 <MudTh>@T.T("treasury.opened_at")</MudTh>
-                <MudTh Align="Right">@T.T("treasury.opening_cash")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.receipts_total")</MudTh>
-                <MudTh Align="Right">@T.T("treasury.treasuries_balance")</MudTh>
-                <MudTh Align="Right">@T.T("treasury.meters_balance")</MudTh>
+                @foreach (var t in _treasuryColumns)
+                {
+                    <MudTh Align="Right">@t.Label</MudTh>
+                }
+                @foreach (var m in _meterColumns)
+                {
+                    <MudTh Align="Right">@m.Label</MudTh>
+                }
                 <MudTh>@T.T("common.status")</MudTh>
                 <MudTh>@T.T("treasury.review_status")</MudTh>
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
@@ -59,10 +64,19 @@ else
                 <MudTd>@context.BranchName</MudTd>
                 <MudTd>@context.Username</MudTd>
                 <MudTd>@Fmt.DateTime(context.OpenedAt)</MudTd>
-                <MudTd Align="Right">@context.OpeningCash.ToString("N2")</MudTd>
                 <MudTd Align="Right">@context.ReceiptsTotal.ToString("N2")</MudTd>
-                <MudTd Align="Right">@context.TreasuryBalance.ToString("N2")</MudTd>
-                <MudTd Align="Right">@context.MeterBalance.ToString("N2")</MudTd>
+                @foreach (var t in _treasuryColumns)
+                {
+                    <MudTd Align="Right">
+                        @((context.TreasuryBalances.FirstOrDefault(x => x.TreasuryId == t.Id)?.Balance ?? 0).ToString("N2"))
+                    </MudTd>
+                }
+                @foreach (var m in _meterColumns)
+                {
+                    <MudTd Align="Right">
+                        @((context.MeterBalances.FirstOrDefault(x => x.AssetId == m.Id)?.Value ?? 0).ToString("N2"))
+                    </MudTd>
+                }
                 <MudTd>
                     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                              Color="@(context.IsOpen ? Color.Warning : Color.Success)">
@@ -110,6 +124,10 @@ else
 @code {
     private IReadOnlyList<Shift> _items = Array.Empty<Shift>();
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private static readonly Guid _none = Guid.Empty;
+    private sealed record Column(Guid Id, string Label);
+    private List<Column> _treasuryColumns = new();
+    private List<Column> _meterColumns = new();
     private Guid? _branchId;
     private DateTime? _from = DateTime.Today.AddDays(-30);
     private DateTime? _to = DateTime.Today;
@@ -123,8 +141,19 @@ else
         await ReloadAsync();
     }
 
-    private async Task ReloadAsync() =>
+    private async Task ReloadAsync()
+    {
         _items = await Treasury.ListShiftsAsync(Actor!, _branchId, _from, _to, 300);
+        // أعمدة ديناميكية: كل خزينة متابَعة وكل جهاز له عداد — 0097.
+        _treasuryColumns = _items.SelectMany(s => s.TreasuryBalances)
+            .GroupBy(t => t.TreasuryId)
+            .Select(g => new Column(g.Key, g.First().NameAr))
+            .OrderBy(c => c.Label).ToList();
+        _meterColumns = _items.SelectMany(s => s.MeterBalances)
+            .GroupBy(m => m.AssetId)
+            .Select(g => new Column(g.Key, g.First().NameAr))
+            .OrderBy(c => c.Label).ToList();
+    }
 
     private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
     // يعرض اسم الفرع (لا الكود/GUID) داخل القائمة.

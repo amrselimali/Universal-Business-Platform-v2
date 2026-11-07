@@ -1810,5 +1810,6 @@
   "action.send_whatsapp": "Send WhatsApp",
   "action.set_main": "Set as main treasury",
   "action.transfer_service": "Transfer services",
-  "action.view_unposted": "View unposted"
+  "action.view_unposted": "View unposted",
+  "treasury.user": "User"
 }

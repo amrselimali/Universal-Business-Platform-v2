@@ -43,6 +43,10 @@ public sealed class Shift
     public bool AutoClosed { get; set; }
     public DateTimeOffset? ReviewedAt { get; set; }
     public List<ShiftDenomination> Denominations { get; set; } = new();
+    /// <summary>أرصدة الخزائن المتابَعة في الوردية (اسم وحدث رصيد) — 0097.</summary>
+    public List<ShiftTreasuryBalance> TreasuryBalances { get; set; } = new();
+    /// <summary>قراءات عدادات أجهزة الوردية (كل جهاز عمود مستقل) — 0097.</summary>
+    public List<ShiftMeterBalance> MeterBalances { get; set; } = new();
 
     public bool IsOpen => Status == ShiftStatuses.Open;
     public bool IsPendingReview => ReviewStatus == ShiftReviewStatuses.Pending;
@@ -334,4 +338,22 @@ public sealed class CashHandoverInput
     public decimal CommissionAmount { get; set; }
     public DateTime DocDate { get; set; } = DateTime.Today;
     public string? Notes { get; set; }
+}
+
+/// <summary>رصيد خزينة داخل الوردية كعمود مستقل في شاشة الورديات — 0097.</summary>
+public sealed class ShiftTreasuryBalance
+{
+    public Guid TreasuryId { get; set; }
+    public string Code { get; set; } = "";
+    public string NameAr { get; set; } = "";
+    public decimal Balance { get; set; }
+}
+
+/// <summary>قيمة عداد جهاز داخل الوردية كعمود مستقل — 0097.</summary>
+public sealed class ShiftMeterBalance
+{
+    public Guid AssetId { get; set; }
+    public string Code { get; set; } = "";
+    public string NameAr { get; set; } = "";
+    public decimal Value { get; set; }
 }

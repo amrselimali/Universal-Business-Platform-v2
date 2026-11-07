@@ -151,6 +151,34 @@ public sealed partial class TreasuryRepository
     {
         var shift = Map(row);
         shift.Denominations = (await ListDenominationsAsync(connection, shift.Id, ct)).ToList();
+
+        // أرصدة الخزائن المتابَعة في الوردية (كل خزينة عمود مستقل) — 0097.
+        shift.TreasuryBalances = (await connection.QueryAsync<ShiftTreasuryBalance>(
+            new CommandDefinition("""
+            SELECT t.id AS TreasuryId, t.code AS Code, t.name_ar AS NameAr,
+                   COALESCE(c.counted_cash, c.expected_cash, 0) AS Balance
+            FROM shift_cash_counts c
+            JOIN treasuries t ON t.id = c.treasury_id
+            WHERE c.shift_id = @shiftId
+            ORDER BY t.code
+            """, new { shiftId = shift.Id }, cancellationToken: ct))).ToList();
+
+        // عدادات أجهزة الوردية (كل جهاز عمود مستقل) — 0097.
+        shift.MeterBalances = (await connection.QueryAsync<ShiftMeterBalance>(
+            new CommandDefinition("""
+            SELECT a.id AS AssetId, a.code AS Code, a.name_ar AS NameAr,
+                   COALESCE((SELECT r.value FROM asset_meter_readings r
+                             WHERE r.asset_id = a.id
+                               AND (r.created_at >= @openedAt)
+                               AND (@closedAt::timestamptz IS NULL OR r.created_at <= @closedAt)
+                             ORDER BY r.created_at DESC LIMIT 1),
+                            a.current_meter_value, 0) AS Value
+            FROM fixed_assets a
+            WHERE a.branch_id = @branchId AND a.is_metered AND a.status <> 'DISPOSED'
+            ORDER BY a.code
+            """, new { shiftId = shift.Id, openedAt = shift.OpenedAt, closedAt = shift.ClosedAt,
+                branchId = shift.BranchId }, cancellationToken: ct))).ToList();
+
         return shift;
     }
 
@@ -182,7 +210,10 @@ public sealed partial class TreasuryRepository
              LIMIT @limit
             """, new { branchId, from = from?.Date, to = to?.Date,
                 limit = Math.Clamp(limit, 1, 500) }, cancellationToken: ct));
-        return rows.Select(Map).ToList();
+        // تحميل تفاصيل كل وردية (أرصدة الخزائن + عدادات الأجهزة) — 0097.
+        var result = new List<Shift>();
+        foreach (var row in rows) result.Add(await MaterializeAsync(connection, row, ct));
+        return result;
     }
 
     public async Task<IReadOnlyList<Shift>> ListShiftsDueForAutoCloseAsync(

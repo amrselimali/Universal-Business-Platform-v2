@@ -1810,5 +1810,6 @@
   "action.send_whatsapp": "إرسال واتساب",
   "action.set_main": "تعيين كخزينة رئيسية",
   "action.transfer_service": "تحويل خدمات",
-  "action.view_unposted": "عرض غير المرحّل"
+  "action.view_unposted": "عرض غير المرحّل",
+  "treasury.user": "المستخدم"
 }
