@@ -94,6 +94,9 @@
             _roles = await MasterData.EmployeeRoleOptionsAsync(actor);
             _accounts = await Lookup.PostableAccountsAsync(actor);
             _branches = await Branches.OptionsAsync(actor);
+            // الافتراضي = فرع المستخدم الحالي (ولا يظهر غير فروع المستخدم).
+            if (Model is null && actor.CurrentBranchId is { } currentBranch)
+                _input.BranchId = currentBranch;
         }
 
         if (Model is null) return;

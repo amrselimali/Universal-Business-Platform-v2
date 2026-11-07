@@ -1,5 +1,6 @@
 using Ubp.Core.Models;
 using Ubp.Core.Results;
+using Ubp.Core.Security;
 using Xunit;
 
 namespace Ubp.Tests;
@@ -59,5 +60,46 @@ public sealed class PartnerPhoneTests : IClassFixture<TestDb>
             service.CreateAsync(actor, PartnerKind.Customer, new PartnerInput
             { Code = "PH-R-2", NameAr = "عميل بلا واتساب", Phone = "01000000009" }));
         Assert.Equal("validation.customer_whatsapp_required", noWhatsApp.Code);
+    }
+
+    [Fact]
+    public async Task Restricted_user_cannot_attach_a_partner_to_a_foreign_branch_or_company()
+    {
+        var admin = await _db.AdminActorAsync();
+        var allowed = await _db.CreateBranchAsync("PB-A", "فرع نطاق أ");
+        var foreign = await _db.CreateBranchAsync("PB-B", "فرع نطاق ب");
+        var userId = await _db.CreateUserAsync("pb-user", "Passw0rd!", new[] { allowed });
+        var limited = new ActorContext
+        {
+            UserId = userId, Username = "pb-user", IsAdmin = true, Language = "ar",
+            AllowedBranchIds = new[] { allowed }, AllBranchIds = new[] { allowed },
+            CurrentBranchId = allowed, TraceId = "t"
+        };
+        var svc = _db.Partners();
+
+        // فرع أجنبي مرفوض.
+        await Assert.ThrowsAsync<ForbiddenException>(() => svc.CreateAsync(limited,
+            PartnerKind.Customer, new PartnerInput
+            {
+                Code = "PB-C-1", NameAr = "عميل فرع أجنبي", ScopeType = "BRANCH",
+                BranchId = foreign, Phone = "01011111111", WhatsAppPhone = "01011111111"
+            }));
+
+        // النطاق «الشركة» مرفوض لغير السوبر أدمن.
+        await Assert.ThrowsAsync<ForbiddenException>(() => svc.CreateAsync(limited,
+            PartnerKind.Customer, new PartnerInput
+            {
+                Code = "PB-C-2", NameAr = "عميل شركة", ScopeType = "COMPANY",
+                Phone = "01022222222", WhatsAppPhone = "01022222222"
+            }));
+
+        // فرعه المسموح مقبول.
+        var ok = await svc.CreateAsync(limited, PartnerKind.Customer, new PartnerInput
+        {
+            Code = "PB-C-3", NameAr = "عميل فرعه", ScopeType = "BRANCH", BranchId = allowed,
+            Phone = "01033333333", WhatsAppPhone = "01033333333"
+        });
+        Assert.Equal(allowed, ok.BranchId);
+        _ = admin;
     }
 }

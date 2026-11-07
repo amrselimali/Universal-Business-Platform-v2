@@ -98,8 +98,9 @@ public sealed partial class MasterDataService
         if (!input.IsBookingReceiver && !input.IsSeller && !input.IsServiceExecutor &&
             input.RoleId is null)
             throw new ValidationAppException("validation.employee_role_required");
-        // فرع الموظف (أو null = الشركة) يجب أن يكون ضمن فروع المستخدم المصرّح بها.
+        // فرع الموظف (أو null = الشركة): النطاق «الشركة» للسوبر أدمن فقط، وغيره داخل فروعه.
         if (input.BranchId is { } employeeBranch) BranchScope.Ensure(actor, employeeBranch);
+        else if (!actor.IsSuperAdmin) input.BranchId = actor.CurrentBranchId ?? actor.AllowedBranchIds.FirstOrDefault();
 
         try
         {

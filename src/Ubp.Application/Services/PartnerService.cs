@@ -187,6 +187,9 @@ public sealed class PartnerService
 
         if (input.ScopeType == "COMPANY")
         {
+            // النطاق «الشركة» متاح فقط لمن يملك كل الفروع (سوبر أدمن)؛ غيره يُقيَّد بفرع.
+            if (!actor.IsSuperAdmin)
+                throw new ForbiddenException("error.branch_not_allowed");
             input.BranchId = null;
         }
         else
