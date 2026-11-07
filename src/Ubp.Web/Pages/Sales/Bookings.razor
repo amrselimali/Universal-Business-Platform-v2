@@ -23,12 +23,13 @@ else
 
     <MudPaper Elevation="0" Class="ubp-card">
         <div class="ubp-toolbar">
-            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
-                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
-                       ValueChanged="OnBranchChanged">
+            <MudSelect T="Guid" SelectedValues="_branchIds" MultiSelection="true"
+                       Label="@T.T("common.branch")" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" SelectAll="true" SelectAllText="@T.T("common.select_all")"
+                       SelectedValuesChanged="OnBranchesChanged">
                 @foreach (var branch in _branches)
                 {
-                    <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
+                    <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
                 }
             </MudSelect>
             <MudTextField @bind-Value="_search" Label="@T.T("sales.customer_search")"
@@ -125,7 +126,7 @@ else
 @code {
     private MudTable<Booking> _table = default!;
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
-    private Guid? _branchId;
+    private HashSet<Guid> _branchIds = new();
     private string? _search;
     // فلتر الحالة: 3 خيارات فقط (مسودة/مؤكد/ملغى) والافتراضي مسودة + مؤكد.
     private HashSet<string> _statuses = new()
@@ -148,13 +149,17 @@ else
     {
         var result = await BookingApi.ListAsync(Actor!, new BookingFilter
         {
-            BranchId = _branchId, Statuses = _statuses.ToList(), Source = ScreenSource,
+            BranchIds = _branchIds.ToList(), Statuses = _statuses.ToList(), Source = ScreenSource,
             Search = _search, From = _from, To = _to
         }, new PageRequest { Page = state.Page + 1, PageSize = 25 }, ct);
         return new TableData<Booking> { Items = result.Items, TotalItems = result.Total };
     }
 
-    private Task OnBranchChanged(Guid? value) { _branchId = value; return _table.ReloadServerData(); }
+    private Task OnBranchesChanged(IEnumerable<Guid> values)
+    {
+        _branchIds = values.ToHashSet();
+        return _table.ReloadServerData();
+    }
     private Task OnSearchAsync(string? value) { _search = value; return _table.ReloadServerData(); }
 
     private Task OnStatusesChanged(IEnumerable<string> values)
@@ -186,7 +191,8 @@ else
     private async Task AddAsync()
     {
         var dialog = await Dialogs.ShowAsync<BookingDialog>(T.T("sales.new_booking"),
-            new DialogParameters { ["Branches"] = _branches, ["DefaultBranchId"] = _branchId });
+            new DialogParameters { ["Branches"] = _branches,
+                ["DefaultBranchId"] = (_branchIds.Count == 1 ? _branchIds.First() : (Guid?)null) });
         if ((await dialog.Result) is { Canceled: false })
         {
             await _table.ReloadServerData();

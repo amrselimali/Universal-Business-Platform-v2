@@ -31,6 +31,7 @@ public sealed class BookingService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesBookings, ActionCodes.View, ct: ct);
         if (filter.BranchId is { } branchId) BranchScope.Ensure(actor, branchId);
+        else if (filter.BranchIds.Count > 0) filter.BranchIds = BranchScope.Resolve(actor, filter.BranchIds);
         else if (!actor.IsSuperAdmin) filter.BranchIds = actor.AllowedBranchIds;
         return await _bookings.ListAsync(filter, request, ct);
     }
