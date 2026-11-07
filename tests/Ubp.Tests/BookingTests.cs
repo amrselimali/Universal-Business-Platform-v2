@@ -179,10 +179,15 @@ public sealed class BookingTests : IClassFixture<TestDb>
         });
         Assert.Equal(actor.Username, first.CreatedByName);
 
+        // عميل آخر لنفس الموظف في نفس اليوم: يبقى اختبار تداخل المواعيد صالحًا
+        // (قاعدة «لا حجز ثانٍ لنفس العميل والموظف في نفس اليوم» لا تنطبق هنا).
+        var otherCustomer = await _db.PartnerRepo.CreateAsync(PartnerKind.Customer,
+            new PartnerInput { Code = "BK-C-9b", NameAr = "عميل تداخل آخر 9" });
+
         var error = await Assert.ThrowsAsync<ValidationAppException>(() =>
             service.CreateAsync(actor, new BookingInput
             {
-                BranchId = branch, BookingDate = DateTime.Today, CustomerId = customer.Id,
+                BranchId = branch, BookingDate = DateTime.Today, CustomerId = otherCustomer.Id,
                 AssignedEmployeeId = employee.Id, StartsAt = start.AddMinutes(15),
                 EndsAt = start.AddMinutes(45),
                 Lines = { new BookingLineInput { ItemId = item.Id, UnitId = item.BaseUnitId,

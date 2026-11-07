@@ -21,6 +21,9 @@ public sealed partial class BookingRepository
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
         await EnsureDraftEmployeeAsync(connection, tx, input.AssignedEmployeeId, ct);
+        if (input.AssignedEmployeeId is { } dupEmpA)
+            await EnsureNoDuplicateDailyBookingAsync(connection, tx, input.CustomerId, dupEmpA,
+                input.BookingDate.Date, null, ct);
 
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO bookings (id, branch_id, booking_date, status, customer_id, source, due_date,
@@ -63,6 +66,9 @@ public sealed partial class BookingRepository
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
         await EnsureDraftEmployeeAsync(connection, tx, input.AssignedEmployeeId, ct);
+        if (input.AssignedEmployeeId is { } dupEmpB)
+            await EnsureNoDuplicateDailyBookingAsync(connection, tx, input.CustomerId, dupEmpB,
+                input.BookingDate.Date, null, ct);
 
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO bookings (id, branch_id, booking_date, status, customer_id, source, due_date,
@@ -95,6 +101,9 @@ public sealed partial class BookingRepository
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
         await EnsureDraftEmployeeAsync(connection, tx, input.AssignedEmployeeId, ct);
+        if (input.AssignedEmployeeId is { } dupEmpC)
+            await EnsureNoDuplicateDailyBookingAsync(connection, tx, input.CustomerId, dupEmpC,
+                input.BookingDate.Date, id, ct);
 
         // الموظف المسؤول الحالي (لتسجيل الإسناد الافتراضي عند تغييره مع كل حفظ).
         var currentEmployee = await connection.QuerySingleOrDefaultAsync<Guid?>(
