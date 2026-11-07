@@ -75,4 +75,17 @@ app.MapWhatsAppWebhookEndpoints();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
 await DatabaseBootstrapper.InitializeAsync(app);
-app.Run();
+
+try
+{
+    app.Run();
+}
+catch (IOException ex)
+{
+    // خطأ ربط العنوان غالبًا لأن نسخة سابقة من التطبيق ما تزال ماسكة للمنفذ.
+    Console.Error.WriteLine("تعذّر إقلاع التطبيق (خطأ في ربط العنوان): " + ex.Message);
+    Console.Error.WriteLine(
+        "إن كان المنفذ مستخدمًا بالفعل، أغلق النسخة السابقة من التطبيق أو غيّر المنفذ " +
+        "عبر متغيّر البيئة ASPNETCORE_URLS (مثال: http://localhost:50900).");
+    Environment.ExitCode = 1;
+}
