@@ -72,6 +72,17 @@ public sealed class ServiceTransferTests : IClassFixture<TestDb>
             "WHERE party_type = 'C' AND party_id = @id", new { id = customerId });
     }
 
+    private static async Task<(decimal Consumed, decimal Remaining)> CustomerItemAsync(
+        Guid customerId, Guid itemId)
+    {
+        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
+        await connection.OpenAsync();
+        return await connection.QuerySingleAsync<(decimal Consumed, decimal Remaining)>(
+            "SELECT consumed_qty AS Consumed, remaining_qty AS Remaining " +
+            "FROM v_customer_reservations WHERE customer_id = @c AND item_id = @i " +
+            "ORDER BY booking_line_id LIMIT 1", new { c = customerId, i = itemId });
+    }
+
     [Fact]
     public async Task Draft_transfer_has_no_effect_then_posting_moves_quantity_and_posts_entry()
     {
@@ -108,6 +119,14 @@ public sealed class ServiceTransferTests : IClassFixture<TestDb>
         // القيد: مدين حساب العميل الهدف، دائن حساب العميل المصدر بنفس القيمة.
         Assert.Equal(200m, await PartyBalanceAsync(f.To.Id));
         Assert.Equal(-200m, await PartyBalanceAsync(f.From.Id));
+
+        // عمود «مستهلك»: موجب للمحوَّل منه (المتبقي يقل) وسالب للمحوَّل إليه (المتبقي يزيد) — 0085.
+        var src = await CustomerItemAsync(f.From.Id, f.Service.Id);
+        Assert.Equal(2m, src.Consumed);
+        Assert.Equal(3m, src.Remaining);
+        var dst = await CustomerItemAsync(f.To.Id, f.Service.Id);
+        Assert.Equal(-2m, dst.Consumed);
+        Assert.Equal(2m, dst.Remaining);
     }
 
     [Fact]
@@ -125,6 +144,11 @@ public sealed class ServiceTransferTests : IClassFixture<TestDb>
         await _db.ServiceTransferRepo.PostAsync(draft.Id, actor.UserId);
 
         var report = await _db.TreasuryService().GetShiftReportAsync(actor, f.ShiftId);
-        Assert.Contains(report.Lines, l => l.ItemName == f.Service.NameAr && l.Quantity == 1m);
+        // سطران متوازنان: المحوَّل منه (سالب) والمحوَّل إليه (موجب)، الصافي = صفر — 0085.
+        var transferLines = report.Lines.Where(l => l.ItemName == f.Service.NameAr).ToList();
+        Assert.Contains(transferLines, l => l.CustomerName == f.From.NameAr && l.Quantity == -1m);
+        Assert.Contains(transferLines, l => l.CustomerName == f.To.NameAr && l.Quantity == 1m);
+        Assert.Equal(0m, transferLines.Sum(l => l.Revenue));
+        Assert.Equal(0m, transferLines.Sum(l => l.Quantity));
     }
 }

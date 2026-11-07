@@ -60,15 +60,26 @@ public sealed partial class TreasuryRepository
                   AND be.created_at >= @openedAt
                   AND (@until::timestamptz IS NULL OR be.created_at <= @until::timestamptz)
             ), transfers AS (
-                SELECT (fc.name_ar || ' → ' || tc.name_ar) AS CustomerName,
-                       NULL::varchar AS TreasuryType, 0::numeric AS Collected,
-                       0::numeric AS Revenue, stl.quantity AS Quantity,
-                       0::numeric AS MeterUnits, NULL::text AS EmployeeName,
-                       i.name_ar AS ItemName, stl.unit_price AS UnitPrice
+                -- المحوَّل منه: كمية وقيمة بالسالب (خصم) في سطر مستقل.
+                SELECT fc.name_ar AS CustomerName, NULL::varchar AS TreasuryType,
+                       0::numeric AS Collected, (-stl.amount) AS Revenue,
+                       (-stl.quantity) AS Quantity, 0::numeric AS MeterUnits,
+                       NULL::text AS EmployeeName, i.name_ar AS ItemName,
+                       stl.unit_price AS UnitPrice
                 FROM service_transfers st
                 JOIN service_transfer_lines stl ON stl.transfer_id = st.id
                 JOIN items i ON i.id = stl.item_id
                 JOIN customers fc ON fc.id = st.from_customer_id
+                WHERE st.branch_id = @branchId AND st.status = 'posted'
+                  AND st.created_at >= @openedAt
+                  AND (@until::timestamptz IS NULL OR st.created_at <= @until::timestamptz)
+                UNION ALL
+                -- المحوَّل إليه: كمية وقيمة بالموجب (إضافة) في سطر مستقل — الصافي = صفر.
+                SELECT tc.name_ar, NULL::varchar, 0::numeric, stl.amount,
+                       stl.quantity, 0::numeric, NULL::text, i.name_ar, stl.unit_price
+                FROM service_transfers st
+                JOIN service_transfer_lines stl ON stl.transfer_id = st.id
+                JOIN items i ON i.id = stl.item_id
                 JOIN customers tc ON tc.id = st.to_customer_id
                 WHERE st.branch_id = @branchId AND st.status = 'posted'
                   AND st.created_at >= @openedAt

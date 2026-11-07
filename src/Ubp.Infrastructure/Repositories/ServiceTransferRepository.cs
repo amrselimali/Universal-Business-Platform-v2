@@ -208,7 +208,8 @@ public sealed class ServiceTransferRepository : IServiceTransferRepository
         {
             var affected = await connection.ExecuteAsync(new CommandDefinition("""
                 UPDATE booking_lines
-                SET reserved_qty = reserved_qty - @quantity
+                SET reserved_qty = reserved_qty - @quantity,
+                    transferred_qty = transferred_qty + @quantity
                 WHERE id = @id AND reserved_qty >= @quantity
                 """, new { quantity = line.Quantity, id = line.FromBookingLineId }, tx,
                 cancellationToken: ct));
@@ -242,9 +243,10 @@ public sealed class ServiceTransferRepository : IServiceTransferRepository
             await connection.ExecuteAsync(new CommandDefinition("""
                 INSERT INTO booking_lines
                     (id, booking_id, line_no, item_id, unit_id, warehouse_id, quantity,
-                     unit_price, net_amount, tax_amount, total_amount, reserved_qty)
+                     unit_price, net_amount, tax_amount, total_amount, reserved_qty,
+                     transferred_qty)
                 VALUES (@id, @bookingId, @lineNo, @itemId, @unitId, @warehouseId, @quantity,
-                        @unitPrice, @amount, 0, @amount, @quantity)
+                        @unitPrice, @amount, 0, @amount, @quantity, -@quantity)
                 """, new
             {
                 id = Guid.CreateVersion7(), bookingId, lineNo = line.LineNo,
