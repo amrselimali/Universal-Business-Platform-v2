@@ -56,7 +56,8 @@ public sealed partial class ShiftEditRepository : IShiftEditRepository
                    l.id AS LineId, v.party_name AS PartyName, NULL::text AS ItemName,
                    NULL::text AS EmployeeName, t.name_ar AS TreasuryName,
                    0::numeric AS Quantity, l.amount AS UnitPrice, l.amount AS Amount,
-                   NULL::text AS Description, 'amount,treasury' AS FieldsCsv
+                   NULL::text AS Description, 'amount,treasury' AS FieldsCsv,
+                   v.treasury_id AS TreasuryId, NULL::uuid AS AccountId, NULL::uuid AS EmployeeId
             FROM vouchers v JOIN voucher_lines l ON l.voucher_id = v.id
             JOIN treasuries t ON t.id = v.treasury_id
             WHERE v.branch_id = @branchId AND v.status = 'draft' AND v.created_at >= @openedAt
@@ -69,7 +70,8 @@ public sealed partial class ShiftEditRepository : IShiftEditRepository
                    i.name_ar AS ItemName, NULL::text AS EmployeeName, t.name_ar AS TreasuryName,
                    l.quantity AS Quantity, l.unit_price AS UnitPrice, l.amount AS Amount,
                    l.description AS Description,
-                   'account,treasury,description,quantity,unit_price,amount' AS FieldsCsv
+                   'account,treasury,description,quantity,unit_price,amount' AS FieldsCsv,
+                   o.treasury_id AS TreasuryId, l.account_id AS AccountId, NULL::uuid AS EmployeeId
             FROM operating_expenses o
             JOIN operating_expense_lines l ON l.expense_id = o.id
             JOIN suppliers s ON s.id = o.supplier_id
@@ -85,7 +87,8 @@ public sealed partial class ShiftEditRepository : IShiftEditRepository
                    i.name_ar AS ItemName, NULL::text AS EmployeeName, NULL::text AS TreasuryName,
                    l.quantity AS Quantity, l.unit_price AS UnitPrice, l.total_amount AS Amount,
                    l.description AS Description,
-                   'quantity,unit_price,amount,description' AS FieldsCsv
+                   'quantity,unit_price,amount,description' AS FieldsCsv,
+                   NULL::uuid AS TreasuryId, NULL::uuid AS AccountId, NULL::uuid AS EmployeeId
             FROM commercial_documents d
             JOIN commercial_document_lines l ON l.document_id = d.id
             JOIN items i ON i.id = l.item_id
@@ -98,7 +101,9 @@ public sealed partial class ShiftEditRepository : IShiftEditRepository
                    b.booking_date AS DocDate, l.id AS LineId, c.name_ar AS PartyName,
                    i.name_ar AS ItemName, e.name_ar AS EmployeeName, NULL::text AS TreasuryName,
                    l.quantity AS Quantity, l.unit_price AS UnitPrice, l.total_amount AS Amount,
-                   NULL::text AS Description, 'quantity,unit_price,employee' AS FieldsCsv
+                   NULL::text AS Description, 'quantity,unit_price,employee' AS FieldsCsv,
+                   NULL::uuid AS TreasuryId, NULL::uuid AS AccountId,
+                   COALESCE(l.employee_id, b.assigned_employee_id) AS EmployeeId
             FROM bookings b JOIN booking_lines l ON l.booking_id = b.id
             JOIN customers c ON c.id = b.customer_id
             JOIN items i ON i.id = l.item_id
@@ -115,7 +120,8 @@ public sealed partial class ShiftEditRepository : IShiftEditRepository
                    (fc.name_ar || ' → ' || tc.name_ar) AS PartyName, i.name_ar AS ItemName,
                    NULL::text AS EmployeeName, NULL::text AS TreasuryName,
                    l.quantity AS Quantity, l.unit_price AS UnitPrice, l.amount AS Amount,
-                   NULL::text AS Description, 'quantity' AS FieldsCsv
+                   NULL::text AS Description, 'quantity' AS FieldsCsv,
+                   NULL::uuid AS TreasuryId, NULL::uuid AS AccountId, NULL::uuid AS EmployeeId
             FROM service_transfers st JOIN service_transfer_lines l ON l.transfer_id = st.id
             JOIN items i ON i.id = l.item_id
             JOIN customers fc ON fc.id = st.from_customer_id

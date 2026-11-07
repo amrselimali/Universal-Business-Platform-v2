@@ -16,6 +16,10 @@ public sealed class ShiftEditableLine
     public decimal UnitPrice { get; set; }
     public decimal Amount { get; set; }
     public string? Description { get; set; }
+    /// <summary>المعرّفات الأصلية لتهيئة الاختيارات ومقارنة التغييرات.</summary>
+    public Guid? AccountId { get; set; }
+    public Guid? TreasuryId { get; set; }
+    public Guid? EmployeeId { get; set; }
     /// <summary>الحقول القابلة للتعديل لهذا السطر مفصولة بفاصلة.</summary>
     public string FieldsCsv { get; set; } = "";
 

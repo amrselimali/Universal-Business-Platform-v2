@@ -9,10 +9,9 @@
     <TitleContent><MudText Typo="Typo.h6">تعديل بيانات الوردية</MudText></TitleContent>
     <DialogContent>
         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
-            يعدّل هذا السطر المستند الأصلي فيُحدَّث في تقرير الوردية والحسابات وإجمالياته.
-            اليوزر العادي يعدّل أثناء الوردية المفتوحة، والمحاسب قبل الترحيل. يُمنع بعد الإغلاق/الترحيل.
+            اضغط ✏️ بجانب السطر لتحويل خلاياه القابلة للتعديل إلى حقول ثم «حفظ». يعدّل المستند
+            الأصلي وكل آثاره. اليوزر العادي أثناء الوردية المفتوحة، والمحاسب قبل الترحيل.
         </MudAlert>
-
         @if (_rows.Count == 0)
         {
             <MudAlert Severity="Severity.Normal" Dense="true">لا توجد سطور مسودة قابلة للتعديل.</MudAlert>
@@ -21,54 +20,99 @@
         {
             <MudTable Items="_rows" Dense="true" Hover="true" Elevation="0" Class="ubp-table">
                 <HeaderContent>
-                    <MudTh>المستند</MudTh>
-                    <MudTh>الطرف / العميل</MudTh>
-                    <MudTh>الصنف</MudTh>
-                    <MudTh>الموظف</MudTh>
-                    <MudTh Align="Right">الكمية</MudTh>
-                    <MudTh Align="Right">السعر</MudTh>
-                    <MudTh Align="Right">المبلغ</MudTh>
-                    <MudTh>الحقل</MudTh>
-                    <MudTh>القيمة الجديدة</MudTh>
-                    <MudTh></MudTh>
+                    <MudTh>المستند</MudTh><MudTh>الطرف</MudTh><MudTh>الصنف</MudTh>
+                    <MudTh>الموظف</MudTh><MudTh>الخزينة</MudTh><MudTh>الحساب</MudTh>
+                    <MudTh Align="Right">الكمية</MudTh><MudTh Align="Right">سعر الوحدة</MudTh>
+                    <MudTh Align="Right">المبلغ</MudTh><MudTh>الشرح</MudTh><MudTh></MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@EntityLabel(context.L.EntityType) @context.L.DocNo</MudTd>
                     <MudTd>@context.L.PartyName</MudTd>
                     <MudTd>@context.L.ItemName</MudTd>
-                    <MudTd>@context.L.EmployeeName</MudTd>
-                    <MudTd Align="Right">@context.L.Quantity.ToString("N2")</MudTd>
-                    <MudTd Align="Right">@context.L.UnitPrice.ToString("N2")</MudTd>
-                    <MudTd Align="Right">@context.L.Amount.ToString("N2")</MudTd>
                     <MudTd>
-                        <MudSelect T="string" @bind-Value="context.Field" Dense="true"
-                                   Variant="Variant.Outlined">
-                            @foreach (var f in context.L.Fields)
-                            {
-                                <MudSelectItem T="string" Value="@f">@FieldLabel(f)</MudSelectItem>
-                            }
-                        </MudSelect>
-                    </MudTd>
-                    <MudTd>
-                        @if (context.Field is "account" or "treasury" or "employee")
+                        @if (context.Editing && context.Can("employee"))
                         {
-                            <MudSelect T="Guid?" @bind-Value="context.GuidValue" Dense="true"
+                            <MudSelect T="Guid?" @bind-Value="context.Emp" Dense="true"
                                        Variant="Variant.Outlined" Clearable="true">
-                                @foreach (var o in OptionsFor(context.Field))
+                                @foreach (var o in _employees)
                                 {
                                     <MudSelectItem T="Guid?" Value="@((Guid?)o.Id)">@o.Name</MudSelectItem>
                                 }
                             </MudSelect>
                         }
-                        else
-                        {
-                            <MudTextField @bind-Value="context.Value" Dense="true"
-                                          Variant="Variant.Outlined" Placeholder="القيمة" />
-                        }
+                        else { @context.L.EmployeeName }
                     </MudTd>
                     <MudTd>
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                                   OnClick="@(() => SaveAsync(context))" Disabled="_busy">حفظ</MudButton>
+                        @if (context.Editing && context.Can("treasury"))
+                        {
+                            <MudSelect T="Guid?" @bind-Value="context.Tre" Dense="true"
+                                       Variant="Variant.Outlined" Clearable="true">
+                                @foreach (var o in _treasuries)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)o.Id)">@o.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                        else { @context.L.TreasuryName }
+                    </MudTd>
+                    <MudTd>
+                        @if (context.Editing && context.Can("account"))
+                        {
+                            <MudSelect T="Guid?" @bind-Value="context.Acc" Dense="true"
+                                       Variant="Variant.Outlined" Clearable="true">
+                                @foreach (var o in _accounts)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)o.Id)">@o.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                        else { @AccountName(context) }
+                    </MudTd>
+                    <MudTd Align="Right">
+                        @if (context.Editing && context.Can("quantity"))
+                        {
+                            <MudNumericField T="decimal" @bind-Value="context.Qty" Dense="true"
+                                             Variant="Variant.Outlined" Min="0m" Format="N2" />
+                        }
+                        else { @(context.L.Quantity.ToString("N2")) }
+                    </MudTd>
+                    <MudTd Align="Right">
+                        @if (context.Editing && context.Can("unit_price"))
+                        {
+                            <MudNumericField T="decimal" @bind-Value="context.Price" Dense="true"
+                                             Variant="Variant.Outlined" Min="0m" Format="N2" />
+                        }
+                        else { @(context.L.UnitPrice.ToString("N2")) }
+                    </MudTd>
+                    <MudTd Align="Right">
+                        @if (context.Editing && context.Can("amount"))
+                        {
+                            <MudNumericField T="decimal" @bind-Value="context.Amount" Dense="true"
+                                             Variant="Variant.Outlined" Min="0m" Format="N2" />
+                        }
+                        else { @(context.L.Amount.ToString("N2")) }
+                    </MudTd>
+                    <MudTd>
+                        @if (context.Editing && context.Can("description"))
+                        {
+                            <MudTextField @bind-Value="context.Desc" Dense="true"
+                                          Variant="Variant.Outlined" />
+                        }
+                        else { @context.L.Description }
+                    </MudTd>
+                    <MudTd>
+                        @if (!context.Editing)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                           Color="Color.Primary" OnClick="@(() => StartEdit(context))" />
+                        }
+                        else
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                                       OnClick="@(() => SaveRowAsync(context))" Disabled="_busy">حفظ</MudButton>
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                           OnClick="@(() => StartEdit(context, reset: true))" />
+                        }
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -88,10 +132,31 @@
 
     private sealed class Row
     {
-        public ShiftEditableLine L { get; set; } = default!;
-        public string Field { get; set; } = "";
-        public string? Value { get; set; }
-        public Guid? GuidValue { get; set; }
+        private readonly HashSet<string> _fields;
+        public ShiftEditableLine L { get; }
+        public bool Editing { get; set; }
+        public decimal Qty { get; set; }
+        public decimal Price { get; set; }
+        public decimal Amount { get; set; }
+        public string? Desc { get; set; }
+        public Guid? Emp { get; set; }
+        public Guid? Tre { get; set; }
+        public Guid? Acc { get; set; }
+
+        public Row(ShiftEditableLine l)
+        {
+            L = l;
+            _fields = l.Fields.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            Reset();
+        }
+
+        public void Reset()
+        {
+            Qty = L.Quantity; Price = L.UnitPrice; Amount = L.Amount; Desc = L.Description;
+            Emp = L.EmployeeId; Tre = L.TreasuryId; Acc = L.AccountId;
+        }
+
+        public bool Can(string f) => _fields.Contains(f);
     }
 
     private sealed record Opt(Guid Id, string Name);
@@ -100,45 +165,29 @@
     private IReadOnlyList<Opt> _accounts = Array.Empty<Opt>();
     private IReadOnlyList<Opt> _treasuries = Array.Empty<Opt>();
     private IReadOnlyList<Opt> _employees = Array.Empty<Opt>();
+    private readonly Dictionary<Guid, string> _accountNames = new();
     private bool _busy;
 
     private static string EntityLabel(string t) => t switch
     {
-        "voucher" => "سند",
-        "operating_expense" => "مصروف",
-        "commercial_document" => "مستند",
-        "booking" => "حجز",
-        "service_transfer" => "تحويل خدمات",
-        _ => t
+        "voucher" => "سند", "operating_expense" => "مصروف", "commercial_document" => "مستند",
+        "booking" => "حجز", "service_transfer" => "تحويل خدمات", _ => t
     };
 
-    private static string FieldLabel(string f) => f switch
-    {
-        "amount" => "المبلغ",
-        "quantity" => "الكمية",
-        "unit_price" => "سعر الوحدة",
-        "description" => "الشرح",
-        "account" => "الحساب",
-        "treasury" => "الخزينة",
-        "employee" => "الموظف",
-        _ => f
-    };
+    private string? AccountName(Row r) =>
+        r.L.AccountId is { } id && _accountNames.TryGetValue(id, out var n) ? n : null;
 
-    private IEnumerable<Opt> OptionsFor(string field) => field switch
-    {
-        "account" => _accounts,
-        "treasury" => _treasuries,
-        "employee" => _employees,
-        _ => Enumerable.Empty<Opt>()
-    };
+    private static string Num(decimal d) =>
+        d.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             var actor = await UserContext.RequireAsync();
-            _accounts = (await Lookup.PostableAccountsAsync(actor))
-                .Select(a => new Opt(a.Id, $"{a.Code} — {a.NameAr}")).ToList();
+            var accounts = await Lookup.PostableAccountsAsync(actor);
+            _accounts = accounts.Select(a => new Opt(a.Id, $"{a.Code} — {a.NameAr}")).ToList();
+            foreach (var a in accounts) _accountNames[a.Id] = $"{a.Code} — {a.NameAr}";
             _treasuries = (await Lookup.TreasuriesAsync(actor, BranchId))
                 .Select(t => new Opt(t.Id, $"{t.Code} — {t.NameAr}")).ToList();
             _employees = (await MasterData.EmployeeOptionsAsync(actor))
@@ -151,24 +200,47 @@
     private async Task ReloadAsync(ActorContext actor)
     {
         var lines = await ShiftEdit.ListAsync(actor, ShiftId);
-        _rows = lines.Select(l => new Row { L = l, Field = l.Fields.FirstOrDefault() ?? "" }).ToList();
+        _rows = lines.Select(l => new Row(l)).ToList();
     }
 
-    private async Task SaveAsync(Row row)
+    private void StartEdit(Row row, bool reset = false)
     {
-        if (string.IsNullOrWhiteSpace(row.Field)) return;
+        row.Reset();
+        row.Editing = !reset;
+    }
+
+    private async Task SaveRowAsync(Row row)
+    {
+        var changes = new List<(string Field, string? Value)>();
+        if (row.Can("quantity") && row.Qty != row.L.Quantity)
+            changes.Add(("quantity", Num(row.Qty)));
+        if (row.Can("unit_price") && row.Price != row.L.UnitPrice)
+            changes.Add(("unit_price", Num(row.Price)));
+        if (row.Can("amount") && row.Amount != row.L.Amount)
+            changes.Add(("amount", Num(row.Amount)));
+        if (row.Can("description") && (row.Desc ?? "") != (row.L.Description ?? ""))
+            changes.Add(("description", row.Desc));
+        if (row.Can("employee") && row.Emp != row.L.EmployeeId)
+            changes.Add(("employee", row.Emp?.ToString()));
+        if (row.Can("treasury") && row.Tre != row.L.TreasuryId)
+            changes.Add(("treasury", row.Tre?.ToString()));
+        if (row.Can("account") && row.Acc != row.L.AccountId)
+            changes.Add(("account", row.Acc?.ToString()));
+
+        if (changes.Count == 0) { row.Editing = false; return; }
+
         _busy = true;
         try
         {
             var actor = await UserContext.RequireAsync();
-            var newValue = row.Field is "account" or "treasury" or "employee"
-                ? row.GuidValue?.ToString()
-                : row.Value;
-            await ShiftEdit.ApplyAsync(actor, new ShiftLineEditInput
+            foreach (var (field, value) in changes)
             {
-                ShiftId = ShiftId, EntityType = row.L.EntityType, DocId = row.L.DocId,
-                LineId = row.L.LineId, Field = row.Field, NewValue = newValue
-            });
+                await ShiftEdit.ApplyAsync(actor, new ShiftLineEditInput
+                {
+                    ShiftId = ShiftId, EntityType = row.L.EntityType, DocId = row.L.DocId,
+                    LineId = row.L.LineId, Field = field, NewValue = value
+                });
+            }
             await ReloadAsync(actor);
             Snackbar.Add(T.T("common.saved"), Severity.Success);
         }
@@ -176,3 +248,4 @@
         finally { _busy = false; }
     }
 }
+
