@@ -35,7 +35,7 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                        l.reserved_qty AS ReservedQty,
                        GREATEST(l.quantity - l.delivered_qty - l.cancelled_qty, 0) AS RemainingQty,
                        l.unit_price AS UnitPrice,
-                       COALESCE(resp.name_ar, ap.employee_name) AS EmployeeName,
+                       COALESCE(resp.name_ar, bk.employee_name, ap.employee_name) AS EmployeeName,
                        i.is_metered AS ItemIsMetered
                 FROM booking_lines l
                 JOIN bookings b ON b.id = l.booking_id
@@ -49,7 +49,19 @@ public sealed partial class BookingExecutionRepository : IBookingExecutionReposi
                 --     يُفحصان عند اختيار الموظف وتأكيد الحجز؛ لا يُعاد اشتراطهما هنا حتى لا يتعطل
                 --     تنفيذ حجز مؤكد بسبب تغيير لاحق في أدوار الموظف أو في دوامه.
                 LEFT JOIN employees resp ON resp.id = b.assigned_employee_id
-                -- (2) توافق خلفي: موعد العميل (المؤكد أولاً) — بلا قيد على الفرع أو الخدمة،
+                -- (2) حجز مؤكد آخر لنفس العميل مع موظف مسؤول (أي خدمة): يكفي وجود حجز
+                --     مؤكد بين الموظف المسؤول والعميل لإتاحة التنفيذ بغض النظر عن الخدمة.
+                LEFT JOIN LATERAL (
+                    SELECT e2.name_ar AS employee_name
+                    FROM bookings b2
+                    JOIN employees e2 ON e2.id = b2.assigned_employee_id
+                    WHERE b2.customer_id = b.customer_id
+                      AND b2.status IN ('confirmed', 'partially_delivered')
+                      AND b2.assigned_employee_id IS NOT NULL
+                    ORDER BY CASE WHEN b2.id = b.id THEN 0 ELSE 1 END, b2.booking_date DESC
+                    LIMIT 1
+                ) bk ON true
+                -- (3) توافق خلفي: موعد العميل (المؤكد أولاً) — بلا قيد على الفرع أو الخدمة،
                 --     لأن دوام الموظف قد يُسجَّل على فرع آخر، والمهم ربط العميل بالموظف.
                 LEFT JOIN LATERAL (
                     SELECT emp.name_ar AS employee_name
