@@ -10,18 +10,22 @@
 <MudTable Items="Report.Lines" Dense="true" Elevation="0" Class="ubp-table">
     <HeaderContent>
         <MudTh>@T.T("common.customer")</MudTh>
+        <MudTh>@T.T("sales.item")</MudTh>
         <MudTh>@T.T("treasury.type")</MudTh>
         <MudTh Align="Right">@T.T("pos.collected_amount")</MudTh>
         <MudTh Align="Right">@T.T("treasury.revenue_value")</MudTh>
+        <MudTh Align="Right">@T.T("inventory.unit_price")</MudTh>
         <MudTh Align="Right">@T.T("common.quantity")</MudTh>
         <MudTh Align="Right">@T.T("treasury.meter_units")</MudTh>
         <MudTh>@T.T("common.employee")</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd>@context.CustomerName</MudTd>
+        <MudTd>@context.ItemName</MudTd>
         <MudTd>@TreasuryTypeText(context.TreasuryType)</MudTd>
         <MudTd Align="Right">@context.Collected.ToString("N2")</MudTd>
         <MudTd Align="Right">@context.Revenue.ToString("N2")</MudTd>
+        <MudTd Align="Right">@(context.UnitPrice == 0 ? "—" : context.UnitPrice.ToString("N2"))</MudTd>
         <MudTd Align="Right">@context.Quantity.ToString("N2")</MudTd>
         <MudTd Align="Right">@context.MeterUnits.ToString("N2")</MudTd>
         <MudTd>@context.EmployeeName</MudTd>

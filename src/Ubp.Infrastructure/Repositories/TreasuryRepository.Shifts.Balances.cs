@@ -47,6 +47,8 @@ public sealed partial class TreasuryRepository
                        AS balance
             ) gl ON true
             WHERE t.branch_id = @branchId AND t.is_active
+              AND EXISTS (SELECT 1 FROM treasury_methods m2
+                          WHERE m2.treasury_id = t.id AND m2.is_active AND m2.follow_in_shift)
             ORDER BY t.code
             """, new { branchId }, tx, cancellationToken: ct))).ToList();
 

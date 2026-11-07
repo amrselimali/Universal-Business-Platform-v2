@@ -20,3 +20,6 @@ TestResults/
 # المصدر المتعقَّب هو docs/ci-workflow.yml — انسخه إلى .github/workflows/ci.yml
 # ثم `git add -f` بعد منح الصلاحية.
 .github/workflows/ci.yml
+
+# local sandbox postgres artifacts
+.pgdeb/

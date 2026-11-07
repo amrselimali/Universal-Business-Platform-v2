@@ -1,0 +1,166 @@
+@inject LookupService Lookup
+@inject ServiceTransferService Transfers
+@inject UserContext UserContext
+@inject UiCulture T
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">تحويل خدمات بين العملاء</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid Spacing="2" Class="mb-2">
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid" Value="_fromCustomerId" Label="العميل المحوَّل منه"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           ValueChanged="OnFromChanged">
+                    @foreach (var c in _customers)
+                    {
+                        <MudSelectItem T="Guid" Value="@c.Id">@Display(c)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid" Value="_toCustomerId" Label="العميل المحوَّل إليه"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var c in _customers)
+                    {
+                        <MudSelectItem T="Guid" Value="@c.Id">@Display(c)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (_rows.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">
+                لا توجد خدمات متبقية قابلة للتحويل لهذا العميل.
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable Items="_rows" Dense="true" Hover="true" Elevation="0" Class="ubp-table">
+                <HeaderContent>
+                    <MudTh>الخدمة — الكمية — سعر الوحدة</MudTh>
+                    <MudTh Align="Right">الكمية المتاحة</MudTh>
+                    <MudTh Align="Right">الكمية المحوَّلة</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Service.Display</MudTd>
+                    <MudTd Align="Right">@context.Service.RemainingQty.ToString("N2")</MudTd>
+                    <MudTd Align="Right">
+                        <MudNumericField T="decimal" @bind-Value="context.Qty" Min="0m"
+                                         Max="@context.Service.RemainingQty" Format="N2"
+                                         Dense="true" Disabled="@(!context.Selected)" />
+                    </MudTd>
+                    <MudTd>
+                        <MudCheckBox T="bool" Value="@context.Selected" Dense="true"
+                                     ValueChanged="@(v => Toggle(context, v))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@T.T("common.cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                   Disabled="@CannotSave">تحويل</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid BranchId { get; set; }
+    [Parameter] public Guid FromCustomerId { get; set; }
+
+    private sealed class LineRow
+    {
+        public TransferableServiceRow Service { get; set; } = default!;
+        public bool Selected { get; set; }
+        public decimal Qty { get; set; }
+    }
+
+    private IReadOnlyList<Partner> _customers = Array.Empty<Partner>();
+    private readonly List<LineRow> _rows = new();
+    private Guid _fromCustomerId;
+    private Guid _toCustomerId;
+    private bool _loading;
+    private bool _busy;
+
+    private string Display(Partner c) =>
+        string.IsNullOrWhiteSpace(c.Phone) ? $"{c.Code} — {c.NameAr}" : $"{c.Code} — {c.NameAr} — {c.Phone}";
+
+    private bool CannotSave => _busy || _loading || _fromCustomerId == Guid.Empty ||
+                               _toCustomerId == Guid.Empty || _fromCustomerId == _toCustomerId ||
+                               SelectedTotal <= 0;
+
+    private decimal SelectedTotal => _rows.Where(r => r.Selected).Sum(r => r.Qty);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = await UserContext.RequireAsync();
+        _customers = await Lookup.PartnersAsync(actor, PartnerKind.Customer);
+        _fromCustomerId = FromCustomerId;
+        await LoadAvailableAsync(actor);
+    }
+
+    private async Task OnFromChanged(Guid value)
+    {
+        _fromCustomerId = value;
+        var actor = await UserContext.RequireAsync();
+        await LoadAvailableAsync(actor);
+    }
+
+    private async Task LoadAvailableAsync(ActorContext actor)
+    {
+        _rows.Clear();
+        if (_fromCustomerId == Guid.Empty) return;
+        _loading = true;
+        try
+        {
+            var available = await Transfers.ListAvailableAsync(actor, BranchId, _fromCustomerId);
+            foreach (var service in available)
+                _rows.Add(new LineRow { Service = service });
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private void Toggle(LineRow row, bool value)
+    {
+        row.Selected = value;
+        row.Qty = value ? row.Service.RemainingQty : 0m;
+        StateHasChanged();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var lines = _rows.Where(r => r.Selected && r.Qty > 0)
+                .Select(r => new ServiceTransferLineInput
+                { FromBookingLineId = r.Service.BookingLineId, Quantity = r.Qty }).ToList();
+            if (lines.Count == 0) return;
+
+            var result = await Transfers.CreateAsync(actor, new ServiceTransferInput
+            {
+                BranchId = BranchId, FromCustomerId = _fromCustomerId,
+                ToCustomerId = _toCustomerId, DocDate = DateTime.Today, Lines = lines
+            });
+            Snackbar.Add($"تم حفظ تحويل الخدمات {result.DocNo} (مسودة بانتظار الترحيل)",
+                Severity.Success);
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

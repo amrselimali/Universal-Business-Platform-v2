@@ -27,6 +27,9 @@ public sealed partial class BookingExecutionRepository
         public decimal TaxAmount { get; set; }
         public decimal TotalAmount { get; set; }
         public bool ItemIsMetered { get; set; }
+        public string OperationType { get; set; } = ServiceOperationTypes.Normal;
+        public Guid? EmployeeId { get; set; }
+        public Guid? TreatmentAccountId { get; set; }
     }
 
     public async Task<BookingExecutionResult> ExecuteAsync(BookingExecutionInput input,
@@ -48,10 +51,14 @@ public sealed partial class BookingExecutionRepository
                    l.delivered_qty AS DeliveredQty, l.cancelled_qty AS CancelledQty,
                    l.reserved_qty AS ReservedQty, l.net_amount AS NetAmount,
                    l.tax_amount AS TaxAmount, l.total_amount AS TotalAmount,
-                   i.is_metered AS ItemIsMetered, i.execution_mode AS ExecutionMode
+                   i.is_metered AS ItemIsMetered, i.execution_mode AS ExecutionMode,
+                   l.operation_type AS OperationType,
+                   COALESCE(l.employee_id, b.assigned_employee_id) AS EmployeeId,
+                   e.treatment_account_id AS TreatmentAccountId
             FROM booking_lines l
             JOIN bookings b ON b.id = l.booking_id
             JOIN items i ON i.id = l.item_id
+            LEFT JOIN employees e ON e.id = COALESCE(l.employee_id, b.assigned_employee_id)
             WHERE l.id = @lineId
             FOR UPDATE OF l, b
             """, new { lineId = input.BookingLineId }, tx, cancellationToken: ct))

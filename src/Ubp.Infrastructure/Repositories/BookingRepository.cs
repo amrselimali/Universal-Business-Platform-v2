@@ -85,6 +85,8 @@ public sealed partial class BookingRepository : IBookingRepository
         public decimal InvoicedQty { get; set; }
         public decimal CancelledQty { get; set; }
         public decimal ReservedQty { get; set; }
+        public string OperationType { get; set; } = ServiceOperationTypes.Normal;
+        public Guid? EmployeeId { get; set; }
     }
 
     private const string HeadSelect = """
@@ -197,7 +199,8 @@ public sealed partial class BookingRepository : IBookingRepository
                    COALESCE(t.rate, 0) AS TaxRate, l.net_amount AS NetAmount,
                    l.tax_amount AS TaxAmount, l.total_amount AS TotalAmount,
                    l.delivered_qty AS DeliveredQty, l.invoiced_qty AS InvoicedQty,
-                   l.cancelled_qty AS CancelledQty, l.reserved_qty AS ReservedQty
+                   l.cancelled_qty AS CancelledQty, l.reserved_qty AS ReservedQty,
+                   l.operation_type AS OperationType, l.employee_id AS EmployeeId
             FROM booking_lines l
             JOIN items i ON i.id = l.item_id
             JOIN units u ON u.id = l.unit_id
@@ -212,6 +215,7 @@ public sealed partial class BookingRepository : IBookingRepository
             DiscountPercent = l.DiscountPercent, TaxId = l.TaxId, TaxRate = l.TaxRate,
             NetAmount = l.NetAmount, TaxAmount = l.TaxAmount, TotalAmount = l.TotalAmount,
             DeliveredQty = l.DeliveredQty, InvoicedQty = l.InvoicedQty,
-            CancelledQty = l.CancelledQty, ReservedQty = l.ReservedQty
+            CancelledQty = l.CancelledQty, ReservedQty = l.ReservedQty,
+            OperationType = l.OperationType, EmployeeId = l.EmployeeId
         }).ToList();
 }

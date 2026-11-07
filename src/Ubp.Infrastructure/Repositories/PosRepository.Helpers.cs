@@ -82,6 +82,17 @@ public sealed partial class PosRepository
                 tax = Math.Round(net * rate / 100m, 2, MidpointRounding.AwayFromZero);
             }
 
+            // نوع العملية في نقطة البيع: الهدية بلا قيمة، والعلاجية تشترط موظفًا مسؤولًا — 0084.
+            var operation = ServiceOperationTypes.Normalize(line.OperationType);
+            if (operation == ServiceOperationTypes.Gift)
+            {
+                price = 0; net = 0; tax = 0;
+            }
+            else if (operation == ServiceOperationTypes.Treatment && line.EmployeeId is null)
+            {
+                throw new ValidationAppException("validation.treatment_employee_required");
+            }
+
             result.Add(new BuiltLine
             {
                 LineNo = lineNo, ItemId = line.ItemId, UnitId = line.UnitId,
@@ -89,7 +100,8 @@ public sealed partial class PosRepository
                 Direct = ItemExecutionModes.IsDirect(item.ExecutionMode),
                 UnitPrice = price, DiscountPercent = line.DiscountPercent, NetAmount = net,
                 TaxAmount = tax,
-                TotalAmount = Math.Round(net + tax, 2, MidpointRounding.AwayFromZero)
+                TotalAmount = Math.Round(net + tax, 2, MidpointRounding.AwayFromZero),
+                OperationType = operation, EmployeeId = line.EmployeeId
             });
         }
         return result;

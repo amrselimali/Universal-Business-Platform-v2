@@ -8,6 +8,10 @@ public sealed class PosLineInput
     public decimal UnitPrice { get; set; }
     public decimal DiscountPercent { get; set; }
     public Guid? TaxId { get; set; }
+    /// <summary>normal / gift / treatment — 0084.</summary>
+    public string OperationType { get; set; } = ServiceOperationTypes.Normal;
+    /// <summary>الموظف المسؤول عن الجلسة العلاجية — 0084.</summary>
+    public Guid? EmployeeId { get; set; }
 }
 
 /// <summary>سطر تحصيل: خزينة + طريقة دفع + مبلغ — يجوز تعددها ولا يُشترط وجودها.</summary>

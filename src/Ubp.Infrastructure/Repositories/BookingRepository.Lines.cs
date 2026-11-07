@@ -20,6 +20,8 @@ public sealed partial class BookingRepository
         public decimal NetAmount { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal TotalAmount { get; set; }
+        public string OperationType { get; set; } = ServiceOperationTypes.Normal;
+        public Guid? EmployeeId { get; set; }
     }
 
     /// <summary>حساب البنود: خصم على السطر ثم ضريبة الصنف ثم الإجمالي (N5).</summary>
@@ -60,13 +62,25 @@ public sealed partial class BookingRepository
                 ? value : 0m;
             var tax = Math.Round(net * rate / 100m, 2, MidpointRounding.AwayFromZero);
 
+            // نوع العملية: الهدية بلا قيمة (كمية فقط)، والعلاجية تشترط موظفًا مسؤولًا — 0084.
+            var operation = ServiceOperationTypes.Normalize(line.OperationType);
+            if (operation == ServiceOperationTypes.Gift)
+            {
+                net = 0; tax = 0;
+            }
+            else if (operation == ServiceOperationTypes.Treatment && line.EmployeeId is null)
+            {
+                throw new ValidationAppException("validation.treatment_employee_required");
+            }
+
             result.Add(new BuiltLine
             {
                 LineNo = lineNo, ItemId = line.ItemId, UnitId = line.UnitId,
                 WarehouseId = line.WarehouseId, Quantity = line.Quantity,
                 UnitPrice = line.UnitPrice, DiscountPercent = line.DiscountPercent,
                 TaxId = line.TaxId, NetAmount = net, TaxAmount = tax,
-                TotalAmount = Math.Round(net + tax, 2, MidpointRounding.AwayFromZero)
+                TotalAmount = Math.Round(net + tax, 2, MidpointRounding.AwayFromZero),
+                OperationType = operation, EmployeeId = line.EmployeeId
             });
         }
 
@@ -81,14 +95,15 @@ public sealed partial class BookingRepository
             await connection.ExecuteAsync(new CommandDefinition("""
                 INSERT INTO booking_lines (booking_id, line_no, item_id, unit_id, warehouse_id,
                     quantity, unit_price, discount_percent, tax_id, net_amount, tax_amount,
-                    total_amount)
+                    total_amount, operation_type, employee_id)
                 VALUES (@bookingId, @LineNo, @ItemId, @UnitId, @WarehouseId, @Quantity,
-                        @UnitPrice, @DiscountPercent, @TaxId, @NetAmount, @TaxAmount, @TotalAmount)
+                        @UnitPrice, @DiscountPercent, @TaxId, @NetAmount, @TaxAmount, @TotalAmount,
+                        @OperationType, @EmployeeId)
                 """, new
             {
                 bookingId, line.LineNo, line.ItemId, line.UnitId, line.WarehouseId, line.Quantity,
                 line.UnitPrice, line.DiscountPercent, line.TaxId, line.NetAmount, line.TaxAmount,
-                line.TotalAmount
+                line.TotalAmount, line.OperationType, line.EmployeeId
             }, tx, cancellationToken: ct));
         }
     }

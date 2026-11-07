@@ -145,6 +145,21 @@ public sealed partial class TreasuryRepository
                 $"عمولة تحصيل وردية {shift.Code}", feeGl, userId, null, ct, "cash_shift");
         }
 
+        // تطبيق تعديلات المراجعة على المستندات الأصلية وإنشاء قيود الفرق (موجب/سالب) — 0084.
+        await ReviewAdjustmentRepository.ApplyPendingCoreAsync(connection, tx, shiftId, userId, ct);
+
+        // ترحيل تحويلات الخدمات المسودة داخل الوردية: نقل الكميات والقيد بين حسابَي العميلين (0083).
+        var pendingTransfers = await connection.QueryAsync<Guid>(new CommandDefinition("""
+            SELECT st.id
+            FROM service_transfers st
+            JOIN cashier_shifts s ON s.id = @shiftId
+            WHERE st.branch_id = s.branch_id AND st.status = 'draft'
+              AND st.created_at >= s.opened_at
+              AND (s.closed_at IS NULL OR st.created_at <= s.closed_at)
+            """, new { shiftId }, tx, cancellationToken: ct));
+        foreach (var transferId in pendingTransfers)
+            await ServiceTransferRepository.PostCoreAsync(connection, tx, transferId, userId, ct);
+
         await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE shift_review_items
             SET status = 'reviewed', reviewed_at = now(), reviewed_by = @userId

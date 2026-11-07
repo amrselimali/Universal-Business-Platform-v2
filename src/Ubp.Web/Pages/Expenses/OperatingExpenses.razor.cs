@@ -75,6 +75,17 @@ public partial class OperatingExpenses
         }
     }
 
+    /// <summary>صرف سلفة لموظف على حساب مختار من المصروفات التشغيلية (0084).</summary>
+    private async Task AdvanceAsync()
+    {
+        var branchId = _branchId ?? Actor!.CurrentBranchId;
+        if (branchId is null) return;
+        var dialog = await Dialogs.ShowAsync<EmployeeAdvanceDialog>("صرف سلفة لموظف",
+            new DialogParameters { ["BranchId"] = branchId.Value });
+        if ((await dialog.Result) is { Canceled: false })
+            ShowSuccess("common.saved");
+    }
+
     private async Task PostAsync(OperatingExpense expense) => await RunAsync(async () =>
     {
         _busy = true;

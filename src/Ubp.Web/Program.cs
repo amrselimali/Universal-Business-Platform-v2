@@ -8,6 +8,27 @@ using Ubp.Web.Startup;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// حماية الإقلاع: إذا طُلب عنوان HTTPS بلا شهادة مُهيّأة (بيئة تطوير بلا dev-cert)
+// نحذف عناوين https من قائمة العناوين ونبقي http، حتى لا يفشل app.Run() بخطأ ربط العنوان.
+var configuredUrls = builder.Configuration["urls"]
+                     ?? Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
+var hasHttpsCertificate =
+    !string.IsNullOrWhiteSpace(builder.Configuration["Kestrel:Certificates:Default:Path"]) ||
+    !string.IsNullOrWhiteSpace(
+        Environment.GetEnvironmentVariable("ASPNETCORE_Kestrel__Certificates__Default__Path"));
+if (!string.IsNullOrWhiteSpace(configuredUrls) &&
+    configuredUrls.Contains("https://", StringComparison.OrdinalIgnoreCase) &&
+    !hasHttpsCertificate)
+{
+    var httpOnly = configuredUrls
+        .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(url => url.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+        .ToArray();
+    if (httpOnly.Length > 0)
+        builder.WebHost.UseUrls(httpOnly);
+}
+
+
 builder.Host.UseSerilog((context, config) => config
     .ReadFrom.Configuration(context.Configuration)
     .Enrich.FromLogContext());

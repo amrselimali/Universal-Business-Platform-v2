@@ -94,6 +94,10 @@ public sealed class BookingLine
     public decimal InvoicedQty { get; set; }
     public decimal CancelledQty { get; set; }
     public decimal ReservedQty { get; set; }
+    /// <summary>normal / gift / treatment — 0084.</summary>
+    public string OperationType { get; set; } = ServiceOperationTypes.Normal;
+    /// <summary>الموظف المسؤول عن الجلسة العلاجية — 0084.</summary>
+    public Guid? EmployeeId { get; set; }
 
     public decimal RemainingQty => Math.Round(Quantity - DeliveredQty - CancelledQty, 4,
         MidpointRounding.AwayFromZero);
@@ -154,6 +158,10 @@ public sealed class BookingLineInput
     public decimal UnitPrice { get; set; }
     public decimal DiscountPercent { get; set; }
     public Guid? TaxId { get; set; }
+    /// <summary>normal / gift / treatment — 0084.</summary>
+    public string OperationType { get; set; } = ServiceOperationTypes.Normal;
+    /// <summary>الموظف المسؤول عن الجلسة العلاجية — 0084.</summary>
+    public Guid? EmployeeId { get; set; }
 }
 
 public sealed class Appointment

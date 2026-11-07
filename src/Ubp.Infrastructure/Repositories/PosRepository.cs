@@ -46,6 +46,8 @@ public sealed partial class PosRepository : IPosRepository
         public decimal NetAmount { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal TotalAmount { get; set; }
+        public string OperationType { get; set; } = ServiceOperationTypes.Normal;
+        public Guid? EmployeeId { get; set; }
     }
 
     private sealed class PaymentAccount
@@ -121,14 +123,15 @@ public sealed partial class PosRepository : IPosRepository
             await connection.ExecuteAsync(new CommandDefinition("""
                 INSERT INTO booking_lines (booking_id, line_no, item_id, unit_id, warehouse_id,
                     quantity, unit_price, discount_percent, tax_id, net_amount, tax_amount,
-                    total_amount, reserved_qty)
+                    total_amount, reserved_qty, operation_type, employee_id)
                 VALUES (@bookingId, @LineNo, @ItemId, @UnitId, @WarehouseId, @Quantity, @UnitPrice,
                         @DiscountPercent, @TaxId, @NetAmount, @TaxAmount, @TotalAmount,
-                        @reserved)
+                        @reserved, @OperationType, @EmployeeId)
                 """, new { bookingId, line.LineNo, line.ItemId, line.UnitId, input.WarehouseId,
                     line.Quantity, line.UnitPrice, line.DiscountPercent, line.TaxId,
                     line.NetAmount, line.TaxAmount, line.TotalAmount,
-                    reserved = line.Direct ? 0 : line.Quantity }, tx, cancellationToken: ct));
+                    reserved = line.Direct ? 0 : line.Quantity,
+                    line.OperationType, line.EmployeeId }, tx, cancellationToken: ct));
         }
 
         // الأصناف «المباشرة» (أو البيع المباشر من الشاشة): تُنفَّذ الآن

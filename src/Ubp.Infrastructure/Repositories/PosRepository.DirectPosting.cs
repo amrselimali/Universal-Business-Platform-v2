@@ -114,11 +114,23 @@ public sealed partial class PosRepository
         NpgsqlTransaction tx, PosCheckoutInput input, DirectLine line, string docNo,
         Guid executionId, Guid userId, CancellationToken ct)
     {
+        // الجلسة الهدية: الكمية تُنفَّذ بلا قيمة ولا قيد إيراد — 0084.
+        if (line.OperationType == ServiceOperationTypes.Gift) return null;
         if (line.TotalAmount <= 0) return null;
         var receivable = await NeedAsync(connection, tx, PostingKeys.CustomerReceivable, ct);
         var revenue = await NeedAsync(connection, tx, PostingKeys.SalesRevenue, ct);
         var net = line.NetAmount > 0 ? line.NetAmount : line.TotalAmount;
         var entries = new List<EntryLine> { new(receivable, line.TotalAmount, 0, input.CustomerId) };
+
+        // الجلسة العلاجية: حساب الموظف مدين والعميل دائن بنفس قيمة الجلسة — 0084.
+        if (line.OperationType == ServiceOperationTypes.Treatment)
+        {
+            if (line.TreatmentAccountId is not { } || line.TreatmentAccountId == Guid.Empty)
+                throw new ValidationAppException("validation.treatment_account_missing");
+            entries.Add(new EntryLine(line.TreatmentAccountId.Value, net, 0));
+            entries.Add(new EntryLine(receivable, 0, net, input.CustomerId));
+        }
+
         entries.Add(new EntryLine(revenue, 0, net));
         if (line.TaxAmount > 0)
             entries.Add(new EntryLine(

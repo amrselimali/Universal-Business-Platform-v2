@@ -46,6 +46,14 @@ public sealed partial class TreasuryRepository
                 JOIN suppliers s ON s.id = o.supplier_id
                 WHERE o.branch_id = @branchId AND o.status = 'DRAFT'
                   AND o.created_at >= @openedAt
+                UNION ALL
+                SELECT 'POS_TERMINAL', 'service_transfer', st.id, st.doc_no, st.doc_date,
+                       (fc.name_ar || ' → ' || tc.name_ar), st.total_amount, st.status
+                FROM service_transfers st
+                JOIN customers fc ON fc.id = st.from_customer_id
+                JOIN customers tc ON tc.id = st.to_customer_id
+                WHERE st.branch_id = @branchId AND st.status = 'draft'
+                  AND st.created_at >= @openedAt
             ) x
             ON CONFLICT (shift_id, entity_type, entity_id) DO NOTHING
             """, new { shiftId = shift.Id, branchId = shift.BranchId, openedAt = shift.OpenedAt },

@@ -6,6 +6,7 @@
 @inject LookupService Lookup
 @inject IDialogService Dialogs
 @inject IJSRuntime JS
+@inject Ubp.Infrastructure.Repositories.IEmployeeRepository EmployeeRepository
 <PageTitle>@T.T("screen.pos_terminal")</PageTitle>
 
 @if (Denied) { <ForbiddenView /> }
@@ -103,6 +104,11 @@ else
                                OnClick="CollectBookingsAsync" Disabled="@_busy" Class="mb-2">
                         @T.T("pos.collect_services")
                     </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                               StartIcon="@Icons.Material.Filled.SwapHoriz"
+                               OnClick="OpenTransferAsync" Disabled="@_busy" Class="mb-2 ml-2">
+                        تحويل خدمات
+                    </MudButton>
                 }
 
                 <MudDatePicker @bind-Date="_expiryDate" Label="@T.T("sales.offer_expiry")"
@@ -127,6 +133,25 @@ else
                             @if (context.TaxRate > 0)
                             {
                                 <MudText Typo="Typo.caption">@T.T("pos.tax"): @context.TaxRate%</MudText>
+                            }
+                            <MudSelect T="string" Dense="true" Value="context.OperationType"
+                                       ValueChanged="@(v => SetOperation(context, v))"
+                                       Variant="Variant.Outlined" Class="mt-1">
+                                <MudSelectItem T="string" Value="@ServiceOperationTypes.Normal">عادي</MudSelectItem>
+                                <MudSelectItem T="string" Value="@ServiceOperationTypes.Gift">هدية</MudSelectItem>
+                                <MudSelectItem T="string" Value="@ServiceOperationTypes.Treatment">علاجي</MudSelectItem>
+                            </MudSelect>
+                            @if (context.IsTreatment)
+                            {
+                                <MudSelect T="Guid?" @bind-Value="context.EmployeeId" Dense="true"
+                                           Variant="Variant.Outlined" Class="mt-1">
+                                    @foreach (var employee in _employees)
+                                    {
+                                        <MudSelectItem T="Guid?" Value="@((Guid?)employee.Id)">
+                                            @employee.NameAr
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
                             }
                         </MudTd>
                         <MudTd Align="Right">

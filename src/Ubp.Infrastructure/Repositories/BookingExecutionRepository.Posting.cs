@@ -78,10 +78,21 @@ public sealed partial class BookingExecutionRepository
         var ratio = executedQty / line.Quantity;
         var net = Math.Round(line.NetAmount * ratio, 2, MidpointRounding.AwayFromZero);
         var total = Math.Round(line.TotalAmount * ratio, 2, MidpointRounding.AwayFromZero);
+        // الجلسة الهدية: الكمية تُنفَّذ بلا قيمة ولا قيد إيراد — 0084.
+        if (line.OperationType == ServiceOperationTypes.Gift) return null;
         if (total <= 0) return null;
         // ضمان اتزان القيد: الإيراد بين صفر والإجمالي، والفرق ضريبة مخرجات.
         if (net <= 0 || net > total) net = total;
         var tax = Math.Round(total - net, 2, MidpointRounding.AwayFromZero);
+
+        // الجلسة العلاجية: حساب الموظف مدين بقيمة الجلسة، والعميل دائن بنفس القيمة — 0084.
+        var treatmentValue = 0m;
+        if (line.OperationType == ServiceOperationTypes.Treatment)
+        {
+            if (line.TreatmentAccountId is not { } || line.TreatmentAccountId == Guid.Empty)
+                throw new ValidationAppException("validation.treatment_account_missing");
+            treatmentValue = net;
+        }
 
         var defaults = (await connection.QueryAsync<(string Key, Guid? AccountId)>(
             new CommandDefinition("SELECT setting_key, account_id FROM posting_defaults",
@@ -119,6 +130,11 @@ public sealed partial class BookingExecutionRepository
         {
             (receivable, total, 0, line.CustomerId)
         };
+        if (treatmentValue > 0)
+        {
+            gl.Add((line.TreatmentAccountId!.Value, treatmentValue, 0, null));
+            gl.Add((receivable, 0, treatmentValue, line.CustomerId));
+        }
         if (net > 0) gl.Add((revenue, 0, net, null));
         if (vat is { } vatAccount && tax > 0) gl.Add((vatAccount, 0, tax, null));
 

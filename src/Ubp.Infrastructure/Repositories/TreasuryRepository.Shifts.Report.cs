@@ -27,7 +27,7 @@ public sealed partial class TreasuryRepository
                 SELECT v.party_name AS CustomerName, t.treasury_type AS TreasuryType,
                        v.total_amount AS Collected,
                        0::numeric AS Revenue, 0::numeric AS Quantity, 0::numeric AS MeterUnits,
-                       NULL::text AS EmployeeName
+                       NULL::text AS EmployeeName, NULL::text AS ItemName, 0::numeric AS UnitPrice
                 FROM vouchers v
                 JOIN treasuries t ON t.id = v.treasury_id
                 WHERE v.branch_id = @branchId AND v.voucher_type = 'receipt'
@@ -37,7 +37,7 @@ public sealed partial class TreasuryRepository
                 SELECT COALESCE(c.name_ar, d.party_name) AS CustomerName, NULL::varchar AS TreasuryType,
                        0::numeric AS Collected,
                        d.total AS Revenue, 0::numeric AS Quantity, 0::numeric AS MeterUnits,
-                       NULL::text AS EmployeeName
+                       NULL::text AS EmployeeName, NULL::text AS ItemName, 0::numeric AS UnitPrice
                 FROM commercial_documents d
                 LEFT JOIN customers c ON c.id = d.customer_id
                 WHERE d.branch_id = @branchId AND d.doc_type = 'sales_invoice'
@@ -47,21 +47,37 @@ public sealed partial class TreasuryRepository
                 SELECT c.name_ar AS CustomerName, NULL::varchar AS TreasuryType,
                        0::numeric AS Collected,
                        0::numeric AS Revenue,
-                       SUM(el.quantity) AS Quantity, SUM(el.meter_units) AS MeterUnits,
-                       e.name_ar AS EmployeeName
+                       el.quantity AS Quantity, el.meter_units AS MeterUnits,
+                       e.name_ar AS EmployeeName, i.name_ar AS ItemName, bl.unit_price AS UnitPrice
                 FROM booking_executions be
                 JOIN booking_execution_lines el ON el.execution_id = be.id
+                JOIN booking_lines bl ON bl.id = el.booking_line_id
+                JOIN items i ON i.id = el.item_id
                 JOIN bookings b ON b.id = be.booking_id
                 JOIN customers c ON c.id = b.customer_id
                 LEFT JOIN employees e ON e.id = b.assigned_employee_id
                 WHERE be.branch_id = @branchId AND be.status = 'posted'
                   AND be.created_at >= @openedAt
                   AND (@until::timestamptz IS NULL OR be.created_at <= @until::timestamptz)
-                GROUP BY be.id, c.name_ar, e.name_ar
+            ), transfers AS (
+                SELECT (fc.name_ar || ' → ' || tc.name_ar) AS CustomerName,
+                       NULL::varchar AS TreasuryType, 0::numeric AS Collected,
+                       0::numeric AS Revenue, stl.quantity AS Quantity,
+                       0::numeric AS MeterUnits, NULL::text AS EmployeeName,
+                       i.name_ar AS ItemName, stl.unit_price AS UnitPrice
+                FROM service_transfers st
+                JOIN service_transfer_lines stl ON stl.transfer_id = st.id
+                JOIN items i ON i.id = stl.item_id
+                JOIN customers fc ON fc.id = st.from_customer_id
+                JOIN customers tc ON tc.id = st.to_customer_id
+                WHERE st.branch_id = @branchId AND st.status = 'posted'
+                  AND st.created_at >= @openedAt
+                  AND (@until::timestamptz IS NULL OR st.created_at <= @until::timestamptz)
             )
             SELECT * FROM receipts
             UNION ALL SELECT * FROM revenues
             UNION ALL SELECT * FROM executions
+            UNION ALL SELECT * FROM transfers
             ORDER BY CustomerName
             """, args, cancellationToken: ct))).ToList();
 
@@ -232,6 +248,19 @@ public sealed partial class TreasuryRepository
             WHERE h.branch_id = @branchId AND h.commission_amount > 0
               AND h.created_at >= @openedAt
               AND (@until::timestamptz IS NULL OR h.created_at <= @until::timestamptz)
+            """, args, cancellationToken: ct)));
+
+        // سلف الموظفين المصروفة خلال الوردية تظهر كمصروف (0084).
+        report.Expenses.AddRange(await connection.QueryAsync<ShiftExpenseRow>(new CommandDefinition("""
+            SELECT t.treasury_type AS TreasuryType, t.name_ar AS TreasuryName,
+                   a.amount AS Amount, NULL::text AS ItemName, 0::numeric AS Quantity,
+                   0::numeric AS UnitPrice, 'سلفة موظف ' || e.name_ar AS Description,
+                   'POSTED'::varchar AS Status
+            FROM employee_advances a
+            JOIN treasuries t ON t.id = a.treasury_id
+            JOIN employees e ON e.id = a.employee_id
+            WHERE a.branch_id = @branchId AND a.created_at >= @openedAt
+              AND (@until::timestamptz IS NULL OR a.created_at <= @until::timestamptz)
             """, args, cancellationToken: ct)));
 
         report.IdleCustomers = (await connection.QueryAsync<ShiftCustomerRow>(new CommandDefinition("""

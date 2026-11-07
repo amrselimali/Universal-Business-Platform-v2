@@ -48,6 +48,8 @@ public sealed class Employee
     public bool IsActive { get; set; } = true;
     public int Version { get; set; } = 1;
     public int BookingsCount { get; set; }
+    /// <summary>حساب تحميل قيمة الجلسة العلاجية على الموظف — 0084.</summary>
+    public Guid? TreatmentAccountId { get; set; }
 
     public string DisplayName(bool english) =>
         english && !string.IsNullOrWhiteSpace(NameEn) ? NameEn! : NameAr;
@@ -69,6 +71,8 @@ public sealed class EmployeeInput
     public DateTime? HireDate { get; set; }
     public string? Notes { get; set; }
     public bool IsActive { get; set; } = true;
+    /// <summary>حساب تحميل قيمة الجلسة العلاجية على الموظف — 0084.</summary>
+    public Guid? TreatmentAccountId { get; set; }
 }
 
 public sealed class Tax

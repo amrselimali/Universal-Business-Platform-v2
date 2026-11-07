@@ -24,6 +24,10 @@ public partial class Terminal : SecurePageBase
         public decimal UnitPrice { get; set; }
         public decimal TaxRate { get; set; }
         public bool PriceIncludesTax { get; set; }
+        /// <summary>normal / gift / treatment — 0084.</summary>
+        public string OperationType { get; set; } = ServiceOperationTypes.Normal;
+        public Guid? EmployeeId { get; set; }
+        public bool IsTreatment => OperationType == ServiceOperationTypes.Treatment;
 
         public decimal Gross => Math.Round(Quantity * UnitPrice, 2,
             MidpointRounding.AwayFromZero);
@@ -60,6 +64,7 @@ public partial class Terminal : SecurePageBase
     private IReadOnlyList<Warehouse> _warehouses = Array.Empty<Warehouse>();
     private IReadOnlyList<ItemOption> _products = Array.Empty<ItemOption>();
     private IReadOnlyList<TreasuryMethod> _methods = Array.Empty<TreasuryMethod>();
+    private IReadOnlyList<Employee> _employees = Array.Empty<Employee>();
     private List<CartLine> _cart = new();
     private List<PaymentModel> _payments = new();
     private List<CartLine> _lastLines = new();
@@ -98,6 +103,7 @@ public partial class Terminal : SecurePageBase
     {
         _branches = await Branches.OptionsAsync(Actor!);
         _branchId = _branches.FirstOrDefault()?.Id ?? Guid.Empty;
+        _employees = await EmployeeRepository.ListOptionsAsync();
         await SearchCustomersAsync();
         await LoadBranchAsync();
     }
@@ -175,6 +181,15 @@ public partial class Terminal : SecurePageBase
         StateHasChanged();
     }
 
+    /// <summary>تغيير نوع عملية السطر: الهدية بلا قيمة، والعلاجية تشترط موظفًا — 0084.</summary>
+    private void SetOperation(CartLine line, string value)
+    {
+        line.OperationType = ServiceOperationTypes.Normalize(value);
+        if (line.OperationType == ServiceOperationTypes.Gift) line.UnitPrice = 0;
+        if (line.OperationType != ServiceOperationTypes.Treatment) line.EmployeeId = null;
+        StateHasChanged();
+    }
+
     private decimal FeeOf(PaymentModel payment)
     {
         var method = _methods.FirstOrDefault(m => m.Id == payment.TreasuryMethodId);
@@ -236,6 +251,18 @@ public partial class Terminal : SecurePageBase
 
     private Task CheckoutAndSendAsync() => CheckoutCoreAsync(sendWhatsApp: true);
 
+    /// <summary>تحويل خدمات/جلسات من العميل الحالي إلى عميل آخر (مسودة تُرحَّل من المراجعة).</summary>
+    private async Task OpenTransferAsync()
+    {
+        if (_branchId == Guid.Empty || _customerId == Guid.Empty) return;
+        var dialog = await Dialogs.ShowAsync<CustomerServiceTransferDialog>(
+            "تحويل خدمات بين العملاء", new DialogParameters
+            {
+                ["BranchId"] = _branchId, ["FromCustomerId"] = _customerId
+            });
+        if ((await dialog.Result) is { Canceled: false }) StateHasChanged();
+    }
+
     /// <summary>ترحيل مسودة: إيصالات القبض تُحفظ مسودات بلا أي أثر على الحسابات.</summary>
     private Task DraftAsync() => CheckoutCoreAsync(sendWhatsApp: false, draftOnly: true);
 
@@ -267,7 +294,8 @@ public partial class Terminal : SecurePageBase
                 Lines = _cart.Select(l => new PosLineInput
                 {
                     ItemId = l.ItemId, UnitId = l.UnitId, Quantity = l.Quantity,
-                    UnitPrice = l.UnitPrice
+                    UnitPrice = l.UnitPrice, OperationType = l.OperationType,
+                    EmployeeId = l.EmployeeId
                 }).ToList(),
                 Payments = _payments.Where(p => p.Total > 0).Select(p => new PosPaymentInput
                 {

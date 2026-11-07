@@ -23,6 +23,9 @@ public sealed partial class PosRepository
         public decimal NetAmount { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal TotalAmount { get; set; }
+        public string OperationType { get; set; } = ServiceOperationTypes.Normal;
+        public Guid? EmployeeId { get; set; }
+        public Guid? TreatmentAccountId { get; set; }
     }
 
     /// <summary>ينفّذ سطور الأصناف المباشرة داخل معاملة البيع نفسها.</summary>
@@ -39,8 +42,13 @@ public sealed partial class PosRepository
                    i.item_type AS ItemType, i.execution_mode AS ExecutionMode,
                    l.unit_id AS UnitId, l.quantity AS Quantity,
                    l.net_amount AS NetAmount, l.tax_amount AS TaxAmount,
-                   l.total_amount AS TotalAmount
-            FROM booking_lines l JOIN items i ON i.id = l.item_id
+                   l.total_amount AS TotalAmount, l.operation_type AS OperationType,
+                   COALESCE(l.employee_id, b.assigned_employee_id) AS EmployeeId,
+                   e.treatment_account_id AS TreatmentAccountId
+            FROM booking_lines l
+            JOIN items i ON i.id = l.item_id
+            JOIN bookings b ON b.id = l.booking_id
+            LEFT JOIN employees e ON e.id = COALESCE(l.employee_id, b.assigned_employee_id)
             WHERE l.booking_id = @bookingId
             ORDER BY l.line_no
             """, new { bookingId }, tx, cancellationToken: ct)))

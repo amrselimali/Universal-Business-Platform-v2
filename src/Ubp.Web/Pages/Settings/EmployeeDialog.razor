@@ -30,6 +30,15 @@
                 </MudSelect>
                 <MudDatePicker @bind-Date="_hireDate" Label="@T.T("settings.hire_date")"
                                Variant="Variant.Outlined" DateFormat="yyyy-MM-dd" Editable="true" />
+                <MudSelect T="Guid?" @bind-Value="_input.TreatmentAccountId"
+                           Label="حساب تحميل الجلسة العلاجية" Variant="Variant.Outlined" Clearable="true">
+                    @foreach (var account in _accounts)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)account.Id)">
+                            @account.Code — @account.NameAr
+                        </MudSelectItem>
+                    }
+                </MudSelect>
                 <div style="grid-column: 1 / -1;">
                     <MudSwitch @bind-Value="_input.IsBookingReceiver" Color="Color.Primary"
                                Label="@T.T("settings.role_receiver")" />
@@ -55,6 +64,7 @@
     [Parameter] public Employee? Model { get; set; }
 
     [Inject] private MasterDataService MasterData { get; set; } = default!;
+    [Inject] private LookupService Lookup { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
     [Inject] private UiCulture T { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
@@ -62,6 +72,7 @@
     private MudForm _form = default!;
     private EmployeeInput _input = new();
     private IReadOnlyList<Role> _roles = Array.Empty<Role>();
+    private IReadOnlyList<Account> _accounts = Array.Empty<Account>();
     private DateTime? _hireDate;
     private bool _busy;
 
@@ -69,7 +80,10 @@
     {
         var actor = await UserContext.GetAsync();
         if (actor is not null)
+        {
             _roles = await MasterData.EmployeeRoleOptionsAsync(actor);
+            _accounts = await Lookup.PostableAccountsAsync(actor);
+        }
 
         if (Model is null) return;
         _input = new EmployeeInput
@@ -78,7 +92,8 @@
             Email = Model.Email, UserId = Model.UserId, RoleId = Model.RoleId,
             JobTitle = Model.JobTitle, HireDate = Model.HireDate,
             IsBookingReceiver = Model.IsBookingReceiver, IsSeller = Model.IsSeller,
-            IsServiceExecutor = Model.IsServiceExecutor, Notes = Model.Notes, IsActive = Model.IsActive
+            IsServiceExecutor = Model.IsServiceExecutor, Notes = Model.Notes,
+            IsActive = Model.IsActive, TreatmentAccountId = Model.TreatmentAccountId
         };
         _hireDate = Model.HireDate;
     }

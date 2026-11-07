@@ -250,6 +250,10 @@ public sealed class ShiftCollectionRow
     public decimal Quantity { get; set; }
     public decimal MeterUnits { get; set; }
     public string? EmployeeName { get; set; }
+    /// <summary>الصنف/الخدمة المنفَّذة — ظهور كل حركة تنفيذ بسطر مستقل — 0083.</summary>
+    public string? ItemName { get; set; }
+    /// <summary>سعر وحدة الخدمة المنفَّذة — 0083.</summary>
+    public decimal UnitPrice { get; set; }
 }
 
 /// <summary>مصروف تشغيلي مسجّل داخل الوردية (0078).</summary>
