@@ -4,6 +4,8 @@
 @code {
     private string _primary = "#0F766E";
     private string _primaryDark = "#115E59";
+    // كسر الكاش: يتغير تلقائيًا مع بدء التطبيق/النشر لتحميل أحدث ملفات CSS/JS.
+    private static readonly string _assetVersion = DateTime.UtcNow.Ticks.ToString("x");
 
     protected override async Task OnInitializedAsync()
     {
@@ -36,8 +38,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    <link href="app.css" rel="stylesheet" />
-    <link href="css/responsive.css" rel="stylesheet" />
+    <link href="app.css?v=@_assetVersion" rel="stylesheet" />
+    <link href="css/responsive.css?v=@_assetVersion" rel="stylesheet" />
     <style>
         /* يُوضع بعد ملفات CSS ليتغلب على اللون الافتراضي في :root (قابل للتخصيص من الإعدادات). */
         html:root { --ubp-primary: @_primary !important; --ubp-primary-dark: @_primaryDark !important; }

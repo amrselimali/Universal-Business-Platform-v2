@@ -92,23 +92,33 @@ else
                     }
                 </MudSelect>
 
-                @if (_customerId != Guid.Empty)
+                @if (Can(ActionCodes.Collect) || Can(ActionCodes.TransferService))
                 {
-                    @if (Can(ActionCodes.Collect))
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        @if (Can(ActionCodes.Collect))
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Payments"
+                                       OnClick="CollectBookingsAsync"
+                                       Disabled="@(_busy || _customerId == Guid.Empty)">
+                                @T.T("pos.collect_services")
+                            </MudButton>
+                        }
+                        @if (Can(ActionCodes.TransferService))
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.SwapHoriz"
+                                       OnClick="OpenTransferAsync"
+                                       Disabled="@(_busy || _customerId == Guid.Empty)">
+                                @T.T("action.transfer_service")
+                            </MudButton>
+                        }
+                    </div>
+                    @if (_customerId == Guid.Empty)
                     {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Payments"
-                               OnClick="CollectBookingsAsync" Disabled="@_busy" Class="mb-2">
-                        @T.T("pos.collect_services")
-                    </MudButton>
-                    }
-                    @if (Can(ActionCodes.TransferService))
-                    {
-                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
-                                   StartIcon="@Icons.Material.Filled.SwapHoriz"
-                                   OnClick="OpenTransferAsync" Disabled="@_busy" Class="mb-2 ml-2">
-                            تحويل خدمات
-                        </MudButton>
+                        <MudText Typo="Typo.caption" Class="ubp-muted mb-2">
+                            اختر العميل أولًا لتفعيل تحصيل الخدمات المحجوزة وتحويل الخدمات.
+                        </MudText>
                     }
                 }
 
