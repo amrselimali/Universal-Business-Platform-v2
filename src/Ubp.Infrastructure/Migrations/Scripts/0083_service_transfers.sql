@@ -37,6 +37,9 @@ CREATE TABLE IF NOT EXISTS service_transfers (
     CONSTRAINT ck_service_transfers_customers CHECK (from_customer_id <> to_customer_id)
 );
 
+-- حماية: إن وُجد الجدول مسبقًا بلا عمود doc_no نضيفه قبل الفهرس الفريد.
+ALTER TABLE IF EXISTS service_transfers ADD COLUMN IF NOT EXISTS doc_no varchar(30);
+
 CREATE UNIQUE INDEX IF NOT EXISTS ux_service_transfer_no
     ON service_transfers (branch_id, doc_no) WHERE doc_no IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_service_transfers_branch_date

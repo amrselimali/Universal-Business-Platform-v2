@@ -30,6 +30,9 @@ CREATE TABLE IF NOT EXISTS operating_expenses (
                OR (treasury_id IS NOT NULL AND treasury_method_id IS NOT NULL))
 );
 
+-- حماية: إن كان الجدول موجودًا مسبقًا بلا عمود doc_no نضيفه قبل إنشاء الفهرس الفريد.
+ALTER TABLE IF EXISTS operating_expenses ADD COLUMN IF NOT EXISTS doc_no varchar(30);
+
 CREATE UNIQUE INDEX IF NOT EXISTS ux_operating_expenses_no
     ON operating_expenses (branch_id, doc_no) WHERE doc_no IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_operating_expenses_branch_date

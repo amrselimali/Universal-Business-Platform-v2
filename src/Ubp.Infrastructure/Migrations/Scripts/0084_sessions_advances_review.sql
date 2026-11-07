@@ -37,6 +37,9 @@ CREATE TABLE IF NOT EXISTS employee_advances (
     posted_at          timestamptz,
     posted_by          uuid REFERENCES users(id) ON DELETE SET NULL
 );
+-- حماية: إن وُجد الجدول مسبقًا بلا عمود doc_no نضيفه قبل الفهرس الفريد.
+ALTER TABLE IF EXISTS employee_advances ADD COLUMN IF NOT EXISTS doc_no varchar(30);
+
 CREATE UNIQUE INDEX IF NOT EXISTS ux_employee_advances_no
     ON employee_advances (branch_id, doc_no) WHERE doc_no IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_employee_advances_branch_date
