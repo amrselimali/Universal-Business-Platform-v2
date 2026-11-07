@@ -25,8 +25,8 @@ public sealed class PosService
     public async Task<PosReceipt> CheckoutAsync(ActorContext actor, PosCheckoutInput input,
         CancellationToken ct = default)
     {
-        await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.Checkout,
-            ct: ct);
+        await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal,
+            input.DraftOnly ? ActionCodes.SaveDraft : ActionCodes.Checkout, ct: ct);
 
         // تاريخ نهاية العرض: افتراضي 6 أشهر، ويُرفض التاريخ الماضي.
         input.ExpiresAt ??= DateTimeOffset.UtcNow.AddMonths(6);
@@ -72,7 +72,7 @@ public sealed class PosService
         CancellationToken ct = default)
     {
         var allowed = await _permissions.HasAsync(actor, ScreenCodes.PosTerminal,
-                          ActionCodes.Checkout, ct)
+                          ActionCodes.SendWhatsApp, ct)
                       || await _permissions.HasAsync(actor, ScreenCodes.PosReceipts,
                           ActionCodes.View, ct);
         if (!allowed) throw new ForbiddenException();

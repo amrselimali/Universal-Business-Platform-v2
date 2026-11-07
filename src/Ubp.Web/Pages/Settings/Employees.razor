@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @inherits SecurePageBase
 @inject MasterDataService MasterData
+@inject BranchService Branches
 @inject IDialogService Dialogs
 <PageTitle>@T.T("screen.employees")</PageTitle>
 
@@ -35,6 +36,15 @@ else
                           DebounceInterval="300" OnDebounceIntervalElapsed="ReloadAsync" />
             <MudSwitch T="bool" Value="_includeInactive" Label="@T.T("common.include_inactive")"
                        Color="Color.Primary" ValueChanged="OnFilterChanged" />
+            <MudSelect T="Guid" SelectedValues="_branchIds" MultiSelection="true"
+                       Label="@T.T("common.branch")" Variant="Variant.Outlined" Margin="Margin.Dense"
+                       SelectAll="true" SelectAllText="@T.T("common.select_all")"
+                       SelectedValuesChanged="OnBranchesChanged">
+                @foreach (var branch in _branches)
+                {
+                    <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
+                }
+            </MudSelect>
         </div>
 
         <MudTable @ref="_table" ServerData="LoadServerData" Dense="true" Hover="true" Striped="true"
@@ -90,9 +100,23 @@ else
     private string? _search;
     private bool _includeInactive;
     private bool IsEnglish => T.Language == "en";
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private HashSet<Guid> _branchIds = new();
 
     protected override string ScreenCode => ScreenCodes.Employees;
-    protected override Task OnLoadAsync() => Task.CompletedTask;
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        _branchIds = _branches.Select(b => b.Id).ToHashSet();
+    }
+
+    private Task OnBranchesChanged(IEnumerable<Guid> values)
+    {
+        _branchIds = values.ToHashSet();
+        if (_branchIds.Count == 0) _branchIds = _branches.Select(b => b.Id).ToHashSet();
+        return ReloadAsync();
+    }
 
     private async Task<TableData<Employee>> LoadServerData(TableState state, CancellationToken ct)
     {
@@ -101,7 +125,7 @@ else
             Page = state.Page + 1, PageSize = 25, Search = _search,
             SortBy = state.SortLabel ?? "code",
             Descending = state.SortDirection == SortDirection.Descending
-        }, _includeInactive, ct);
+        }, _includeInactive, _branchIds.ToList(), ct);
         return new TableData<Employee> { Items = result.Items, TotalItems = result.Total };
     }
 

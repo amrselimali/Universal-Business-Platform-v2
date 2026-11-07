@@ -27,7 +27,7 @@ public sealed class BookingCollectionService
     public async Task<IReadOnlyList<BookingCollectionRow>> ListOutstandingAsync(
         ActorContext actor, Guid branchId, Guid customerId, CancellationToken ct = default)
     {
-        await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.Checkout,
+        await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.Collect,
             ct: ct);
         BranchScope.Ensure(actor, branchId);
         return await _collections.ListOutstandingAsync(branchId, customerId, ct);
@@ -36,7 +36,7 @@ public sealed class BookingCollectionService
     public async Task<BookingCollectionResult> CollectAsync(ActorContext actor,
         BookingCollectionInput input, CancellationToken ct = default)
     {
-        await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.Checkout,
+        await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.Collect,
             ct: ct);
         BranchScope.Ensure(actor, input.BranchId);
         var id = Guid.CreateVersion7();

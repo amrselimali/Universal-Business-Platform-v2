@@ -102,7 +102,7 @@ public sealed partial class AuthService
             await _sessions.SetSessionBranchFilterAsync(sessionId, null, ct);
             return true;
         }
-        if (chosen.Length == 0) return false; // لا يُسمح بإلغاء كل الفروع.
+        if (chosen.Length == 0) chosen = allowed.ToArray(); // حد أدنى فرع واحد (لا فلتر فارغ).
 
         var current = await _sessions.GetSessionAsync(sessionId, ct);
         var currentBranch = current?.BranchId is { } cb && chosen.Contains(cb) ? cb : chosen[0];

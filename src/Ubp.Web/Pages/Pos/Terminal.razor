@@ -99,11 +99,14 @@ else
 
                 @if (_customerId != Guid.Empty)
                 {
+                    @if (Can(ActionCodes.Collect))
+                    {
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.Payments"
                                OnClick="CollectBookingsAsync" Disabled="@_busy" Class="mb-2">
                         @T.T("pos.collect_services")
                     </MudButton>
+                    }
                     @if (Can(ActionCodes.Checkout))
                     {
                         <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
@@ -227,11 +230,17 @@ else
                                    OnClick="CheckoutAsync" Disabled="@(_busy || _cart.Count == 0)">
                             @T.T("pos.checkout")
                         </MudButton>
+                    }
+                    @if (Can(ActionCodes.SendWhatsApp))
+                    {
                         <MudButton Color="Color.Success" Variant="Variant.Outlined"
                                    StartIcon="@Icons.Material.Filled.Send" OnClick="CheckoutAndSendAsync"
                                    Disabled="@(_busy || _cart.Count == 0)">
                             @T.T("pos.save_and_send_whatsapp")
                         </MudButton>
+                    }
+                    @if (Can(ActionCodes.SaveDraft))
+                    {
                         <MudButton Color="Color.Warning" Variant="Variant.Outlined"
                                    StartIcon="@Icons.Material.Filled.Save" OnClick="DraftAsync"
                                    Disabled="@(_busy || _cart.Count == 0)">

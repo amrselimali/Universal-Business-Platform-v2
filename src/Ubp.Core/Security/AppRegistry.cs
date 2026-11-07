@@ -270,7 +270,8 @@ public static partial class AppRegistry
 
         new(ScreenCodes.PosTerminal, "/pos/terminal", "PointOfSale", "screen.pos_terminal",
             GroupSales,
-            new[] { A(ActionCodes.View), A(ActionCodes.Checkout) }, "pos.terminal"),
+            new[] { A(ActionCodes.View), A(ActionCodes.Checkout), A(ActionCodes.Collect),
+                    A(ActionCodes.SendWhatsApp), A(ActionCodes.SaveDraft) }, "pos.terminal"),
 
         new(ScreenCodes.PosReceipts, "/pos/receipts", "ReceiptLong", "screen.pos_receipts",
             GroupSales,

@@ -160,6 +160,8 @@ else
     private Task OnBranchesChanged(IEnumerable<Guid> values)
     {
         _branchIds = values.ToHashSet();
+        // حد أدنى فرع واحد: إن أُلغيت كلها نُعيد كل فروع المستخدم (لا صفحة بلا فلتر).
+        if (_branchIds.Count == 0) _branchIds = _branches.Select(b => b.Id).ToHashSet();
         return _table.ReloadServerData();
     }
     private Task OnSearchAsync(string? value) { _search = value; return _table.ReloadServerData(); }

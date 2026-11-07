@@ -41,8 +41,15 @@ public sealed class SessionBranchFilterTests : IClassFixture<TestDb>
             Assert.Equal(new[] { a }, filter);
         }
 
-        // إلغاء كل الفروع مرفوض (يُفرض فرع واحد على الأقل لغير السوبر أدمن).
-        Assert.False(await auth.SetBranchFilterAsync(sessionId, userId, Array.Empty<Guid>()));
+        // إلغاء كل الفروع لا يترك الصفحة بلا فلتر: يُعاد ضبطها على كل فروع المستخدم (حد أدنى فرع).
+        Assert.True(await auth.SetBranchFilterAsync(sessionId, userId, Array.Empty<Guid>()));
+        await using (var c = new NpgsqlConnection(TestDb.AdminConnection))
+        {
+            await c.OpenAsync();
+            var filter = await c.ExecuteScalarAsync<Guid[]>(
+                "SELECT filter_branch_ids FROM user_sessions WHERE id = @id", new { id = sessionId });
+            Assert.Null(filter); // كل فروع المستخدم
+        }
         _ = admin;
     }
 }

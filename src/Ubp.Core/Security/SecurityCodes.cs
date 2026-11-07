@@ -157,4 +157,6 @@ public static class ActionCodes
     public const string Reconcile = "RECONCILE";
     public const string Checkout = "CHECKOUT";
     public const string Complete = "COMPLETE";
+    public const string Collect = "COLLECT";
+    public const string SendWhatsApp = "SEND_WHATSAPP";
 }

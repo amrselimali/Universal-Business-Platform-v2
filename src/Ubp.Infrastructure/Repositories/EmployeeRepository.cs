@@ -8,6 +8,9 @@ namespace Ubp.Infrastructure.Repositories;
 public interface IEmployeeRepository
 {
     Task<PagedResult<Employee>> ListAsync(PageRequest request, bool includeInactive, CancellationToken ct = default);
+    /// <summary>قائمة الموظفين مع فلتر فروع (موظفو الشركة يظهرون دائمًا) — 0095.</summary>
+    Task<PagedResult<Employee>> ListAsync(PageRequest request, bool includeInactive,
+        IReadOnlyCollection<Guid> branchIds, CancellationToken ct = default);
     Task<IReadOnlyList<Employee>> ListOptionsAsync(CancellationToken ct = default);
     /// <summary>موظفو الفروع المحددة + موظفو الشركة (branch_id IS NULL) — 0094.</summary>
     Task<IReadOnlyList<Employee>> ListOptionsAsync(IReadOnlyCollection<Guid> branchIds,
@@ -43,10 +46,16 @@ public sealed class EmployeeRepository : IEmployeeRepository
     public EmployeeRepository(IDbConnectionFactory factory) => _factory = factory;
 
     public async Task<PagedResult<Employee>> ListAsync(PageRequest request, bool includeInactive,
-        CancellationToken ct = default)
+        CancellationToken ct = default) =>
+        await ListAsync(request, includeInactive, Array.Empty<Guid>(), ct);
+
+    public async Task<PagedResult<Employee>> ListAsync(PageRequest request, bool includeInactive,
+        IReadOnlyCollection<Guid> branchIds, CancellationToken ct = default)
     {
         var where = new List<string>();
         if (!includeInactive) where.Add("e.is_active");
+        if (branchIds.Count > 0)
+            where.Add("(e.branch_id IS NULL OR e.branch_id = ANY(@branchIds))");
         if (!string.IsNullOrWhiteSpace(request.Search)) where.Add(SearchSql.Contains("e.search_text"));
         var whereSql = where.Count == 0 ? "WHERE true" : "WHERE " + string.Join(" AND ", where);
         var order = SqlSort.Build(request.SortBy, SortMap, "e.code", request.Descending);
@@ -57,7 +66,8 @@ public sealed class EmployeeRepository : IEmployeeRepository
             """;
         await using var connection = await _factory.OpenAsync(ct);
         using var multi = await connection.QueryMultipleAsync(new CommandDefinition(sql, new
-        { search = request.Search, take = request.SafePageSize, offset = request.Offset },
+        { search = request.Search, take = request.SafePageSize, offset = request.Offset,
+            branchIds = branchIds.ToArray() },
             cancellationToken: ct));
         var items = (await multi.ReadAsync<Employee>()).ToList();
         var total = await multi.ReadFirstAsync<int>();

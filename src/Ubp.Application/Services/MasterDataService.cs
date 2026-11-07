@@ -28,10 +28,16 @@ public sealed partial class MasterDataService
 
     // ---------------- الموظفون (D8/D9) ----------------
     public async Task<PagedResult<Employee>> ListEmployeesAsync(ActorContext actor,
-        PageRequest request, bool includeInactive, CancellationToken ct = default)
+        PageRequest request, bool includeInactive, IReadOnlyCollection<Guid>? branchIds = null,
+        CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.Employees, ActionCodes.View, ct: ct);
-        return await _employees.ListAsync(request, includeInactive, ct);
+        var scope = actor.IsSuperAdmin
+            ? (branchIds is { Count: > 0 } ? branchIds.ToArray() : Array.Empty<Guid>())
+            : (branchIds is { Count: > 0 }
+                ? branchIds.Where(actor.AllowedBranchIds.Contains).ToArray()
+                : actor.AllowedBranchIds.ToArray());
+        return await _employees.ListAsync(request, includeInactive, scope, ct);
     }
 
     public async Task<IReadOnlyList<Employee>> EmployeeOptionsAsync(ActorContext actor,
