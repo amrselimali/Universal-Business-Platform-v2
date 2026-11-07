@@ -32,7 +32,7 @@ public sealed class ShiftEditService
     public async Task<ShiftEditOutcome> ApplyAsync(ActorContext actor, ShiftLineEditInput input,
         CancellationToken ct = default)
     {
-        await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.View, ct: ct);
+        await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.Edit, ct: ct);
         var shift = await _treasury.GetShiftAsync(input.ShiftId, ct)
                     ?? throw new NotFoundAppException();
         BranchScope.Ensure(actor, shift.BranchId);

@@ -227,8 +227,8 @@ public static partial class AppRegistry
 
         new(ScreenCodes.TreasuryShifts, "/treasury/shifts", "PointOfSale",
             "screen.treasury_shifts", GroupSales,
-            new[] { A(ActionCodes.View), A(ActionCodes.Open), A(ActionCodes.Close),
-                    A(ActionCodes.Reopen), A(ActionCodes.Approve) },
+            new[] { A(ActionCodes.View), A(ActionCodes.Edit), A(ActionCodes.Open),
+                    A(ActionCodes.Close), A(ActionCodes.Reopen), A(ActionCodes.Approve) },
             "treasury.shifts"),
 
         new(ScreenCodes.TreasuryReconciliation, "/treasury/reconciliation", "SwapHoriz",

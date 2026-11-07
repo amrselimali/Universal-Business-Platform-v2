@@ -104,11 +104,14 @@ else
                                OnClick="CollectBookingsAsync" Disabled="@_busy" Class="mb-2">
                         @T.T("pos.collect_services")
                     </MudButton>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
-                               StartIcon="@Icons.Material.Filled.SwapHoriz"
-                               OnClick="OpenTransferAsync" Disabled="@_busy" Class="mb-2 ml-2">
-                        تحويل خدمات
-                    </MudButton>
+                    @if (Can(ActionCodes.Checkout))
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.SwapHoriz"
+                                   OnClick="OpenTransferAsync" Disabled="@_busy" Class="mb-2 ml-2">
+                            تحويل خدمات
+                        </MudButton>
+                    }
                 }
 
                 <MudDatePicker @bind-Date="_expiryDate" Label="@T.T("sales.offer_expiry")"

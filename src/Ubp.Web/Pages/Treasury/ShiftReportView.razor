@@ -4,11 +4,12 @@
 @inject UserContext UserContext
 @inject ISnackbar Snackbar
 @inject IDialogService Dialogs
+@inject PermissionService Permissions
 
 <MudText Typo="Typo.subtitle2" Class="mt-2">
     @T.T("treasury.report_collections") / @T.T("treasury.report_revenues")
 </MudText>
-@if (Report.Shift.IsOpen || Report.Shift.IsPendingReview)
+@if (_canEdit && (Report.Shift.IsOpen || Report.Shift.IsPendingReview))
 {
     <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mb-2"
                StartIcon="@Icons.Material.Filled.Edit" OnClick="OpenEditAsync">تعديل بيانات الوردية</MudButton>
@@ -235,6 +236,15 @@
     [Parameter] public bool Editable { get; set; }
 
     private bool _saving;
+    private bool _canEdit;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var actor = await UserContext.GetAsync();
+        if (actor is not null)
+            _canEdit = await Permissions.HasAsync(actor, ScreenCodes.TreasuryShifts,
+                ActionCodes.Edit);
+    }
 
     private string TreasuryTypeText(string? type) => string.IsNullOrWhiteSpace(type)
         ? "—"
