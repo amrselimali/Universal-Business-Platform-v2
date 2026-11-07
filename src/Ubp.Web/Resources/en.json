@@ -649,7 +649,7 @@
   "pos.preview": "Receipt preview",
   "pos.view_receipt": "View receipt",
   "pos.save_and_send_whatsapp": "Save and send WhatsApp",
-  "pos.save_draft_only": "Save as draft (no posting)",
+  "pos.save_draft_only": "Register",
   "pos.receipt_not_found": "Receipt not found",
   "pos.no_outstanding_services": "No outstanding reserved services for this customer in this branch.",
   "pos.no_collection_methods": "No collection methods are coded for this branch's treasuries.",

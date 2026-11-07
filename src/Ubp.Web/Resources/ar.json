@@ -649,7 +649,7 @@
   "pos.preview": "معاينة الإيصال",
   "pos.view_receipt": "عرض الإيصال",
   "pos.save_and_send_whatsapp": "حفظ وإرسال واتساب",
-  "pos.save_draft_only": "ترحيل مسودة (بدون تأثير على الحسابات)",
+  "pos.save_draft_only": "تسجيل",
   "pos.receipt_not_found": "الإيصال غير موجود",
   "pos.no_outstanding_services": "لا توجد خدمات محجوزة مستحقة على هذا العميل في هذا الفرع.",
   "pos.no_collection_methods": "لا توجد طرق تحصيل مكوَّدة في خزائن هذا الفرع.",
