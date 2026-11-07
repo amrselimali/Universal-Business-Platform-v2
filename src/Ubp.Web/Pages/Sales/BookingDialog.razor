@@ -1,7 +1,7 @@
 @inherits ComponentBase
 
 <MudDialog>
-    <TitleContent><MudText Typo="Typo.h6">@T.T("sales.new_booking")</MudText></TitleContent>
+    <TitleContent><MudText Typo="Typo.h6">@(Model is null ? T.T("sales.new_booking") : "تعديل الحجز")</MudText></TitleContent>
     <DialogContent>
         <MudForm @ref="_form">
             <div class="ubp-form-grid">
@@ -81,11 +81,16 @@
     {
         public Guid ItemId { get; set; }
         public Guid BaseUnitId { get; set; }
+        public Guid WarehouseId { get; set; }
+        public decimal Quantity { get; set; } = 1;
+        public decimal UnitPrice { get; set; }
     }
 
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public IReadOnlyList<Branch> Branches { get; set; } = Array.Empty<Branch>();
     [Parameter] public Guid? DefaultBranchId { get; set; }
+    /// <summary>عند تمريره: الحوار يعدّل حجزًا مسودة (تاريخ/وقت/خدمة/موظف/ملاحظات).</summary>
+    [Parameter] public Booking? Model { get; set; }
 
     [Inject] private BookingService Bookings { get; set; } = default!;
     [Inject] private LookupService Lookup { get; set; } = default!;
@@ -116,7 +121,23 @@
         _warehouses = await Lookup.WarehousesAsync(actor);
         _employees = await MasterData.EmployeeOptionsAsync(actor);
         _customers = await Lookup.PartnersAsync(actor, PartnerKind.Customer);
-        AddLine();
+
+        if (Model is not null)
+        {
+            _input.BranchId = Model.BranchId;
+            _input.CustomerId = Model.CustomerId;
+            _input.AssignedEmployeeId = Model.AssignedEmployeeId;
+            _input.Notes = Model.Notes;
+            _date = Model.BookingDate;
+            if (Model.StartsAt is { } s) _startTime = s.ToLocalTime().TimeOfDay;
+            if (Model.EndsAt is { } e) _endTime = e.ToLocalTime().TimeOfDay;
+            _lines = Model.Lines.Select(l => new LineModel
+            {
+                ItemId = l.ItemId, BaseUnitId = l.UnitId, WarehouseId = l.WarehouseId,
+                Quantity = l.Quantity <= 0 ? 1 : l.Quantity, UnitPrice = l.UnitPrice
+            }).ToList();
+        }
+        if (_lines.Count == 0) AddLine();
     }
 
     private async Task OnBranchChanged(Guid value)
@@ -170,12 +191,15 @@
             _input.EndsAt = new DateTimeOffset(_date.Value.Date + _endTime.Value);
             _input.Lines = _lines.Select(l => new BookingLineInput
             {
-                ItemId = l.ItemId, UnitId = l.BaseUnitId, WarehouseId = warehouseId,
-                Quantity = 1, UnitPrice = 0
+                ItemId = l.ItemId, UnitId = l.BaseUnitId,
+                WarehouseId = l.WarehouseId == Guid.Empty ? warehouseId : l.WarehouseId,
+                Quantity = l.Quantity <= 0 ? 1 : l.Quantity, UnitPrice = l.UnitPrice
             }).ToList();
 
-            var booking = await Bookings.CreateAsync(actor, _input);
-            MudDialog.Close(DialogResult.Ok(booking));
+            var saved = Model is null
+                ? await Bookings.CreateAsync(actor, _input)
+                : await Bookings.UpdateAsync(actor, Model.Id, Model.Version, _input);
+            MudDialog.Close(DialogResult.Ok(saved));
         }
         catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
         finally { _busy = false; }

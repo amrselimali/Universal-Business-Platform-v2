@@ -63,7 +63,6 @@ else
                 <MudTh>@T.T("common.notes")</MudTh>
                 <MudTh>@T.T("sales.booking_created_by")</MudTh>
                 <MudTh>@T.T("sales.assigned_employee")</MudTh>
-                <MudTh Align="Right">@T.T("accounting.total")</MudTh>
                 <MudTh>@T.T("common.status")</MudTh>
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
@@ -84,7 +83,6 @@ else
                 <MudTd>@(string.IsNullOrWhiteSpace(context.Notes) ? "—" : context.Notes)</MudTd>
                 <MudTd>@(context.CreatedByName ?? "—")</MudTd>
                 <MudTd>@(context.EmployeeName ?? "—")</MudTd>
-                <MudTd Align="Right">@context.TotalAmount.ToString("N2")</MudTd>
                 <MudTd>
                     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                              Color="@StatusColor(context.Status)">
@@ -94,6 +92,11 @@ else
                 <MudTd Align="Right">
                     <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true"
                              AnchorOrigin="Origin.BottomRight">
+                        @if (context.IsDraft && Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => EditAsync(context))"
+                                         Icon="@Icons.Material.Filled.Edit">@T.T("common.edit")</MudMenuItem>
+                        }
                         @if (context.IsDraft && Can(ActionCodes.Confirm))
                         {
                             <MudMenuItem OnClick="@(() => ConfirmAsync(context))"
@@ -197,6 +200,18 @@ else
         await _table.ReloadServerData();
         ShowSuccess("sales.confirmed");
     });
+
+    /// <summary>تعديل حجز مسودة: التاريخ/الوقت/الخدمة/الموظف/الملاحظات.</summary>
+    private async Task EditAsync(Booking booking)
+    {
+        var dialog = await Dialogs.ShowAsync<BookingDialog>("تعديل الحجز",
+            new DialogParameters { ["Branches"] = _branches, ["Model"] = booking });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await _table.ReloadServerData();
+            ShowSuccess("common.saved");
+        }
+    }
 
     private async Task AssignAsync(Booking booking)
     {
