@@ -26,6 +26,8 @@ public sealed partial class PosRepository
         public string OperationType { get; set; } = ServiceOperationTypes.Normal;
         public Guid? EmployeeId { get; set; }
         public Guid? TreatmentAccountId { get; set; }
+        public decimal UnitPrice { get; set; }
+        public string? ItemName { get; set; }
     }
 
     /// <summary>ينفّذ سطور الأصناف المباشرة داخل معاملة البيع نفسها.</summary>
@@ -43,6 +45,7 @@ public sealed partial class PosRepository
                    l.unit_id AS UnitId, l.quantity AS Quantity,
                    l.net_amount AS NetAmount, l.tax_amount AS TaxAmount,
                    l.total_amount AS TotalAmount, l.operation_type AS OperationType,
+                   l.unit_price AS UnitPrice, i.name_ar AS ItemName,
                    COALESCE(b.assigned_employee_id, l.employee_id) AS EmployeeId,
                    COALESCE(resp.treatment_account_id, le.treatment_account_id,
                             (SELECT pd.account_id FROM posting_defaults pd

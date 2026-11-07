@@ -30,6 +30,8 @@ public sealed partial class BookingExecutionRepository
         public string OperationType { get; set; } = ServiceOperationTypes.Normal;
         public Guid? EmployeeId { get; set; }
         public Guid? TreatmentAccountId { get; set; }
+        public string? ItemName { get; set; }
+        public decimal UnitPrice { get; set; }
     }
 
     public async Task<BookingExecutionResult> ExecuteAsync(BookingExecutionInput input,
@@ -52,6 +54,7 @@ public sealed partial class BookingExecutionRepository
                    l.reserved_qty AS ReservedQty, l.net_amount AS NetAmount,
                    l.tax_amount AS TaxAmount, l.total_amount AS TotalAmount,
                    i.is_metered AS ItemIsMetered, i.execution_mode AS ExecutionMode,
+                   i.name_ar AS ItemName, l.unit_price AS UnitPrice,
                    l.operation_type AS OperationType,
                    COALESCE(b.assigned_employee_id, l.employee_id) AS EmployeeId,
                    COALESCE(resp.treatment_account_id, le.treatment_account_id,
@@ -149,7 +152,8 @@ public sealed partial class BookingExecutionRepository
         // إيراد التنفيذ: للخدمة دائمًا، وللصنف المباشر أيًا كان نوعه (ذمم مباشرة).
         if (line.ItemType == "SERVICE" || direct)
             journalEntryId = await PostServiceRevenueAsync(connection, tx, line, input.Quantity,
-                docNo, executionLineId, executionId, userId, ct) ?? journalEntryId;
+                docNo, executionLineId, executionId, userId, input.MeteredAssetId, ct)
+                ?? journalEntryId;
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO booking_executions
                 (id, branch_id, doc_no, execution_date, booking_id, status, stock_document_id,

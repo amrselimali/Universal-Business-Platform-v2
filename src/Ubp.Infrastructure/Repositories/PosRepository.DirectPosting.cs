@@ -137,7 +137,43 @@ public sealed partial class PosRepository
             entries.Add(new EntryLine(
                 await NeedAsync(connection, tx, PostingKeys.VatOutput, ct), 0, line.TaxAmount));
 
+        var description = await BuildPosDescriptionAsync(connection, tx, docNo, input, line, ct);
         return await PostEntryAsync(connection, tx, "sales", input.BranchId, input.DocDate.Date,
-            docNo, $"إيراد تنفيذ مباشر {docNo}", entries, userId, "execution", executionId, ct);
+            docNo, description, entries, userId, "execution", executionId, ct);
+    }
+
+    /// <summary>وصف تفصيلي لقيد التنفيذ المباشر (توضيح الأستاذ/كشف الحساب) — يذكر المسجّل فقط.</summary>
+    private static async Task<string> BuildPosDescriptionAsync(NpgsqlConnection connection,
+        NpgsqlTransaction tx, string docNo, PosCheckoutInput input, DirectLine line,
+        CancellationToken ct)
+    {
+        var parts = new List<string> { $"إيراد تنفيذ مباشر {docNo}" };
+        var session = line.OperationType switch
+        {
+            ServiceOperationTypes.Treatment => "علاجية",
+            ServiceOperationTypes.Gift => "هدية",
+            _ => "عادية"
+        };
+        parts.Add($"نوع الجلسة: {session}");
+        if (!string.IsNullOrWhiteSpace(line.ItemName)) parts.Add($"الخدمة: {line.ItemName}");
+        if (line.EmployeeId is { } empId)
+        {
+            var empName = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
+                "SELECT name_ar FROM employees WHERE id = @id", new { id = empId }, tx,
+                cancellationToken: ct));
+            if (!string.IsNullOrWhiteSpace(empName)) parts.Add($"الموظف المسؤول: {empName}");
+        }
+        parts.Add($"سعر الوحدة: {line.UnitPrice:N2}");
+        parts.Add("المصدر: تنفيذ مباشر من نقطة البيع");
+        var complaint = await connection.ExecuteScalarAsync<string?>(new CommandDefinition("""
+            SELECT emp.name_ar FROM complaints cp
+            JOIN employees emp ON emp.id = cp.employee_id
+            WHERE cp.customer_id = @customerId AND (cp.item_id = @itemId OR cp.item_id IS NULL)
+            ORDER BY (cp.item_id = @itemId) DESC, cp.created_at DESC
+            LIMIT 1
+            """, new { customerId = input.CustomerId, itemId = line.ItemId }, tx,
+            cancellationToken: ct));
+        if (!string.IsNullOrWhiteSpace(complaint)) parts.Add($"متسبب الشكوى: {complaint}");
+        return string.Join(" | ", parts);
     }
 }

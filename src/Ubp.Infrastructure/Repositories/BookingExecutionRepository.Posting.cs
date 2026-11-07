@@ -72,7 +72,8 @@ public sealed partial class BookingExecutionRepository
     /// </summary>
     private static async Task<Guid?> PostServiceRevenueAsync(NpgsqlConnection connection,
         NpgsqlTransaction tx, ExecutionLine line, decimal executedQty, string docNo,
-        Guid executionLineId, Guid executionId, Guid userId, CancellationToken ct)
+        Guid executionLineId, Guid executionId, Guid userId, Guid? meterAssetId,
+        CancellationToken ct)
     {
         if (line.Quantity <= 0) return null;
         var ratio = executedQty / line.Quantity;
@@ -108,7 +109,8 @@ public sealed partial class BookingExecutionRepository
             ?? throw new ValidationAppException("validation.journal_not_found");
 
         var entryId = Guid.CreateVersion7();
-        var description = $"إيراد تنفيذ خدمة {docNo}";
+        var description = await BuildExecutionDescriptionAsync(connection, tx, docNo, line,
+            meterAssetId, ct);
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO journal_entries
                 (id, journal_id, branch_id, entry_date, reference, description, status, source_type,
@@ -159,5 +161,47 @@ public sealed partial class BookingExecutionRepository
             "SELECT fn_gl_post_entry(@entryId, @userId)", new { entryId, userId }, tx,
             cancellationToken: ct));
         return entryId;
+    }
+
+    /// <summary>وصف تفصيلي لقيد تنفيذ الخدمة (لعرضه في توضيح الأستاذ/كشف الحساب) — يذكر المسجّل فقط.</summary>
+    private static async Task<string> BuildExecutionDescriptionAsync(NpgsqlConnection connection,
+        NpgsqlTransaction tx, string docNo, ExecutionLine line, Guid? meterAssetId,
+        CancellationToken ct)
+    {
+        var parts = new List<string> { $"إيراد تنفيذ خدمة {docNo}" };
+        var session = line.OperationType switch
+        {
+            ServiceOperationTypes.Treatment => "علاجية",
+            ServiceOperationTypes.Gift => "هدية",
+            _ => "عادية"
+        };
+        parts.Add($"نوع الجلسة: {session}");
+        if (!string.IsNullOrWhiteSpace(line.ItemName)) parts.Add($"الخدمة: {line.ItemName}");
+        if (line.EmployeeId is { } empId)
+        {
+            var empName = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
+                "SELECT name_ar FROM employees WHERE id = @id", new { id = empId }, tx,
+                cancellationToken: ct));
+            if (!string.IsNullOrWhiteSpace(empName)) parts.Add($"الموظف المسؤول: {empName}");
+        }
+        parts.Add($"سعر الوحدة: {line.UnitPrice:N2}");
+        parts.Add("المصدر: تنفيذ خدمة محجوزة");
+        if (meterAssetId is { } assetId)
+        {
+            var assetName = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
+                "SELECT name_ar FROM fixed_assets WHERE id = @id", new { id = assetId }, tx,
+                cancellationToken: ct));
+            if (!string.IsNullOrWhiteSpace(assetName)) parts.Add($"الجهاز: {assetName}");
+        }
+        var complaint = await connection.ExecuteScalarAsync<string?>(new CommandDefinition("""
+            SELECT emp.name_ar FROM complaints cp
+            JOIN employees emp ON emp.id = cp.employee_id
+            WHERE cp.customer_id = @customerId AND (cp.item_id = @itemId OR cp.item_id IS NULL)
+            ORDER BY (cp.item_id = @itemId) DESC, cp.created_at DESC
+            LIMIT 1
+            """, new { customerId = line.CustomerId, itemId = line.ItemId }, tx,
+            cancellationToken: ct));
+        if (!string.IsNullOrWhiteSpace(complaint)) parts.Add($"متسبب الشكوى: {complaint}");
+        return string.Join(" | ", parts);
     }
 }
