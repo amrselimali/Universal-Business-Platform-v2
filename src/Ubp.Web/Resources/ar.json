@@ -1453,6 +1453,8 @@
   "validation.treatment_employee_required": "الجلسة العلاجية تتطلب اختيار الموظف المسؤول.",
   "validation.database_clear_blocked": "تعذّر المسح: جداول أخرى تشير إلى الجداول المحددة عبر مفاتيح أجنبية. أضف الجداول المرتبطة إلى التحديد أو أزل القيود أولًا.",
   "validation.customer_phone_duplicate": "رقم الهاتف مستخدم بالفعل لعميل آخر — لا يُسمح بتكرار رقم هاتف العميل.",
+  "validation.customer_phone_required": "رقم هاتف العميل إجباري.",
+  "validation.customer_whatsapp_required": "رقم واتساب العميل إجباري.",
   "validation.booking_duplicate_same_day": "يوجد بالفعل حجز/موعد لنفس العميل مع نفس الموظف المسؤول في نفس اليوم.",
   "validation.theme_color": "اللون العام يجب أن يكون بصيغة #RRGGBB (مثال #0F766E).",
   "validation.booking_expiry_invalid": "تاريخ انتهاء الصلاحية يجب أن يكون اليوم أو بعده",

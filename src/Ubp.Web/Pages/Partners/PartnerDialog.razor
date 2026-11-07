@@ -27,20 +27,12 @@
                         }
                     </MudSelect>
                 }
-                <MudTextField @bind-Value="_input.Phone" Label="@T.T("common.phone")" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_input.Phone" Label="@T.T("common.phone")"
+                              Variant="Variant.Outlined" Required="@(Kind == PartnerKind.Customer)" />
                 <MudTextField @bind-Value="_input.Phone2" Label="@T.T("partners.phone2")" Variant="Variant.Outlined" />
-                <MudSelect T="string?" @bind-Value="_input.WhatsAppPhone"
-                           Label="@T.T("partners.whatsapp_phone")" Variant="Variant.Outlined"
-                           Clearable="true">
-                    @if (!string.IsNullOrWhiteSpace(_input.Phone))
-                    {
-                        <MudSelectItem T="string?" Value="@_input.Phone">@_input.Phone</MudSelectItem>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(_input.Phone2))
-                    {
-                        <MudSelectItem T="string?" Value="@_input.Phone2">@_input.Phone2</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudTextField @bind-Value="_input.WhatsAppPhone"
+                              Label="@T.T("partners.whatsapp_phone")" Variant="Variant.Outlined"
+                              Required="@(Kind == PartnerKind.Customer)" MaxLength="50" />
                 <MudText Typo="Typo.caption" Class="ubp-muted ubp-span-2">
                     @T.T("partners.whatsapp_phone_hint")
                 </MudText>

@@ -155,6 +155,16 @@ public sealed class PartnerService
         input.NameAr = (input.NameAr ?? "").Trim();
         input.NameEn = string.IsNullOrWhiteSpace(input.NameEn) ? null : input.NameEn.Trim();
         input.Phone = string.IsNullOrWhiteSpace(input.Phone) ? null : input.Phone.Trim();
+        input.WhatsAppPhone = string.IsNullOrWhiteSpace(input.WhatsAppPhone)
+            ? null : input.WhatsAppPhone.Trim();
+        // رقم الهاتف ورقم الواتساب إجباريان عند تكويد/تعديل العميل.
+        if (kind == PartnerKind.Customer)
+        {
+            if (input.Phone is null)
+                throw new ValidationAppException("validation.customer_phone_required");
+            if (input.WhatsAppPhone is null)
+                throw new ValidationAppException("validation.customer_whatsapp_required");
+        }
         // رقم هاتف العميل لا يقبل التكرار عند التكويد/التعديل (يُستثنى نفس العميل).
         if (kind == PartnerKind.Customer && input.Phone is not null &&
             await _repository.PhoneExistsAsync(kind, input.Phone, excludeId, ct))
