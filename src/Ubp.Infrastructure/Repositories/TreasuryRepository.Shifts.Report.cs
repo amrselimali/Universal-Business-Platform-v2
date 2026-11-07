@@ -27,7 +27,8 @@ public sealed partial class TreasuryRepository
                 SELECT v.party_name AS CustomerName, t.treasury_type AS TreasuryType,
                        v.total_amount AS Collected,
                        0::numeric AS Revenue, 0::numeric AS Quantity, 0::numeric AS MeterUnits,
-                       NULL::text AS EmployeeName, NULL::text AS ItemName, 0::numeric AS UnitPrice
+                       NULL::text AS EmployeeName, NULL::text AS ItemName, 0::numeric AS UnitPrice,
+                       'تحصيل/قبض'::varchar AS Source
                 FROM vouchers v
                 JOIN treasuries t ON t.id = v.treasury_id
                 WHERE v.branch_id = @branchId AND v.voucher_type = 'receipt'
@@ -37,7 +38,8 @@ public sealed partial class TreasuryRepository
                 SELECT COALESCE(c.name_ar, d.party_name) AS CustomerName, NULL::varchar AS TreasuryType,
                        0::numeric AS Collected,
                        d.total AS Revenue, 0::numeric AS Quantity, 0::numeric AS MeterUnits,
-                       NULL::text AS EmployeeName, NULL::text AS ItemName, 0::numeric AS UnitPrice
+                       NULL::text AS EmployeeName, NULL::text AS ItemName, 0::numeric AS UnitPrice,
+                       'فاتورة بيع'::varchar AS Source
                 FROM commercial_documents d
                 LEFT JOIN customers c ON c.id = d.customer_id
                 WHERE d.branch_id = @branchId AND d.doc_type = 'sales_invoice'
@@ -48,14 +50,15 @@ public sealed partial class TreasuryRepository
                        0::numeric AS Collected,
                        0::numeric AS Revenue,
                        el.quantity AS Quantity, el.meter_units AS MeterUnits,
-                       e.name_ar AS EmployeeName, i.name_ar AS ItemName, bl.unit_price AS UnitPrice
+                       e.name_ar AS EmployeeName, i.name_ar AS ItemName, bl.unit_price AS UnitPrice,
+                       'تنفيذ خدمة محجوزة'::varchar AS Source
                 FROM booking_executions be
                 JOIN booking_execution_lines el ON el.execution_id = be.id
                 JOIN booking_lines bl ON bl.id = el.booking_line_id
                 JOIN items i ON i.id = el.item_id
                 JOIN bookings b ON b.id = be.booking_id
                 JOIN customers c ON c.id = b.customer_id
-                LEFT JOIN employees e ON e.id = b.assigned_employee_id
+                LEFT JOIN employees e ON e.id = COALESCE(bl.employee_id, b.assigned_employee_id)
                 WHERE be.branch_id = @branchId AND be.status = 'posted'
                   AND be.created_at >= @openedAt
                   AND (@until::timestamptz IS NULL OR be.created_at <= @until::timestamptz)
@@ -65,7 +68,7 @@ public sealed partial class TreasuryRepository
                        0::numeric AS Collected, (-stl.amount) AS Revenue,
                        (-stl.quantity) AS Quantity, 0::numeric AS MeterUnits,
                        NULL::text AS EmployeeName, i.name_ar AS ItemName,
-                       stl.unit_price AS UnitPrice
+                       stl.unit_price AS UnitPrice, 'خدمات محولة'::varchar AS Source
                 FROM service_transfers st
                 JOIN service_transfer_lines stl ON stl.transfer_id = st.id
                 JOIN items i ON i.id = stl.item_id
@@ -76,7 +79,8 @@ public sealed partial class TreasuryRepository
                 UNION ALL
                 -- المحوَّل إليه: كمية وقيمة بالموجب (إضافة) في سطر مستقل — الصافي = صفر.
                 SELECT tc.name_ar, NULL::varchar, 0::numeric, stl.amount,
-                       stl.quantity, 0::numeric, NULL::text, i.name_ar, stl.unit_price
+                       stl.quantity, 0::numeric, NULL::text, i.name_ar, stl.unit_price,
+                       'خدمات محولة'::varchar
                 FROM service_transfers st
                 JOIN service_transfer_lines stl ON stl.transfer_id = st.id
                 JOIN items i ON i.id = stl.item_id

@@ -254,6 +254,8 @@ public sealed class ShiftCollectionRow
     public string? ItemName { get; set; }
     /// <summary>سعر وحدة الخدمة المنفَّذة — 0083.</summary>
     public decimal UnitPrice { get; set; }
+    /// <summary>مصدر الداتا للسطر: تحصيل/قبض، فاتورة بيع، تنفيذ خدمة محجوزة، خدمات محولة — 0086.</summary>
+    public string? Source { get; set; }
 }
 
 /// <summary>مصروف تشغيلي مسجّل داخل الوردية (0078).</summary>

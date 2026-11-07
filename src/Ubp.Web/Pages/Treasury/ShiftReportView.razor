@@ -10,6 +10,7 @@
 <MudTable Items="Report.Lines" Dense="true" Elevation="0" Class="ubp-table">
     <HeaderContent>
         <MudTh>@T.T("common.customer")</MudTh>
+        <MudTh>مصدر الداتا</MudTh>
         <MudTh>@T.T("sales.item")</MudTh>
         <MudTh>@T.T("treasury.type")</MudTh>
         <MudTh Align="Right">@T.T("pos.collected_amount")</MudTh>
@@ -21,6 +22,13 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd>@context.CustomerName</MudTd>
+        <MudTd>
+            @if (!string.IsNullOrWhiteSpace(context.Source))
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                         Color="@SourceColor(context.Source)">@context.Source</MudChip>
+            }
+        </MudTd>
         <MudTd>@context.ItemName</MudTd>
         <MudTd>@TreasuryTypeText(context.TreasuryType)</MudTd>
         <MudTd Align="Right">@context.Collected.ToString("N2")</MudTd>
@@ -223,6 +231,15 @@
     private string TreasuryTypeText(string? type) => string.IsNullOrWhiteSpace(type)
         ? "—"
         : T.T("treasury.type_" + type);
+
+    private static Color SourceColor(string? source) => source switch
+    {
+        "خدمات محولة" => Color.Info,
+        "تنفيذ خدمة محجوزة" => Color.Warning,
+        "فاتورة بيع" => Color.Success,
+        "تحصيل/قبض" => Color.Primary,
+        _ => Color.Default
+    };
 
     private void OnNotesChanged(string? value) => Report.Notes = value;
 
