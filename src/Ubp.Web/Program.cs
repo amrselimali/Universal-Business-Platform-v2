@@ -16,16 +16,22 @@ var hasHttpsCertificate =
     !string.IsNullOrWhiteSpace(builder.Configuration["Kestrel:Certificates:Default:Path"]) ||
     !string.IsNullOrWhiteSpace(
         Environment.GetEnvironmentVariable("ASPNETCORE_Kestrel__Certificates__Default__Path"));
-if (!string.IsNullOrWhiteSpace(configuredUrls) &&
-    configuredUrls.Contains("https://", StringComparison.OrdinalIgnoreCase) &&
-    !hasHttpsCertificate)
+if (!string.IsNullOrWhiteSpace(configuredUrls) && !hasHttpsCertificate)
 {
-    var httpOnly = configuredUrls
-        .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        .Where(url => url.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
-        .ToArray();
-    if (httpOnly.Length > 0)
-        builder.WebHost.UseUrls(httpOnly);
+    // بلا شهادة HTTPS: نستخدم عناوين http إن وُجدت، وإلا نحوّل https إلى http على نفس المضيف/المنفذ.
+    var httpUrls = new List<string>();
+    var httpsUrls = new List<string>();
+    foreach (var raw in configuredUrls.Split(';',
+                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    {
+        if (raw.StartsWith("http://", StringComparison.OrdinalIgnoreCase)) httpUrls.Add(raw);
+        else if (raw.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) httpsUrls.Add(raw);
+    }
+    var chosen = httpUrls.Count > 0
+        ? httpUrls
+        : httpsUrls.Select(h => "http://" + h["https://".Length..]).ToList();
+    if (chosen.Count > 0)
+        builder.WebHost.UseUrls(chosen.ToArray());
 }
 
 
