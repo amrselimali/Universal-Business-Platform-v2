@@ -39,7 +39,7 @@ else
                         <MudTd DataLabel="@T.T("stock.item")">@context.ItemName</MudTd>
                         <MudTd DataLabel="@T.T("common.warehouse")">@context.WarehouseName</MudTd>
                         <MudTd DataLabel="@T.T("reports.on_hand")">@context.OnHand</MudTd>
-                        <MudTd DataLabel="@T.T("reports.average_cost")">@context.AverageCost.ToString("N4")</MudTd>
+                        <MudTd DataLabel="@T.T("reports.average_cost")">@context.AverageCost.ToString("N2")</MudTd>
                         <MudTd DataLabel="@T.T("reports.value")">@context.InventoryValue.ToString("N2")</MudTd>
                     </RowTemplate>
                     <PagerContent>
@@ -93,7 +93,7 @@ else
                             <MudTd DataLabel="@T.T("common.warehouse")">@context.WarehouseName</MudTd>
                             <MudTd DataLabel="@T.T("stock.direction")">@T.T(context.Direction == "IN" ? "stock.in" : "stock.out")</MudTd>
                             <MudTd DataLabel="@T.T("common.quantity")">@context.Quantity</MudTd>
-                            <MudTd DataLabel="@T.T("stock.unit_cost")">@context.UnitCost.ToString("N4")</MudTd>
+                            <MudTd DataLabel="@T.T("stock.unit_cost")">@context.UnitCost.ToString("N2")</MudTd>
                             <MudTd DataLabel="@T.T("stock.total_cost")">@context.TotalCost.ToString("N2")</MudTd>
                         </RowTemplate>
                     </MudTable>

@@ -81,7 +81,7 @@ else
                     <MudTd><span class="ubp-code">@context.BookingNo</span></MudTd>
                     <MudTd>@context.CustomerName</MudTd>
                     <MudTd>@context.ItemCode — @context.ItemName</MudTd>
-                    <MudTd Align="Right">@context.RemainingQty.ToString("N4")</MudTd>
+                    <MudTd Align="Right">@context.RemainingQty.ToString("N2")</MudTd>
                     <MudTd Align="Right">@context.AgeDays</MudTd>
                     <MudTd>@T.T("receipts." + context.Bucket)</MudTd>
                 </RowTemplate>

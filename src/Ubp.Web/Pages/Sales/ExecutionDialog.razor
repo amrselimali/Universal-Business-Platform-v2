@@ -36,12 +36,12 @@
                         @T.T("execution.direct")
                     </MudChip>
                 }
-                <MudTextField Value="@_preview.RemainingQty.ToString("N4")"
+                <MudTextField Value="@_preview.RemainingQty.ToString("N2")"
                               Label="@T.T("execution.remaining")" Variant="Variant.Outlined"
                               ReadOnly="true" />
                 <MudNumericField T="decimal" @bind-Value="_quantity" Label="@T.T("execution.quantity")"
                                  Variant="Variant.Outlined" Min="0.0001m"
-                                 Max="@_preview.RemainingQty" Format="N4" />
+                                 Max="@_preview.RemainingQty" Format="N2" />
                 @if (_preview.ItemIsMetered)
                 {
                     @if (_preview.MeterAssets.Count > 0)

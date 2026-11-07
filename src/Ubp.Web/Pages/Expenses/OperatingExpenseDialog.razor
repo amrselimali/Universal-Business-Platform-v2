@@ -107,11 +107,11 @@
                 </MudTd>
                 <MudTd Align="Right">
                     <MudNumericField T="decimal" @bind-Value="context.Quantity" Min="0.0001m"
-                                     Format="N4" Dense="true" Variant="Variant.Outlined" />
+                                     Format="N2" Dense="true" Variant="Variant.Outlined" />
                 </MudTd>
                 <MudTd Align="Right">
                     <MudNumericField T="decimal" @bind-Value="context.UnitPrice" Min="0m"
-                                     Format="N4" Dense="true" Variant="Variant.Outlined" />
+                                     Format="N2" Dense="true" Variant="Variant.Outlined" />
                 </MudTd>
                 <MudTd Align="Right">@context.Amount.ToString("N2")</MudTd>
                 <MudTd>

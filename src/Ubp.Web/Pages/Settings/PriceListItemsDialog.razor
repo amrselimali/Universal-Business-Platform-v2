@@ -15,9 +15,9 @@
                     }
                 </MudSelect>
                 <MudNumericField T="decimal" @bind-Value="row.Price" Label="@T.T("settings.price")"
-                                 Variant="Variant.Outlined" Margin="Margin.Dense" Format="N4" Min="0m" />
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2" Min="0m" />
                 <MudNumericField T="decimal" @bind-Value="row.MinQty" Label="@T.T("settings.min_qty")"
-                                 Variant="Variant.Outlined" Margin="Margin.Dense" Format="N4" Min="0m" />
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2" Min="0m" />
                 <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
                                OnClick="@(() => Remove(row))" />
             </div>

@@ -28,12 +28,12 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@context.ItemName</MudTd>
-                    <MudTd Align="Right">@context.Returnable.ToString("N4")</MudTd>
+                    <MudTd Align="Right">@context.Returnable.ToString("N2")</MudTd>
                     <MudTd Align="Right">
                         <MudNumericField T="decimal" @bind-Value="context.Quantity" Min="0m"
-                                         Max="@context.Returnable" Format="N4" Dense="true" />
+                                         Max="@context.Returnable" Format="N2" Dense="true" />
                     </MudTd>
-                    <MudTd Align="Right">@context.UnitPrice.ToString("N4")</MudTd>
+                    <MudTd Align="Right">@context.UnitPrice.ToString("N2")</MudTd>
                 </RowTemplate>
             </MudTable>
         }

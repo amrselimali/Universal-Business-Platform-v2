@@ -137,14 +137,6 @@ else
                     <RowTemplate>
                         <MudTd>
                             @context.Name
-                            @if (context.IsDirect)
-                            {
-                                <MudText Typo="Typo.caption" Class="ubp-muted">@T.T("items.execution_direct")</MudText>
-                            }
-                            @if (context.TaxRate > 0)
-                            {
-                                <MudText Typo="Typo.caption">@T.T("pos.tax"): @context.TaxRate%</MudText>
-                            }
                             <MudSelect T="string" Dense="true" Value="context.OperationType"
                                        ValueChanged="@(v => SetOperation(context, v))"
                                        Variant="Variant.Outlined" Class="mt-1">
@@ -165,12 +157,12 @@ else
                             }
                         </MudTd>
                         <MudTd Align="Right">
-                            <MudNumericField T="decimal" @bind-Value="context.Quantity" Min="0.0001m"
-                                             Format="N4" Dense="true" />
+                            <MudNumericField T="decimal" @bind-Value="context.Quantity" Min="0.01m"
+                                             Format="N2" Dense="true" />
                         </MudTd>
                         <MudTd Align="Right">
                             <MudNumericField T="decimal" @bind-Value="context.UnitPrice" Min="0m"
-                                             Format="N4" Dense="true" />
+                                             Format="N2" Dense="true" />
                         </MudTd>
                         <MudTd Align="Right">@context.Total.ToString("N2")</MudTd>
                         <MudTd>

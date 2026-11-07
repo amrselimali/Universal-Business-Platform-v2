@@ -44,12 +44,12 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@context.ItemName</MudTd>
-                    <MudTd Align="Right">@context.Invoiceable.ToString("N4")</MudTd>
+                    <MudTd Align="Right">@context.Invoiceable.ToString("N2")</MudTd>
                     <MudTd Align="Right">
                         <MudNumericField T="decimal" @bind-Value="context.Quantity" Min="0m"
-                                         Max="@context.Invoiceable" Format="N4" Dense="true" />
+                                         Max="@context.Invoiceable" Format="N2" Dense="true" />
                     </MudTd>
-                    <MudTd Align="Right">@context.UnitPrice.ToString("N4")</MudTd>
+                    <MudTd Align="Right">@context.UnitPrice.ToString("N2")</MudTd>
                     <MudTd Align="Right">@((context.Quantity * context.UnitPrice).ToString("N2"))</MudTd>
                 </RowTemplate>
             </MudTable>

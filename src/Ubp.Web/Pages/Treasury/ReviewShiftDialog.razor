@@ -33,7 +33,7 @@
                     else if (IsQtyEditable(context.EntityType))
                     {
                         <MudNumericField T="decimal" @bind-Value="_qtys[context.Id]" Min="0m"
-                                         Format="N4" Dense="true" Placeholder="الكمية" />
+                                         Format="N2" Dense="true" Placeholder="الكمية" />
                     }
                     else
                     {
