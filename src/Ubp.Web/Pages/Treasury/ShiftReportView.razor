@@ -3,10 +3,16 @@
 @inject TreasuryService Treasury
 @inject UserContext UserContext
 @inject ISnackbar Snackbar
+@inject IDialogService Dialogs
 
 <MudText Typo="Typo.subtitle2" Class="mt-2">
     @T.T("treasury.report_collections") / @T.T("treasury.report_revenues")
 </MudText>
+@if (Report.Shift.IsOpen || Report.Shift.IsPendingReview)
+{
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mb-2"
+               StartIcon="@Icons.Material.Filled.Edit" OnClick="OpenEditAsync">تعديل بيانات الوردية</MudButton>
+}
 <MudTable Items="Report.Lines" Dense="true" Elevation="0" Class="ubp-table">
     <HeaderContent>
         <MudTh>العميل</MudTh>
@@ -244,6 +250,18 @@
         "تحصيل/قبض" => Color.Primary,
         _ => Color.Default
     };
+
+    private async Task OpenEditAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<ShiftEditDialog>("تعديل بيانات الوردية",
+            new DialogParameters
+            {
+                ["ShiftId"] = Report.Shift.Id, ["BranchId"] = Report.Shift.BranchId
+            },
+            new DialogOptions { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true });
+        await dialog.Result;
+        StateHasChanged();
+    }
 
     private void OnNotesChanged(string? value) => Report.Notes = value;
 

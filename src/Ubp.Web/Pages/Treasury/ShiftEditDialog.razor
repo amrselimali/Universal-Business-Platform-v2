@@ -1,0 +1,178 @@
+@inject ShiftEditService ShiftEdit
+@inject LookupService Lookup
+@inject MasterDataService MasterData
+@inject UserContext UserContext
+@inject UiCulture T
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">تعديل بيانات الوردية</MudText></TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+            يعدّل هذا السطر المستند الأصلي فيُحدَّث في تقرير الوردية والحسابات وإجمالياته.
+            اليوزر العادي يعدّل أثناء الوردية المفتوحة، والمحاسب قبل الترحيل. يُمنع بعد الإغلاق/الترحيل.
+        </MudAlert>
+
+        @if (_rows.Count == 0)
+        {
+            <MudAlert Severity="Severity.Normal" Dense="true">لا توجد سطور مسودة قابلة للتعديل.</MudAlert>
+        }
+        else
+        {
+            <MudTable Items="_rows" Dense="true" Hover="true" Elevation="0" Class="ubp-table">
+                <HeaderContent>
+                    <MudTh>المستند</MudTh>
+                    <MudTh>الطرف / العميل</MudTh>
+                    <MudTh>الصنف</MudTh>
+                    <MudTh>الموظف</MudTh>
+                    <MudTh Align="Right">الكمية</MudTh>
+                    <MudTh Align="Right">السعر</MudTh>
+                    <MudTh Align="Right">المبلغ</MudTh>
+                    <MudTh>الحقل</MudTh>
+                    <MudTh>القيمة الجديدة</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@EntityLabel(context.L.EntityType) @context.L.DocNo</MudTd>
+                    <MudTd>@context.L.PartyName</MudTd>
+                    <MudTd>@context.L.ItemName</MudTd>
+                    <MudTd>@context.L.EmployeeName</MudTd>
+                    <MudTd Align="Right">@context.L.Quantity.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.L.UnitPrice.ToString("N2")</MudTd>
+                    <MudTd Align="Right">@context.L.Amount.ToString("N2")</MudTd>
+                    <MudTd>
+                        <MudSelect T="string" @bind-Value="context.Field" Dense="true"
+                                   Variant="Variant.Outlined">
+                            @foreach (var f in context.L.Fields)
+                            {
+                                <MudSelectItem T="string" Value="@f">@FieldLabel(f)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd>
+                        @if (context.Field is "account" or "treasury" or "employee")
+                        {
+                            <MudSelect T="Guid?" @bind-Value="context.GuidValue" Dense="true"
+                                       Variant="Variant.Outlined" Clearable="true">
+                                @foreach (var o in OptionsFor(context.Field))
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)o.Id)">@o.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                        else
+                        {
+                            <MudTextField @bind-Value="context.Value" Dense="true"
+                                          Variant="Variant.Outlined" Placeholder="القيمة" />
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                   OnClick="@(() => SaveAsync(context))" Disabled="_busy">حفظ</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Close(DialogResult.Ok(true))" Disabled="_busy">
+            @T.T("common.close")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid ShiftId { get; set; }
+    [Parameter] public Guid BranchId { get; set; }
+
+    private sealed class Row
+    {
+        public ShiftEditableLine L { get; set; } = default!;
+        public string Field { get; set; } = "";
+        public string? Value { get; set; }
+        public Guid? GuidValue { get; set; }
+    }
+
+    private sealed record Opt(Guid Id, string Name);
+
+    private List<Row> _rows = new();
+    private IReadOnlyList<Opt> _accounts = Array.Empty<Opt>();
+    private IReadOnlyList<Opt> _treasuries = Array.Empty<Opt>();
+    private IReadOnlyList<Opt> _employees = Array.Empty<Opt>();
+    private bool _busy;
+
+    private static string EntityLabel(string t) => t switch
+    {
+        "voucher" => "سند",
+        "operating_expense" => "مصروف",
+        "commercial_document" => "مستند",
+        "booking" => "حجز",
+        "service_transfer" => "تحويل خدمات",
+        _ => t
+    };
+
+    private static string FieldLabel(string f) => f switch
+    {
+        "amount" => "المبلغ",
+        "quantity" => "الكمية",
+        "unit_price" => "سعر الوحدة",
+        "description" => "الشرح",
+        "account" => "الحساب",
+        "treasury" => "الخزينة",
+        "employee" => "الموظف",
+        _ => f
+    };
+
+    private IEnumerable<Opt> OptionsFor(string field) => field switch
+    {
+        "account" => _accounts,
+        "treasury" => _treasuries,
+        "employee" => _employees,
+        _ => Enumerable.Empty<Opt>()
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            _accounts = (await Lookup.PostableAccountsAsync(actor))
+                .Select(a => new Opt(a.Id, $"{a.Code} — {a.NameAr}")).ToList();
+            _treasuries = (await Lookup.TreasuriesAsync(actor, BranchId))
+                .Select(t => new Opt(t.Id, $"{t.Code} — {t.NameAr}")).ToList();
+            _employees = (await MasterData.EmployeeOptionsAsync(actor))
+                .Select(e => new Opt(e.Id, e.NameAr)).ToList();
+            await ReloadAsync(actor);
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+    }
+
+    private async Task ReloadAsync(ActorContext actor)
+    {
+        var lines = await ShiftEdit.ListAsync(actor, ShiftId);
+        _rows = lines.Select(l => new Row { L = l, Field = l.Fields.FirstOrDefault() ?? "" }).ToList();
+    }
+
+    private async Task SaveAsync(Row row)
+    {
+        if (string.IsNullOrWhiteSpace(row.Field)) return;
+        _busy = true;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            var newValue = row.Field is "account" or "treasury" or "employee"
+                ? row.GuidValue?.ToString()
+                : row.Value;
+            await ShiftEdit.ApplyAsync(actor, new ShiftLineEditInput
+            {
+                ShiftId = ShiftId, EntityType = row.L.EntityType, DocId = row.L.DocId,
+                LineId = row.L.LineId, Field = row.Field, NewValue = newValue
+            });
+            await ReloadAsync(actor);
+            Snackbar.Add(T.T("common.saved"), Severity.Success);
+        }
+        catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

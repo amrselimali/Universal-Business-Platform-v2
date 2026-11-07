@@ -168,6 +168,7 @@ public static class ServiceRegistration
         services.AddScoped<IServiceTransferRepository, ServiceTransferRepository>();
         services.AddScoped<IEmployeeAdvanceRepository, EmployeeAdvanceRepository>();
         services.AddScoped<IReviewAdjustmentRepository, ReviewAdjustmentRepository>();
+        services.AddScoped<IShiftEditRepository, ShiftEditRepository>();
     }
 
     private static void AddApplicationServices(IServiceCollection services)
@@ -250,5 +251,6 @@ public static class ServiceRegistration
         services.AddScoped<ServiceTransferService>();
         services.AddScoped<EmployeeAdvanceService>();
         services.AddScoped<ReviewAdjustmentService>();
+        services.AddScoped<ShiftEditService>();
     }
 }

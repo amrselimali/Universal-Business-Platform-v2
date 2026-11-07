@@ -55,6 +55,10 @@ public sealed partial class TestDb
     public PosRepository PosRepo => new(Factory);
     public FollowUpRepository FollowUpRepo => new(Factory);
     public ServiceTransferRepository ServiceTransferRepo => new(Factory);
+    public ShiftEditRepository ShiftEditRepo => new(Factory);
+
+    public ShiftEditService ShiftEdit() => new(
+        ShiftEditRepo, TreasuryRepo, Permissions(), new AuditService(AuditRepo));
 
     public ServiceTransferService ServiceTransfers() => new(
         ServiceTransferRepo, Permissions(), new AuditService(AuditRepo));
