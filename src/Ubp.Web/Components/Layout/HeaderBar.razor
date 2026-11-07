@@ -21,21 +21,40 @@
     <MudSpacer />
 
     <div class="ubp-header-actions">
-        @if (Branches.Count > 1 || Actor.IsSuperAdmin)
+        @if (Branches.Count > 1)
         {
-            <form method="post" action="/auth/branch" class="ubp-inline-form">
+            <form method="post" action="/auth/branches" class="ubp-inline-form" id="ubp-branches-form">
                 <AntiforgeryToken />
                 <input type="hidden" name="returnUrl" value="@CurrentPath" />
-                <select name="branchId" class="ubp-select" onchange="this.form.submit()" aria-label="@T.T("branch.current")">
-                    @if (Actor.IsSuperAdmin)
-                    {
-                        <option value="" selected="@(CurrentBranchId is null)">@T.T("branch.none")</option>
-                    }
+                <div class="ubp-branch-checks">
                     @foreach (var branch in Branches)
                     {
-                        <option value="@branch.Id" selected="@(CurrentBranchId == branch.Id)">@branch.NameAr</option>
+                        <input type="hidden" name="branchIds" value="@branch.Id"
+                               disabled="@(!SelectedBranches.Contains(branch.Id))" />
                     }
-                </select>
+                </div>
+                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <ActivatorContent>
+                        <button type="button" class="ubp-user-btn" title="@T.T("branch.current")">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" />
+                            <span class="ubp-user-name">@BranchesLabel</span>
+                            <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small" />
+                        </button>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <MudText Typo="Typo.caption" Class="px-3 py-1">@T.T("branch.current")</MudText>
+                        @foreach (var branch in Branches)
+                        {
+                            var id = branch.Id;
+                            <MudCheckBox T="bool" Dense="true" Class="px-3"
+                                         Value="@SelectedBranches.Contains(id)"
+                                         ValueChanged="@(v => ToggleBranch(id, v))"
+                                         Label="@branch.NameAr" />
+                        }
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                   Class="ma-2" OnClick="ApplyBranchesAsync">تطبيق</MudButton>
+                    </ChildContent>
+                </MudMenu>
             </form>
         }
         else if (Branches.Count == 1)
@@ -90,6 +109,40 @@
 
     private Guid? CurrentBranchId => Actor.CurrentBranchId;
     private string CurrentPath => "/" + Navigation.ToBaseRelativePath(Navigation.Uri).TrimStart('/');
+
+    private HashSet<Guid> _selectedBranches = new();
+
+    private HashSet<Guid> SelectedBranches
+    {
+        get
+        {
+            if (_selectedBranches.Count == 0 && Actor.FilterBranchIds is { Length: > 0 } f)
+                _selectedBranches = f.ToHashSet();
+            else if (_selectedBranches.Count == 0)
+                _selectedBranches = Branches.Select(b => b.Id).ToHashSet();
+            return _selectedBranches;
+        }
+    }
+
+    private string BranchesLabel => Branches.Count == 1
+        ? Branches[0].NameAr
+        : $"الفروع ({SelectedBranches.Count}/{Branches.Count})";
+
+    private void ToggleBranch(Guid id, bool selected)
+    {
+        if (selected) _selectedBranches = SelectedBranches.Append(id).ToHashSet();
+        else if (SelectedBranches.Count > 1)
+            _selectedBranches = SelectedBranches.Where(x => x != id).ToHashSet();
+        StateHasChanged();
+    }
+
+    private Task ApplyBranchesAsync()
+    {
+        // يُرسل النموذج (branchIds المخفية للمُحدَّد فقط) لضبط فروع الجلسة على الخادم.
+        if (_js is not null) return _js.InvokeVoidAsync("eval",
+            "document.getElementById('ubp-branches-form').submit()").AsTask();
+        return Task.CompletedTask;
+    }
     private string Initial => (Actor.DisplayName.Length > 0 ? Actor.DisplayName[..1] : "U").ToUpperInvariant();
 }
 
@@ -97,6 +150,9 @@
     [Inject] private NotificationService Notifications { get; set; } = default!;
     [Inject] private NotificationBroadcaster Broadcaster { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private IJSRuntime _jsRuntime { get; set; } = default!;
+
+    private Microsoft.JSInterop.IJSRuntime? _js => _jsRuntime;
 
     private int _unread;
     private IDisposable? _subscription;

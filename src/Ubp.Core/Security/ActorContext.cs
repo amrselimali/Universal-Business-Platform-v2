@@ -13,6 +13,8 @@ public sealed class ActorContext
     public bool RequiresShift { get; init; }
     public string Language { get; init; } = "ar";
     public Guid? CurrentBranchId { get; init; }
+    /// <summary>الفروع المختارة في الجلسة (null = كل فروع المستخدم) — 0092.</summary>
+    public Guid[]? FilterBranchIds { get; init; }
     public IReadOnlyCollection<Guid> AllowedBranchIds { get; init; } = Array.Empty<Guid>();
     public string? IpAddress { get; init; }
     public string TraceId { get; init; } = "";

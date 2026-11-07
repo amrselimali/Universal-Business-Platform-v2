@@ -50,6 +50,7 @@ public sealed class UserContext
             RequiresShift = session.User.RequiresShift,
             Language = session.UserLanguage,
             CurrentBranchId = session.BranchId,
+            FilterBranchIds = session.FilterBranchIds,
             AllowedBranchIds = session.BranchIds,
             IpAddress = ip,
             TraceId = traceId

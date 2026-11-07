@@ -24,6 +24,24 @@ public static partial class AuthEndpoints
         return Results.Redirect("/login");
     }
 
+    private static async Task<IResult> SwitchBranches(HttpContext context, AuthService auth,
+        IAntiforgery antiforgery)
+    {
+        if (!await ValidateAntiforgeryAsync(context, antiforgery))
+            return Results.Redirect("/?error=error.antiforgery");
+        var session = context.Items["session"] as SessionUser;
+        if (session is null) return Results.Redirect("/login?expired=1");
+
+        var form = await context.Request.ReadFormAsync();
+        var chosen = form["branchIds"].Select(v => v).Where(v => Guid.TryParse(v, out _))
+            .Select(v => Guid.Parse(v!)).Distinct().ToArray();
+        var ok = await auth.SetBranchFilterAsync(session.SessionId, session.User.Id, chosen);
+        if (!ok) return Results.Redirect("/forbidden");
+
+        var returnUrl = AuthCookieService.SafeReturnUrl(form["returnUrl"].ToString());
+        return Results.Redirect(returnUrl);
+    }
+
     private static async Task<IResult> SwitchBranch(HttpContext context, AuthService auth,
         IAntiforgery antiforgery)
     {

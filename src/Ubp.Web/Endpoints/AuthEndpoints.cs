@@ -18,6 +18,7 @@ public static partial class AuthEndpoints
         // تبديل الفرع/اللغة/الخروج ليست محاولات دخول؛ لا تُحتسب على حد الدخول (كانت تسبب 429).
         group.MapPost("/logout", LogoutForm);
         group.MapPost("/branch", SwitchBranch);
+        group.MapPost("/branches", SwitchBranches);
         group.MapPost("/language", SwitchLanguage);
 
         var api = app.MapGroup("/api/v1/auth").DisableAntiforgery();

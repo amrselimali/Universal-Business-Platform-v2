@@ -43,6 +43,11 @@ public sealed partial class AuthService
 
         var settings = await _settings.GetAsync(ct);
         var branchIds = await _users.GetBranchIdsAsync(user.Id, ct);
+        // فلتر فروع الجلسة (0092): إن اختار المستخدم بعض الفروع تُستخدم هي، وإلا كل فروعه.
+        var filter = session.FilterBranchIds is { Length: > 0 } f && !user.IsSuperAdmin
+            ? branchIds.Where(f.Contains).ToArray()
+            : Array.Empty<Guid>();
+        if (filter.Length > 0) branchIds = filter;
         var branchId = session.BranchId;
         if (branchId.HasValue && !user.IsSuperAdmin && !branchIds.Contains(branchId.Value))
             branchId = await _users.GetDefaultBranchIdAsync(user.Id, ct);
@@ -69,10 +74,40 @@ public sealed partial class AuthService
         {
             SessionId = sessionId, User = user, BranchId = branchId,
             BranchIds = branchIds,
+            FilterBranchIds = session.FilterBranchIds,
             WarehouseIds = await _users.GetWarehouseIdsAsync(user.Id, ct),
             UserLanguage = user.Language,
             MustChangePassword = user.MustChangePassword
         };
+    }
+
+    /// <summary>
+    /// تحديد الفروع المختارة للجلسة (0092): يُتحقق أنها ضمن فروع المستخدم، ويُعاد ضبط الفرع
+    /// الحالي ليكون ضمن المختار (أول فرع) حتى لا يكون فارغًا أبدًا لغير السوبر أدمن.
+    /// </summary>
+    public async Task<bool> SetBranchFilterAsync(Guid sessionId, Guid userId, Guid[] branchIds,
+        CancellationToken ct = default)
+    {
+        var user = await _users.GetByIdAsync(userId, ct);
+        if (user is null) return false;
+        var allowed = await _users.GetBranchIdsAsync(userId, ct);
+        var chosen = branchIds.Where(allowed.Contains).Distinct().ToArray();
+        var settings = await _settings.GetAsync(ct);
+        var expires = DateTimeOffset.UtcNow.AddMinutes(settings.SessionTimeoutMinutes);
+
+        if (user.IsSuperAdmin)
+        {
+            await _sessions.SetSessionBranchFilterAsync(sessionId, null, ct);
+            return true;
+        }
+        if (chosen.Length == 0) return false; // لا يُسمح بإلغاء كل الفروع.
+
+        var current = await _sessions.GetSessionAsync(sessionId, ct);
+        var currentBranch = current?.BranchId is { } cb && chosen.Contains(cb) ? cb : chosen[0];
+        await _sessions.SetSessionBranchFilterAsync(sessionId,
+            chosen.Length == allowed.Count ? null : chosen, ct);
+        await _sessions.SetSessionBranchAsync(sessionId, currentBranch, expires, ct);
+        return true;
     }
 
     public async Task<bool> SwitchBranchAsync(Guid sessionId, Guid userId, Guid? branchId,

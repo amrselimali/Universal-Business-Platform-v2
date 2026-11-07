@@ -12,6 +12,8 @@ public interface ISessionRepository
     Task TouchSessionAsync(Guid id, DateTimeOffset expiresAt, CancellationToken ct = default);
     Task SetSessionBranchAsync(Guid id, Guid? branchId, DateTimeOffset expiresAt, CancellationToken ct = default);
     Task RevokeSessionAsync(Guid id, CancellationToken ct = default);
+    /// <summary>تحديد فروع الجلسة المختارة (null = كل فروع المستخدم) — 0092.</summary>
+    Task SetSessionBranchFilterAsync(Guid id, Guid[]? branchIds, CancellationToken ct = default);
     Task RevokeAllSessionsAsync(Guid userId, CancellationToken ct = default);
 }
 
@@ -37,7 +39,7 @@ public sealed class SessionRepository : ISessionRepository
     public async Task<UserSession?> GetSessionAsync(Guid id, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT id AS Id, user_id AS UserId, branch_id AS BranchId,
+            SELECT id AS Id, user_id AS UserId, branch_id AS BranchId, filter_branch_ids AS FilterBranchIds,
                    refresh_token_id AS RefreshTokenId, host(ip_address) AS IpAddress,
                    last_seen_at AS LastSeenAt, expires_at AS ExpiresAt, revoked_at AS RevokedAt,
                    created_at AS CreatedAt
@@ -69,7 +71,17 @@ public sealed class SessionRepository : ISessionRepository
     {
         await using var connection = await _factory.OpenAsync(ct);
         await connection.ExecuteAsync(new CommandDefinition(
-            "UPDATE user_sessions SET revoked_at = now() WHERE id = @id", new { id }, cancellationToken: ct));
+            "UPDATE user_sessions SET revoked_at = now() WHERE id = @id", new { id },
+            cancellationToken: ct));
+    }
+
+    public async Task SetSessionBranchFilterAsync(Guid id, Guid[]? branchIds,
+        CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        await connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE user_sessions SET filter_branch_ids = @branchIds WHERE id = @id",
+            new { id, branchIds }, cancellationToken: ct));
     }
 
     public async Task RevokeAllSessionsAsync(Guid userId, CancellationToken ct = default)

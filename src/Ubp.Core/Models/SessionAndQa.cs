@@ -6,6 +6,8 @@ public sealed class UserSession
     public Guid UserId { get; set; }
     public Guid? BranchId { get; set; }
     public Guid? RefreshTokenId { get; set; }
+    /// <summary>الفروع المختارة في الجلسة (null = كل فروع المستخدم) — 0092.</summary>
+    public Guid[]? FilterBranchIds { get; set; }
     public string? IpAddress { get; set; }
     public DateTimeOffset LastSeenAt { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }

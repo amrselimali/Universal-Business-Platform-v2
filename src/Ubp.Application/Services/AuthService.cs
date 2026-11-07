@@ -58,14 +58,17 @@ public sealed partial class AuthService
         }
 
         var branchIds = await _users.GetBranchIdsAsync(user.Id, ct);
-        if (!user.IsAdmin && branchIds.Count == 0)
+        // كل مستخدم غير السوبر أدمن يجب أن يكون له فرع، والفرع الحالي لا يكون فارغًا أبدًا.
+        if (!user.IsSuperAdmin && branchIds.Count == 0)
         {
             _logger.LogWarning("Login rejected: user {UserId} has no branches", user.Id);
             await AuditLoginAsync(user.Id, null, "LOGIN_FAILED", ip, traceId, ct);
             return LoginResult.Fail("auth.no_branch");
         }
 
-        var branchId = user.IsAdmin ? null : await _users.GetDefaultBranchIdAsync(user.Id, ct);
+        var branchId = user.IsSuperAdmin
+            ? null
+            : await _users.GetDefaultBranchIdAsync(user.Id, ct);
         await _users.RegisterSuccessfulLoginAsync(user.Id, ct);
         var issued = await IssueAsync(user, branchId, ip, traceId, ct);
         await AuditLoginAsync(user.Id, branchId, "LOGIN", ip, traceId, ct);
