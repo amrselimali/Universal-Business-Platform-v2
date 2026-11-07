@@ -26,8 +26,8 @@ else
             <MudDatePicker Date="_date" Label="@T.T("common.date")"
                            Variant="Variant.Outlined" Margin="Margin.Dense"
                            DateChanged="OnDateChanged" />
-            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
-                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+            <MudSelect ToStringFunc="@BranchLabel" T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
                        ValueChanged="OnBranchChanged">
                 @foreach (var branch in _branches)
                 {
@@ -125,4 +125,7 @@ else
             await ReloadAsync();
             ShowSuccess("common.saved");
         });
+
+    private string BranchLabel(Guid? id) =>
+        id is null ? "—" : _branches.FirstOrDefault(b => b.Id == id)?.NameAr ?? "—";
 }

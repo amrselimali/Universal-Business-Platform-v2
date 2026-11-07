@@ -15,8 +15,8 @@ else
 
     <MudPaper Elevation="0" Class="ubp-card">
         <div class="ubp-toolbar">
-            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
-                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+            <MudSelect ToStringFunc="@BranchLabel" T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
                        ValueChanged="OnBranchChanged">
                 @foreach (var branch in _branches)
                 {
@@ -96,4 +96,7 @@ else
             ShowSuccess("accounting.posted");
         }
     }
+
+    private string BranchLabel(Guid? id) =>
+        id is null ? "—" : _branches.FirstOrDefault(b => b.Id == id)?.NameAr ?? "—";
 }

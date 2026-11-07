@@ -24,7 +24,7 @@ else
     <MudPaper Elevation="0" Class="ubp-card">
         <div class="ubp-toolbar">
             <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
-                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
                        ToStringFunc="@BranchLabel" ValueChanged="OnBranchChanged">
                 @foreach (var branch in _branches)
                 {

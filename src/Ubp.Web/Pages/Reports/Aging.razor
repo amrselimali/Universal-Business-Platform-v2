@@ -31,8 +31,8 @@ else
             <MudDatePicker Date="_asOf" Label="@T.T("reports.as_of")"
                            Variant="Variant.Outlined" Margin="Margin.Dense"
                            DateChanged="OnDateChanged" />
-            <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
-                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+            <MudSelect ToStringFunc="@BranchLabel" T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
                        ValueChanged="OnBranchChanged">
                 @foreach (var branch in _branches)
                 {
@@ -154,4 +154,7 @@ else
     private Task OnKindChanged(string value) { _kind = value; return RunAsync(ReloadAsync); }
     private Task OnDateChanged(DateTime? value) { _asOf = value; return RunAsync(ReloadAsync); }
     private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+
+    private string BranchLabel(Guid? id) =>
+        id is null ? "—" : _branches.FirstOrDefault(b => b.Id == id)?.NameAr ?? "—";
 }

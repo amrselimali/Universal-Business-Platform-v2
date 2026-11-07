@@ -64,7 +64,8 @@ public sealed class PosService
         Guid? branchId, int limit = 100, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.PosReceipts, ActionCodes.View, ct: ct);
-        return await _pos.ListReceiptsAsync(branchId, limit, ct);
+        // لا يبقى الفلتر فارغًا لغير السوبر أدمن (إلغاء الفلتر لا يعرض كل الفروع) — 0096.
+        return await _pos.ListReceiptsAsync(BranchScope.Effective(actor, branchId), limit, ct);
     }
 
     /// <summary>إعادة إرسال إيصال قبض إلى العميل عبر واتساب (من شاشة إيصالات POS).</summary>

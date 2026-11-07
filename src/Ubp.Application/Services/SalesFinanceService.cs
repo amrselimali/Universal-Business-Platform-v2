@@ -28,7 +28,7 @@ public sealed class SalesFinanceService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesSettlements, ActionCodes.View,
             ct: ct);
-        return await _finance.ListSettlementsAsync(branchId, status, limit, ct);
+        return await _finance.ListSettlementsAsync(BranchScope.Effective(actor, branchId), status, limit, ct);
     }
 
     /// <summary>الحجوزات المنتهية التي ما زال لها كمية غير مستهلكة.</summary>
@@ -112,15 +112,15 @@ public sealed class SalesFinanceService
         await _permissions.RequireAsync(actor, ScreenCodes.AgingReport, ActionCodes.View, ct: ct);
         return kind switch
         {
-            "advances" => await _finance.AdvancesAgingAsync(branchId, asOf, search, ct),
-            "bookings" => await _finance.BookingAgingAsync(branchId, asOf, search, ct),
-            "suppliers" => (await _documents.SupplierAgingAsync(branchId, asOf, search, ct))
+            "advances" => await _finance.AdvancesAgingAsync(BranchScope.Effective(actor, branchId), asOf, search, ct),
+            "bookings" => await _finance.BookingAgingAsync(BranchScope.Effective(actor, branchId), asOf, search, ct),
+            "suppliers" => (await _documents.SupplierAgingAsync(BranchScope.Effective(actor, branchId), asOf, search, ct))
                 .Select(r => new AgingBucketRow
                 {
                     PartyId = r.SupplierId, PartyName = r.SupplierName, Current = r.Current,
                     Days30 = r.Days30, Days60 = r.Days60, Days90 = r.Days90, Over90 = r.Over90
                 }).ToList(),
-            _ => await _finance.CustomerAgingAsync(branchId, asOf, search, ct)
+            _ => await _finance.CustomerAgingAsync(BranchScope.Effective(actor, branchId), asOf, search, ct)
         };
     }
 
@@ -129,7 +129,7 @@ public sealed class SalesFinanceService
         Guid? branchId, DateTime asOf, string? search = null, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.AgingReport, ActionCodes.View, ct: ct);
-        return await _finance.CustomerInvoiceAgingAsync(branchId, asOf, search, ct);
+        return await _finance.CustomerInvoiceAgingAsync(BranchScope.Effective(actor, branchId), asOf, search, ct);
     }
 
     /// <summary>أعمار بالكمية: كميات الحجوزات غير المنفذة وعمرها.</summary>
@@ -137,7 +137,7 @@ public sealed class SalesFinanceService
         Guid? branchId, DateTime asOf, string? search = null, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.AgingReport, ActionCodes.View, ct: ct);
-        return await _finance.BookingQuantityAgingAsync(branchId, asOf, search, ct);
+        return await _finance.BookingQuantityAgingAsync(BranchScope.Effective(actor, branchId), asOf, search, ct);
     }
 
     /// <summary>حسابات مرتبطة بمستندات مع تحليل فروق قيودها مقابل الأستاذ — 0080.</summary>
@@ -156,7 +156,7 @@ public sealed class SalesFinanceService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.PostingCenter,
             ActionCodes.ViewUnposted, ct: ct);
-        return await _finance.ListUnpostedAsync(branchId, ct);
+        return await _finance.ListUnpostedAsync(BranchScope.Effective(actor, branchId), ct);
     }
 
     public async Task<IReadOnlyList<ReconciliationCheck>> ReconcileAsync(ActorContext actor,
@@ -164,6 +164,6 @@ public sealed class SalesFinanceService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.PostingCenter, ActionCodes.Reconcile,
             ct: ct);
-        return await _finance.ReconcileAsync(branchId, ct);
+        return await _finance.ReconcileAsync(BranchScope.Effective(actor, branchId), ct);
     }
 }

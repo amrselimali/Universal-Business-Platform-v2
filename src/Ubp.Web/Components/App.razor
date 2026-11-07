@@ -32,15 +32,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Universal Business Platform</title>
     <base href="/" />
-    <style>
-        :root { --ubp-primary: @_primary; --ubp-primary-dark: @_primaryDark; }
-    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link href="app.css" rel="stylesheet" />
     <link href="css/responsive.css" rel="stylesheet" />
+    <style>
+        /* يُوضع بعد ملفات CSS ليتغلب على اللون الافتراضي في :root (قابل للتخصيص من الإعدادات). */
+        html:root { --ubp-primary: @_primary !important; --ubp-primary-dark: @_primaryDark !important; }
+    </style>
     <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 <body>

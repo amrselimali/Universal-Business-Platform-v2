@@ -14,7 +14,7 @@
 
 .ubp-login { display: grid; grid-template-columns: 1.05fr .95fr; min-height: 100vh; }
 .ubp-login-brand {
-    background: linear-gradient(150deg, #0F766E, #0B5F59 55%, #134E4A);
+    background: linear-gradient(150deg, var(--ubp-primary), var(--ubp-primary-dark) 55%, var(--ubp-primary-dark));
     color: #fff; display: flex; align-items: center; padding: 60px;
     position: relative; overflow: hidden;
 }

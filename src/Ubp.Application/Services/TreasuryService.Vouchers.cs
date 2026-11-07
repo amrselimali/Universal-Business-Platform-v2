@@ -14,7 +14,8 @@ public sealed partial class TreasuryService
         string? voucherType, string? status, int limit = 100, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.TreasuryVouchers, ActionCodes.View, ct: ct);
-        return await _treasury.ListVouchersAsync(branchId, voucherType, status, limit, ct);
+        return await _treasury.ListVouchersAsync(BranchScope.Effective(actor, branchId), voucherType,
+            status, limit, ct);
     }
 
     public async Task<Voucher> GetVoucherAsync(ActorContext actor, Guid id,

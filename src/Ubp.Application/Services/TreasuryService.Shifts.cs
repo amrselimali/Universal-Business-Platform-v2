@@ -16,8 +16,9 @@ public sealed partial class TreasuryService
         CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.View, ct: ct);
-        if (branchId is { } value) BranchScope.Ensure(actor, value);
-        return await _treasury.ListShiftsAsync(branchId, from, to, limit, ct);
+        // إلغاء الفلتر لا يعرض كل الفروع لغير السوبر أدمن — 0096.
+        return await _treasury.ListShiftsAsync(BranchScope.Effective(actor, branchId), from, to,
+            limit, ct);
     }
 
     /// <summary>حفظ القراءة الفعلية لعداد جهاز (تُرحَّل من الوردية).</summary>

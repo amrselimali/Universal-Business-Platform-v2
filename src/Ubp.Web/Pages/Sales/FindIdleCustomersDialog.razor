@@ -13,7 +13,7 @@
             <MudTextField @bind-Value="_codeTo" Label="@T.T("sales.idle_code_to")"
                           Variant="Variant.Outlined" MaxLength="50" />
             <MudSelect T="Guid?" Value="_branchId" Label="@T.T("common.branch")"
-                       Variant="Variant.Outlined" Clearable="true"
+                       Variant="Variant.Outlined"
                        ValueChanged="@(v => _branchId = v)">
                 @foreach (var branch in Branches)
                 {

@@ -15,6 +15,24 @@ public static class BranchScope
             throw new ForbiddenException();
     }
 
+    /// <summary>
+    /// يضمن ألا يبقى الفلتر فارغًا لغير السوبر أدمن: عند تمرير null (إلغاء الفلتر) يُستخدم الفرع
+    /// الحالي أو أول فرع مصرّح به، ويُتحقق دائمًا من ملكية الفرع — 0096.
+    /// </summary>
+    public static Guid? Effective(ActorContext actor, Guid? branchId)
+    {
+        if (actor.IsSuperAdmin) return branchId;
+        if (branchId is { } id && id != Guid.Empty)
+        {
+            Ensure(actor, id);
+            return id;
+        }
+        return actor.CurrentBranchId
+               ?? (actor.AllowedBranchIds.Count > 0
+                   ? actor.AllowedBranchIds.First()
+                   : actor.AllBranchIds.FirstOrDefault());
+    }
+
     /// <summary>يتحقق أن كل الفروع المطلوبة ضمن فروع المستخدم (لتحديد أكثر من فرع).</summary>
     public static void EnsureAll(ActorContext actor, IEnumerable<Guid> branchIds)
     {
