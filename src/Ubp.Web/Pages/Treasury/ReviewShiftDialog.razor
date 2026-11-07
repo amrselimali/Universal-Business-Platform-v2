@@ -15,7 +15,7 @@
                 <MudTh>@T.T("treasury.doc_no")</MudTh>
                 <MudTh>@T.T("common.date")</MudTh>
                 <MudTh>@T.T("common.party")</MudTh>
-                <MudTh Align="Right">المبلغ المعدّل</MudTh>
+                <MudTh Align="Right">المبلغ/الكمية المعدّلة</MudTh>
                 <MudTh>ملاحظة المراجعة</MudTh>
                 <MudTh>@T.T("treasury.review_status")</MudTh>
             </HeaderContent>
@@ -29,6 +29,11 @@
                     {
                         <MudNumericField T="decimal" @bind-Value="_amounts[context.Id]" Min="0m"
                                          Format="N2" Dense="true" />
+                    }
+                    else if (IsQtyEditable(context.EntityType))
+                    {
+                        <MudNumericField T="decimal" @bind-Value="_qtys[context.Id]" Min="0m"
+                                         Format="N4" Dense="true" Placeholder="الكمية" />
                     }
                     else
                     {
@@ -66,11 +71,14 @@
 
     private IReadOnlyList<ShiftReviewItem> _items = Array.Empty<ShiftReviewItem>();
     private readonly Dictionary<Guid, decimal> _amounts = new();
+    private readonly Dictionary<Guid, decimal> _qtys = new();
     private readonly Dictionary<Guid, string> _notes = new();
     private bool _busy;
 
     private static bool IsAmountEditable(string entityType) =>
         entityType is "voucher" or "operating_expense";
+
+    private static bool IsQtyEditable(string entityType) => entityType is "service_transfer";
 
     private int PendingCount => _items.Count(i => i.Status == ShiftReviewStatuses.Pending);
 
@@ -83,6 +91,7 @@
             foreach (var item in _items)
             {
                 _amounts[item.Id] = item.Amount;
+                _qtys[item.Id] = 0;
                 _notes[item.Id] = "";
             }
         }
@@ -102,16 +111,32 @@
             foreach (var item in _items)
             {
                 var note = _notes.TryGetValue(item.Id, out var n) ? n : null;
-                var newAmount = _amounts.TryGetValue(item.Id, out var a) ? a : item.Amount;
-                if (!IsAmountEditable(item.EntityType)) continue;
-                if (newAmount == item.Amount && string.IsNullOrWhiteSpace(note)) continue;
-                await ReviewAdjustments.RecordAsync(actor, new ReviewAdjustmentInput
+                if (IsAmountEditable(item.EntityType))
                 {
-                    ShiftId = Shift.Id, EntityType = item.EntityType, EntityId = item.EntityId,
-                    Field = ReviewAdjustmentRules.Amount,
-                    NewValue = newAmount.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    Note = string.IsNullOrWhiteSpace(note) ? null : note
-                });
+                    var newAmount = _amounts.TryGetValue(item.Id, out var a) ? a : item.Amount;
+                    if (newAmount == item.Amount && string.IsNullOrWhiteSpace(note)) continue;
+                    await ReviewAdjustments.RecordAsync(actor, new ReviewAdjustmentInput
+                    {
+                        ShiftId = Shift.Id, EntityType = item.EntityType, EntityId = item.EntityId,
+                        Field = ReviewAdjustmentRules.Amount,
+                        NewValue = newAmount.ToString(
+                            System.Globalization.CultureInfo.InvariantCulture),
+                        Note = string.IsNullOrWhiteSpace(note) ? null : note
+                    });
+                }
+                else if (IsQtyEditable(item.EntityType))
+                {
+                    var qty = _qtys.TryGetValue(item.Id, out var q) ? q : 0m;
+                    if (qty <= 0) continue;
+                    await ReviewAdjustments.RecordAsync(actor, new ReviewAdjustmentInput
+                    {
+                        ShiftId = Shift.Id, EntityType = item.EntityType, EntityId = item.EntityId,
+                        Field = ReviewAdjustmentRules.Quantity,
+                        NewValue = qty.ToString(
+                            System.Globalization.CultureInfo.InvariantCulture),
+                        Note = string.IsNullOrWhiteSpace(note) ? null : note
+                    });
+                }
             }
 
             var reviewed = await Treasury.ReviewShiftAsync(actor, Shift.Id);

@@ -107,6 +107,11 @@ public sealed class ServiceTransferTests : IClassFixture<TestDb>
         Assert.Equal(5m, await ReservedQtyAsync(f.BookingLineId));
         Assert.Equal(0m, await PartyBalanceAsync(f.To.Id));
 
+        // لكنها **تظهر** في كشف حساب العميل كحركة معلّقة (مسودة) — 0085.
+        var stmt = await _db.AccountingReportRepo.PartyStatementAsync('C', f.To.Id,
+            DateTime.Today.AddDays(-2), DateTime.Today.AddDays(2), Array.Empty<Guid>());
+        Assert.Contains(stmt.Rows, r => (r.Description ?? "").Contains("مسودة"));
+
         var posted = await _db.ServiceTransferRepo.PostAsync(draft.Id, actor.UserId);
         Assert.Equal(ServiceTransferStatuses.Posted, posted.Status);
 

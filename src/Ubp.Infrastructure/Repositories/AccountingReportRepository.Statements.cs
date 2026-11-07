@@ -49,6 +49,28 @@ public sealed partial class AccountingReportRepository
             """, new { partyType = partyType.ToString(), partyId, from, to, branchIds },
             cancellationToken: ct))).ToList();
 
+        // حركات تحويل الخدمات (المسودة) تظهر في كشف حساب العميل كسطور معلّقة حتى تُعتمد وتُرحَّل.
+        if (partyType == 'C')
+        {
+            var drafts = (await connection.QueryAsync<PartyStatementRow>(new CommandDefinition("""
+                SELECT st.id AS EntryId, NULL::varchar AS EntryNo, st.doc_date AS EntryDate,
+                       'تحويل خدمات (مسودة) ' || COALESCE(st.doc_no, '') AS Description,
+                       st.doc_no AS Reference, NULL::varchar AS AccountCode,
+                       'تحويل خدمات'::varchar AS AccountName,
+                       CASE WHEN st.to_customer_id = @partyId THEN st.total_amount ELSE 0 END AS Debit,
+                       CASE WHEN st.from_customer_id = @partyId THEN st.total_amount ELSE 0 END AS Credit,
+                       0::numeric AS RunningBalance
+                FROM service_transfers st
+                WHERE st.status = 'draft'
+                  AND (st.from_customer_id = @partyId OR st.to_customer_id = @partyId)
+                  AND st.doc_date BETWEEN @from::date AND @to::date
+                  AND (cardinality(@branchIds) = 0 OR st.branch_id = ANY(@branchIds))
+                """, new { partyId, from, to, branchIds }, cancellationToken: ct))).ToList();
+            if (drafts.Count > 0)
+                rows = rows.Concat(drafts).OrderBy(r => r.EntryDate)
+                    .ThenBy(r => r.EntryNo ?? "").ToList();
+        }
+
         var running = report.OpeningBalance;
         foreach (var row in rows)
         {

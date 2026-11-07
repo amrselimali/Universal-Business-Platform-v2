@@ -175,6 +175,8 @@ public sealed class ReviewAdjustmentRepository : IReviewAdjustmentRepository
                     adj.Field, adj.NewValue, userId, ct),
                 "voucher" => await ApplyVoucherAsync(connection, tx, lineId, adj.Field,
                     adj.NewValue, userId, ct),
+                "service_transfer" => await ApplyServiceTransferAsync(connection, tx, lineId,
+                    adj.Field, adj.NewValue, userId, ct),
                 _ => null
             };
             await connection.ExecuteAsync(new CommandDefinition("""
@@ -407,5 +409,36 @@ public sealed class ReviewAdjustmentRepository : IReviewAdjustmentRepository
             : await PostDiffAsync(connection, tx, line.BranchId, DateTime.UtcNow.Date, docNo,
                 $"فرق تعديل مراجعة سند {docNo}", credit, debit, -delta, customerId, supplierId,
                 line.VoucherId, userId, ct);
+    }
+
+    /// <summary>تعديل كمية تحويل خدمات (مسودة) عند المراجعة قبل ترحيله — 0085.</summary>
+    private static async Task<Guid?> ApplyServiceTransferAsync(NpgsqlConnection connection,
+        NpgsqlTransaction tx, Guid? lineId, string field, string? newValue, Guid userId,
+        CancellationToken ct)
+    {
+        if (lineId is null || field != ReviewAdjustmentRules.Quantity) return null;
+        var newQty = ParseDec(newValue);
+        if (newQty <= 0) return null;
+
+        var line = await connection.QuerySingleOrDefaultAsync<(Guid TransferId, decimal UnitPrice)>(
+            new CommandDefinition(
+                "SELECT transfer_id AS TransferId, unit_price AS UnitPrice " +
+                "FROM service_transfer_lines WHERE id = @id FOR UPDATE", new { id = lineId }, tx,
+                cancellationToken: ct));
+        if (line.TransferId == Guid.Empty) return null;
+
+        var amount = Math.Round(newQty * line.UnitPrice, 2, MidpointRounding.AwayFromZero);
+        await connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE service_transfer_lines SET quantity = @qty, amount = @amount WHERE id = @id",
+            new { qty = newQty, amount, id = lineId }, tx, cancellationToken: ct));
+        await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE service_transfers
+            SET total_quantity = COALESCE(
+                    (SELECT SUM(quantity) FROM service_transfer_lines WHERE transfer_id = @t), 0),
+                total_amount = COALESCE(
+                    (SELECT SUM(amount) FROM service_transfer_lines WHERE transfer_id = @t), 0)
+            WHERE id = @t AND status = 'draft'
+            """, new { t = line.TransferId }, tx, cancellationToken: ct));
+        return null;
     }
 }
