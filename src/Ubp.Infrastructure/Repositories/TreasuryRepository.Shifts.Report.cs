@@ -51,7 +51,9 @@ public sealed partial class TreasuryRepository
                        0::numeric AS Revenue,
                        el.quantity AS Quantity, el.meter_units AS MeterUnits,
                        e.name_ar AS EmployeeName, i.name_ar AS ItemName, bl.unit_price AS UnitPrice,
-                       'تنفيذ خدمة محجوزة'::varchar AS Source
+                       CASE WHEN bl.operation_type = 'treatment' THEN 'خدمة علاجية'
+                            WHEN bl.operation_type = 'gift' THEN 'جلسة هدية'
+                            ELSE 'تنفيذ خدمة محجوزة' END AS Source
                 FROM booking_executions be
                 JOIN booking_execution_lines el ON el.execution_id = be.id
                 JOIN booking_lines bl ON bl.id = el.booking_line_id

@@ -234,6 +234,8 @@
 
     private static Color SourceColor(string? source) => source switch
     {
+        "خدمة علاجية" => Color.Error,
+        "جلسة هدية" => Color.Secondary,
         "خدمات محولة" => Color.Info,
         "تنفيذ خدمة محجوزة" => Color.Warning,
         "فاتورة بيع" => Color.Success,
