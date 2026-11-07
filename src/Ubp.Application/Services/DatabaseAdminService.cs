@@ -1,3 +1,4 @@
+using Npgsql;
 using Ubp.Core.Models;
 using Ubp.Core.Results;
 using Ubp.Core.Security;
@@ -86,6 +87,30 @@ public sealed partial class DatabaseAdminService : IManualSchemaProvider
         RequireSuperAdmin(actor);
         await _permissions.RequireAsync(actor, ScreenCodes.DatabaseAdmin, ActionCodes.View, ct: ct);
         return await _schema.GetColumnsAsync(table, ct);
+    }
+
+    /// <summary>مسح كل بيانات الجداول المحددة فقط (TRUNCATE RESTRICT) — يمنع الحذف المتسلسل.</summary>
+    public async Task<int> ClearTablesAsync(ActorContext actor, IReadOnlyList<string> tables,
+        CancellationToken ct = default)
+    {
+        RequireSuperAdmin(actor);
+        await _permissions.RequireAsync(actor, ScreenCodes.DatabaseAdmin, ActionCodes.EditRows,
+            ct: ct);
+        if (tables.Count == 0)
+            throw new ValidationAppException("validation.required_fields");
+        int cleared;
+        try
+        {
+            cleared = await _schema.ClearTablesAsync(tables, ct);
+        }
+        catch (PostgresException ex)
+        {
+            throw new ValidationAppException("validation.database_clear_blocked",
+                new Dictionary<string, string> { ["detail"] = ex.Message });
+        }
+        await _audit.WriteAsync(actor, "database", "tables", "DELETE", null,
+            new { tables = tables.ToArray(), cleared }, ct);
+        return cleared;
     }
 }
 public sealed partial class DatabaseAdminService

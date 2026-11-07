@@ -1451,6 +1451,7 @@
   "validation.booking_not_confirmed": "Booking is not confirmed",
   "validation.treatment_account_missing": "A treatment session requires the responsible employee to have a 'treatment charge account' (set it on the employee screen) so the session value is charged to that employee.",
   "validation.treatment_employee_required": "A treatment session requires selecting the responsible employee.",
+  "validation.database_clear_blocked": "Cannot clear: other tables reference the selected tables via foreign keys. Add the related tables to the selection or drop the constraints first.",
   "validation.booking_expiry_invalid": "Offer expiry date must be today or later",
   "validation.booking_not_draft": "Booking is not a draft",
   "validation.booking_duplicate_line": "Duplicate booking in the collection",

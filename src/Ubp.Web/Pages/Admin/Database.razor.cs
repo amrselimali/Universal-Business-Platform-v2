@@ -61,4 +61,19 @@ public partial class Database
         await dialog.Result;
         _status = await DatabaseService.GetStatusAsync(Actor!);
     }
+
+    /// <summary>فتح نافذة اختيار جداول ومسح بيانات المحدد فقط.</summary>
+    private async Task ClearTablesAsync()
+    {
+        if (_status is null) return;
+        var dialog = await DialogService.ShowAsync<ClearTablesDialog>("مسح بيانات جداول مُحددة",
+            new DialogParameters { ["Tables"] = _status.Tables },
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            _status = await DatabaseService.GetStatusAsync(Actor!);
+            ShowSuccess("common.saved");
+        }
+    }
 }

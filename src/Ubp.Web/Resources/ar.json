@@ -1451,6 +1451,7 @@
   "validation.booking_not_confirmed": "الحجز غير مؤكد",
   "validation.treatment_account_missing": "الجلسة العلاجية تتطلب تحديد «حساب تحميل العلاج» للموظف المسؤول (من شاشة الموظف) حتى يُخصم قيمة الجلسة من حسابه.",
   "validation.treatment_employee_required": "الجلسة العلاجية تتطلب اختيار الموظف المسؤول.",
+  "validation.database_clear_blocked": "تعذّر المسح: جداول أخرى تشير إلى الجداول المحددة عبر مفاتيح أجنبية. أضف الجداول المرتبطة إلى التحديد أو أزل القيود أولًا.",
   "validation.booking_expiry_invalid": "تاريخ انتهاء الصلاحية يجب أن يكون اليوم أو بعده",
   "validation.booking_not_draft": "الحجز ليس مسودة",
   "validation.booking_duplicate_line": "الحجز مكرر في عملية التحصيل",

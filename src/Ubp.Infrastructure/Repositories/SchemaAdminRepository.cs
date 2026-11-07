@@ -18,6 +18,8 @@ public interface ISchemaAdminRepository
     Task<bool> UpdateRowAsync(string table, string id, Dictionary<string, object?> values,
         CancellationToken ct = default);
     Task<bool> DeleteRowAsync(string table, string id, CancellationToken ct = default);
+    /// <summary>مسح كل بيانات الجداول المحددة فقط (TRUNCATE RESTRICT) — بلا حذف متسلسل.</summary>
+    Task<int> ClearTablesAsync(IReadOnlyList<string> tables, CancellationToken ct = default);
 }
 
 public sealed partial class SchemaAdminRepository : ISchemaAdminRepository

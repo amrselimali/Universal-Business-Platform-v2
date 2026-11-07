@@ -73,4 +73,35 @@ public sealed partial class SchemaAdminRepository
         if (!EditableTables.Contains(table))
             throw new InvalidOperationException("TABLE_READ_ONLY");
     }
+
+    /// <summary>
+    /// مسح كل بيانات الجداول المحددة فقط. يُتحقّق من أن الاسم جدول فعلي في public، ويستثني
+    /// schemaversions. يستخدم TRUNCATE ... RESTRICT فلا يُحذف أي جدول غير محدد؛ وإن كانت هناك
+    /// جداول أخرى تشير للجدول المحدد عبر مفتاح أجنبي يفشل الطلب (حماية) بدل الحذف المتسلسل.
+    /// </summary>
+    public async Task<int> ClearTablesAsync(IReadOnlyList<string> tables,
+        CancellationToken ct = default)
+    {
+        if (tables.Count == 0) return 0;
+        var requested = tables
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Where(t => !string.Equals(t, "schemaversions", StringComparison.Ordinal))
+            .Where(t => SafeName.IsMatch(t))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (requested.Count == 0) return 0;
+
+        await using var connection = await _factory.OpenAsync(ct);
+        var existing = (await connection.QueryAsync<string>(new CommandDefinition(
+            "SELECT table_name FROM information_schema.tables " +
+            "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'",
+            cancellationToken: ct))).ToHashSet(StringComparer.Ordinal);
+        var valid = requested.Where(existing.Contains).ToList();
+        if (valid.Count == 0) return 0;
+
+        var list = string.Join(", ", valid.Select(t => $"\"public\".\"{t}\""));
+        await connection.ExecuteAsync(new CommandDefinition(
+            $"TRUNCATE TABLE {list} RESTRICT", cancellationToken: ct));
+        return valid.Count;
+    }
 }

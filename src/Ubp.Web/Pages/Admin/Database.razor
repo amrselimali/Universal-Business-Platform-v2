@@ -21,6 +21,12 @@ else
                            StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="RunMigrationsAsync"
                            Disabled="@_busy">@T.T("database.run_migrations")</MudButton>
             }
+            @if (Can(ActionCodes.EditRows))
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.DeleteSweep" OnClick="ClearTablesAsync"
+                           Disabled="@(_busy || _status is null)">مسح بيانات جداول</MudButton>
+            }
         </Actions>
     </PageHeader>
 
