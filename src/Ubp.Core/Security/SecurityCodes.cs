@@ -78,7 +78,6 @@ public static class ScreenCodes
     public const string PosTerminal = "POS_TERMINAL";
     public const string PosReceipts = "POS_RECEIPTS";
     public const string FollowUps = "FOLLOW_UPS";
-    public const string Complaints = "COMPLAINTS";
 }
 
 public static class ActionCodes

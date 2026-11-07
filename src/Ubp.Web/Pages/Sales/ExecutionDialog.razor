@@ -1,5 +1,6 @@
 @inherits ComponentBase
 @inject BookingExecutionService Executions
+@inject MasterDataService MasterData
 @inject UserContext UserContext
 @inject UiCulture T
 @inject ISnackbar Snackbar
@@ -19,9 +20,15 @@
                 <MudTextField Value="@(_preview.ItemCode + " — " + _preview.ItemName)"
                               Label="@T.T("execution.service")" Variant="Variant.Outlined"
                               ReadOnly="true" />
-                <MudTextField Value="@(_preview.EmployeeName ?? T.T("execution.no_employee"))"
-                              Label="@T.T("execution.employee")" Variant="Variant.Outlined"
-                              ReadOnly="true" />
+                <MudSelect T="Guid?" @bind-Value="_executorId" Clearable="true"
+                           Label="الموظف المنفذ (من زر التنفيذ)" Variant="Variant.Outlined">
+                    @foreach (var employee in _employees)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)employee.Id)">
+                            @employee.NameAr
+                        </MudSelectItem>
+                    }
+                </MudSelect>
                 @if (ItemExecutionModes.IsDirect(_preview.ExecutionMode))
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Warning"
@@ -89,7 +96,7 @@
                 }
                 @if (_preview.ItemType == "SERVICE" &&
                      !ItemExecutionModes.IsDirect(_preview.ExecutionMode) &&
-                     string.IsNullOrWhiteSpace(_preview.EmployeeName))
+                     _executorId is null)
                 {
                     <MudAlert Severity="Severity.Error" Dense="true" Class="ubp-span-2">
                         @T.T("validation.execution_employee_required")
@@ -105,7 +112,7 @@
                                _quantity <= 0 ||
                                (!ItemExecutionModes.IsDirect(_preview.ExecutionMode) &&
                                 _preview.ItemType == "SERVICE" &&
-                                string.IsNullOrWhiteSpace(_preview.EmployeeName)) ||
+                                _executorId is null) ||
                                (!ItemExecutionModes.IsDirect(_preview.ExecutionMode) &&
                                 _preview.ItemIsMetered &&
                                 (_meterAssetId is null || _meterUnits <= 0)))">@T.T("execution.confirm")</MudButton>
@@ -117,6 +124,8 @@
     [Parameter] public Guid BookingLineId { get; set; }
 
     private BookingExecutionPreview? _preview;
+    private IReadOnlyList<Employee> _employees = Array.Empty<Employee>();
+    private Guid? _executorId;
     private decimal _quantity;
     private Guid? _meterAssetId;
     private decimal _meterUnits;
@@ -132,6 +141,7 @@
         try
         {
             _preview = await Executions.GetPreviewAsync(actor, BookingLineId);
+            _employees = await MasterData.EmployeeOptionsAsync(actor);
         }
         catch (AppException ex)
         {
@@ -164,7 +174,8 @@
             {
                 BookingLineId = BookingLineId, Quantity = _quantity,
                 MeteredAssetId = _preview.ItemIsMetered ? _meterAssetId : null,
-                MeterUnits = _preview.ItemIsMetered ? _meterUnits : 0
+                MeterUnits = _preview.ItemIsMetered ? _meterUnits : 0,
+                EmployeeId = _executorId
             });
             MudDialog.Close(DialogResult.Ok(result));
         }

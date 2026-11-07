@@ -50,30 +50,22 @@ public sealed partial class TreasuryRepository
                        0::numeric AS Collected,
                        0::numeric AS Revenue,
                        el.quantity AS Quantity, el.meter_units AS MeterUnits,
-                       e.name_ar AS EmployeeName, i.name_ar AS ItemName, bl.unit_price AS UnitPrice,
+                       exe.name_ar AS EmployeeName, i.name_ar AS ItemName, bl.unit_price AS UnitPrice,
                        CASE WHEN bl.operation_type = 'treatment' THEN 'خدمة علاجية'
                             WHEN bl.operation_type = 'gift' THEN 'جلسة هدية'
                             ELSE 'تنفيذ خدمة محجوزة' END AS Source,
-                       ce.complaint_employee AS ComplaintEmployeeName
+                       CASE WHEN bl.operation_type = 'treatment' THEN cause.name_ar END
+                           AS ComplaintEmployeeName
                 FROM booking_executions be
                 JOIN booking_execution_lines el ON el.execution_id = be.id
                 JOIN booking_lines bl ON bl.id = el.booking_line_id
                 JOIN items i ON i.id = el.item_id
                 JOIN bookings b ON b.id = be.booking_id
                 JOIN customers c ON c.id = b.customer_id
-                LEFT JOIN employees e ON e.id = COALESCE(bl.employee_id, b.assigned_employee_id)
-                -- متسبب الشكوى لهذه الخدمة/العميل خلال الوردية (سطر منفصل عن منفّذ الخدمة).
-                LEFT JOIN LATERAL (
-                    SELECT emp.name_ar AS complaint_employee
-                    FROM complaints cp
-                    JOIN employees emp ON emp.id = cp.employee_id
-                    WHERE cp.customer_id = b.customer_id
-                      AND (cp.item_id = el.item_id OR cp.item_id IS NULL)
-                      AND cp.created_at >= @openedAt
-                      AND (@until::timestamptz IS NULL OR cp.created_at <= @until::timestamptz)
-                    ORDER BY (cp.item_id = el.item_id) DESC, cp.created_at DESC
-                    LIMIT 1
-                ) ce ON true
+                -- منفّذ الجلسة: الموظف المختار من نافذة تنفيذ الخدمة (el.employee_id) فقط.
+                LEFT JOIN employees exe ON exe.id = el.employee_id
+                -- متسبب الشكوى: الموظف المسجّل على بند الحجز عند تسجيل الخدمة العلاجية.
+                LEFT JOIN employees cause ON cause.id = bl.employee_id
                 WHERE be.branch_id = @branchId AND be.status = 'posted'
                   AND be.created_at >= @openedAt
                   AND (@until::timestamptz IS NULL OR be.created_at <= @until::timestamptz)

@@ -156,24 +156,17 @@ public sealed partial class PosRepository
         };
         parts.Add($"نوع الجلسة: {session}");
         if (!string.IsNullOrWhiteSpace(line.ItemName)) parts.Add($"الخدمة: {line.ItemName}");
+        string? empName = null;
         if (line.EmployeeId is { } empId)
-        {
-            var empName = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
+            empName = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
                 "SELECT name_ar FROM employees WHERE id = @id", new { id = empId }, tx,
                 cancellationToken: ct));
-            if (!string.IsNullOrWhiteSpace(empName)) parts.Add($"الموظف المسؤول: {empName}");
-        }
+        if (!string.IsNullOrWhiteSpace(empName)) parts.Add($"الموظف المنفذ: {empName}");
         parts.Add($"سعر الوحدة: {line.UnitPrice:N2}");
         parts.Add("المصدر: تنفيذ مباشر من نقطة البيع");
-        var complaint = await connection.ExecuteScalarAsync<string?>(new CommandDefinition("""
-            SELECT emp.name_ar FROM complaints cp
-            JOIN employees emp ON emp.id = cp.employee_id
-            WHERE cp.customer_id = @customerId AND (cp.item_id = @itemId OR cp.item_id IS NULL)
-            ORDER BY (cp.item_id = @itemId) DESC, cp.created_at DESC
-            LIMIT 1
-            """, new { customerId = input.CustomerId, itemId = line.ItemId }, tx,
-            cancellationToken: ct));
-        if (!string.IsNullOrWhiteSpace(complaint)) parts.Add($"متسبب الشكوى: {complaint}");
+        if (line.OperationType == ServiceOperationTypes.Treatment &&
+            !string.IsNullOrWhiteSpace(empName))
+            parts.Add($"متسبب الشكوى: {empName}");
         return string.Join(" | ", parts);
     }
 }

@@ -32,6 +32,8 @@ public sealed partial class BookingExecutionRepository
         public Guid? TreatmentAccountId { get; set; }
         public string? ItemName { get; set; }
         public decimal UnitPrice { get; set; }
+        /// <summary>الموظف المسجّل على بند الحجز وقت تسجيل الخدمة (علاجية) — 0088.</summary>
+        public Guid? BookingLineEmployeeId { get; set; }
     }
 
     public async Task<BookingExecutionResult> ExecuteAsync(BookingExecutionInput input,
@@ -55,6 +57,7 @@ public sealed partial class BookingExecutionRepository
                    l.tax_amount AS TaxAmount, l.total_amount AS TotalAmount,
                    i.is_metered AS ItemIsMetered, i.execution_mode AS ExecutionMode,
                    i.name_ar AS ItemName, l.unit_price AS UnitPrice,
+                   l.employee_id AS BookingLineEmployeeId,
                    l.operation_type AS OperationType,
                    COALESCE(b.assigned_employee_id, l.employee_id) AS EmployeeId,
                    COALESCE(resp.treatment_account_id, le.treatment_account_id,
@@ -152,8 +155,8 @@ public sealed partial class BookingExecutionRepository
         // إيراد التنفيذ: للخدمة دائمًا، وللصنف المباشر أيًا كان نوعه (ذمم مباشرة).
         if (line.ItemType == "SERVICE" || direct)
             journalEntryId = await PostServiceRevenueAsync(connection, tx, line, input.Quantity,
-                docNo, executionLineId, executionId, userId, input.MeteredAssetId, ct)
-                ?? journalEntryId;
+                docNo, executionLineId, executionId, userId, input.MeteredAssetId,
+                input.EmployeeId, ct) ?? journalEntryId;
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO booking_executions
                 (id, branch_id, doc_no, execution_date, booking_id, status, stock_document_id,
@@ -170,16 +173,16 @@ public sealed partial class BookingExecutionRepository
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO booking_execution_lines
                 (id, execution_id, booking_line_id, item_id, unit_id, quantity, unit_cost,
-                 cost_total, stock_document_line_id, metered_asset_id, meter_units)
+                 cost_total, stock_document_line_id, metered_asset_id, meter_units, employee_id)
             VALUES (@id, @executionId, @bookingLineId, @itemId, @unitId, @quantity, @unitCost,
-                    @cost, @stockDocumentLineId, @meteredAssetId, @meterUnits)
+                    @cost, @stockDocumentLineId, @meteredAssetId, @meterUnits, @executorId)
             """, new
         {
             id = executionLineId, executionId, bookingLineId = input.BookingLineId,
             itemId = line.ItemId, unitId = line.UnitId, quantity = input.Quantity,
             unitCost = input.Quantity == 0 ? 0 : Math.Round(cost / input.Quantity, 6),
             cost, stockDocumentLineId, meteredAssetId = input.MeteredAssetId,
-            meterUnits = input.MeterUnits
+            meterUnits = input.MeterUnits, executorId = input.EmployeeId
         }, tx, cancellationToken: ct));
 
         await connection.ExecuteAsync(new CommandDefinition("""

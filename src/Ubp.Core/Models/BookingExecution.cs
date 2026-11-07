@@ -48,6 +48,8 @@ public sealed class BookingExecutionInput
     public Guid? MeteredAssetId { get; set; }
     public decimal MeterUnits { get; set; }
     public string UnitsColumnLabel { get; set; } = "";
+    /// <summary>الموظف المنفّذ المختار من نافذة تنفيذ الخدمة (منفّذ الجلسة) — 0088.</summary>
+    public Guid? EmployeeId { get; set; }
 }
 
 public sealed class BookingExecutionResult

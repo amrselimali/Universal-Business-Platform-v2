@@ -73,7 +73,7 @@ public sealed partial class BookingExecutionRepository
     private static async Task<Guid?> PostServiceRevenueAsync(NpgsqlConnection connection,
         NpgsqlTransaction tx, ExecutionLine line, decimal executedQty, string docNo,
         Guid executionLineId, Guid executionId, Guid userId, Guid? meterAssetId,
-        CancellationToken ct)
+        Guid? executorId, CancellationToken ct)
     {
         if (line.Quantity <= 0) return null;
         var ratio = executedQty / line.Quantity;
@@ -110,7 +110,7 @@ public sealed partial class BookingExecutionRepository
 
         var entryId = Guid.CreateVersion7();
         var description = await BuildExecutionDescriptionAsync(connection, tx, docNo, line,
-            meterAssetId, ct);
+            meterAssetId, executorId, ct);
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO journal_entries
                 (id, journal_id, branch_id, entry_date, reference, description, status, source_type,
@@ -166,7 +166,7 @@ public sealed partial class BookingExecutionRepository
     /// <summary>وصف تفصيلي لقيد تنفيذ الخدمة (لعرضه في توضيح الأستاذ/كشف الحساب) — يذكر المسجّل فقط.</summary>
     private static async Task<string> BuildExecutionDescriptionAsync(NpgsqlConnection connection,
         NpgsqlTransaction tx, string docNo, ExecutionLine line, Guid? meterAssetId,
-        CancellationToken ct)
+        Guid? executorId, CancellationToken ct)
     {
         var parts = new List<string> { $"إيراد تنفيذ خدمة {docNo}" };
         var session = line.OperationType switch
@@ -177,12 +177,12 @@ public sealed partial class BookingExecutionRepository
         };
         parts.Add($"نوع الجلسة: {session}");
         if (!string.IsNullOrWhiteSpace(line.ItemName)) parts.Add($"الخدمة: {line.ItemName}");
-        if (line.EmployeeId is { } empId)
+        if (executorId is { } empId)
         {
             var empName = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
                 "SELECT name_ar FROM employees WHERE id = @id", new { id = empId }, tx,
                 cancellationToken: ct));
-            if (!string.IsNullOrWhiteSpace(empName)) parts.Add($"الموظف المسؤول: {empName}");
+            if (!string.IsNullOrWhiteSpace(empName)) parts.Add($"الموظف المنفذ: {empName}");
         }
         parts.Add($"سعر الوحدة: {line.UnitPrice:N2}");
         parts.Add("المصدر: تنفيذ خدمة محجوزة");
@@ -193,15 +193,15 @@ public sealed partial class BookingExecutionRepository
                 cancellationToken: ct));
             if (!string.IsNullOrWhiteSpace(assetName)) parts.Add($"الجهاز: {assetName}");
         }
-        var complaint = await connection.ExecuteScalarAsync<string?>(new CommandDefinition("""
-            SELECT emp.name_ar FROM complaints cp
-            JOIN employees emp ON emp.id = cp.employee_id
-            WHERE cp.customer_id = @customerId AND (cp.item_id = @itemId OR cp.item_id IS NULL)
-            ORDER BY (cp.item_id = @itemId) DESC, cp.created_at DESC
-            LIMIT 1
-            """, new { customerId = line.CustomerId, itemId = line.ItemId }, tx,
-            cancellationToken: ct));
-        if (!string.IsNullOrWhiteSpace(complaint)) parts.Add($"متسبب الشكوى: {complaint}");
+        // متسبب الشكوى = الموظف المسجّل على بند الحجز عند تسجيل الخدمة العلاجية (لا من الشكاوى).
+        if (line.OperationType == ServiceOperationTypes.Treatment &&
+            line.BookingLineEmployeeId is { } causeId)
+        {
+            var causeName = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
+                "SELECT name_ar FROM employees WHERE id = @id", new { id = causeId }, tx,
+                cancellationToken: ct));
+            if (!string.IsNullOrWhiteSpace(causeName)) parts.Add($"متسبب الشكوى: {causeName}");
+        }
         return string.Join(" | ", parts);
     }
 }

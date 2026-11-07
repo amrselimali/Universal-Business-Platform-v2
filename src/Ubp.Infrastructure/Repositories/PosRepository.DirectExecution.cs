@@ -121,15 +121,15 @@ public sealed partial class PosRepository
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO booking_execution_lines
                 (id, execution_id, booking_line_id, item_id, unit_id, quantity, unit_cost,
-                 cost_total, stock_document_line_id)
+                 cost_total, stock_document_line_id, employee_id)
             VALUES (@id, @executionId, @bookingLineId, @itemId, @unitId, @quantity, @unitCost,
-                    @cost, @stockLineId)
+                    @cost, @stockLineId, @employeeId)
             """, new
         {
             id = executionLineId, executionId, bookingLineId = line.BookingLineId,
             itemId = line.ItemId, unitId = line.UnitId, quantity = line.Quantity,
             unitCost = line.Quantity == 0 ? 0 : Math.Round(cost / line.Quantity, 6), cost,
-            stockLineId = stockDocumentLineId
+            stockLineId = stockDocumentLineId, employeeId = line.EmployeeId
         }, tx, cancellationToken: ct));
 
         await connection.ExecuteAsync(new CommandDefinition("""
