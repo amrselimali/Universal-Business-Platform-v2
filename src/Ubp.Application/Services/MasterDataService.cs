@@ -48,7 +48,23 @@ public sealed partial class MasterDataService
                       || await _permissions.HasAsync(actor, ScreenCodes.PosTerminal,
                           ActionCodes.View, ct);
         if (!allowed) throw new ForbiddenException();
-        return await _employees.ListOptionsAsync(ct);
+        // موظفو الفروع المفعّلة للمستخدم + موظفو الشركة (branch_id NULL) — 0094.
+        return await EmployeeOptionsForBranchesAsync(actor, null, ct);
+    }
+
+    /// <summary>
+    /// موظفون للاختيار: فروع محددة (أو كل فروع المستخدم المعروضة عند عدم التحديد) + موظفو الشركة.
+    /// المدير الأعلى يرى الجميع.
+    /// </summary>
+    public async Task<IReadOnlyList<Employee>> EmployeeOptionsForBranchesAsync(ActorContext actor,
+        IReadOnlyCollection<Guid>? branchIds, CancellationToken ct = default)
+    {
+        if (actor.IsSuperAdmin && branchIds is not { Count: > 0 })
+            return await _employees.ListOptionsAsync(ct);
+        var scope = branchIds is { Count: > 0 }
+            ? branchIds.Where(actor.AllowedBranchIds.Contains).Distinct().ToArray()
+            : actor.AllowedBranchIds;
+        return await _employees.ListOptionsAsync(scope, false, ct);
     }
 
     /// <summary>الأدوار المتاحة للموظف (دور إداري/استقبال حجوزات...).</summary>
