@@ -19,6 +19,7 @@
         <MudTh Align="Right">@T.T("common.quantity")</MudTh>
         <MudTh Align="Right">@T.T("treasury.meter_units")</MudTh>
         <MudTh>@T.T("common.employee")</MudTh>
+        <MudTh>الموظف متسبب الشكوى</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd>@context.CustomerName</MudTd>
@@ -37,6 +38,7 @@
         <MudTd Align="Right">@context.Quantity.ToString("N2")</MudTd>
         <MudTd Align="Right">@context.MeterUnits.ToString("N2")</MudTd>
         <MudTd>@context.EmployeeName</MudTd>
+        <MudTd>@context.ComplaintEmployeeName</MudTd>
     </RowTemplate>
 </MudTable>
 <MudText Typo="Typo.body2" Class="mt-1">

@@ -12,6 +12,8 @@ public sealed class ComplaintInput
     public Guid? CustomerId { get; set; }
     /// <summary>الموظف المتسبب في الشكوى.</summary>
     public Guid? EmployeeId { get; set; }
+    /// <summary>الخدمة/الصنف محل الشكوى (اختياري).</summary>
+    public Guid? ItemId { get; set; }
     public DateTime DocDate { get; set; } = DateTime.Today;
     public string Description { get; set; } = "";
 }
@@ -25,6 +27,9 @@ public sealed class Complaint
     public string? CustomerName { get; set; }
     public Guid? EmployeeId { get; set; }
     public string? EmployeeName { get; set; }
+    /// <summary>الخدمة/الصنف محل الشكوى (اختياري).</summary>
+    public Guid? ItemId { get; set; }
+    public string? ItemName { get; set; }
     public DateTime DocDate { get; set; }
     public string Description { get; set; } = "";
     public string Status { get; set; } = ComplaintStatuses.Open;

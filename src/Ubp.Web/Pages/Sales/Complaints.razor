@@ -25,6 +25,13 @@ else
                     <MudSelectItem T="Guid?" Value="@((Guid?)employee.Id)">@employee.NameAr</MudSelectItem>
                 }
             </MudSelect>
+            <MudSelect T="Guid?" @bind-Value="_input.ItemId" Label="الخدمة/الصنف محل الشكوى"
+                       Variant="Variant.Outlined" Clearable="true">
+                @foreach (var service in _services)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)service.Id)">@service.NameAr</MudSelectItem>
+                }
+            </MudSelect>
             <MudTextField @bind-Value="_input.Description" Label="وصف الشكوى"
                           Variant="Variant.Outlined" MaxLength="1000" />
             <MudDatePicker @bind-Date="_date" Label="التاريخ" Variant="Variant.Outlined"
@@ -58,6 +65,7 @@ else
                 <MudTh>التاريخ</MudTh>
                 <MudTh>العميل</MudTh>
                 <MudTh>الموظف المتسبب</MudTh>
+                <MudTh>الخدمة</MudTh>
                 <MudTh>الوصف</MudTh>
                 <MudTh>الحالة</MudTh>
                 <MudTh></MudTh>
@@ -66,6 +74,7 @@ else
                 <MudTd>@Fmt.Date(context.DocDate)</MudTd>
                 <MudTd>@context.CustomerName</MudTd>
                 <MudTd>@context.EmployeeName</MudTd>
+                <MudTd>@context.ItemName</MudTd>
                 <MudTd>@context.Description</MudTd>
                 <MudTd>@(context.IsOpen ? "مفتوحة" : "مغلقة")</MudTd>
                 <MudTd>

@@ -16,6 +16,7 @@ public partial class Complaints
     private IReadOnlyList<Complaint> _items = Array.Empty<Complaint>();
     private IReadOnlyList<Partner> _customers = Array.Empty<Partner>();
     private IReadOnlyList<Employee> _employees = Array.Empty<Employee>();
+    private IReadOnlyList<ItemOption> _services = Array.Empty<ItemOption>();
     private ComplaintInput _input = new();
     private DateTime? _date = DateTime.Today;
     private DateTime? _from = DateTime.Today.AddDays(-30);
@@ -32,6 +33,7 @@ public partial class Complaints
         _input = new ComplaintInput { BranchId = branchId, DocDate = DateTime.Today };
         _customers = await Lookup.PartnersAsync(Actor, PartnerKind.Customer);
         _employees = await MasterData.EmployeeOptionsAsync(Actor!);
+        _services = await Lookup.ItemsAsync(Actor, null, 100, false);
         await ReloadAsync();
     }
 
@@ -63,6 +65,7 @@ public partial class Complaints
             _input.Description = "";
             _input.CustomerId = null;
             _input.EmployeeId = null;
+            _input.ItemId = null;
             await ReloadAsync();
             Snackbar.Add(T.T("common.saved"), Severity.Success);
         }

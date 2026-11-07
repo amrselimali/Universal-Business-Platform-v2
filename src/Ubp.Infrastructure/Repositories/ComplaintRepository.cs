@@ -28,10 +28,10 @@ public sealed class ComplaintRepository : IComplaintRepository
         var id = Guid.CreateVersion7();
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO complaints
-                (id, branch_id, customer_id, employee_id, doc_date, description, status, created_by)
-            VALUES (@id, @branchId, @customerId, @employeeId, @docDate, @description, 'OPEN', @userId)
+                (id, branch_id, customer_id, employee_id, item_id, doc_date, description, status, created_by)
+            VALUES (@id, @branchId, @customerId, @employeeId, @itemId, @docDate, @description, 'OPEN', @userId)
             """, new { id, branchId = input.BranchId, customerId = input.CustomerId,
-                employeeId = input.EmployeeId, docDate = input.DocDate.Date,
+                employeeId = input.EmployeeId, itemId = input.ItemId, docDate = input.DocDate.Date,
                 description = input.Description, userId }, cancellationToken: ct));
         return id;
     }
@@ -44,12 +44,14 @@ public sealed class ComplaintRepository : IComplaintRepository
             SELECT cp.id AS Id, cp.branch_id AS BranchId, b.name_ar AS BranchName,
                    cp.customer_id AS CustomerId, c.name_ar AS CustomerName,
                    cp.employee_id AS EmployeeId, e.name_ar AS EmployeeName,
+                   cp.item_id AS ItemId, i.name_ar AS ItemName,
                    cp.doc_date AS DocDate, cp.description AS Description, cp.status AS Status,
                    cp.created_at AS CreatedAt, cp.closed_at AS ClosedAt
             FROM complaints cp
             JOIN branches b ON b.id = cp.branch_id
             LEFT JOIN customers c ON c.id = cp.customer_id
             LEFT JOIN employees e ON e.id = cp.employee_id
+            LEFT JOIN items i ON i.id = cp.item_id
             WHERE cp.branch_id = @branchId
               AND (@from::date IS NULL OR cp.doc_date >= @from)
               AND (@to::date IS NULL OR cp.doc_date <= @to)
