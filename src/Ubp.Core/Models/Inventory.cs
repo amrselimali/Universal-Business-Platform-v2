@@ -161,6 +161,8 @@ public sealed class ItemOption
     public string Code { get; set; } = "";
     public string NameAr { get; set; } = "";
     public string? NameEn { get; set; }
+    public Guid? CategoryId { get; set; }
+    public string? CategoryName { get; set; }
     public Guid BaseUnitId { get; set; }
     public string BaseUnitName { get; set; } = "";
     public decimal OnHand { get; set; }

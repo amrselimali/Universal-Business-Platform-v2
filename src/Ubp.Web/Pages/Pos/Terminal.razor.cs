@@ -63,6 +63,28 @@ public partial class Terminal : SecurePageBase
     private IReadOnlyList<Partner> _customers = Array.Empty<Partner>();
     private IReadOnlyList<Warehouse> _warehouses = Array.Empty<Warehouse>();
     private IReadOnlyList<ItemOption> _products = Array.Empty<ItemOption>();
+    private Guid? _categoryFilter;
+    private sealed record ProductGroup(string Name, List<ItemOption> Items);
+
+    private List<KeyValuePair<Guid?, string>> Categories => _products
+        .GroupBy(p => p.CategoryId)
+        .Select(g => new KeyValuePair<Guid?, string>(g.Key,
+            g.Key is null ? "بدون تصنيف" : g.First().CategoryName ?? "بدون تصنيف"))
+        .OrderBy(c => c.Value).ToList();
+
+    private IReadOnlyList<ProductGroup> VisibleGroups => _products
+        .Where(p => _categoryFilter is null || p.CategoryId == _categoryFilter)
+        .GroupBy(p => p.CategoryId)
+        .Select(g => new ProductGroup(
+            g.Key is null ? "بدون تصنيف" : g.First().CategoryName ?? "بدون تصنيف",
+            g.OrderBy(p => p.NameAr).ToList()))
+        .OrderBy(g => g.Name).ToList();
+
+    private void SelectCategory(Guid? categoryId)
+    {
+        _categoryFilter = categoryId;
+        StateHasChanged();
+    }
     private IReadOnlyList<TreasuryMethod> _methods = Array.Empty<TreasuryMethod>();
     private IReadOnlyList<Employee> _employees = Array.Empty<Employee>();
     private List<CartLine> _cart = new();
@@ -119,8 +141,11 @@ public partial class Terminal : SecurePageBase
         await SearchAsync();
     }
 
-    private async Task SearchAsync() =>
-        _products = await Lookup.ItemsAsync(Actor!, _search, 50, true);
+    private async Task SearchAsync()
+    {
+        // عرض كل أصناف التصنيفات كاملة (حتى 500) مجمّعة بعناوين تصنيفاتها.
+        _products = await Lookup.ItemsAsync(Actor!, _search, 500, true);
+    }
 
     private static decimal PriceOf(ItemOption product) => product.DefaultPrice;
 

@@ -13,7 +13,7 @@
 else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
 else
 {
-    <PageHeader Title="@T.T("screen.pos_terminal")" Subtitle="@T.T("pos.terminal_hint")" />
+    <PageHeader Title="@T.T("screen.pos_terminal")" />
 
     <MudGrid Class="ubp-print-hide" Spacing="2">
         <MudItem xs="12" md="7">
@@ -49,31 +49,42 @@ else
                 }
                 else
                 {
-                    <MudGrid Spacing="1">
-                        @foreach (var product in _products)
+                    <div class="pos-cats">
+                        <button class="pos-cat @(_categoryFilter is null ? "active" : "")"
+                                @onclick="@(() => SelectCategory(null))">@T.T("common.all")</button>
+                        @foreach (var cat in Categories)
                         {
-                            <MudItem xs="6" sm="4" md="3">
-                                <MudPaper Outlined="true" Class="pa-2 pos-product"
-                                          @onclick="@(() => AddToCart(product))">
-                                    <MudText Typo="Typo.subtitle2">@product.NameAr</MudText>
-                                    <MudText Typo="Typo.caption">
-                                        @T.T("sales.item_type_" + product.ItemType.ToLowerInvariant())
+                            <button class="pos-cat @(_categoryFilter == cat.Key ? "active" : "")"
+                                    @onclick="@(() => SelectCategory(cat.Key))">@cat.Value</button>
+                        }
+                    </div>
+
+                    @foreach (var group in VisibleGroups)
+                    {
+                        <div class="pos-cat-head">
+                            <span>@group.Name</span>
+                            <span class="pos-cat-count">@group.Items.Count</span>
+                        </div>
+                        <div class="pos-grid">
+                            @foreach (var product in group.Items)
+                            {
+                                <div class="pos-tile" @onclick="@(() => AddToCart(product))">
+                                    <div class="pos-tile-name">@product.NameAr</div>
+                                    <div class="pos-tile-meta">
                                         @if (product.ItemType == "GOODS")
                                         {
-                                            <text> · @product.OnHand.ToString("N2")</text>
+                                            <span>@product.OnHand.ToString("N0")</span>
                                         }
                                         @if (ItemExecutionModes.IsDirect(product.ExecutionMode))
                                         {
-                                            <text> · @T.T("items.execution_direct")</text>
+                                            <span class="pos-badge">@T.T("items.execution_direct")</span>
                                         }
-                                    </MudText>
-                                    <MudText Typo="Typo.body2">
-                                        <b>@PriceOf(product).ToString("N2")</b>
-                                    </MudText>
-                                </MudPaper>
-                            </MudItem>
-                        }
-                    </MudGrid>
+                                    </div>
+                                    <div class="pos-tile-price">@PriceOf(product).ToString("N2")</div>
+                                </div>
+                            }
+                        </div>
+                    }
                 }
             </MudPaper>
         </MudItem>
