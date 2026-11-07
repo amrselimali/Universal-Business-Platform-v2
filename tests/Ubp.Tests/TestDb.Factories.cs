@@ -64,6 +64,10 @@ public sealed partial class TestDb
     public ShiftEditService ShiftEdit() => new(
         ShiftEditRepo, TreasuryRepo, Permissions(), new AuditService(AuditRepo));
 
+    public UserFavoriteScreenRepository UserFavoritesRepo => new(Factory);
+
+    public UserFavoriteService UserFavorites() => new(UserFavoritesRepo, Permissions());
+
     public ServiceTransferService ServiceTransfers() => new(
         ServiceTransferRepo, Permissions(), new AuditService(AuditRepo));
 

@@ -5,8 +5,7 @@
 @inject SettingsService Settings
 @inject PermissionService Permissions
 @inject BranchService Branches
-@inject DashboardService Dashboard
-@inject IDisplayFormatter Fmt
+@inject UserFavoriteService Favorites
 <PageTitle>@T.T("screen.dashboard")</PageTitle>
 
 @if (Denied)
@@ -28,64 +27,35 @@ else
         <div class="ubp-hero-mark">U</div>
     </div>
 
-    <div class="ubp-stats">
-        <div class="ubp-stat">
-            <MudIcon Icon="@Icons.Material.Filled.AccountTree" />
-            <div><span>@T.T("dashboard.branch")</span><strong>@_branchName</strong></div>
+    <PageHeader Title="المفضلة" Subtitle="شاشات مختارة للوصول السريع" />
+    @if (_favoriteScreens.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            اختر شاشة من «كل الشاشات» بالضغط على النجمة ★ لإضافتها إلى المفضلة.
+        </MudAlert>
+    }
+    else
+    {
+        <div class="ubp-shortcuts mb-3">
+            @foreach (var screen in _favoriteScreens)
+            {
+                @ScreenTile(screen)
+            }
         </div>
-        <div class="ubp-stat">
-            <MudIcon Icon="@Icons.Material.Filled.Person" />
-            <div><span>@T.T("dashboard.user")</span><strong>@Actor!.DisplayName</strong></div>
-        </div>
-        <div class="ubp-stat">
-            <MudIcon Icon="@Icons.Material.Filled.Language" />
-            <div><span>@T.T("dashboard.language")</span><strong>@(T.Language == "ar" ? "العربية" : "English")</strong></div>
-        </div>
-        <div class="ubp-stat">
-            <MudIcon Icon="@Icons.Material.Filled.Shield" />
-            <div><span>@T.T("dashboard.role")</span><strong>@(Actor!.IsSuperAdmin ? T.T("role.super_admin") : Actor.IsAdmin ? T.T("role.admin") : T.T("role.user"))</strong></div>
-        </div>
-    </div>
+    }
 
-    <PageHeader Title="@T.T("dashboard.kpis")" Subtitle="@T.T("dashboard.kpis_hint")" />
-    <div class="ubp-stats">
-        <div class="ubp-stat">
-            <MudIcon Icon="@Icons.Material.Filled.PointOfSale" />
-            <div><span>@T.T("dashboard.sales_today")</span><strong>@Fmt.Decimal(_kpis.Today.NetTotal)</strong></div>
+    <PageHeader Title="كل الشاشات" Subtitle="كل شاشات وزراير المستخدم — اضغط ★ للإضافة للمفضلة" />
+    @foreach (var group in _groups)
+    {
+        if (group.Screens.Count == 0) { continue; }
+        <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">@T.T(group.TitleKey)</MudText>
+        <div class="ubp-shortcuts">
+            @foreach (var screen in group.Screens)
+            {
+                @ScreenTile(screen)
+            }
         </div>
-        <div class="ubp-stat">
-            <MudIcon Icon="@Icons.Material.Filled.Receipt" />
-            <div><span>@T.T("dashboard.invoices_today")</span><strong>@_kpis.Today.InvoiceCount</strong></div>
-        </div>
-        <div class="ubp-stat">
-            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" />
-            <div><span>@T.T("dashboard.sales_month")</span><strong>@Fmt.Decimal(_kpis.Month.NetTotal)</strong></div>
-        </div>
-        <div class="ubp-stat">
-            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" />
-            <div><span>@T.T("dashboard.margin_month")</span><strong>@Fmt.Decimal(_kpis.Month.GrossMargin)</strong></div>
-        </div>
-        <div class="ubp-stat">
-            <MudIcon Icon="@Icons.Material.Filled.Inventory2" />
-            <div><span>@T.T("dashboard.stock_value")</span><strong>@Fmt.Decimal(_kpis.StockValue)</strong></div>
-        </div>
-        <div class="ubp-stat">
-            <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" />
-            <div><span>@T.T("dashboard.receivables")</span><strong>@Fmt.Decimal(_kpis.Receivables)</strong></div>
-        </div>
-    </div>
-
-    <PageHeader Title="@T.T("dashboard.shortcuts")" Subtitle="@T.T("dashboard.shortcuts_hint")" />
-    <div class="ubp-shortcuts">
-        @foreach (var screen in _shortcuts)
-        {
-            <a href="@screen.Route" class="ubp-shortcut">
-                <MudIcon Icon="@AppIcons.Resolve(screen.Icon)" />
-                <span>@T.T(screen.TitleKey)</span>
-                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
-            </a>
-        }
-    </div>
+    }
 }
 
 @code {
@@ -93,9 +63,16 @@ else
 
     private string _companyName = "";
     private string _branchName = "";
-    private IReadOnlyList<ScreenDefinition> _shortcuts = Array.Empty<ScreenDefinition>();
-    private DashboardSnapshot _kpis = new(
-        new SalesKpi(0, 0, 0, 0, 0, 0), new SalesKpi(0, 0, 0, 0, 0, 0), 0, 0);
+    private HashSet<string> _favoriteCodes = new(StringComparer.OrdinalIgnoreCase);
+    private List<ScreenDefinition> _favoriteScreens = new();
+    private sealed record Group(string TitleKey, List<ScreenDefinition> Screens);
+    private List<Group> _groups = new();
+
+    private static readonly string[] GroupOrder =
+    {
+        "group.main", "group.sales", "group.inventory", "group.partners", "group.accounting",
+        "group.definitions", "group.security", "group.reports", "group.system"
+    };
 
     protected override async Task OnLoadAsync()
     {
@@ -106,11 +83,41 @@ else
             ? branchOptions.FirstOrDefault(b => b.Id == branchId)?.NameAr ?? T.T("branch.none")
             : T.T("branch.none");
 
-        _kpis = await Dashboard.GetAsync(Actor!);
-
         var visible = (await Permissions.GetVisibleScreenCodesAsync(Actor!)).ToHashSet();
-        _shortcuts = AppRegistry.Screens
-            .Where(s => s.Code != ScreenCodes.Dashboard && visible.Contains(s.Code))
-            .Take(12).ToList();
+        _favoriteCodes = (await Favorites.ListAsync(Actor!)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var screens = AppRegistry.Screens
+            .Where(s => s.Code != ScreenCodes.Dashboard && visible.Contains(s.Code)
+                        && !s.Route.Contains('{'))
+            .ToList();
+
+        _groups = GroupOrder.Select(key => new Group(key,
+            NavOrder.Apply(screens.Where(s => s.GroupKey == key).ToList()).ToList())).ToList();
+
+        _favoriteScreens = screens.Where(s => _favoriteCodes.Contains(s.Code)).ToList();
     }
+
+    private RenderFragment ScreenTile(ScreenDefinition screen) => @<div class="ubp-shortcut"
+            style="justify-content:space-between;cursor:default">
+            <a href="@screen.Route"
+               style="display:flex;align-items:center;gap:8px;flex:1;text-decoration:none;color:inherit">
+                <MudIcon Icon="@AppIcons.Resolve(screen.Icon)" />
+                <span>@T.T(screen.TitleKey)</span>
+            </a>
+            <MudIconButton Icon="@(_favoriteCodes.Contains(screen.Code)
+                                      ? Icons.Material.Filled.Star : Icons.Material.Filled.StarBorder)"
+                           Size="Size.Small"
+                           Color="@(_favoriteCodes.Contains(screen.Code) ? Color.Warning : Color.Default)"
+                           OnClick="@(() => ToggleFavoriteAsync(screen.Code))" />
+        </div>;
+
+    private async Task ToggleFavoriteAsync(string screenCode) => await RunAsync(async () =>
+    {
+        var favorite = await Favorites.ToggleAsync(Actor!, screenCode);
+        if (favorite) _favoriteCodes.Add(screenCode);
+        else _favoriteCodes.Remove(screenCode);
+        _favoriteScreens = _groups.SelectMany(g => g.Screens)
+            .Where(s => _favoriteCodes.Contains(s.Code)).ToList();
+        StateHasChanged();
+    });
 }
