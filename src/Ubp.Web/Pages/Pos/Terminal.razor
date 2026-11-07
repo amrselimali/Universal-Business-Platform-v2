@@ -20,14 +20,9 @@ else
             <MudPaper Elevation="0" Class="ubp-card">
                 <div class="ubp-toolbar">
                     <MudText Typo="Typo.subtitle1">@T.T("pos.products")</MudText>
-                    <MudTextField @bind-Value="_search" Placeholder="@T.T("pos.search_products")"
-                                  Immediate="true" DebounceInterval="300"
-                                  OnDebounceIntervalElapsed="SearchAsync"
-                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search" />
                     <MudSelect T="Guid" Value="_branchId" Label="@T.T("common.branch")"
                                Variant="Variant.Outlined" Margin="Margin.Dense"
-                               ValueChanged="OnBranchChanged">
+                               ToStringFunc="@BranchLabel" ValueChanged="OnBranchChanged">
                         @foreach (var branch in _branches)
                         {
                             <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
@@ -41,6 +36,11 @@ else
                             <MudSelectItem T="Guid" Value="@warehouse.Id">@warehouse.NameAr</MudSelectItem>
                         }
                     </MudSelect>
+                    <MudTextField @bind-Value="_search" Placeholder="@T.T("pos.search_products")"
+                                  Immediate="true" DebounceInterval="300"
+                                  OnDebounceIntervalElapsed="SearchAsync"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search" />
                 </div>
 
                 @if (_products.Count == 0)
@@ -59,32 +59,15 @@ else
                         }
                     </div>
 
-                    @foreach (var group in VisibleGroups)
-                    {
-                        <div class="pos-cat-head">
-                            <span>@group.Name</span>
-                            <span class="pos-cat-count">@group.Items.Count</span>
-                        </div>
-                        <div class="pos-grid">
-                            @foreach (var product in group.Items)
-                            {
-                                <div class="pos-tile" @onclick="@(() => AddToCart(product))">
-                                    <div class="pos-tile-name">@product.NameAr</div>
-                                    <div class="pos-tile-meta">
-                                        @if (product.ItemType == "GOODS")
-                                        {
-                                            <span>@product.OnHand.ToString("N0")</span>
-                                        }
-                                        @if (ItemExecutionModes.IsDirect(product.ExecutionMode))
-                                        {
-                                            <span class="pos-badge">@T.T("items.execution_direct")</span>
-                                        }
-                                    </div>
-                                    <div class="pos-tile-price">@PriceOf(product).ToString("N2")</div>
-                                </div>
-                            }
-                        </div>
-                    }
+                    <div class="pos-grid">
+                        @foreach (var product in VisibleProducts)
+                        {
+                            <div class="pos-tile" @onclick="@(() => AddToCart(product))">
+                                <div class="pos-tile-name">@product.NameAr</div>
+                                <div class="pos-tile-price">@PriceOf(product).ToString("N2")</div>
+                            </div>
+                        }
+                    </div>
                 }
             </MudPaper>
         </MudItem>
@@ -118,7 +101,7 @@ else
                         @T.T("pos.collect_services")
                     </MudButton>
                     }
-                    @if (Can(ActionCodes.Checkout))
+                    @if (Can(ActionCodes.TransferService))
                     {
                         <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
                                    StartIcon="@Icons.Material.Filled.SwapHoriz"

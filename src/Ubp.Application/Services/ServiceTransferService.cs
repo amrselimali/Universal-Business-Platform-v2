@@ -25,7 +25,7 @@ public sealed class ServiceTransferService
     public async Task<IReadOnlyList<TransferableServiceRow>> ListAvailableAsync(ActorContext actor,
         Guid branchId, Guid customerId, CancellationToken ct = default)
     {
-        await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.Checkout,
+        await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.TransferService,
             ct: ct);
         BranchScope.Ensure(actor, branchId);
         return await _repo.ListAvailableAsync(branchId, customerId, ct);
@@ -34,7 +34,7 @@ public sealed class ServiceTransferService
     public async Task<ServiceTransfer> CreateAsync(ActorContext actor, ServiceTransferInput input,
         CancellationToken ct = default)
     {
-        await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.Checkout,
+        await _permissions.RequireAsync(actor, ScreenCodes.PosTerminal, ActionCodes.TransferService,
             ct: ct);
         BranchScope.Ensure(actor, input.BranchId);
         var transfer = await _repo.CreateAsync(input, actor.UserId, ct);

@@ -159,4 +159,5 @@ public static class ActionCodes
     public const string Complete = "COMPLETE";
     public const string Collect = "COLLECT";
     public const string SendWhatsApp = "SEND_WHATSAPP";
+    public const string TransferService = "TRANSFER_SERVICE";
 }

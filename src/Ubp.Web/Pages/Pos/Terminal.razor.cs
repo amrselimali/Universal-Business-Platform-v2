@@ -64,7 +64,9 @@ public partial class Terminal : SecurePageBase
     private IReadOnlyList<Warehouse> _warehouses = Array.Empty<Warehouse>();
     private IReadOnlyList<ItemOption> _products = Array.Empty<ItemOption>();
     private Guid? _categoryFilter;
-    private sealed record ProductGroup(string Name, List<ItemOption> Items);
+
+    private string BranchLabel(Guid id) =>
+        _branches.FirstOrDefault(b => b.Id == id)?.NameAr ?? "—";
 
     private List<KeyValuePair<Guid?, string>> Categories => _products
         .GroupBy(p => p.CategoryId)
@@ -72,13 +74,10 @@ public partial class Terminal : SecurePageBase
             g.Key is null ? "بدون تصنيف" : g.First().CategoryName ?? "بدون تصنيف"))
         .OrderBy(c => c.Value).ToList();
 
-    private IReadOnlyList<ProductGroup> VisibleGroups => _products
+    /// <summary>الأصناف المعروضة كبوكسات: كل الأصناف أو أصناف التصنيف المحدد فقط.</summary>
+    private IReadOnlyList<ItemOption> VisibleProducts => _products
         .Where(p => _categoryFilter is null || p.CategoryId == _categoryFilter)
-        .GroupBy(p => p.CategoryId)
-        .Select(g => new ProductGroup(
-            g.Key is null ? "بدون تصنيف" : g.First().CategoryName ?? "بدون تصنيف",
-            g.OrderBy(p => p.NameAr).ToList()))
-        .OrderBy(g => g.Name).ToList();
+        .OrderBy(p => p.CategoryId).ThenBy(p => p.NameAr).ToList();
 
     private void SelectCategory(Guid? categoryId)
     {
