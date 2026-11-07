@@ -122,12 +122,13 @@ public sealed partial class PosRepository
         var net = line.NetAmount > 0 ? line.NetAmount : line.TotalAmount;
         var entries = new List<EntryLine> { new(receivable, line.TotalAmount, 0, input.CustomerId) };
 
-        // الجلسة العلاجية: حساب الموظف مدين والعميل دائن بنفس قيمة الجلسة — 0084.
+        // الجلسة العلاجية تُرحَّل دائمًا علاجية (حساب الموظف مدين / العميل دائن) — 0084.
         if (line.OperationType == ServiceOperationTypes.Treatment)
         {
-            if (line.TreatmentAccountId is not { } || line.TreatmentAccountId == Guid.Empty)
+            var treatmentAccount = line.TreatmentAccountId;
+            if (treatmentAccount is null || treatmentAccount == Guid.Empty)
                 throw new ValidationAppException("validation.treatment_account_missing");
-            entries.Add(new EntryLine(line.TreatmentAccountId.Value, net, 0));
+            entries.Add(new EntryLine(treatmentAccount.Value, net, 0));
             entries.Add(new EntryLine(receivable, 0, net, input.CustomerId));
         }
 

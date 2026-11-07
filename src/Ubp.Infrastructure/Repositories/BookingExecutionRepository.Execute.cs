@@ -53,19 +53,23 @@ public sealed partial class BookingExecutionRepository
                    l.tax_amount AS TaxAmount, l.total_amount AS TotalAmount,
                    i.is_metered AS ItemIsMetered, i.execution_mode AS ExecutionMode,
                    l.operation_type AS OperationType,
-                   COALESCE(l.employee_id, b.assigned_employee_id) AS EmployeeId,
-                   e.treatment_account_id AS TreatmentAccountId
+                   COALESCE(b.assigned_employee_id, l.employee_id) AS EmployeeId,
+                   COALESCE(resp.treatment_account_id, le.treatment_account_id,
+                            (SELECT pd.account_id FROM posting_defaults pd
+                             WHERE pd.setting_key = 'employee_advances')) AS TreatmentAccountId
             FROM booking_lines l
             JOIN bookings b ON b.id = l.booking_id
             JOIN items i ON i.id = l.item_id
-            LEFT JOIN employees e ON e.id = COALESCE(l.employee_id, b.assigned_employee_id)
+            LEFT JOIN employees resp ON resp.id = b.assigned_employee_id
+            LEFT JOIN employees le ON le.id = l.employee_id
             WHERE l.id = @lineId
             FOR UPDATE OF l, b
             """, new { lineId = input.BookingLineId }, tx, cancellationToken: ct))
             ?? throw new NotFoundAppException();
 
         var direct = ItemExecutionModes.IsDirect(line.ExecutionMode);
-        if (!direct &&
+        // جلسة علاجية: يمكن تنفيذها حتى لو الحجز مسودة (مسجّلة كعلاجية مسبقًا).
+        if (!direct && line.OperationType != ServiceOperationTypes.Treatment &&
             line.BookingStatus is not (BookingStatuses.Confirmed or BookingStatuses.PartiallyDelivered))
             throw new ValidationAppException("validation.booking_not_confirmed");
 

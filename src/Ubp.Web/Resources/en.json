@@ -1449,6 +1449,8 @@
   "validation.stock_not_available_detail": "Not enough available stock for item {item}: requested {requested}, available {available}",
   "validation.booking_not_cancellable": "Booking cannot be cancelled in its current status",
   "validation.booking_not_confirmed": "Booking is not confirmed",
+  "validation.treatment_account_missing": "A treatment session requires the responsible employee to have a 'treatment charge account' (set it on the employee screen) so the session value is charged to that employee.",
+  "validation.treatment_employee_required": "A treatment session requires selecting the responsible employee.",
   "validation.booking_expiry_invalid": "Offer expiry date must be today or later",
   "validation.booking_not_draft": "Booking is not a draft",
   "validation.booking_duplicate_line": "Duplicate booking in the collection",

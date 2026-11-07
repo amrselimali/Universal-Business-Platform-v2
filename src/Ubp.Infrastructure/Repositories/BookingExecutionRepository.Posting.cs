@@ -85,14 +85,9 @@ public sealed partial class BookingExecutionRepository
         if (net <= 0 || net > total) net = total;
         var tax = Math.Round(total - net, 2, MidpointRounding.AwayFromZero);
 
-        // الجلسة العلاجية: حساب الموظف مدين بقيمة الجلسة، والعميل دائن بنفس القيمة — 0084.
-        var treatmentValue = 0m;
-        if (line.OperationType == ServiceOperationTypes.Treatment)
-        {
-            if (line.TreatmentAccountId is not { } || line.TreatmentAccountId == Guid.Empty)
-                throw new ValidationAppException("validation.treatment_account_missing");
-            treatmentValue = net;
-        }
+        // الجلسة العلاجية تُرحَّل دائمًا علاجية (حساب الموظف مدين / العميل دائن) — 0084.
+        var isTreatment = line.OperationType == ServiceOperationTypes.Treatment;
+        var treatmentValue = isTreatment ? net : 0m;
 
         var defaults = (await connection.QueryAsync<(string Key, Guid? AccountId)>(
             new CommandDefinition("SELECT setting_key, account_id FROM posting_defaults",
@@ -130,9 +125,12 @@ public sealed partial class BookingExecutionRepository
         {
             (receivable, total, 0, line.CustomerId)
         };
-        if (treatmentValue > 0)
+        if (isTreatment)
         {
-            gl.Add((line.TreatmentAccountId!.Value, treatmentValue, 0, null));
+            var treatmentAccount = line.TreatmentAccountId;
+            if (treatmentAccount is null || treatmentAccount == Guid.Empty)
+                throw new ValidationAppException("validation.treatment_account_missing");
+            gl.Add((treatmentAccount.Value, treatmentValue, 0, null));
             gl.Add((receivable, 0, treatmentValue, line.CustomerId));
         }
         if (net > 0) gl.Add((revenue, 0, net, null));

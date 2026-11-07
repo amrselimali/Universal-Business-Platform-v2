@@ -43,12 +43,15 @@ public sealed partial class PosRepository
                    l.unit_id AS UnitId, l.quantity AS Quantity,
                    l.net_amount AS NetAmount, l.tax_amount AS TaxAmount,
                    l.total_amount AS TotalAmount, l.operation_type AS OperationType,
-                   COALESCE(l.employee_id, b.assigned_employee_id) AS EmployeeId,
-                   e.treatment_account_id AS TreatmentAccountId
+                   COALESCE(b.assigned_employee_id, l.employee_id) AS EmployeeId,
+                   COALESCE(resp.treatment_account_id, le.treatment_account_id,
+                            (SELECT pd.account_id FROM posting_defaults pd
+                             WHERE pd.setting_key = 'employee_advances')) AS TreatmentAccountId
             FROM booking_lines l
             JOIN items i ON i.id = l.item_id
             JOIN bookings b ON b.id = l.booking_id
-            LEFT JOIN employees e ON e.id = COALESCE(l.employee_id, b.assigned_employee_id)
+            LEFT JOIN employees resp ON resp.id = b.assigned_employee_id
+            LEFT JOIN employees le ON le.id = l.employee_id
             WHERE l.booking_id = @bookingId
             ORDER BY l.line_no
             """, new { bookingId }, tx, cancellationToken: ct)))
