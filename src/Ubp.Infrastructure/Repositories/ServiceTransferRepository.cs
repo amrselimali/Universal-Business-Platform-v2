@@ -157,6 +157,9 @@ public sealed class ServiceTransferRepository : IServiceTransferRepository
             }, tx, cancellationToken: ct));
         }
 
+        // نقل الكميات فورًا عند إنشاء المسودة: يظهر في الخدمات المحجوزة ويصبح قابلًا للتنفيذ.
+        await ApplyQuantitiesCoreAsync(connection, tx, transferId, userId, ct);
+
         await tx.CommitAsync(ct);
         return (await GetAsync(transferId, ct))!;
     }
@@ -178,11 +181,11 @@ public sealed class ServiceTransferRepository : IServiceTransferRepository
         Guid transferId, Guid userId, CancellationToken ct = default)
     {
         var head = await connection.QuerySingleOrDefaultAsync<(Guid Id, Guid BranchId,
-            string? DocNo, DateTime DocDate, Guid FromCustomerId, Guid ToCustomerId, string Status)>
-            (new CommandDefinition("""
+            string? DocNo, DateTime DocDate, Guid FromCustomerId, Guid ToCustomerId, string Status,
+            Guid? TargetBookingId)>(new CommandDefinition("""
             SELECT id AS Id, branch_id AS BranchId, doc_no AS DocNo, doc_date AS DocDate,
                    from_customer_id AS FromCustomerId, to_customer_id AS ToCustomerId,
-                   status AS Status
+                   status AS Status, target_booking_id AS TargetBookingId
             FROM service_transfers WHERE id = @transferId FOR UPDATE
             """, new { transferId }, tx, cancellationToken: ct));
 
@@ -203,7 +206,58 @@ public sealed class ServiceTransferRepository : IServiceTransferRepository
 
         var total = Math.Round(lines.Sum(l => l.Amount), 2, MidpointRounding.AwayFromZero);
 
-        // 1) خصم الكمية من رصيد العميل المحوَّل منه.
+        // الكميات تُنقل عند إنشاء المسودة؛ نضمن تطبيقها هنا أيضًا (توافق المسودات القديمة).
+        var bookingId = head.TargetBookingId
+            ?? await ApplyQuantitiesCoreAsync(connection, tx, transferId, userId, ct);
+
+        // 3) القيد: من حساب العميل المحوَّل إليه (مدين) إلى حساب العميل المحوَّل منه (دائن).
+        Guid? entryId = null;
+        if (total > 0)
+            entryId = await PostTransferEntryAsync(connection, tx, head.BranchId, head.DocDate,
+                head.DocNo ?? transferId.ToString("N")[..8], head.FromCustomerId,
+                head.ToCustomerId, total, transferId, userId, ct);
+
+        await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE service_transfers
+            SET status = 'posted', posted_at = now(), posted_by = @userId,
+                journal_entry_id = @entryId, target_booking_id = @bookingId
+            WHERE id = @transferId
+            """, new { userId, entryId, bookingId, transferId }, tx, cancellationToken: ct));
+    }
+
+    /// <summary>
+    /// نقل الكميات فعليًا (خصم من المحوَّل منه وإنشاء حجز للمحوَّل إليه) — يُنفَّذ عند إنشاء
+    /// المسودة حتى تظهر في الخدمات المحجوزة وتكون قابلةً للتنفيذ قبل الترحيل. idempotent عبر
+    /// target_booking_id (لا يُنفَّذ مرتين).
+    /// </summary>
+    public static async Task<Guid> ApplyQuantitiesCoreAsync(NpgsqlConnection connection,
+        NpgsqlTransaction tx, Guid transferId, Guid userId, CancellationToken ct = default)
+    {
+        var head = await connection.QuerySingleOrDefaultAsync<(Guid Id, Guid BranchId,
+            string? DocNo, DateTime DocDate, Guid ToCustomerId, string Status,
+            Guid? TargetBookingId)>(new CommandDefinition("""
+            SELECT id AS Id, branch_id AS BranchId, doc_no AS DocNo, doc_date AS DocDate,
+                   to_customer_id AS ToCustomerId, status AS Status,
+                   target_booking_id AS TargetBookingId
+            FROM service_transfers WHERE id = @transferId FOR UPDATE
+            """, new { transferId }, tx, cancellationToken: ct));
+        if (head.Id == Guid.Empty) throw new NotFoundAppException();
+        if (head.Status != ServiceTransferStatuses.Draft)
+            throw new ValidationAppException("validation.transfer_not_draft");
+        if (head.TargetBookingId is { } existing) return existing;
+
+        var lines = (await connection.QueryAsync<(Guid Id, int LineNo, Guid FromBookingLineId,
+            Guid ItemId, Guid UnitId, Guid WarehouseId, decimal Quantity, decimal UnitPrice,
+            decimal Amount)>(new CommandDefinition("""
+            SELECT id AS Id, line_no AS LineNo, from_booking_line_id AS FromBookingLineId,
+                   item_id AS ItemId, unit_id AS UnitId, warehouse_id AS WarehouseId,
+                   quantity AS Quantity, unit_price AS UnitPrice, amount AS Amount
+            FROM service_transfer_lines WHERE transfer_id = @transferId ORDER BY line_no
+            """, new { transferId }, tx, cancellationToken: ct))).ToList();
+        if (lines.Count == 0)
+            throw new ValidationAppException("validation.document_has_no_lines");
+        var total = Math.Round(lines.Sum(l => l.Amount), 2, MidpointRounding.AwayFromZero);
+
         foreach (var line in lines)
         {
             var affected = await connection.ExecuteAsync(new CommandDefinition("""
@@ -217,14 +271,12 @@ public sealed class ServiceTransferRepository : IServiceTransferRepository
                 throw new ValidationAppException("validation.transfer_quantity_exceeds");
         }
 
-        // 2) إضافة الكمية والقيمة إلى رصيد العميل المحوَّل إليه بحجز جديد.
         var bookingId = Guid.CreateVersion7();
         var bookNo = await connection.ExecuteScalarAsync<string>(new CommandDefinition("""
             SELECT next_document_number('BOOK'::varchar, @branchId::uuid, @date::date,
                                         'BK'::varchar, 6::smallint)
             """, new { branchId = head.BranchId, date = head.DocDate.Date }, tx,
             cancellationToken: ct));
-
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO bookings
                 (id, branch_id, doc_no, booking_date, status, customer_id, source,
@@ -234,10 +286,8 @@ public sealed class ServiceTransferRepository : IServiceTransferRepository
             """, new
         {
             bookingId, branchId = head.BranchId, bookNo, date = head.DocDate.Date,
-            toCustomerId = head.ToCustomerId, total,
-            notes = $"تحويل خدمات {head.DocNo}", userId
+            toCustomerId = head.ToCustomerId, total, notes = $"تحويل خدمات {head.DocNo}", userId
         }, tx, cancellationToken: ct));
-
         foreach (var line in lines)
         {
             await connection.ExecuteAsync(new CommandDefinition("""
@@ -255,19 +305,10 @@ public sealed class ServiceTransferRepository : IServiceTransferRepository
             }, tx, cancellationToken: ct));
         }
 
-        // 3) القيد: من حساب العميل المحوَّل إليه (مدين) إلى حساب العميل المحوَّل منه (دائن).
-        Guid? entryId = null;
-        if (total > 0)
-            entryId = await PostTransferEntryAsync(connection, tx, head.BranchId, head.DocDate,
-                head.DocNo ?? transferId.ToString("N")[..8], head.FromCustomerId,
-                head.ToCustomerId, total, transferId, userId, ct);
-
-        await connection.ExecuteAsync(new CommandDefinition("""
-            UPDATE service_transfers
-            SET status = 'posted', posted_at = now(), posted_by = @userId,
-                journal_entry_id = @entryId, target_booking_id = @bookingId
-            WHERE id = @transferId
-            """, new { userId, entryId, bookingId, transferId }, tx, cancellationToken: ct));
+        await connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE service_transfers SET target_booking_id = @bookingId WHERE id = @transferId",
+            new { bookingId, transferId }, tx, cancellationToken: ct));
+        return bookingId;
     }
 
     private static async Task<Guid> PostTransferEntryAsync(NpgsqlConnection connection,

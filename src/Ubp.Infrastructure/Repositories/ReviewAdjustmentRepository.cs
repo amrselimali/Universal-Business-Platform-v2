@@ -411,7 +411,7 @@ public sealed class ReviewAdjustmentRepository : IReviewAdjustmentRepository
                 line.VoucherId, userId, ct);
     }
 
-    /// <summary>تعديل كمية تحويل خدمات (مسودة) عند المراجعة قبل ترحيله — 0085.</summary>
+    /// <summary>تعديل كمية تحويل خدمات عند المراجعة قبل الترحيل — يعدّل الكميات المنقولة بالفرق — 0085.</summary>
     private static async Task<Guid?> ApplyServiceTransferAsync(NpgsqlConnection connection,
         NpgsqlTransaction tx, Guid? lineId, string field, string? newValue, Guid userId,
         CancellationToken ct)
@@ -420,14 +420,76 @@ public sealed class ReviewAdjustmentRepository : IReviewAdjustmentRepository
         var newQty = ParseDec(newValue);
         if (newQty <= 0) return null;
 
-        var line = await connection.QuerySingleOrDefaultAsync<(Guid TransferId, decimal UnitPrice)>(
-            new CommandDefinition(
-                "SELECT transfer_id AS TransferId, unit_price AS UnitPrice " +
-                "FROM service_transfer_lines WHERE id = @id FOR UPDATE", new { id = lineId }, tx,
-                cancellationToken: ct));
-        if (line.TransferId == Guid.Empty) return null;
+        var tl = await connection.QuerySingleOrDefaultAsync<(Guid TransferId, int LineNo,
+            Guid FromBookingLineId, decimal UnitPrice, decimal Quantity)>(new CommandDefinition("""
+            SELECT transfer_id AS TransferId, line_no AS LineNo,
+                   from_booking_line_id AS FromBookingLineId, unit_price AS UnitPrice,
+                   quantity AS Quantity
+            FROM service_transfer_lines WHERE id = @id FOR UPDATE
+            """, new { id = lineId }, tx, cancellationToken: ct));
+        if (tl.TransferId == Guid.Empty) return null;
 
-        var amount = Math.Round(newQty * line.UnitPrice, 2, MidpointRounding.AwayFromZero);
+        var delta = newQty - tl.Quantity;
+        if (delta == 0) return null;
+
+        // بند العميل المحوَّل إليه (داخل حجز التحويل) — لا يُسمح بالتعديل بعد بدء تنفيذه.
+        var targetBookingId = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+            "SELECT target_booking_id FROM service_transfers WHERE id = @t",
+            new { t = tl.TransferId }, tx, cancellationToken: ct));
+        Guid? targetLineId = null;
+        if (targetBookingId is { } tb)
+        {
+            targetLineId = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+                "SELECT id FROM booking_lines WHERE booking_id = @b AND line_no = @lineNo",
+                new { b = tb, lineNo = tl.LineNo }, tx, cancellationToken: ct));
+            if (targetLineId is { } targetLine)
+            {
+                var delivered = await connection.ExecuteScalarAsync<decimal>(new CommandDefinition(
+                    "SELECT delivered_qty FROM booking_lines WHERE id = @id", new { id = targetLine },
+                    tx, cancellationToken: ct));
+                if (delivered > 0)
+                    throw new ValidationAppException("validation.transfer_edit_locked");
+            }
+        }
+
+        // تعديل الكمية في المصدر بالفرق (خصم عند الزيادة، إرجاع عند النقصان).
+        if (delta > 0)
+        {
+            var affected = await connection.ExecuteAsync(new CommandDefinition("""
+                UPDATE booking_lines
+                SET reserved_qty = reserved_qty - @delta, transferred_qty = transferred_qty + @delta
+                WHERE id = @id AND reserved_qty >= @delta
+                """, new { delta, id = tl.FromBookingLineId }, tx, cancellationToken: ct));
+            if (affected == 0)
+                throw new ValidationAppException("validation.transfer_quantity_exceeds");
+        }
+        else
+        {
+            var inc = -delta;
+            await connection.ExecuteAsync(new CommandDefinition("""
+                UPDATE booking_lines
+                SET reserved_qty = reserved_qty + @inc, transferred_qty = transferred_qty - @inc
+                WHERE id = @id
+                """, new { inc, id = tl.FromBookingLineId }, tx, cancellationToken: ct));
+        }
+
+        var amount = Math.Round(newQty * tl.UnitPrice, 2, MidpointRounding.AwayFromZero);
+        // ضبط بند العميل المحوَّل إليه: الكمية/المحجوز = الجديدة، والتحويل = سالبها.
+        if (targetLineId is { } target)
+        {
+            await connection.ExecuteAsync(new CommandDefinition("""
+                UPDATE booking_lines
+                SET quantity = @qty, reserved_qty = @qty, transferred_qty = -@qty,
+                    net_amount = @amount, total_amount = @amount
+                WHERE id = @id
+                """, new { qty = newQty, amount, id = target }, tx, cancellationToken: ct));
+            await connection.ExecuteAsync(new CommandDefinition("""
+                UPDATE bookings SET total_amount = COALESCE(
+                    (SELECT SUM(total_amount) FROM booking_lines WHERE booking_id = @b), 0)
+                WHERE id = @b
+                """, new { b = targetBookingId }, tx, cancellationToken: ct));
+        }
+
         await connection.ExecuteAsync(new CommandDefinition(
             "UPDATE service_transfer_lines SET quantity = @qty, amount = @amount WHERE id = @id",
             new { qty = newQty, amount, id = lineId }, tx, cancellationToken: ct));
@@ -438,7 +500,7 @@ public sealed class ReviewAdjustmentRepository : IReviewAdjustmentRepository
                 total_amount = COALESCE(
                     (SELECT SUM(amount) FROM service_transfer_lines WHERE transfer_id = @t), 0)
             WHERE id = @t AND status = 'draft'
-            """, new { t = line.TransferId }, tx, cancellationToken: ct));
+            """, new { t = tl.TransferId }, tx, cancellationToken: ct));
         return null;
     }
 }

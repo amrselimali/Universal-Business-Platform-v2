@@ -84,7 +84,7 @@ public sealed class ServiceTransferTests : IClassFixture<TestDb>
     }
 
     [Fact]
-    public async Task Draft_transfer_has_no_effect_then_posting_moves_quantity_and_posts_entry()
+    public async Task Draft_transfer_moves_quantities_then_posting_posts_entry()
     {
         var f = await SetupAsync("1");
         var actor = await _db.AdminActorAsync();
@@ -103,35 +103,30 @@ public sealed class ServiceTransferTests : IClassFixture<TestDb>
 
         Assert.Equal(ServiceTransferStatuses.Draft, draft.Status);
         Assert.Equal(200m, draft.TotalAmount);
-        // المسودة لا تُغيّر رصيد الكمية ولا القيد.
-        Assert.Equal(5m, await ReservedQtyAsync(f.BookingLineId));
+        // المسودة تنقل الكميات فورًا (تظهر في الخدمات المحجوزة) لكن لا تُنشئ القيد المالي بعد.
+        Assert.Equal(3m, await ReservedQtyAsync(f.BookingLineId));
         Assert.Equal(0m, await PartyBalanceAsync(f.To.Id));
+        var draftTarget = await _db.ServiceTransferRepo.ListAvailableAsync(f.Branch, f.To.Id);
+        Assert.Single(draftTarget);
+        Assert.Equal(2m, draftTarget[0].RemainingQty);
+        var stmtSrc = await CustomerItemAsync(f.From.Id, f.Service.Id);
+        Assert.Equal(2m, stmtSrc.Consumed);
+        Assert.Equal(3m, stmtSrc.Remaining);
+        var stmtDst = await CustomerItemAsync(f.To.Id, f.Service.Id);
+        Assert.Equal(-2m, stmtDst.Consumed);
+        Assert.Equal(2m, stmtDst.Remaining);
 
-        // لكنها **تظهر** في كشف حساب العميل كحركة معلّقة (مسودة) — 0085.
+        // وتظهر في كشف حساب العميل كحركة معلّقة (مسودة) — 0085.
         var stmt = await _db.AccountingReportRepo.PartyStatementAsync('C', f.To.Id,
             DateTime.Today.AddDays(-2), DateTime.Today.AddDays(2), Array.Empty<Guid>());
         Assert.Contains(stmt.Rows, r => (r.Description ?? "").Contains("مسودة"));
 
         var posted = await _db.ServiceTransferRepo.PostAsync(draft.Id, actor.UserId);
         Assert.Equal(ServiceTransferStatuses.Posted, posted.Status);
-
-        // خصم الكمية من المصدر وإضافتها للهدف.
+        // الترحيل لا يعيد نقل الكميات (نُقلت عند المسودة) بل يُنشئ القيد المالي فقط.
         Assert.Equal(3m, await ReservedQtyAsync(f.BookingLineId));
-        var targetAvailable = await _db.ServiceTransferRepo.ListAvailableAsync(f.Branch, f.To.Id);
-        Assert.Single(targetAvailable);
-        Assert.Equal(2m, targetAvailable[0].RemainingQty);
-
-        // القيد: مدين حساب العميل الهدف، دائن حساب العميل المصدر بنفس القيمة.
         Assert.Equal(200m, await PartyBalanceAsync(f.To.Id));
         Assert.Equal(-200m, await PartyBalanceAsync(f.From.Id));
-
-        // عمود «مستهلك»: موجب للمحوَّل منه (المتبقي يقل) وسالب للمحوَّل إليه (المتبقي يزيد) — 0085.
-        var src = await CustomerItemAsync(f.From.Id, f.Service.Id);
-        Assert.Equal(2m, src.Consumed);
-        Assert.Equal(3m, src.Remaining);
-        var dst = await CustomerItemAsync(f.To.Id, f.Service.Id);
-        Assert.Equal(-2m, dst.Consumed);
-        Assert.Equal(2m, dst.Remaining);
     }
 
     [Fact]
