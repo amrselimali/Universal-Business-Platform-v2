@@ -23,6 +23,15 @@ else
                               Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))" />
                 <MudTextField @bind-Value="_model.LogoUrl" Label="@T.T("settings.logo_url")"
                               Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))" />
+                <MudTextField @bind-Value="_model.ThemeColor" Label="اللون العام للبرنامج"
+                              HelperText="أي لون بصيغة #RRGGBB" Placeholder="#0F766E"
+                              Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))" />
+                <div style="display:flex;align-items:center;gap:10px">
+                    <input type="color" value="@_model.ThemeColor" @onchange="OnThemeColorPicked"
+                           disabled="@(!Can(ActionCodes.Edit))"
+                           style="width:48px;height:40px;border:1px solid #ccc;border-radius:8px;background:#fff" />
+                    <MudText Typo="Typo.body2">@_model.ThemeColor</MudText>
+                </div>
                 <MudSelect @bind-Value="_model.DefaultLanguage" Label="@T.T("settings.default_language")"
                            Variant="Variant.Outlined" Disabled="@(!Can(ActionCodes.Edit))">
                     <MudSelectItem Value="@("ar")">@T.T("language.ar")</MudSelectItem>
@@ -106,6 +115,13 @@ else
 
     private MudForm _form = default!;
     private AppSettings _model = new();
+
+    private void OnThemeColorPicked(ChangeEventArgs e)
+    {
+        if (e.Value is string s &&
+            System.Text.RegularExpressions.Regex.IsMatch(s, "^#[0-9A-Fa-f]{6}$"))
+            _model.ThemeColor = s.ToUpperInvariant();
+    }
     private int _sessionTimeout = 30;
     private int _passwordMin = 8;
     private int _maxAttempts = 5;

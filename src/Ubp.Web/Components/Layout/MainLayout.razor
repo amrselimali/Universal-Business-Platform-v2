@@ -8,6 +8,7 @@
 @inject NavigationManager Navigation
 
 <MudThemeProvider Theme="_theme" />
+<style>:root { --ubp-primary: @_primaryColor; --ubp-primary-dark: @_primaryColor; }</style>
 <MudPopoverProvider />
 <MudDialogProvider MaxWidth="MaxWidth.Medium" CloseButton="true" />
 <MudSnackbarProvider />
@@ -60,8 +61,9 @@
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private IReadOnlyList<string> _visibleScreens = Array.Empty<string>();
     private bool _drawerOpen = true;
+    private string _primaryColor = "#0F766E";
 
-    private readonly MudTheme _theme = new()
+    private MudTheme _theme = new()
     {
         PaletteLight = new PaletteLight
         {
@@ -106,6 +108,13 @@
         var settings = await Settings.GetAsync();
         _companyName = settings.CompanyName;
         _logoUrl = settings.LogoUrl;
+        var themeColor = settings.ThemeColor;
+        if (!string.IsNullOrWhiteSpace(themeColor) &&
+            System.Text.RegularExpressions.Regex.IsMatch(themeColor, "^#[0-9A-Fa-f]{6}$"))
+        {
+            _primaryColor = themeColor;
+            _theme.PaletteLight.Primary = themeColor;
+        }
         _branches = await Branches.OptionsAsync(_actor);
         _visibleScreens = await Permissions.GetVisibleScreenCodesAsync(_actor);
     }

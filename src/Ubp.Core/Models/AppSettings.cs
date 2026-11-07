@@ -24,6 +24,8 @@ public sealed class AppSettings
     public short InvoiceGroupingMode { get; set; }
     public short AppointmentSlotMinutes { get; set; } = 15;
     public string MeterUnitLabel { get; set; } = "عدد الوحدات";
+    /// <summary>اللون العام (Primary) للبرنامج بصيغة #RRGGBB — 0090.</summary>
+    public string ThemeColor { get; set; } = "#0F766E";
     public string? PosReceiptFooter { get; set; }
     public bool AutoFollowUpOverdue { get; set; }
     public DateTimeOffset CreatedAt { get; set; }

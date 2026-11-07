@@ -1454,6 +1454,7 @@
   "validation.database_clear_blocked": "Cannot clear: other tables reference the selected tables via foreign keys. Add the related tables to the selection or drop the constraints first.",
   "validation.customer_phone_duplicate": "This phone number already belongs to another customer — duplicate customer phone is not allowed.",
   "validation.booking_duplicate_same_day": "A booking/appointment already exists for this customer with the same responsible employee on the same day.",
+  "validation.theme_color": "Theme color must be in #RRGGBB format (e.g. #0F766E).",
   "validation.booking_expiry_invalid": "Offer expiry date must be today or later",
   "validation.booking_not_draft": "Booking is not a draft",
   "validation.booking_duplicate_line": "Duplicate booking in the collection",

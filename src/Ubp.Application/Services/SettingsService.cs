@@ -67,6 +67,9 @@ public sealed class SettingsService : ISettingsService
             throw new ValidationAppException("validation.company_name_required");
         if (!IsValidTimeZone(input.TimeZone))
             throw new ValidationAppException("validation.time_zone");
+        if (string.IsNullOrWhiteSpace(input.ThemeColor) ||
+            !System.Text.RegularExpressions.Regex.IsMatch(input.ThemeColor, "^#[0-9A-Fa-f]{6}$"))
+            throw new ValidationAppException("validation.theme_color");
 
         var updated = await _repository.UpdateAsync(input, ct)
             ?? throw new ConflictException("error.version_conflict");

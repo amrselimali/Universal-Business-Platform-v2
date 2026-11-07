@@ -17,7 +17,9 @@ public sealed partial class UserService
             throw new ValidationAppException("validation.super_admin_requires_admin");
         if ((input.IsAdmin || input.IsSuperAdmin) && !actor.IsSuperAdmin)
             throw new ForbiddenException("error.admin_flag_forbidden");
-        if (!input.IsAdmin && input.BranchIds.Count == 0)
+        // كل مستخدم غير السوبر أدمن يجب أن يكون مربوطًا بفرع واحد على الأقل (بما فيهم الأدمن)،
+        // وإلا يرى كل الفروع (فراغ النطاق = الكل) — إجبار تحديد الفرع.
+        if (!input.IsSuperAdmin && input.BranchIds.Count == 0)
             throw new ValidationAppException("validation.user_branch_required");
     }
 
