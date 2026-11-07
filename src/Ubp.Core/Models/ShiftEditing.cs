@@ -12,6 +12,8 @@ public sealed class ShiftEditableLine
     public string? ItemName { get; set; }
     public string? EmployeeName { get; set; }
     public string? TreasuryName { get; set; }
+    /// <summary>حالة المستند الأصلي: draft/posted (لتفعيل قيد الفرق للمُرحّل).</summary>
+    public string DocStatus { get; set; } = "draft";
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal Amount { get; set; }

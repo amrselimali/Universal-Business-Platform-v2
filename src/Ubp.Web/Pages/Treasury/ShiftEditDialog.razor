@@ -26,7 +26,17 @@
                     <MudTh Align="Right">المبلغ</MudTh><MudTh>الشرح</MudTh><MudTh></MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd>@EntityLabel(context.L.EntityType) @context.L.DocNo</MudTd>
+                    <MudTd>@EntityLabel(context.L.EntityType) @context.L.DocNo
+                        @if (context.L.DocStatus == "posted")
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success"
+                                     Variant="Variant.Outlined">مُرحّل — قيد فرق</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">مسودة</MudChip>
+                        }
+                    </MudTd>
                     <MudTd>@context.L.PartyName</MudTd>
                     <MudTd>@context.L.ItemName</MudTd>
                     <MudTd>

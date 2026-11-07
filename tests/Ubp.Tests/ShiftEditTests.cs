@@ -21,6 +21,8 @@ public sealed class ShiftEditTests : IClassFixture<TestDb>
         var branch = await _db.CreateBranchAsync("SE-B-" + suffix, "فرع تعديل الوردية " + suffix);
         var supplier = await _db.PartnerRepo.CreateAsync(PartnerKind.Supplier, new PartnerInput
         { Code = "SE-S-" + suffix, NameAr = "مورد تعديل الوردية " + suffix });
+        await _db.AccountingSettings().SetDefaultAsync(actor, PostingKeys.SupplierPayable,
+            chart["2100"].Id);
         var shift = await _db.TreasuryService().OpenShiftAsync(actor, new ShiftInput
         { BranchId = branch });
 
@@ -37,7 +39,7 @@ public sealed class ShiftEditTests : IClassFixture<TestDb>
             INSERT INTO operating_expense_lines
                 (id, expense_id, line_no, account_id, description, quantity, unit_price, amount)
             VALUES (@id, @expense, 1, @account, 'بند اختبار', 1, 100, 100)
-            """, new { id = lineId, expense = expenseId, account = chart["1110"].Id });
+            """, new { id = lineId, expense = expenseId, account = chart["5490"].Id });
         return (branch, expenseId, lineId, shift.Id);
     }
 
@@ -94,5 +96,32 @@ public sealed class ShiftEditTests : IClassFixture<TestDb>
                 LineId = s.LineId, Field = "amount", NewValue = "999"
             }));
         Assert.Equal("validation.shift_edit_locked", error.Code);
+    }
+
+    [Fact]
+    public async Task Editing_a_posted_expense_amount_posts_a_difference_entry()
+    {
+        var actor = await _db.AdminActorAsync();
+        var s = await SetupAsync("3");
+        await using (var c = new NpgsqlConnection(TestDb.AdminConnection))
+        {
+            await c.OpenAsync();
+            await c.ExecuteAsync("UPDATE operating_expenses SET status = 'POSTED' WHERE id = @id",
+                new { id = s.ExpenseId });
+        }
+
+        await _db.ShiftEdit().ApplyAsync(actor, new ShiftLineEditInput
+        {
+            ShiftId = s.ShiftId, EntityType = "operating_expense", DocId = s.ExpenseId,
+            LineId = s.LineId, Field = "amount", NewValue = "150"
+        });
+
+        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
+        await connection.OpenAsync();
+        var diff = await connection.ExecuteScalarAsync<decimal>("""
+            SELECT COALESCE(SUM(total_debit), 0) FROM journal_entries
+            WHERE source_type = 'review_adjustment' AND source_id = @id
+            """, new { id = s.ExpenseId });
+        Assert.Equal(50m, diff); // 150 − 100
     }
 }
