@@ -45,7 +45,7 @@ public sealed class PartnerService
         CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, Screen(kind), ActionCodes.Add, ct: ct);
-        await NormalizeAndValidateAsync(actor, kind, input, ct);
+        await NormalizeAndValidateAsync(actor, kind, input, null, ct);
         try
         {
             var created = await _repository.CreateAsync(kind, input, ct);
@@ -61,7 +61,7 @@ public sealed class PartnerService
         await _permissions.RequireAsync(actor, Screen(kind), ActionCodes.Edit, ct: ct);
         var old = await _repository.GetAsync(kind, id, ct) ?? throw new NotFoundAppException();
         EnsureAccess(actor, old);
-        await NormalizeAndValidateAsync(actor, kind, input, ct);
+        await NormalizeAndValidateAsync(actor, kind, input, id, ct);
 
         try
         {
@@ -149,12 +149,16 @@ public sealed class PartnerService
     }
 
     private async Task NormalizeAndValidateAsync(ActorContext actor, PartnerKind kind, PartnerInput input,
-        CancellationToken ct)
+        Guid? excludeId, CancellationToken ct)
     {
         input.Code = (input.Code ?? "").Trim().ToUpperInvariant();
         input.NameAr = (input.NameAr ?? "").Trim();
         input.NameEn = string.IsNullOrWhiteSpace(input.NameEn) ? null : input.NameEn.Trim();
         input.Phone = string.IsNullOrWhiteSpace(input.Phone) ? null : input.Phone.Trim();
+        // رقم هاتف العميل لا يقبل التكرار عند التكويد/التعديل (يُستثنى نفس العميل).
+        if (kind == PartnerKind.Customer && input.Phone is not null &&
+            await _repository.PhoneExistsAsync(kind, input.Phone, excludeId, ct))
+            throw new ValidationAppException("validation.customer_phone_duplicate");
         input.Email = string.IsNullOrWhiteSpace(input.Email) ? null : input.Email.Trim().ToLowerInvariant();
         input.Address = string.IsNullOrWhiteSpace(input.Address) ? null : input.Address.Trim();
         input.TaxNumber = string.IsNullOrWhiteSpace(input.TaxNumber) ? null : input.TaxNumber.Trim();

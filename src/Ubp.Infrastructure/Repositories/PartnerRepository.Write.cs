@@ -75,6 +75,19 @@ public sealed partial class PartnerRepository
         return rows == 0 ? null : await GetAsync(kind, id, ct);
     }
 
+    public async Task<bool> PhoneExistsAsync(PartnerKind kind, string phone, Guid? excludeId,
+        CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteScalarAsync<bool>(new CommandDefinition($"""
+            SELECT EXISTS (
+                SELECT 1 FROM {Table(kind)}
+                WHERE btrim(phone) = btrim(@phone)
+                  AND (@excludeId::uuid IS NULL OR id <> @excludeId)
+            )
+            """, new { phone, excludeId }, cancellationToken: ct));
+    }
+
     public async Task<PartnerCategory> CreateCategoryAsync(PartnerKind kind, PartnerCategoryInput input,
         CancellationToken ct = default)
     {

@@ -26,6 +26,10 @@ public sealed partial class TestDb
     public ItemRepository ItemRepo => new(Factory);
     public ItemCategoryRepository ItemCategoryRepo => new(Factory);
     public PartnerRepository PartnerRepo => new(Factory);
+
+    public PartnerService Partners() => new(
+        PartnerRepo, new CustomFieldService(CustomFieldRepo, Permissions(), new AuditService(AuditRepo)),
+        Permissions(), new AuditService(AuditRepo));
     public PeriodRepository PeriodRepo => new(Factory);
     public StockDocumentRepository StockDocRepo => new(Factory);
     public StockPostingRepository StockPostingRepo => new(Factory);

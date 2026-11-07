@@ -16,6 +16,9 @@ public interface IPartnerRepository
         CancellationToken ct = default);
     Task<bool> DeleteAsync(PartnerKind kind, Guid id, CancellationToken ct = default);
     Task<Partner?> SetActiveAsync(PartnerKind kind, Guid id, bool isActive, CancellationToken ct = default);
+    /// <summary>هل رقم الهاتف مستخدم بالفعل لطرف آخر (لاستثناء الـ id عند التعديل).</summary>
+    Task<bool> PhoneExistsAsync(PartnerKind kind, string phone, Guid? excludeId,
+        CancellationToken ct = default);
 
     Task<IReadOnlyList<PartnerCategory>> ListCategoriesAsync(PartnerKind kind, bool includeInactive,
         CancellationToken ct = default);
