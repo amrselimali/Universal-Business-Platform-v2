@@ -124,7 +124,7 @@ public partial class Terminal : SecurePageBase
     protected override async Task OnLoadAsync()
     {
         _branches = await Branches.OptionsAsync(Actor!);
-        _branchId = _branches.FirstOrDefault()?.Id ?? Guid.Empty;
+        _branchId = Actor!.CurrentBranchId ?? _branches.FirstOrDefault()?.Id ?? Guid.Empty;
         _employees = await MasterData.EmployeeOptionsAsync(Actor!);
         await SearchCustomersAsync();
         await LoadBranchAsync();

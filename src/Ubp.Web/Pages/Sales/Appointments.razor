@@ -92,6 +92,10 @@ else
     protected override async Task OnLoadAsync()
     {
         _branches = await Branches.OptionsAsync(Actor!);
+        // الافتراضي فرع محدد (فرع المستخدم الحالي أو أول فرع مربوط) — لا فراغ.
+        _branchId = Actor!.CurrentBranchId
+                    ?? (Actor.AllowedBranchIds.Count > 0 ? Actor.AllowedBranchIds.First() : (Guid?)null)
+                    ?? _branches.FirstOrDefault()?.Id;
         await ReloadAsync();
     }
 

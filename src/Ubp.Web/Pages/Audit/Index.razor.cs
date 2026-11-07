@@ -47,6 +47,10 @@ public partial class Index
     {
         _users = (await AuditService.GetFilterUsersAsync(Actor!)).ToList();
         _branches = await BranchService.OptionsAsync(Actor!);
+        // الافتراضي فرع محدد (فرع المستخدم الحالي أو أول فرع مربوط) — لا فراغ.
+        _branchId = Actor!.CurrentBranchId
+                    ?? (Actor.AllowedBranchIds.Count > 0 ? Actor.AllowedBranchIds.First() : (Guid?)null)
+                    ?? _branches.FirstOrDefault()?.Id;
         await RefreshAsync();
     }
 
@@ -81,7 +85,10 @@ public partial class Index
 
     private async Task ClearAsync()
     {
-        _from = null; _to = null; _userId = null; _branchId = null;
+        _from = null; _to = null; _userId = null;
+        _branchId = Actor!.CurrentBranchId
+                    ?? (Actor.AllowedBranchIds.Count > 0 ? Actor.AllowedBranchIds.First() : (Guid?)null)
+                    ?? _branches.FirstOrDefault()?.Id;
         _tableName = null; _action = null;
         await RefreshAsync();
     }

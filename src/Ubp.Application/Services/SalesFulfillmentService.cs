@@ -23,7 +23,8 @@ public sealed class SalesFulfillmentService
     {
         await _permissions.RequireAsync(actor, ScreenCodes.SalesAppointments, ActionCodes.View,
             ct: ct);
-        return await _appointments.ListDayAsync(branchId, date, ct);
+        // إلغاء الفلتر لا يعرض كل الفروع لغير السوبر أدمن — 0096.
+        return await _appointments.ListDayAsync(BranchScope.Effective(actor, branchId), date, ct);
     }
 
     public async Task<Appointment> CreateAppointmentAsync(ActorContext actor,

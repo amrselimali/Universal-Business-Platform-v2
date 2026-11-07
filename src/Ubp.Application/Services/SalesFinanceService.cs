@@ -38,6 +38,8 @@ public sealed class SalesFinanceService
         await _permissions.RequireAsync(actor, ScreenCodes.SalesExpiredBookings, ActionCodes.View,
             ct: ct);
         if (branchId is { } requested) BranchScope.Ensure(actor, requested);
+        // إلغاء الفلتر لا يعرض كل الفروع لغير السوبر أدمن (يُقيَّد بفرع المستخدم) — 0096.
+        if (!actor.IsSuperAdmin) branchId = BranchScope.Effective(actor, branchId);
 
         var branches = actor.IsSuperAdmin
             ? (branchId is { } b ? new[] { b } : Array.Empty<Guid>())
