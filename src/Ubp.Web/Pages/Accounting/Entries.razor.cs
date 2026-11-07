@@ -12,7 +12,7 @@ public partial class Entries
     [Inject] private JournalEntryService EntriesService { get; set; } = default!;
     [Inject] private JournalService JournalsService { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
-    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    [Inject] private new NavigationManager Navigation { get; set; } = default!;
 
     private MudTable<JournalEntry> _table = default!;
     private IReadOnlyList<Journal> _journals = Array.Empty<Journal>();

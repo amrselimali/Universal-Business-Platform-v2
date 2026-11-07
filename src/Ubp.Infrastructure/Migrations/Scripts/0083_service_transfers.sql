@@ -7,6 +7,11 @@
 --    - تُخصم الكمية من رصيد العميل المحوَّل منه وتُضاف لرصيد العميل المحوَّل إليه.
 --    - يُنشأ قيد من حساب العميل المحوَّل إليه (مدين) إلى حساب العميل المحوَّل منه (دائن).
 
+-- إعادة إنشاء جداول التحويل من الصفر عند إعادة تشغيل السكربت (تفادي بقايا محاولات
+-- سابقة غير مكتملة تفتقد أعمدة). لا يُعاد السكربت إن كان مُطبَّقًا، فلا خطر على البيانات.
+DROP TABLE IF EXISTS service_transfer_lines;
+DROP TABLE IF EXISTS service_transfers CASCADE;
+
 ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_source_check;
 ALTER TABLE bookings ADD CONSTRAINT bookings_source_check
     CHECK (source IN ('manual', 'pos', 'transfer'));

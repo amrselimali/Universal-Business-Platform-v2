@@ -6,6 +6,6 @@
     <LangVersion>latest</LangVersion>
     <InvariantGlobalization>false</InvariantGlobalization>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS8669;MUD0002;CS0618;CS0414;CS0169;CS0649;CS0105</NoWarn>
   </PropertyGroup>
 </Project>

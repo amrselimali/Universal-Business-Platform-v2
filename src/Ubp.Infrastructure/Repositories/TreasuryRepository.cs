@@ -81,7 +81,7 @@ public interface ITreasuryRepository : IShiftGate
     /// <summary>الورديات المفتوحة التي تجاوزت موعد الإغلاق الآلي (5 صباحاً).</summary>
     Task<IReadOnlyList<Shift>> ListShiftsDueForAutoCloseAsync(DateTimeOffset cutoff,
         CancellationToken ct = default);
-    Task<bool> HasOpenShiftAsync(Guid userId, Guid? branchId,
+    new Task<bool> HasOpenShiftAsync(Guid userId, Guid? branchId,
         IReadOnlyCollection<Guid> branchIds, CancellationToken ct = default);
     Task SaveDenominationsAsync(Guid shiftId, IReadOnlyList<ShiftDenominationInput> denominations,
         CancellationToken ct = default);

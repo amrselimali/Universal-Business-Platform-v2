@@ -1,6 +1,12 @@
 -- 0084 — جلسات هدية/علاجية + سلف الموظفين + تعديلات المراجعة والقيد العكسي
 -- ---------------------------------------------------------------------------
 
+-- إعادة إنشاء جداول هذه الميزات من الصفر عند إعادة تشغيل السكربت (تفادي بقايا محاولات
+-- سابقة غير مكتملة تفتقد أعمدة مثل doc_no/status). لا يُعاد السكربت إن كان مُطبَّقًا.
+DROP TABLE IF EXISTS review_notes;
+DROP TABLE IF EXISTS review_adjustments CASCADE;
+DROP TABLE IF EXISTS employee_advances CASCADE;
+
 -- (1) الموظف: حساب تحميل قيمة الجلسة العلاجية على الموظف.
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS treatment_account_id uuid
     REFERENCES accounts(id) ON DELETE SET NULL;
