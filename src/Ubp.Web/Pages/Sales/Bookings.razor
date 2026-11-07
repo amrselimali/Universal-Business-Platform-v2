@@ -143,6 +143,8 @@ else
     protected override async Task OnLoadAsync()
     {
         _branches = await Branches.OptionsAsync(Actor!);
+        // الافتراضي = كل فروع المستخدم (حد أدنى فرع واحد كما يفرضه الخادم).
+        _branchIds = _branches.Select(b => b.Id).ToHashSet();
     }
 
     private async Task<TableData<Booking>> LoadServerData(TableState state, CancellationToken ct)

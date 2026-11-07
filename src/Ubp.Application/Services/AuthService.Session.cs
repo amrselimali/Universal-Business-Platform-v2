@@ -43,9 +43,10 @@ public sealed partial class AuthService
 
         var settings = await _settings.GetAsync(ct);
         var branchIds = await _users.GetBranchIdsAsync(user.Id, ct);
-        // فلتر فروع الجلسة (0092): إن اختار المستخدم بعض الفروع تُستخدم هي، وإلا كل فروعه.
+        // فلتر فروع الجلسة (0092): BranchIds = الفلتر المعروض، AllBranchIds = كل فروع المستخدم.
+        var allBranches = branchIds;
         var filter = session.FilterBranchIds is { Length: > 0 } f && !user.IsSuperAdmin
-            ? branchIds.Where(f.Contains).ToArray()
+            ? allBranches.Where(f.Contains).ToArray()
             : Array.Empty<Guid>();
         if (filter.Length > 0) branchIds = filter;
         var branchId = session.BranchId;
@@ -74,6 +75,7 @@ public sealed partial class AuthService
         {
             SessionId = sessionId, User = user, BranchId = branchId,
             BranchIds = branchIds,
+            AllBranchIds = allBranches,
             FilterBranchIds = session.FilterBranchIds,
             WarehouseIds = await _users.GetWarehouseIdsAsync(user.Id, ct),
             UserLanguage = user.Language,

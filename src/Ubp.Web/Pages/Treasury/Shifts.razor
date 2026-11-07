@@ -119,6 +119,7 @@ else
     protected override async Task OnLoadAsync()
     {
         _branches = await Branches.OptionsAsync(Actor!);
+        _branchId = Actor!.CurrentBranchId ?? _branches.FirstOrDefault()?.Id;
         await ReloadAsync();
     }
 

@@ -15,11 +15,19 @@ public sealed class ActorContext
     public Guid? CurrentBranchId { get; init; }
     /// <summary>الفروع المختارة في الجلسة (null = كل فروع المستخدم) — 0092.</summary>
     public Guid[]? FilterBranchIds { get; init; }
+    /// <summary>كل الفروع المملوكة للمستخدم (استحقاق كامل) — للكتابة/الصلاحيات، 0093.</summary>
+    public IReadOnlyCollection<Guid> AllBranchIds { get; init; } = Array.Empty<Guid>();
+    /// <summary>الفروع المصرح بها (نطاق القراءة/الفلتر المعروض).</summary>
     public IReadOnlyCollection<Guid> AllowedBranchIds { get; init; } = Array.Empty<Guid>();
     public string? IpAddress { get; init; }
     public string TraceId { get; init; } = "";
 
-    public bool CanAccessBranch(Guid branchId) => IsSuperAdmin || AllowedBranchIds.Contains(branchId);
+    /// <summary>
+    /// استحقاق الوصول للفرع = امتلاكه (كل الفروع)، لا الفلتر المعروض؛ حتى لا تمنع الكتابة
+    /// على فرع مملوك لكنه غير محدد في فلتر العرض. (يرجع لـ AllowedBranchIds توافقًا للاختبارات.)
+    /// </summary>
+    public bool CanAccessBranch(Guid branchId) =>
+        IsSuperAdmin || (AllBranchIds.Count > 0 ? AllBranchIds : AllowedBranchIds).Contains(branchId);
     public bool HasAnyBranchAccess(IEnumerable<Guid> branchIds) =>
         IsSuperAdmin || branchIds.Any(CanAccessBranch);
     public string DisplayName => string.IsNullOrWhiteSpace(Name) ? Username : Name;

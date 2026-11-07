@@ -52,6 +52,7 @@ public sealed class UserContext
             CurrentBranchId = session.BranchId,
             FilterBranchIds = session.FilterBranchIds,
             AllowedBranchIds = session.BranchIds,
+            AllBranchIds = session.AllBranchIds,
             IpAddress = ip,
             TraceId = traceId
         };

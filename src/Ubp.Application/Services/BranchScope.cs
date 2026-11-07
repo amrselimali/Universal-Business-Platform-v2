@@ -30,9 +30,11 @@ public static class BranchScope
         if (requested is { Count: > 0 })
         {
             EnsureAll(actor, requested);
-            return actor.IsSuperAdmin
-                ? requested
+            var scoped = actor.IsSuperAdmin
+                ? requested.ToArray()
                 : requested.Where(actor.AllowedBranchIds.Contains).Distinct().ToArray();
+            // إن لم يتقاطع الطلب مع الفلتر المعروض نستخدم نطاق المستخدم المعروض (لا فراغ).
+            if (scoped.Length > 0) return scoped;
         }
         return actor.IsSuperAdmin ? Array.Empty<Guid>() : actor.AllowedBranchIds;
     }

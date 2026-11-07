@@ -28,6 +28,8 @@ public sealed class SessionUser
     public required User User { get; init; }
     public Guid? BranchId { get; init; }
     public required IReadOnlyList<Guid> BranchIds { get; init; }
+    /// <summary>كل فروع المستخدم (استحقاق) بخلاف BranchIds (المفلترة) — 0093.</summary>
+    public IReadOnlyList<Guid> AllBranchIds { get; init; } = Array.Empty<Guid>();
     /// <summary>الفروع المختارة في الجلسة (null = كل فروع المستخدم) — 0092.</summary>
     public Guid[]? FilterBranchIds { get; init; }
     public required IReadOnlyList<Guid> WarehouseIds { get; init; }
