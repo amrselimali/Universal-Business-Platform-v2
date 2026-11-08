@@ -8,9 +8,9 @@ namespace Ubp.Infrastructure.Repositories;
 public sealed partial class TreasuryRepository
 {
     /// <summary>
-    /// إعادة فتح وردية مغلقة (قرار مدير + سبب): عكس قيد الفرق إن وُجد، وإلغاء بنود
+    /// إعادة فتح شفت مغلقة (قرار مدير + سبب): عكس قيد الفرق إن وُجد، وإلغاء بنود
     /// المراجعة المعلّقة، ثم إرجاعها إلى الحالة 'open' مع أثر تدقيقي، فيبقى قيد
-    /// «وردية واحدة مفتوحة لكل فرع» سارياً (0074).
+    /// «شفت واحدة مفتوحة لكل فرع» سارياً (0074).
     /// </summary>
     public async Task<Shift> ReopenShiftAsync(Guid shiftId, string reason, Guid userId,
         CancellationToken ct = default)

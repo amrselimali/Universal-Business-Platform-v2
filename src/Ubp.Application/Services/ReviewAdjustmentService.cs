@@ -5,7 +5,7 @@ using Ubp.Infrastructure.Repositories;
 
 namespace Ubp.Application.Services;
 
-/// <summary>تعديلات المراجعة وملاحظاتها (تُطبَّق عند اعتماد الوردية بقيد الفرق) — 0084.</summary>
+/// <summary>تعديلات المراجعة وملاحظاتها (تُطبَّق عند اعتماد الشفت بقيد الفرق) — 0084.</summary>
 public sealed class ReviewAdjustmentService
 {
     private readonly IReviewAdjustmentRepository _repo;

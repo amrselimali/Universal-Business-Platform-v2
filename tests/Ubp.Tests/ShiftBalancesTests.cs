@@ -6,8 +6,8 @@ using Xunit;
 namespace Ubp.Tests;
 
 /// <summary>
-/// أرصدة فتح الوردية: متابعة طرق الدفع في الوردية، عدادات الأجهزة لكل جهاز،
-/// وبوابة الوردية (وردية الفرع/المستخدم/الفروع المصرح بها).
+/// أرصدة فتح الشفت: متابعة طرق الدفع في الشفت، عدادات الأجهزة لكل جهاز،
+/// وبوابة الشفت (شفت الفرع/المستخدم/الفروع المصرح بها).
 /// </summary>
 public sealed class ShiftBalancesTests : IClassFixture<TestDb>
 {
@@ -27,7 +27,7 @@ public sealed class ShiftBalancesTests : IClassFixture<TestDb>
         await settings.SetDefaultAsync(actor, PostingKeys.SupplierAdvances, chart["2100"].Id);
         await settings.SetDefaultAsync(actor, PostingKeys.CashOverShort, chart["5490"].Id);
 
-        var branch = await _db.CreateBranchAsync("SB-B-" + suffix, "فرع وردية " + suffix);
+        var branch = await _db.CreateBranchAsync("SB-B-" + suffix, "فرع شفت " + suffix);
         var treasuryId = Guid.CreateVersion7();
         await _db.TreasuryRepo.CreateTreasuryAsync(treasuryId, new TreasuryInput
         {
@@ -74,14 +74,13 @@ public sealed class ShiftBalancesTests : IClassFixture<TestDb>
         var row = Assert.Single(balances.Treasuries);
         Assert.Equal(400m, row.PostedBalance);
         Assert.Equal(400m, balances.OpeningCash);
-        Assert.Contains(row.Methods, m => m.MethodId == f.CashMethod);
 
-        await service.SetMethodFollowInShiftAsync(actor, f.CashMethod, false);
+        await service.SetTreasuryFollowInShiftAsync(actor, row.TreasuryId, false);
         var after = await service.GetOpeningBalancesAsync(actor, f.Branch);
         Assert.Empty(after.Treasuries);
         Assert.Equal(0m, after.OpeningCash);
 
-        await service.SetMethodFollowInShiftAsync(actor, f.CashMethod, true);
+        await service.SetTreasuryFollowInShiftAsync(actor, row.TreasuryId, true);
         var restored = await service.GetOpeningBalancesAsync(actor, f.Branch);
         Assert.Single(restored.Treasuries);
     }
@@ -156,15 +155,15 @@ public sealed class ShiftBalancesTests : IClassFixture<TestDb>
         await _db.TreasuryRepo.OpenShiftAsync(Guid.CreateVersion7(),
             new ShiftInput { BranchId = f.Branch }, admin.UserId);
 
-        // وردية الفرع تكفي أي مستخدم فيه، ووردية المستخدم نفسه تكفيه في أي فرع.
+        // شفت الفرع تكفي أي مستخدم فيه، وشفت المستخدم نفسه تكفيه في أي فرع.
         Assert.True(await _db.TreasuryRepo.HasOpenShiftAsync(Guid.NewGuid(), f.Branch,
             new[] { f.Branch }));
         Assert.True(await _db.TreasuryRepo.HasOpenShiftAsync(admin.UserId, Guid.NewGuid(),
             Array.Empty<Guid>()));
-        // وردية مفتوحة في فرع مصرح به تكفي مستخدم الفروع (البيانات مقيّدة بفروعه).
+        // شفت مفتوحة في فرع مصرح به تكفي مستخدم الفروع (البيانات مقيّدة بفروعه).
         Assert.True(await _db.TreasuryRepo.HasOpenShiftAsync(Guid.NewGuid(), Guid.NewGuid(),
             new[] { f.Branch }));
-        // لا وردية في أي فرع مصرح به ولا وردية للمستخدم ⇒ لا تسجيل.
+        // لا شفت في أي فرع مصرح به ولا شفت للمستخدم ⇒ لا تسجيل.
         Assert.False(await _db.TreasuryRepo.HasOpenShiftAsync(Guid.NewGuid(), Guid.NewGuid(),
             new[] { Guid.NewGuid() }));
     }

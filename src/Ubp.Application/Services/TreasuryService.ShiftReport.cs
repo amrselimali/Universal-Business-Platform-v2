@@ -4,12 +4,12 @@ using Ubp.Core.Security;
 
 namespace Ubp.Application.Services;
 
-/// <summary>تقرير الوردية ومراجعتها: عرض شامل للتسجيلات ثم اعتماد المحاسب.</summary>
+/// <summary>تقرير الشفت ومراجعتها: عرض شامل للتسجيلات ثم اعتماد المحاسب.</summary>
 public sealed partial class TreasuryService
 {
     /// <summary>
-    /// تقرير الوردية: تحصيلات وإيرادات وحركة خزائن، وعملاء بلا متابعة أو حجز مستقبلي،
-    /// وحجوزات ومواعيد موظفي الغد، وكل ما سُجّل في الوردية (مسودات ومرحّل غير الملغى).
+    /// تقرير الشفت: تحصيلات وإيرادات وحركة خزائن، وعملاء بلا متابعة أو حجز مستقبلي،
+    /// وحجوزات ومواعيد موظفي الغد، وكل ما سُجّل في الشفت (مسودات ومرحّل غير الملغى).
     /// </summary>
     public async Task<ShiftReport> GetShiftReportAsync(ActorContext actor, Guid shiftId,
         CancellationToken ct = default)
@@ -27,7 +27,7 @@ public sealed partial class TreasuryService
         return await _treasury.ListReviewItemsAsync(shiftId, ct);
     }
 
-    /// <summary>ترحيل الوردية للحسابات: تصبح «تحت المراجعة» ويُفعَّل اعتماد المراجعة — 0079.</summary>
+    /// <summary>ترحيل الشفت للحسابات: تصبح «تحت المراجعة» ويُفعَّل اعتماد المراجعة — 0079.</summary>
     public async Task PostShiftToAccountsAsync(ActorContext actor, Guid shiftId,
         CancellationToken ct = default)
     {
@@ -42,8 +42,8 @@ public sealed partial class TreasuryService
     }
 
     /// <summary>
-    /// اعتماد مراجعة الوردية: يوزر محاسب يملك صلاحية APPROVE (تُمنح وقت تكويد المستخدم)
-    /// يغلق دورة المراجعة على كل تسجيلات الوردية.
+    /// اعتماد مراجعة الشفت: يوزر محاسب يملك صلاحية APPROVE (تُمنح وقت تكويد المستخدم)
+    /// يغلق دورة المراجعة على كل تسجيلات الشفت.
     /// </summary>
     public async Task<Shift> ReviewShiftAsync(ActorContext actor, Guid shiftId,
         CancellationToken ct = default)

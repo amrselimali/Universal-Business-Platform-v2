@@ -27,8 +27,7 @@ public sealed partial class BookingCollectionRepository
         if (bookingTotal <= 0) throw new ValidationAppException("validation.voucher_amount");
 
         var payments = input.Payments.Where(p => p.Amount > 0).ToList();
-        if (payments.Count == 0 && input.TreasuryId != Guid.Empty &&
-            input.TreasuryMethodId != Guid.Empty)
+        if (payments.Count == 0 && input.TreasuryId != Guid.Empty)
             payments.Add(new PosPaymentInput
             {
                 TreasuryId = input.TreasuryId, TreasuryMethodId = input.TreasuryMethodId,
@@ -36,38 +35,48 @@ public sealed partial class BookingCollectionRepository
             });
         if (payments.Count == 0)
             throw new ValidationAppException("validation.required_fields");
-        if (payments.Select(p => p.TreasuryMethodId).Distinct().Count() != payments.Count)
+        if (payments.Select(p => p.TreasuryId).Distinct().Count() != payments.Count)
             throw new ValidationAppException("validation.payment_duplicate_method");
 
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
 
-        var methodIds = payments.Select(p => p.TreasuryMethodId).Distinct().ToArray();
-        var methods = (await connection.QueryAsync<(Guid Id, Guid TreasuryId, Guid AccountId,
-            string TreasuryType, Guid? ClearingAccountId, Guid? FeeAccountId, decimal FeePercent,
-            decimal FeeFixed)>(new CommandDefinition("""
-            SELECT m.id AS Id, t.id AS TreasuryId, t.account_id AS AccountId,
-                   t.treasury_type AS TreasuryType, m.clearing_account_id AS ClearingAccountId,
-                   m.fee_account_id AS FeeAccountId, m.fee_percent AS FeePercent,
-                   m.fee_fixed AS FeeFixed
-            FROM treasury_methods m
-            JOIN treasuries t ON t.id = m.treasury_id
-            WHERE m.id = ANY(@ids) AND t.branch_id = @branchId
-              AND t.is_active AND m.is_active
-            """, new { ids = methodIds, branchId = input.BranchId }, tx, cancellationToken: ct)))
-            .ToDictionary(x => x.Id);
-        if (methods.Count != methodIds.Length)
-            throw new ValidationAppException("validation.treasury_method_not_found");
-
+        // الخزائن هي طرق الدفع: تُستخدم طريقة الخزينة الافتراضية وعمولة مزود الخدمة — 0093.
         var payRows = new List<PayRow>();
         foreach (var payment in payments)
         {
-            var m = methods[payment.TreasuryMethodId];
+            var m = await connection.QuerySingleOrDefaultAsync<(Guid TreasuryId, Guid MethodId,
+                Guid AccountId, string TreasuryType, Guid? ClearingAccountId, Guid? FeeAccountId,
+                decimal FeePercent, decimal FeeFixed)>(new CommandDefinition("""
+                SELECT t.id AS TreasuryId, m.id AS MethodId, t.account_id AS AccountId,
+                       t.treasury_type AS TreasuryType, m.clearing_account_id AS ClearingAccountId,
+                       t.provider_fee_account_id AS FeeAccountId,
+                       t.provider_fee_percent AS FeePercent, t.provider_fee_amount AS FeeFixed
+                FROM treasuries t
+                LEFT JOIN LATERAL (
+                    SELECT mm.id, mm.clearing_account_id
+                    FROM treasury_methods mm
+                    WHERE mm.treasury_id = t.id AND mm.is_active
+                      AND (@methodId::uuid IS NULL OR mm.id = @methodId::uuid)
+                    ORDER BY (mm.code = 'DEFAULT') DESC, mm.code
+                    LIMIT 1
+                ) m ON true
+                WHERE t.id = @treasuryId AND t.branch_id = @branchId AND t.is_active
+                """, new
+                {
+                    methodId = payment.TreasuryMethodId == Guid.Empty
+                        ? (Guid?)null
+                        : payment.TreasuryMethodId,
+                    treasuryId = payment.TreasuryId, branchId = input.BranchId
+                }, tx, cancellationToken: ct));
+            if (m.MethodId == Guid.Empty || m.AccountId == Guid.Empty)
+                throw new ValidationAppException("validation.treasury_method_not_found");
+
             var fee = Math.Round(payment.Amount * m.FeePercent / 100m + m.FeeFixed, 2,
                 MidpointRounding.AwayFromZero);
             if (fee < 0 || fee >= payment.Amount)
                 throw new ValidationAppException("validation.invalid_fee");
-            payRows.Add(new PayRow(m.TreasuryId, m.Id, payment.Amount, fee,
+            payRows.Add(new PayRow(m.TreasuryId, m.MethodId, payment.Amount, fee,
                 payment.Amount - fee, m.AccountId, m.TreasuryType, m.ClearingAccountId,
                 m.FeeAccountId));
         }

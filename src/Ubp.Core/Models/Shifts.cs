@@ -8,7 +8,7 @@ public static class ShiftReviewStatuses
 }
 
 /// <summary>
-/// وردية على مستوى الفرع: تغطي كل شاشات التطبيق (لا خزينة واحدة)، وواحدة فقط
+/// شفت على مستوى الفرع: تغطي كل شاشات التطبيق (لا خزينة واحدة)، وواحدة فقط
 /// مفتوحة لكل فرع، وتُغلق آلياً 5 صباحاً كل يوم (الترحيل 0074).
 /// </summary>
 public sealed class Shift
@@ -31,9 +31,9 @@ public sealed class Shift
     public decimal ExpectedCash { get; set; }
     public decimal? CountedCash { get; set; }
     public decimal? Variance { get; set; }
-    /// <summary>إجمالي تحصيلات الوردية: كل سندات القبض الصادرة خلالها أياً كان نوع الخزينة.</summary>
+    /// <summary>إجمالي تحصيلات الشفت: كل سندات القبض الصادرة خلالها أياً كان نوع الخزينة.</summary>
     public decimal ReceiptsTotal { get; set; }
-    /// <summary>مجموع أرصدة الخزائن المسجّلة في الوردية.</summary>
+    /// <summary>مجموع أرصدة الخزائن المسجّلة في الشفت.</summary>
     public decimal TreasuryBalance { get; set; }
     public string Status { get; set; } = ShiftStatuses.Open;
     public string? Notes { get; set; }
@@ -43,16 +43,16 @@ public sealed class Shift
     public bool AutoClosed { get; set; }
     public DateTimeOffset? ReviewedAt { get; set; }
     public List<ShiftDenomination> Denominations { get; set; } = new();
-    /// <summary>أرصدة الخزائن المتابَعة في الوردية (اسم وحدث رصيد) — 0097.</summary>
+    /// <summary>أرصدة الخزائن المتابَعة في الشفت (اسم وحدث رصيد) — 0097.</summary>
     public List<ShiftTreasuryBalance> TreasuryBalances { get; set; } = new();
-    /// <summary>قراءات عدادات أجهزة الوردية (كل جهاز عمود مستقل) — 0097.</summary>
+    /// <summary>قراءات عدادات أجهزة الشفت (كل جهاز عمود مستقل) — 0097.</summary>
     public List<ShiftMeterBalance> MeterBalances { get; set; } = new();
 
     public bool IsOpen => Status == ShiftStatuses.Open;
     public bool IsPendingReview => ReviewStatus == ShiftReviewStatuses.Pending;
 }
 
-/// <summary>فتح وردية: الفرع فقط — الرصيد الافتتاحي يُحسب آلياً ولا يُدخل يدوياً.</summary>
+/// <summary>فتح شفت: الفرع فقط — الرصيد الافتتاحي يُحسب آلياً ولا يُدخل يدوياً.</summary>
 public sealed class ShiftInput
 {
     public Guid BranchId { get; set; }
@@ -65,21 +65,21 @@ public sealed class ShiftOpeningBalances
     public Guid BranchId { get; set; }
     /// <summary>الرصيد المرحل من حسابات خزائن الفرع في الأستاذ العام (كل الخزائن).</summary>
     public decimal CarriedFromAccounts { get; set; }
-    /// <summary>قيمة تسجيلات الورديات المرحّلة للمراجعة لدى المحاسب (مسودات لم تُرحَّل بعد).</summary>
+    /// <summary>قيمة تسجيلات الشفتات المرحّلة للمراجعة لدى المحاسب (مسودات لم تُرحَّل بعد).</summary>
     public decimal PendingReview { get; set; }
     /// <summary>إجمالي قراءات عدادات الأجهزة للفرع.</summary>
     public decimal MeterBalance { get; set; }
     public int PendingReviewShifts { get; set; }
-    /// <summary>الخزائن وطرق الدفع المعلَّمة «يتم متابعتها في الوردية» مع أرصدتها.</summary>
+    /// <summary>الخزائن وطرق الدفع المعلَّمة «يتم متابعتها في الشفت» مع أرصدتها.</summary>
     public List<ShiftTreasuryRow> Treasuries { get; set; } = new();
     /// <summary>عدادات أجهزة الفرع — كل جهاز صف مستقل حتى لو كان بصفر.</summary>
     public List<ShiftMeterRow> Meters { get; set; } = new();
 
-    /// <summary>الرصيد الافتتاحي = مجموع أرصدة الخزائن المتابَعة في الوردية.</summary>
+    /// <summary>الرصيد الافتتاحي = مجموع أرصدة الخزائن المتابَعة في الشفت.</summary>
     public decimal OpeningCash { get; set; }
 }
 
-/// <summary>خزينة متابَعة في الوردية: رصيدها من الحسابات المرحّلة + الحركات غير المرحّلة.</summary>
+/// <summary>خزينة متابَعة في الشفت: رصيدها من الحسابات المرحّلة + الحركات غير المرحّلة.</summary>
 public sealed class ShiftTreasuryRow
 {
     public Guid TreasuryId { get; set; }
@@ -106,7 +106,7 @@ public sealed class ShiftMethodRow
     public bool FollowInShift { get; set; }
 }
 
-/// <summary>عداد جهاز في الفرع: يُعرض في خلية مستقلة في شاشة فتح الوردية.</summary>
+/// <summary>عداد جهاز في الفرع: يُعرض في خلية مستقلة في شاشة فتح الشفت.</summary>
 public sealed class ShiftMeterRow
 {
     public Guid AssetId { get; set; }
@@ -116,7 +116,7 @@ public sealed class ShiftMeterRow
     public decimal Value { get; set; }
 }
 
-/// <summary>عدّ نقدية خزينة داخل الوردية (مسودة حتى يعتمدها المحاسب) — 0076.</summary>
+/// <summary>عدّ نقدية خزينة داخل الشفت (مسودة حتى يعتمدها المحاسب) — 0076.</summary>
 public sealed class ShiftCashCount
 {
     public Guid Id { get; set; }
@@ -139,7 +139,7 @@ public static class ShiftCashCountStatuses
     public const string Posted = "posted";
 }
 
-/// <summary>النقد الفعلي المُدخل عند إغلاق الوردية لكل خزينة.</summary>
+/// <summary>النقد الفعلي المُدخل عند إغلاق الشفت لكل خزينة.</summary>
 public sealed class ShiftCashCountInput
 {
     public Guid TreasuryId { get; set; }
@@ -160,7 +160,7 @@ public sealed class ShiftDenomination
     public decimal Total => Math.Round(Denomination * Count, 2, MidpointRounding.AwayFromZero);
 }
 
-/// <summary>تقرير الوردية عند الإغلاق: كل تسجيلات الشيفت غير الملغاة (مسودة أو مرحّلة).</summary>
+/// <summary>تقرير الشفت عند الإغلاق: كل تسجيلات الشيفت غير الملغاة (مسودة أو مرحّلة).</summary>
 public sealed class ShiftReport
 {
     public Shift Shift { get; set; } = new();
@@ -171,9 +171,9 @@ public sealed class ShiftReport
     public List<ShiftAppointmentRow> TomorrowAppointments { get; set; } = new();
     /// <summary>عدّ النقدية لكل خزينة (مسودة حتى اعتماد المحاسب) — 0076.</summary>
     public List<ShiftCashCount> CashCounts { get; set; } = new();
-    /// <summary>حركة عدادات الأجهزة في الوردية (أول المدة/المستهلك/آخر المدة/الفعلي/الفرق) — 0077.</summary>
+    /// <summary>حركة عدادات الأجهزة في الشفت (أول المدة/المستهلك/آخر المدة/الفعلي/الفرق) — 0077.</summary>
     public List<ShiftMeterMovementRow> Meters { get; set; } = new();
-    /// <summary>المصروفات التشغيلية المسجلة خلال الوردية — 0078.</summary>
+    /// <summary>المصروفات التشغيلية المسجلة خلال الشفت — 0078.</summary>
     public List<ShiftExpenseRow> Expenses { get; set; } = new();
     public decimal ExpensesTotal =>
         Math.Round(Expenses.Sum(e => e.Amount), 2, MidpointRounding.AwayFromZero);
@@ -242,7 +242,7 @@ public sealed class ShiftAppointmentRow
     public string Status { get; set; } = "";
 }
 
-/// <summary>سطر التحصيلات/الإيرادات في تقرير الوردية (مرتب بالعميل) — 0077.</summary>
+/// <summary>سطر التحصيلات/الإيرادات في تقرير الشفت (مرتب بالعميل) — 0077.</summary>
 public sealed class ShiftCollectionRow
 {
     public string CustomerName { get; set; } = "";
@@ -264,7 +264,7 @@ public sealed class ShiftCollectionRow
     public string? ComplaintEmployeeName { get; set; }
 }
 
-/// <summary>مصروف تشغيلي مسجّل داخل الوردية (0078).</summary>
+/// <summary>مصروف تشغيلي مسجّل داخل الشفت (0078).</summary>
 public sealed class ShiftExpenseRow
 {
     public string? TreasuryType { get; set; }
@@ -277,7 +277,7 @@ public sealed class ShiftExpenseRow
     public string Status { get; set; } = "DRAFT";
 }
 
-/// <summary>حركة عداد جهاز خلال الوردية: القراءة الفعلية هي التي تُرحَّل من الشيفت — 0077.</summary>
+/// <summary>حركة عداد جهاز خلال الشفت: القراءة الفعلية هي التي تُرحَّل من الشيفت — 0077.</summary>
 public sealed class ShiftMeterMovementRow
 {
     public Guid AssetId { get; set; }
@@ -290,7 +290,7 @@ public sealed class ShiftMeterMovementRow
     public decimal Variance => Math.Round(Actual - Closing, 2, MidpointRounding.AwayFromZero);
 }
 
-/// <summary>تسجيل داخل الوردية حُصر عند الإغلاق ليراجعه يوزر محاسب.</summary>
+/// <summary>تسجيل داخل الشفت حُصر عند الإغلاق ليراجعه يوزر محاسب.</summary>
 public sealed class ShiftReviewItem
 {
     public Guid Id { get; set; }
@@ -334,13 +334,13 @@ public sealed class CashHandoverInput
     public Guid TreasuryId { get; set; }
     public Guid ClearingAccountId { get; set; }
     public decimal Amount { get; set; }
-    /// <summary>عمولة التسليم (اختيارية) — تُضاف لمصروفات الوردية وتُرحَّل على حساب عمولة الخزينة.</summary>
+    /// <summary>عمولة التسليم (اختيارية) — تُضاف لمصروفات الشفت وتُرحَّل على حساب عمولة الخزينة.</summary>
     public decimal CommissionAmount { get; set; }
     public DateTime DocDate { get; set; } = DateTime.Today;
     public string? Notes { get; set; }
 }
 
-/// <summary>رصيد خزينة داخل الوردية كعمود مستقل في شاشة الورديات — 0097.</summary>
+/// <summary>رصيد خزينة داخل الشفت كعمود مستقل في شاشة الشفتات — 0097.</summary>
 public sealed class ShiftTreasuryBalance
 {
     public Guid TreasuryId { get; set; }
@@ -349,7 +349,7 @@ public sealed class ShiftTreasuryBalance
     public decimal Balance { get; set; }
 }
 
-/// <summary>قيمة عداد جهاز داخل الوردية كعمود مستقل — 0097.</summary>
+/// <summary>قيمة عداد جهاز داخل الشفت كعمود مستقل — 0097.</summary>
 public sealed class ShiftMeterBalance
 {
     public Guid AssetId { get; set; }

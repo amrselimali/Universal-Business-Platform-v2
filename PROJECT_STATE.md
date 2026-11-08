@@ -1,5 +1,49 @@
 # PROJECT STATE — Universal Business Platform v2
 
+## 2026-11-08 — «الوردية» became «الشفت» across the whole app
+
+- Every user-facing Arabic string renamed: «الورديات» → «الشفتات» (screen title), «رقم الوردية» →
+  «رقم الشفت», «فتح وردية» → «فتح شفت», «إغلاق الوردية» → «إغلاق الشفت», «تقرير الوردية» →
+  «تقرير الشفت», «تسوية الورديات» → «تسوية الشفتات», «مستخدم وردية» → «مستخدم شفت», «رصيد الورديات
+  تحت المراجعة» → «رصيد الشفتات تحت المراجعة», plus every hint/validation message
+  (`validation.shift_required`, `validation.shift_already_open`, `validation.shift_not_closed`,
+  `validation.shift_not_open`) and gender agreement (`شفت مفتوح / غير مغلق / غير مفتوح / واحد`).
+- Also renamed in code comments, user-manual generator texts, and Arabic journal descriptions
+  («فرق تعديل شفت …»، «زيادة/عجز شفت …») so reports show the new wording.
+- English resources keep the technical term `Shift`; code identifiers, tables and permission codes are
+  unchanged (no migration needed).
+
+## 2026-11-08 — Treasuries are the payment methods (payment-method UI removed)
+
+- Migration `0093`: `treasuries.follow_in_shift` (shift follow-up now on the treasury itself),
+  `treasuries.provider_fee_percent/amount/account_id` (عمولة التحصيل المحملة من مزود الخدمة), and a
+  hidden `DEFAULT` treasury method per treasury so vouchers/expenses that still store
+  `treasury_method_id` keep working. Backfill copies old method follow flags and fees onto the treasury.
+- Payment methods are **not exposed in any screen**: POS payments, µcollection, vouchers and operating
+  expenses pick a **treasury**; the treasury's default method is resolved server-side
+  (`OperatingExpenseRepository.DefaultMethodIdAsync`), and collection fees come from the treasury's
+  provider fee.
+- Treasuries screen (`/treasury/management`): **edit** any registered treasury, **archive/restore**
+  (`is_active`, archived rows hidden unless «إظهار المؤرشفة»), per-treasury «إعدادات الخزينة»
+  (shift follow-up, provider commission, over/short account) and a shift follow-up switch column.
+- Naming: treasury coding field = «عمولة التحصيل المحملة على العميل»; treasury settings procedure =
+  «عمولة التحصيل المحملة من مزود الخدمة».
+- Shift opening lists the followed **treasuries** with their balances (opening cash = their sum).
+- Employee appointments dialog + employee advance dialog list **all active employees of the branch**
+  (`MasterDataService.EmployeeBranchOptionsAsync`); the appointment dialog no longer asks for a customer.
+- Employee advance dialog: shows every coded treasury, hides the charged account (default
+  `employee_advances` posting key).
+- Cash handover dialog: shows every coded treasury, hides the branch cash clearing account (default
+  `cash_clearing`), and the commission cell appears only for treasuries followed in the shift, default 0,
+  posted to the treasury provider fee account or the `cash_handover_commission` default.
+- Operating expense dialog: notes cell, payment-method cell and line account column removed; treasury
+  selector lists all coded treasuries; line account defaults from the `operating_expense` posting key;
+  cost centre is the last column after the total.
+- Shift report → tomorrow employee appointments: customer column removed and headers renamed to
+  «وقت بداية العمل» / «وقت انتهاء العمل».
+- New posting keys: `cash_clearing`, `cash_handover_commission`, `operating_expense`.
+- Tests: `ShiftBalancesTests` updated to the treasury-level follow flag; full suite green.
+
 ## 2026-11-05 — POS draft posting + full outstanding collections
 
 - POS checkout accepts `DraftOnly`: receipt vouchers are created as **draft** (no journal entry, no

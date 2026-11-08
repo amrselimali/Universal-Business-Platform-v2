@@ -7,7 +7,7 @@ using Ubp.Infrastructure.Repositories;
 
 namespace Ubp.Application.Services;
 
-/// <summary>الخزائن وطرق الدفع والسندات والورديات: صلاحيات + تحقق + تدقيق.</summary>
+/// <summary>الخزائن وطرق الدفع والسندات والشفتات: صلاحيات + تحقق + تدقيق.</summary>
 public sealed partial class TreasuryService
 {
     private readonly ITreasuryRepository _treasury;
@@ -32,10 +32,10 @@ public sealed partial class TreasuryService
             or PaymentMethodTypes.Transfer;
 
     public async Task<IReadOnlyList<Treasury>> ListTreasuriesAsync(ActorContext actor,
-        Guid? branchId, CancellationToken ct = default)
+        Guid? branchId, bool includeArchived = false, CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.Treasuries, ActionCodes.View, ct: ct);
-        return await _treasury.ListTreasuriesAsync(branchId, ct);
+        return await _treasury.ListTreasuriesAsync(branchId, includeArchived, ct);
     }
 
     public async Task<Treasury> CreateTreasuryAsync(ActorContext actor, TreasuryInput input,
@@ -115,7 +115,7 @@ public sealed partial class TreasuryService
         return (await _treasury.ListMethodsAsync(input.TreasuryId, ct)).First(m => m.Id == id);
     }
 
-    /// <summary>تفعيل/إيقاف «يتم متابعتها في الوردية» لطريقة دفع — 0075.</summary>
+    /// <summary>تفعيل/إيقاف «يتم متابعتها في الشفت» لطريقة دفع — 0075.</summary>
     public async Task SetMethodFollowInShiftAsync(ActorContext actor, Guid id, bool followInShift,
         CancellationToken ct = default)
     {

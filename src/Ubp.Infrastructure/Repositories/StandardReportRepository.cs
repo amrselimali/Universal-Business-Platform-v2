@@ -18,7 +18,7 @@ public interface IStandardReportRepository
     /// <summary>حالة الحجوزات والدفعات (محجوز/مستهلك/متبقٍ + الدفعة).</summary>
     Task<ReportTable> ReservationStatusAsync(DateOnly from, DateOnly to, Guid[] branchIds,
         bool onlyRemaining = true, CancellationToken ct = default);
-    /// <summary>تسوية الورديات (فرق الصندوق).</summary>
+    /// <summary>تسوية الشفتات (فرق الصندوق).</summary>
     Task<ReportTable> ShiftVarianceAsync(DateOnly from, DateOnly to, Guid[] branchIds,
         CancellationToken ct = default);
     /// <summary>المخزون الراكد (بلا حركة خلال N يوماً).</summary>

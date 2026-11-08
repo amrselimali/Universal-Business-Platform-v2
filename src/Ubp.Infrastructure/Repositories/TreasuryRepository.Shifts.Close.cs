@@ -8,7 +8,7 @@ namespace Ubp.Infrastructure.Repositories;
 public sealed partial class TreasuryRepository
 {
     /// <summary>
-    /// إغلاق وردية الفرع (0076): المتوقع لكل خزينة = لقطة افتتاحها + حركتها خلال الوردية،
+    /// إغلاق شفت الفرع (0076): المتوقع لكل خزينة = لقطة افتتاحها + حركتها خلال الشفت،
     /// والنقد الفعلي يُدخل يدوياً لكل خزينة ويُحفظ **مسودة** (draft) مع الفرق — بلا أي
     /// ترحيل للحسابات؛ الترحيل يتم باعتماد المحاسب. counts = null يعني إغلاقاً آلياً.
     /// </summary>
@@ -35,7 +35,7 @@ public sealed partial class TreasuryRepository
         {
             var movement = await TreasuryMovementAsync(connection, tx, row.TreasuryId,
                 shift.OpenedAt, ct);
-            // النقد المتوقع = أول المدة + (المحصل − المنصرف) للخزينة خلال الوردية (0079).
+            // النقد المتوقع = أول المدة + (المحصل − المنصرف) للخزينة خلال الشفت (0079).
             var fee = await CollectionFeeAsync(connection, tx, row.TreasuryId, shift.OpenedAt,
                 shift.ClosedAt, ct);
             var expected = Math.Round(row.OpeningCash + movement - fee, 2,
@@ -55,7 +55,7 @@ public sealed partial class TreasuryRepository
             totalExpected += expected; totalCounted += counted; totalVariance += variance;
         }
 
-        // خزائن أُضيفت بعد فتح الوردية: تُسجَّل مسودة كذلك حتى تُراجَع.
+        // خزائن أُضيفت بعد فتح الشفت: تُسجَّل مسودة كذلك حتى تُراجَع.
         foreach (var input in (counts ?? Array.Empty<ShiftCashCountInput>())
                  .Where(c => rows.All(r => r.TreasuryId != c.TreasuryId)))
         {
@@ -90,7 +90,7 @@ public sealed partial class TreasuryRepository
         return (await GetShiftAsync(shiftId, ct))!;
     }
 
-    /// <summary>صافي حركة خزينة واحدة منذ فتح الوردية (المرحّل + المسودات، أياً كانت طريقة الدفع).</summary>
+    /// <summary>صافي حركة خزينة واحدة منذ فتح الشفت (المرحّل + المسودات، أياً كانت طريقة الدفع).</summary>
     private static async Task<decimal> TreasuryMovementAsync(NpgsqlConnection connection,
         NpgsqlTransaction? tx, Guid treasuryId, DateTimeOffset openedAt, CancellationToken ct) =>
         await connection.ExecuteScalarAsync<decimal>(new CommandDefinition("""
@@ -104,7 +104,7 @@ public sealed partial class TreasuryRepository
                        WHEN v.to_treasury_id = @treasuryId AND v.voucher_type = 'transfer'
                            THEN v.total_amount
                        ELSE 0 END), 0)
-                   -- تسليم النقدية للحساب الوسيط يخفض نقدية الخزينة في الوردية (0080)
+                   -- تسليم النقدية للحساب الوسيط يخفض نقدية الخزينة في الشفت (0080)
                    - COALESCE((SELECT SUM(h.amount + h.commission_amount) FROM cash_handovers h
                                WHERE h.treasury_id = @treasuryId
                                  AND h.created_at >= @openedAt), 0)
@@ -113,7 +113,7 @@ public sealed partial class TreasuryRepository
               AND (v.treasury_id = @treasuryId OR v.to_treasury_id = @treasuryId)
             """, new { treasuryId, openedAt }, tx, cancellationToken: ct));
 
-    /// <summary>عدّ النقدية لكل خزينة في الوردية.</summary>
+    /// <summary>عدّ النقدية لكل خزينة في الشفت.</summary>
     private static async Task<IReadOnlyList<ShiftCashCount>> QueryCashCountsAsync(
         NpgsqlConnection connection, Guid shiftId, NpgsqlTransaction? tx,
         CancellationToken ct) =>
@@ -149,7 +149,7 @@ public sealed partial class TreasuryRepository
         return true;
     }
 
-    /// <summary>حفظ ملاحظات الوردية لتظهر في العرض والإغلاق كل مرة — 0078.</summary>
+    /// <summary>حفظ ملاحظات الشفت لتظهر في العرض والإغلاق كل مرة — 0078.</summary>
     public async Task<bool> SaveShiftNotesAsync(Guid shiftId, string? notes,
         CancellationToken ct = default)
     {
@@ -166,7 +166,7 @@ public sealed partial class TreasuryRepository
         return await QueryCashCountsAsync(connection, shiftId, null, ct);
     }
 
-    /// <summary>عمولة التحصيل لكل خزينة = مجموع تحصيلات الوردية × نسبة العمولة — 0081.</summary>
+    /// <summary>عمولة التحصيل لكل خزينة = مجموع تحصيلات الشفت × نسبة العمولة — 0081.</summary>
     private static async Task<decimal> CollectionFeeAsync(NpgsqlConnection connection,
         NpgsqlTransaction? tx, Guid treasuryId, DateTimeOffset openedAt, DateTimeOffset? until,
         CancellationToken ct) =>

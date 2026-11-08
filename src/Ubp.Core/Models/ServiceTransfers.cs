@@ -80,6 +80,6 @@ public sealed class ServiceTransfer
     public List<ServiceTransferLine> Lines { get; set; } = new();
 
     public bool IsDraft => Status == ServiceTransferStatuses.Draft;
-    /// <summary>نص موحّد لسطر التحويل في تقرير الوردية: «من ← إلى».</summary>
+    /// <summary>نص موحّد لسطر التحويل في تقرير الشفت: «من ← إلى».</summary>
     public string Display => $"{FromCustomerName} → {ToCustomerName}";
 }

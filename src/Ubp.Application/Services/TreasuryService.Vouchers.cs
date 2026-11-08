@@ -7,7 +7,7 @@ using Ubp.Infrastructure.Repositories;
 
 namespace Ubp.Application.Services;
 
-/// <summary>الخزائن وطرق الدفع والسندات والورديات: صلاحيات + تحقق + تدقيق.</summary>
+/// <summary>الخزائن وطرق الدفع والسندات والشفتات: صلاحيات + تحقق + تدقيق.</summary>
 public sealed partial class TreasuryService
 {
     public async Task<IReadOnlyList<Voucher>> ListVouchersAsync(ActorContext actor, Guid? branchId,

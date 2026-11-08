@@ -6,7 +6,7 @@ namespace Ubp.Infrastructure.Repositories;
 
 public sealed partial class TreasuryRepository
 {
-    /// <summary>حصر تسجيلات الوردية (غير الملغاة) لتُراجَع: سندات ومستندات وحجوزات ومصروفات مسودة.</summary>
+    /// <summary>حصر تسجيلات الشفت (غير الملغاة) لتُراجَع: سندات ومستندات وحجوزات ومصروفات مسودة.</summary>
     private static async Task CaptureReviewItemsAsync(NpgsqlConnection connection,
         NpgsqlTransaction tx, ShiftRow shift, CancellationToken ct) =>
         await connection.ExecuteAsync(new CommandDefinition("""

@@ -9,7 +9,7 @@ public sealed class ActorContext
     public bool IsSuperAdmin { get; init; }
     /// <summary>يُمنع كل وصول آخر حتى تُغيَّر كلمة المرور (0036).</summary>
     public bool MustChangePassword { get; init; }
-    /// <summary>مستخدم وردية: لا تسجيل في أي شاشة إلا بوردية مفتوحة (0074).</summary>
+    /// <summary>مستخدم شفت: لا تسجيل في أي شاشة إلا بشفت مفتوحة (0074).</summary>
     public bool RequiresShift { get; init; }
     public string Language { get; init; } = "ar";
     public Guid? CurrentBranchId { get; init; }

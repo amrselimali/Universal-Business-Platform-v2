@@ -63,7 +63,7 @@
             </div>
         </MudForm>
 
-        <VoucherLinesEditor Methods="_methods" Lines="_input.Lines" Changed="OnLinesChanged" />
+        <VoucherLinesEditor MethodId="_defaultMethodId" Lines="_input.Lines" Changed="OnLinesChanged" />
 
         <MudPaper Elevation="0" Class="ubp-card mt-2">
             <div class="ubp-toolbar">
@@ -94,6 +94,7 @@
     private DateTime? _date = DateTime.Today;
     private IReadOnlyList<Treasury> _treasuries = Array.Empty<Treasury>();
     private IReadOnlyList<TreasuryMethod> _methods = Array.Empty<TreasuryMethod>();
+    private Guid _defaultMethodId;
     private IReadOnlyList<Partner> _parties = Array.Empty<Partner>();
     private bool _busy;
     private bool _english;
@@ -130,8 +131,10 @@
         _methods = _input.TreasuryId == Guid.Empty
             ? Array.Empty<TreasuryMethod>()
             : await Treasury.ListMethodsAsync(actor, _input.TreasuryId);
-        if (_methods.Count > 0 && _input.Lines.Count == 0)
-            _input.Lines.Add(new VoucherLineInput { TreasuryMethodId = _methods[0].Id });
+        _defaultMethodId = _methods.OrderByDescending(m => m.Code == "DEFAULT")
+            .Select(m => m.Id).FirstOrDefault();
+        if (_defaultMethodId != Guid.Empty && _input.Lines.Count == 0)
+            _input.Lines.Add(new VoucherLineInput { TreasuryMethodId = _defaultMethodId });
     }
 
     private async Task ReloadPartiesAsync(ActorContext actor)

@@ -25,12 +25,12 @@
             <MudTable Items="_balances.Treasuries" Dense="true" Elevation="0" Class="ubp-table">
                 <HeaderContent>
                     <MudTh>@T.T("treasury.treasury")</MudTh>
-                    <MudTh>@T.T("treasury.followed_methods")</MudTh>
-                    <MudTh Align="Right">@T.T("accounting.total")</MudTh>
+                    <MudTh>@T.T("treasury.type")</MudTh>
+                    <MudTh Align="Right">@T.T("treasury.first_period_balance")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd><span class="ubp-code">@context.Code</span> — @context.NameAr</MudTd>
-                    <MudTd>@MethodsLabel(context)</MudTd>
+                    <MudTd>@T.T("treasury.type_" + context.TreasuryType)</MudTd>
                     <MudTd Align="Right"><b>@context.Total.ToString("N2")</b></MudTd>
                 </RowTemplate>
             </MudTable>
@@ -101,11 +101,6 @@
     private string PendingReviewHint => _balances is null
         ? ""
         : string.Format(T.T("treasury.pending_review_shifts"), _balances.PendingReviewShifts);
-
-    private static string MethodsLabel(ShiftTreasuryRow treasury) =>
-        treasury.Methods.Count == 0
-            ? "—"
-            : string.Join(" · ", treasury.Methods.Select(m => $"{m.Code} — {m.NameAr}"));
 
     protected override async Task OnInitializedAsync()
     {

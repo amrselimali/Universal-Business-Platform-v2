@@ -30,15 +30,6 @@
                         </MudSelectItem>
                     }
                 </MudSelect>
-                <MudSelect T="Guid?" @bind-Value="_chargeAccountId"
-                           Label="الحساب المحمَّل عليه السلفة" Variant="Variant.Outlined" Clearable="true">
-                    @foreach (var account in _accounts)
-                    {
-                        <MudSelectItem T="Guid?" Value="@((Guid?)account.Id)">
-                            @account.Code — @account.NameAr
-                        </MudSelectItem>
-                    }
-                </MudSelect>
                 <MudNumericField @bind-Value="_amount" Label="قيمة السلفة"
                                  Variant="Variant.Outlined" Min="0.01m" Format="N2" Required="true" />
                 <MudTextField @bind-Value="_notes" Label="@T.T("common.notes")"
@@ -60,10 +51,8 @@
     private MudForm _form = default!;
     private IReadOnlyList<Employee> _employees = Array.Empty<Employee>();
     private IReadOnlyList<Treasury> _treasuries = Array.Empty<Treasury>();
-    private IReadOnlyList<Account> _accounts = Array.Empty<Account>();
     private Guid _employeeId;
     private Guid _treasuryId;
-    private Guid? _chargeAccountId;
     private decimal _amount;
     private string? _notes;
     private bool _busy;
@@ -73,9 +62,9 @@
         try
         {
             var actor = await UserContext.RequireAsync();
-            _employees = await MasterData.EmployeeOptionsAsync(actor);
+            // كل الموظفين النشطين في الفرع + كل الخزائن المكوَّدة — 0093.
+            _employees = await MasterData.EmployeeBranchOptionsAsync(actor, BranchId);
             _treasuries = await Lookup.TreasuriesAsync(actor, BranchId);
-            _accounts = await Lookup.PostableAccountsAsync(actor);
             _treasuryId = _treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
             _employeeId = _employees.FirstOrDefault()?.Id ?? Guid.Empty;
         }
@@ -99,7 +88,7 @@
             var advance = await Advances.CreateAsync(actor, new EmployeeAdvanceInput
             {
                 BranchId = BranchId, EmployeeId = _employeeId, TreasuryId = _treasuryId,
-                ChargeAccountId = _chargeAccountId, Amount = _amount,
+                ChargeAccountId = null, Amount = _amount,
                 DocDate = DateTime.Today, Notes = _notes
             });
             Snackbar.Add($"تم صرف سلفة {advance.Amount:N2} للموظف {advance.EmployeeName}",

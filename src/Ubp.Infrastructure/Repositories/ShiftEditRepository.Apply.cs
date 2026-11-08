@@ -14,7 +14,7 @@ public sealed partial class ShiftEditRepository
 
     private static Guid? GuidOrNull(string? v) => Guid.TryParse(v, out var g) ? g : null;
 
-    /// <summary>يسمح بالتعديل أثناء الوردية المفتوحة أو أثناء انتظار المراجعة فقط (مسودات).</summary>
+    /// <summary>يسمح بالتعديل أثناء الشفت المفتوحة أو أثناء انتظار المراجعة فقط (مسودات).</summary>
     public async Task<ShiftEditOutcome> ApplyAsync(ShiftLineEditInput input, Guid userId,
         CancellationToken ct = default)
     {

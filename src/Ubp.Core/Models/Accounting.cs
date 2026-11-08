@@ -71,6 +71,12 @@ public static class PostingKeys
     public const string CashOverShort = "cash_over_short";
     public const string InterBranchClearing = "inter_branch_clearing";
     public const string BookingForfeitIncome = "booking_forfeit_income";
+    /// <summary>الحساب الوسيط لنقدية الفرع الافتراضي لتسليم النقدية — 0093.</summary>
+    public const string CashClearing = "cash_clearing";
+    /// <summary>حساب عمولة تسليم النقدية الافتراضي — 0093.</summary>
+    public const string CashHandoverCommission = "cash_handover_commission";
+    /// <summary>حساب المصروف التشغيلي الافتراضي (عند إلغاء خلية الحساب) — 0093.</summary>
+    public const string OperatingExpense = "operating_expense";
 
     public static readonly string[] All =
     {
@@ -78,7 +84,7 @@ public static class PostingKeys
         OpeningEquity, Rounding, SalesRevenue, VatOutput, VatInput, CustomerReceivable,
         SupplierPayable, PurchaseVariance, RoundingDifference, CustomerAdvances,
         SupplierAdvances, EmployeeAdvances, PaymentFees, CashOverShort, InterBranchClearing,
-        BookingForfeitIncome
+        BookingForfeitIncome, CashClearing, CashHandoverCommission, OperatingExpense
     };
 }
 

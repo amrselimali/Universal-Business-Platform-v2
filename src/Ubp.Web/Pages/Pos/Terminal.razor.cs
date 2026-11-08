@@ -7,6 +7,7 @@ using Ubp.Core.Models;
 using Ubp.Core.Paging;
 using Ubp.Core.Security;
 using Ubp.Web.Components.Shared;
+using TreasuryModel = Ubp.Core.Models.Treasury;
 
 namespace Ubp.Web.Pages.Pos;
 
@@ -47,7 +48,6 @@ public partial class Terminal : SecurePageBase
     private sealed class PaymentModel
     {
         public Guid TreasuryId { get; set; }
-        public Guid TreasuryMethodId { get; set; }
         public decimal Total { get; set; }
         public decimal Fee { get; set; }
         public decimal Collected => Math.Max(Total - Fee, 0);
@@ -87,6 +87,7 @@ public partial class Terminal : SecurePageBase
         _categoryFilter = categoryId;
         StateHasChanged();
     }
+    private IReadOnlyList<TreasuryModel> _treasuries = Array.Empty<TreasuryModel>();
     private IReadOnlyList<TreasuryMethod> _methods = Array.Empty<TreasuryMethod>();
     private IReadOnlyList<Employee> _employees = Array.Empty<Employee>();
     private List<CartLine> _cart = new();
@@ -138,6 +139,7 @@ public partial class Terminal : SecurePageBase
         if (BranchWarehouses.All(w => w.Id != _warehouseId))
             _warehouseId = BranchWarehouses.FirstOrDefault()?.Id ?? Guid.Empty;
         var treasuries = await Lookup.TreasuriesAsync(Actor!, _branchId);
+        _treasuries = treasuries;
         _treasuryId = treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
         _methods = await Lookup.TreasuryMethodsAsync(Actor!, _branchId);
         await SearchAsync();
@@ -167,9 +169,12 @@ public partial class Terminal : SecurePageBase
         _customerName = customer?.NameAr;
         _customerPhone = customer?.WhatsAppPhone ?? customer?.Phone ?? customer?.Phone2;
 
-        // تحديث طرق التحصيل المكوَّدة في شاشة الخزائن عند اختيار العميل (بدون إعادة تحميل الصفحة).
+        // تحديث الخزائن (طرق الدفع) المكوَّدة في شاشة الخزائن عند اختيار العميل.
         if (_branchId != Guid.Empty)
+        {
+            _treasuries = await Lookup.TreasuriesAsync(Actor!, _branchId);
             _methods = await Lookup.TreasuryMethodsAsync(Actor!, _branchId);
+        }
         StateHasChanged();
     }
 
@@ -220,10 +225,10 @@ public partial class Terminal : SecurePageBase
 
     private decimal FeeOf(PaymentModel payment)
     {
-        var method = _methods.FirstOrDefault(m => m.Id == payment.TreasuryMethodId);
-        return method is null ? 0m
-            : Math.Round(payment.Total * method.FeePercent / 100m + method.FeeFixed, 2,
-                MidpointRounding.AwayFromZero);
+        var treasury = _treasuries.FirstOrDefault(t => t.Id == payment.TreasuryId);
+        return treasury is null ? 0m
+            : Math.Round(payment.Total * treasury.ProviderFeePercent / 100m +
+                treasury.ProviderFeeAmount, 2, MidpointRounding.AwayFromZero);
     }
 
     private void SetTotal(PaymentModel payment, decimal total)
@@ -233,34 +238,39 @@ public partial class Terminal : SecurePageBase
         StateHasChanged();
     }
 
-    private void PickMethod(PaymentModel payment, Guid methodId)
+    private void PickTreasury(PaymentModel payment, Guid treasuryId)
     {
-        payment.TreasuryMethodId = methodId;
-        var method = _methods.FirstOrDefault(m => m.Id == methodId);
-        if (method is not null) payment.TreasuryId = method.TreasuryId;
+        payment.TreasuryId = treasuryId;
         payment.Fee = FeeOf(payment);
         StateHasChanged();
     }
 
     private void AddPayment()
     {
-        var method = _methods.FirstOrDefault();
-        if (method is null) return;
+        var treasury = _treasuries.FirstOrDefault();
+        if (treasury is null) return;
         var remaining = Math.Max(Total - _payments.Sum(p => p.Collected), 0);
-        var fee = Math.Round(remaining * method.FeePercent / 100m + method.FeeFixed, 2,
-            MidpointRounding.AwayFromZero);
+        var fee = Math.Round(remaining * treasury.ProviderFeePercent / 100m +
+            treasury.ProviderFeeAmount, 2, MidpointRounding.AwayFromZero);
         _payments.Add(new PaymentModel
         {
-            TreasuryId = method.TreasuryId, TreasuryMethodId = method.Id,
+            TreasuryId = treasury.Id,
             Total = Math.Round(remaining + fee, 2, MidpointRounding.AwayFromZero), Fee = fee
         });
         StateHasChanged();
     }
 
+    /// <summary>الطريقة الداخلية للخزينة (تُستخدم في سطور السند تلقائياً) — 0093.</summary>
+    private Guid DefaultMethodIdOf(Guid treasuryId) =>
+        _methods.Where(m => m.TreasuryId == treasuryId)
+            .OrderByDescending(m => m.Code == "DEFAULT")
+            .Select(m => m.Id)
+            .FirstOrDefault();
+
     private async Task CollectBookingsAsync()
     {
         if (_customerId == Guid.Empty || _branchId == Guid.Empty) return;
-        if (_methods.Count == 0)
+        if (_treasuries.Count == 0)
         {
             Snackbar.Add(T.T("pos.no_collection_methods"), Severity.Warning);
             return;
@@ -270,7 +280,7 @@ public partial class Terminal : SecurePageBase
             new DialogParameters
             {
                 ["BranchId"] = _branchId, ["CustomerId"] = _customerId,
-                ["CustomerName"] = _customerName, ["Methods"] = _methods
+                ["CustomerName"] = _customerName, ["Treasuries"] = _treasuries
             });
         if ((await dialog.Result) is { Canceled: false }) StateHasChanged();
     }
@@ -327,7 +337,8 @@ public partial class Terminal : SecurePageBase
                 }).ToList(),
                 Payments = _payments.Where(p => p.Total > 0).Select(p => new PosPaymentInput
                 {
-                    TreasuryId = p.TreasuryId, TreasuryMethodId = p.TreasuryMethodId,
+                    TreasuryId = p.TreasuryId,
+                    TreasuryMethodId = DefaultMethodIdOf(p.TreasuryId),
                     Amount = p.Total
                 }).ToList()
             });

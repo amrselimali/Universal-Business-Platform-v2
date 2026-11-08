@@ -21,15 +21,13 @@ public partial class OperatingExpenseDialog
             Snackbar.Add(T.T("validation.expense_supplier_required"), Severity.Warning);
             return;
         }
-        if (!_onCredit && (_treasuryId == Guid.Empty || _methodId == Guid.Empty))
+        if (!_onCredit && _treasuryId == Guid.Empty)
         {
             Snackbar.Add(T.T("validation.expense_payment_incomplete"), Severity.Warning);
             return;
         }
 
-        var lines = _lines
-            .Where(l => l.Account is not null && l.Quantity > 0 && l.UnitPrice > 0)
-            .ToList();
+        var lines = _lines.Where(l => l.Quantity > 0 && l.UnitPrice > 0).ToList();
         if (lines.Count == 0)
         {
             Snackbar.Add(T.T("validation.document_has_no_lines"), Severity.Warning);
@@ -44,11 +42,9 @@ public partial class OperatingExpenseDialog
             {
                 BranchId = _branchId, DocDate = _docDate.Value, SupplierId = _supplier.Id,
                 TreasuryId = _onCredit ? null : _treasuryId,
-                TreasuryMethodId = _onCredit ? null : _methodId,
-                Notes = _notes,
                 Lines = lines.Select(l => new OperatingExpenseLineInput
                 {
-                    AccountId = l.Account!.Id, ItemId = l.Item?.Id,
+                    ItemId = l.Item?.Id,
                     UnitId = l.Item?.BaseUnitId,
                     WarehouseId = l.Item is null ? null : l.WarehouseId,
                     CostCenterId = l.CostCenterId, Description = l.Description,

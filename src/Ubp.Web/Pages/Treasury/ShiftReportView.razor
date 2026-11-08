@@ -12,7 +12,7 @@
 @if (_canEdit && (Report.Shift.IsOpen || Report.Shift.IsPendingReview))
 {
     <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mb-2"
-               StartIcon="@Icons.Material.Filled.Edit" OnClick="OpenEditAsync">تعديل بيانات الوردية</MudButton>
+               StartIcon="@Icons.Material.Filled.Edit" OnClick="OpenEditAsync">تعديل بيانات الشفت</MudButton>
 }
 <MudTable Items="Report.Lines" Dense="true" Elevation="0" Class="ubp-table">
     <HeaderContent>
@@ -213,14 +213,12 @@
         <MudTable Items="Report.TomorrowAppointments" Dense="true" Elevation="0" Class="ubp-table">
             <HeaderContent>
                 <MudTh>@T.T("common.employee")</MudTh>
-                <MudTh>@T.T("common.customer")</MudTh>
-                <MudTh>@T.T("sales.starts_at")</MudTh>
-                <MudTh>@T.T("sales.ends_at")</MudTh>
+                <MudTh>@T.T("sales.work_start_time")</MudTh>
+                <MudTh>@T.T("sales.work_end_time")</MudTh>
                 <MudTh>@T.T("common.status")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd>@context.EmployeeName</MudTd>
-                <MudTd>@context.CustomerName</MudTd>
                 <MudTd>@Fmt.DateTime(context.StartsAt)</MudTd>
                 <MudTd>@Fmt.DateTime(context.EndsAt)</MudTd>
                 <MudTd>@StatusText(context.Status)</MudTd>
@@ -263,7 +261,7 @@
 
     private async Task OpenEditAsync()
     {
-        var dialog = await Dialogs.ShowAsync<ShiftEditDialog>("تعديل بيانات الوردية",
+        var dialog = await Dialogs.ShowAsync<ShiftEditDialog>("تعديل بيانات الشفت",
             new DialogParameters
             {
                 ["ShiftId"] = Report.Shift.Id, ["BranchId"] = Report.Shift.BranchId

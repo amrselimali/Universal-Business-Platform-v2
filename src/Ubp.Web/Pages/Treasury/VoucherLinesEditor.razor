@@ -1,6 +1,6 @@
 @inherits ComponentBase
 
-@if (Methods.Count == 0)
+@if (MethodId == Guid.Empty)
 {
     <MudAlert Severity="Severity.Info" Dense="true" Class="my-2">
         @T.T("treasury.select_treasury_first")
@@ -10,22 +10,12 @@ else
 {
     <MudTable Items="Lines" Dense="true" Elevation="0" Class="ubp-table my-2">
         <HeaderContent>
-            <MudTh>@T.T("treasury.method")</MudTh>
             <MudTh Align="Right">@T.T("common.amount")</MudTh>
             <MudTh Align="Right">@T.T("treasury.fee_amount")</MudTh>
             <MudTh>@T.T("treasury.reference")</MudTh>
             <MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd>
-                <MudSelect T="Guid" Value="context.TreasuryMethodId" Dense="true"
-                           ValueChanged="@(v => { context.TreasuryMethodId = v; TouchAsync(); })">
-                    @foreach (var method in Methods)
-                    {
-                        <MudSelectItem T="Guid" Value="@method.Id">@method.Code — @method.NameAr</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudTd>
             <MudTd Align="Right">
                 <MudNumericField T="decimal" Value="context.Amount" Min="0m" Format="N2" Dense="true"
                                  ValueChanged="@(v => { context.Amount = v; TouchAsync(); })" />
@@ -51,8 +41,11 @@ else
 }
 
 @code {
-    [Parameter] public IReadOnlyList<TreasuryMethod> Methods { get; set; } =
-        Array.Empty<TreasuryMethod>();
+    /// <summary>
+    /// الطريقة الداخلية للخزينة المختارة (الخزائن هي طرق الدفع): لا يُطلب من المستخدم
+    /// اختيار طريقة دفع، وتُستخدم الطريقة الافتراضية للخزينة — 0093.
+    /// </summary>
+    [Parameter] public Guid MethodId { get; set; }
 
     [Parameter] public List<VoucherLineInput> Lines { get; set; } = new();
 
@@ -62,9 +55,8 @@ else
 
     private void AddLine()
     {
-        var method = Methods.FirstOrDefault();
-        if (method is null) return;
-        Lines.Add(new VoucherLineInput { TreasuryMethodId = method.Id, Amount = 0 });
+        if (MethodId == Guid.Empty) return;
+        Lines.Add(new VoucherLineInput { TreasuryMethodId = MethodId, Amount = 0 });
         TouchAsync();
     }
 

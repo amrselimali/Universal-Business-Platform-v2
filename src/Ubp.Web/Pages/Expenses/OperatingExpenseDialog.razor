@@ -20,8 +20,6 @@
                                  SearchFunc="SearchSuppliers" ToStringFunc="@SupplierLabel"
                                  Variant="Variant.Outlined" Required="true" Dense="true"
                                  CoerceText="true" CoerceValue="true" />
-                <MudTextField @bind-Value="_notes" Label="@T.T("common.notes")"
-                              Variant="Variant.Outlined" MaxLength="500" />
             </div>
 
             <div class="d-flex flex-wrap align-center gap-2 mt-2">
@@ -29,22 +27,12 @@
                            Label="@T.T("expenses.on_credit")" />
                 @if (!_onCredit)
                 {
-                    <MudSelect T="Guid" Value="_treasuryId" Label="@T.T("treasury.treasury")"
-                               Variant="Variant.Outlined" Margin="Margin.Dense"
-                               ValueChanged="OnTreasuryChanged" Class="ubp-search">
+                    <MudSelect T="Guid" @bind-Value="_treasuryId" Label="@T.T("treasury.treasury")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search">
                         @foreach (var treasury in _treasuries)
                         {
                             <MudSelectItem T="Guid" Value="@treasury.Id">
                                 @treasury.Code — @treasury.NameAr
-                            </MudSelectItem>
-                        }
-                    </MudSelect>
-                    <MudSelect T="Guid" @bind-Value="_methodId" Label="@T.T("expenses.payment_method")"
-                               Variant="Variant.Outlined" Margin="Margin.Dense" Class="ubp-search">
-                        @foreach (var method in _methods.Where(m => m.TreasuryId == _treasuryId))
-                        {
-                            <MudSelectItem T="Guid" Value="@method.Id">
-                                @method.Code — @method.NameAr
                             </MudSelectItem>
                         }
                     </MudSelect>
@@ -59,35 +47,18 @@
         <MudTable Items="_lines" Dense="true" Elevation="0" Class="ubp-table mt-3">
             <HeaderContent>
                 <MudTh>@T.T("expenses.line_description")</MudTh>
-                <MudTh>@T.T("expenses.account")</MudTh>
-                <MudTh>@T.T("expenses.cost_center")</MudTh>
                 <MudTh>@T.T("expenses.item")</MudTh>
                 <MudTh>@T.T("expenses.warehouse")</MudTh>
                 <MudTh Align="Right">@T.T("expenses.quantity")</MudTh>
                 <MudTh Align="Right">@T.T("expenses.unit_price")</MudTh>
                 <MudTh Align="Right">@T.T("expenses.amount")</MudTh>
+                <MudTh>@T.T("expenses.cost_center")</MudTh>
                 <MudTh></MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd>
                     <MudTextField @bind-Value="context.Description" Dense="true"
                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
-                </MudTd>
-                <MudTd>
-                    <MudAutocomplete T="Account" Value="context.Account"
-                                     ValueChanged="@(v => context.Account = v)" Dense="true"
-                                     SearchFunc="SearchAccounts" ToStringFunc="@AccountLabel"
-                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
-                </MudTd>
-                <MudTd>
-                    <MudSelect T="Guid?" Value="context.CostCenterId" Dense="true"
-                               Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
-                               ValueChanged="@(v => context.CostCenterId = v)">
-                        @foreach (var center in _costCenters)
-                        {
-                            <MudSelectItem T="Guid?" Value="@((Guid?)center.Id)">@center.NameAr</MudSelectItem>
-                        }
-                    </MudSelect>
                 </MudTd>
                 <MudTd>
                     <MudAutocomplete T="ItemOption" Value="context.Item"
@@ -114,6 +85,16 @@
                                      Format="N2" Dense="true" Variant="Variant.Outlined" />
                 </MudTd>
                 <MudTd Align="Right">@context.Amount.ToString("N2")</MudTd>
+                <MudTd>
+                    <MudSelect T="Guid?" Value="context.CostCenterId" Dense="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                               ValueChanged="@(v => context.CostCenterId = v)">
+                        @foreach (var center in _costCenters)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)center.Id)">@center.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudTd>
                 <MudTd>
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
                                    OnClick="@(() => _lines.Remove(context))" />

@@ -244,19 +244,33 @@ public sealed partial class PosRepository : IPosRepository
             if (payment.Amount <= 0)
                 throw new ValidationAppException("validation.voucher_amount");
 
+            // الخزائن هي طرق الدفع: تُستنتج طريقة الخزينة الافتراضية وعمولة مزود الخدمة — 0093.
+            var methodId = payment.TreasuryMethodId == Guid.Empty
+                ? (Guid?)null
+                : payment.TreasuryMethodId;
             var account = await connection.QuerySingleOrDefaultAsync<PaymentAccount>(
                 new CommandDefinition("""
                 SELECT t.id AS TreasuryId, m.id AS TreasuryMethodId, t.branch_id AS BranchId,
                        t.treasury_type AS TreasuryType, t.account_id AS AccountId,
-                       m.clearing_account_id AS ClearingAccountId, m.fee_account_id AS FeeAccountId,
-                       m.fee_percent AS FeePercent,
-                       m.fee_fixed AS FeeFixed, m.requires_reference AS RequiresReference
-                FROM treasury_methods m JOIN treasuries t ON t.id = m.treasury_id
-                WHERE m.id = @methodId AND m.treasury_id = @treasuryId
-                  AND m.is_active AND t.is_active
-                """, new { methodId = payment.TreasuryMethodId, treasuryId = payment.TreasuryId },
+                       m.clearing_account_id AS ClearingAccountId,
+                       t.provider_fee_account_id AS FeeAccountId,
+                       t.provider_fee_percent AS FeePercent,
+                       t.provider_fee_amount AS FeeFixed,
+                       COALESCE(m.requires_reference, false) AS RequiresReference
+                FROM treasuries t
+                LEFT JOIN LATERAL (
+                    SELECT mm.id, mm.clearing_account_id, mm.requires_reference
+                    FROM treasury_methods mm
+                    WHERE mm.treasury_id = t.id AND mm.is_active
+                      AND (@methodId::uuid IS NULL OR mm.id = @methodId::uuid)
+                    ORDER BY (mm.code = 'DEFAULT') DESC, mm.code
+                    LIMIT 1
+                ) m ON true
+                WHERE t.id = @treasuryId AND t.is_active
+                """, new { methodId, treasuryId = payment.TreasuryId },
                 tx, cancellationToken: ct));
-            if (account is null || account.AccountId == Guid.Empty)
+            if (account is null || account.AccountId == Guid.Empty ||
+                account.TreasuryMethodId == Guid.Empty)
                 throw new ValidationAppException("validation.treasury_method_not_found");
             if (account.BranchId != input.BranchId)
                 throw new ValidationAppException("validation.treasury_branch_mismatch");
@@ -267,6 +281,7 @@ public sealed partial class PosRepository : IPosRepository
             account.Reference = payment.Reference;
             account.Fee = Math.Round(payment.Amount * account.FeePercent / 100m +
                 account.FeeFixed, 2, MidpointRounding.AwayFromZero);
+            payment.TreasuryMethodId = account.TreasuryMethodId;
             result.Add(account);
         }
 

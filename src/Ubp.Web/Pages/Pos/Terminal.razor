@@ -183,7 +183,7 @@ else
 
                 <MudTable Items="_payments" Dense="true" Elevation="0" Class="ubp-table mt-2">
                     <HeaderContent>
-                        <MudTh>@T.T("treasury.method")</MudTh>
+                        <MudTh>@T.T("treasury.treasury")</MudTh>
                         <MudTh Align="Right">@T.T("pos.payment_total")</MudTh>
                         <MudTh Align="Right">@T.T("pos.collected_amount")</MudTh>
                         <MudTh Align="Right">@T.T("pos.fee")</MudTh>
@@ -191,14 +191,13 @@ else
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd>
-                            <MudSelect T="Guid" Value="context.TreasuryMethodId" Dense="true"
-                                       ValueChanged="@(v => PickMethod(context, v))">
-                                @foreach (var method in _methods)
+                            <MudSelect T="Guid" Value="context.TreasuryId" Dense="true"
+                                       ValueChanged="@(v => PickTreasury(context, v))">
+                                @foreach (var treasury in _treasuries)
                                 {
-                                    <MudSelectItem T="Guid" Value="@method.Id">
-                                        @method.Code — @method.NameAr
-                                        @(string.IsNullOrWhiteSpace(method.TreasuryName) ? "" : $" — {method.TreasuryName}")
-                                        (@method.FeePercent.ToString("N2")%)
+                                    <MudSelectItem T="Guid" Value="@treasury.Id">
+                                        @treasury.Code — @treasury.NameAr
+                                        (@treasury.ProviderFeePercent.ToString("N2")%)
                                     </MudSelectItem>
                                 }
                             </MudSelect>

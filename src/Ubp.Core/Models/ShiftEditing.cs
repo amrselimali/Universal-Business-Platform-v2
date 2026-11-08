@@ -1,6 +1,6 @@
 namespace Ubp.Core.Models;
 
-/// <summary>سطر قابل للتعديل من تقرير الوردية (توحيد مستندات الشيفت) — 0089.</summary>
+/// <summary>سطر قابل للتعديل من تقرير الشفت (توحيد مستندات الشيفت) — 0089.</summary>
 public sealed class ShiftEditableLine
 {
     public string EntityType { get; set; } = "";
@@ -29,7 +29,7 @@ public sealed class ShiftEditableLine
         StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }
 
-/// <summary>طلب تعديل حقل في سطر مستند ضمن الوردية — 0089.</summary>
+/// <summary>طلب تعديل حقل في سطر مستند ضمن الشفت — 0089.</summary>
 public sealed class ShiftLineEditInput
 {
     public Guid ShiftId { get; set; }

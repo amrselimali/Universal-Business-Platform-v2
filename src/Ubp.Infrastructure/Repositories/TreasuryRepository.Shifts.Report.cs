@@ -7,8 +7,8 @@ namespace Ubp.Infrastructure.Repositories;
 public sealed partial class TreasuryRepository
 {
     /// <summary>
-    /// تقرير الوردية (0077): جدول واحد للتحصيلات والإيرادات مرتب بالعميل، عدّ نقدية كل خزينة
-    /// (بالمتوقع الحالي للوردية المفتوحة)، حركة عدادات الأجهزة، والملاحظات — ثم عملاء بلا
+    /// تقرير الشفت (0077): جدول واحد للتحصيلات والإيرادات مرتب بالعميل، عدّ نقدية كل خزينة
+    /// (بالمتوقع الحالي للشفت المفتوحة)، حركة عدادات الأجهزة، والملاحظات — ثم عملاء بلا
     /// متابعة وحجوزات/مواعيد الغد في نهاية التقرير.
     /// </summary>
     public async Task<ShiftReport> GetShiftReportAsync(Guid shiftId, CancellationToken ct = default)
@@ -104,7 +104,7 @@ public sealed partial class TreasuryRepository
             ORDER BY CustomerName
             """, args, cancellationToken: ct))).ToList();
 
-        // ضمان ظهور كل خزائن الفرع المتابَعة حتى للورديات المفتوحة قبل الترحيل 0076.
+        // ضمان ظهور كل خزائن الفرع المتابَعة حتى للشفتات المفتوحة قبل الترحيل 0076.
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO shift_cash_counts (id, shift_id, treasury_id, opening_cash, expected_cash, status)
             SELECT gen_random_uuid(), @shiftId, t.id,
@@ -136,8 +136,8 @@ public sealed partial class TreasuryRepository
                 openedAt = shift.OpenedAt },
             cancellationToken: ct));
 
-        // تصحيح «أول المدة» لكل وردية: الرصيد المرحّل بالحسابات وقت الفتح
-        // (= الرصيد الآن − الحركات المرحّلة منذ الفتح) + إيصالات (مسودات) الورديات غير المرحّلة.
+        // تصحيح «أول المدة» لكل شفت: الرصيد المرحّل بالحسابات وقت الفتح
+        // (= الرصيد الآن − الحركات المرحّلة منذ الفتح) + إيصالات (مسودات) الشفتات غير المرحّلة.
         await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE shift_cash_counts c
             SET opening_cash = x.opening
@@ -229,7 +229,7 @@ public sealed partial class TreasuryRepository
             ORDER BY o.doc_date, o.doc_no, el.line_no
             """, args, cancellationToken: ct))).ToList();
 
-        // تسليمات النقدية للحساب الوسيط تظهر كمصروف في الوردية (0080).
+        // تسليمات النقدية للحساب الوسيط تظهر كمصروف في الشفت (0080).
         report.Expenses.AddRange(await connection.QueryAsync<ShiftExpenseRow>(new CommandDefinition("""
             SELECT t.treasury_type AS TreasuryType, t.name_ar AS TreasuryName,
                    h.amount AS Amount, NULL::text AS ItemName, 0::numeric AS Quantity,
@@ -244,12 +244,13 @@ public sealed partial class TreasuryRepository
             ORDER BY h.created_at
             """, args, cancellationToken: ct)));
 
-        // عمولة التحصيل بنسبة الخزينة (0081): تدخل مصروفاً في الوردية.
+        // عمولة التحصيل المحمَّلة على العميل بنسبة الخزينة (0081/0093): تدخل مصروفاً في الشفت.
         report.Expenses.AddRange(await connection.QueryAsync<ShiftExpenseRow>(new CommandDefinition("""
             SELECT t.treasury_type AS TreasuryType, t.name_ar AS TreasuryName,
                    ROUND(SUM(v.total_amount) * MAX(t.collection_fee_percent) / 100, 2) AS Amount,
                    NULL::text AS ItemName, 0::numeric AS Quantity, 0::numeric AS UnitPrice,
-                   'عمولة تحصيل ' || MAX(t.collection_fee_percent) || '%' AS Description,
+                   'عمولة تحصيل محملة على العميل ' || MAX(t.collection_fee_percent) || '%'
+                       AS Description,
                    'POSTED'::varchar AS Status
             FROM vouchers v
             JOIN treasuries t ON t.id = v.treasury_id
@@ -260,7 +261,7 @@ public sealed partial class TreasuryRepository
             GROUP BY t.treasury_type, t.name_ar, t.collection_fee_percent
             """, args, cancellationToken: ct)));
 
-        // عمولة تسليم النقدية (0082): مصروف إضافي في الوردية.
+        // عمولة تسليم النقدية (0082): مصروف إضافي في الشفت.
         report.Expenses.AddRange(await connection.QueryAsync<ShiftExpenseRow>(new CommandDefinition("""
             SELECT t.treasury_type AS TreasuryType, t.name_ar AS TreasuryName,
                    h.commission_amount AS Amount, NULL::text AS ItemName, 0::numeric AS Quantity,
@@ -273,7 +274,7 @@ public sealed partial class TreasuryRepository
               AND (@until::timestamptz IS NULL OR h.created_at <= @until::timestamptz)
             """, args, cancellationToken: ct)));
 
-        // سلف الموظفين المصروفة خلال الوردية تظهر كمصروف (0084).
+        // سلف الموظفين المصروفة خلال الشفت تظهر كمصروف (0084).
         report.Expenses.AddRange(await connection.QueryAsync<ShiftExpenseRow>(new CommandDefinition("""
             SELECT t.treasury_type AS TreasuryType, t.name_ar AS TreasuryName,
                    a.amount AS Amount, NULL::text AS ItemName, 0::numeric AS Quantity,
@@ -355,7 +356,7 @@ public sealed partial class TreasuryRepository
         return report;
     }
 
-    /// <summary>حركة عدادات الأجهزة في الوردية (للجزء المستقل في شاشة الورديات).</summary>
+    /// <summary>حركة عدادات الأجهزة في الشفت (للجزء المستقل في شاشة الشفتات).</summary>
     public async Task<IReadOnlyList<ShiftMeterMovementRow>> ListShiftMetersAsync(Guid shiftId,
         CancellationToken ct = default)
     {

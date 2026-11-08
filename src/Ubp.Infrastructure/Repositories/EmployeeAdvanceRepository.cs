@@ -36,6 +36,15 @@ public sealed class EmployeeAdvanceRepository : IEmployeeAdvanceRepository
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
 
+        var methodId = input.TreasuryMethodId == Guid.Empty
+            ? null
+            : input.TreasuryMethodId;
+
+        // الخزائن هي طرق الدفع: تُستخدم طريقة الخزينة الافتراضية تلقائياً — 0093.
+        if (methodId is null)
+            methodId = await OperatingExpenseRepository.DefaultMethodIdAsync(connection, tx,
+                input.TreasuryId, ct);
+
         var treasury = await connection.QuerySingleOrDefaultAsync<(Guid AccountId, Guid BranchId,
             Guid? ClearingAccountId)>(new CommandDefinition("""
             SELECT t.account_id AS AccountId, t.branch_id AS BranchId,
@@ -43,7 +52,7 @@ public sealed class EmployeeAdvanceRepository : IEmployeeAdvanceRepository
             FROM treasuries t
             LEFT JOIN treasury_methods m ON m.id = @methodId AND m.treasury_id = t.id
             WHERE t.id = @treasuryId AND t.is_active
-            """, new { treasuryId = input.TreasuryId, methodId = input.TreasuryMethodId }, tx,
+            """, new { treasuryId = input.TreasuryId, methodId }, tx,
             cancellationToken: ct));
         if (treasury.AccountId == Guid.Empty)
             throw new ValidationAppException("validation.treasury_not_found");
@@ -111,7 +120,7 @@ public sealed class EmployeeAdvanceRepository : IEmployeeAdvanceRepository
                     @charge, @amount, 'posted', @entryId, @notes, @userId, now(), @userId)
             """, new { id, branchId = input.BranchId, docNo, date = input.DocDate.Date,
                 employeeId = input.EmployeeId, treasuryId = input.TreasuryId,
-                methodId = input.TreasuryMethodId, charge = chargeAccount.Value,
+                methodId, charge = chargeAccount.Value,
                 amount = input.Amount, entryId, notes = input.Notes, userId }, tx,
             cancellationToken: ct));
 

@@ -10,12 +10,27 @@ namespace Ubp.Infrastructure.Repositories;
 public interface ITreasuryRepository : IShiftGate
 {
     Task<Guid> CreateTreasuryAsync(Guid id, TreasuryInput input, Guid userId, CancellationToken ct = default);
+    /// <summary>تعديل خزينة مسجّلة — 0093.</summary>
+    Task<bool> UpdateTreasuryAsync(Guid id, TreasuryInput input, Guid userId,
+        CancellationToken ct = default);
+    /// <summary>أرشفة/استرجاع خزينة (إخفاء من الشاشات دون حذف حركاتها) — 0093.</summary>
+    Task<bool> SetTreasuryActiveAsync(Guid id, bool isActive, Guid userId,
+        CancellationToken ct = default);
+    /// <summary>متابعة الخزينة في الشفت (رصيدها = أول مدة عند فتح الشفت) — 0093.</summary>
+    Task<bool> SetTreasuryFollowInShiftAsync(Guid id, bool followInShift,
+        CancellationToken ct = default);
+    /// <summary>عمولة التحصيل المحمَّلة من مزود الخدمة (نسبة + مبلغ ثابت + حساب) — 0093.</summary>
+    Task<bool> SetProviderFeeAsync(Guid treasuryId, decimal percent, decimal amount,
+        Guid? accountId, Guid userId, CancellationToken ct = default);
     Task<Guid> CreateMethodAsync(Guid id, TreasuryMethodInput input, Guid userId, CancellationToken ct = default);
     /// <summary>تعديل طريقة دفع مسجّلة (نفس خزينتها) — 0075.</summary>
     Task<bool> UpdateMethodAsync(Guid id, TreasuryMethodInput input, CancellationToken ct = default);
-    /// <summary>تحديد متابعة طريقة الدفع في الوردية — 0075.</summary>
+    /// <summary>تحديد متابعة طريقة الدفع في الشفت — 0075.</summary>
     Task<bool> SetMethodFollowInShiftAsync(Guid id, bool followInShift, CancellationToken ct = default);
     Task<IReadOnlyList<Treasury>> ListTreasuriesAsync(Guid? branchId, CancellationToken ct = default);
+    /// <summary>خزائن الفرع مع إمكانية إظهار المؤرشفة — 0093.</summary>
+    Task<IReadOnlyList<Treasury>> ListTreasuriesAsync(Guid? branchId, bool includeArchived,
+        CancellationToken ct = default);
     /// <summary>يجعل الخزينة رئيسية ويلغي غيرها (خزينة رئيسية واحدة فقط).</summary>
     Task<bool> SetMainAsync(Guid treasuryId, Guid userId, CancellationToken ct = default);
     Task<Guid?> GetMainAsync(CancellationToken ct = default);
@@ -39,17 +54,17 @@ public interface ITreasuryRepository : IShiftGate
         CancellationToken ct = default);
 
     Task<Guid> OpenShiftAsync(Guid id, ShiftInput input, Guid userId, CancellationToken ct = default);
-    /// <summary>إغلاق وردية الفرع بعدّ نقدية لكل خزينة (مسودة)؛ counts = null إغلاق آلي.</summary>
+    /// <summary>إغلاق شفت الفرع بعدّ نقدية لكل خزينة (مسودة)؛ counts = null إغلاق آلي.</summary>
     Task<Shift> CloseShiftAsync(Guid shiftId, IReadOnlyList<ShiftCashCountInput>? counts,
         Guid userId, bool autoClosed, CancellationToken ct = default);
-    /// <summary>عدّ النقدية المسجّل لكل خزينة في الوردية — 0076.</summary>
+    /// <summary>عدّ النقدية المسجّل لكل خزينة في الشفت — 0076.</summary>
     Task<IReadOnlyList<ShiftCashCount>> ListCashCountsAsync(Guid shiftId,
         CancellationToken ct = default);
-    /// <summary>تحديث القراءة الفعلية لعداد جهاز (تُرحَّل من الوردية) — 0078.</summary>
+    /// <summary>تحديث القراءة الفعلية لعداد جهاز (تُرحَّل من الشفت) — 0078.</summary>
     Task<bool> SetMeterReadingAsync(Guid assetId, decimal value, Guid userId,
         CancellationToken ct = default);
 
-    /// <summary>ترحيل الوردية للحسابات (تحويل حالتها إلى «تحت المراجعة») — 0079.</summary>
+    /// <summary>ترحيل الشفت للحسابات (تحويل حالتها إلى «تحت المراجعة») — 0079.</summary>
     Task<bool> PostShiftAsync(Guid shiftId, Guid userId, CancellationToken ct = default);
 
     /// <summary>نسبة عمولة التحصيل وحساب ترحيلها لكل خزينة — 0081.</summary>
@@ -62,7 +77,7 @@ public interface ITreasuryRepository : IShiftGate
     Task<IReadOnlyList<CashHandover>> ListCashHandoversAsync(Guid branchId, DateTime? from,
         DateTime? to, int limit, CancellationToken ct = default);
 
-    /// <summary>حفظ ملاحظات الوردية (0078).</summary>
+    /// <summary>حفظ ملاحظات الشفت (0078).</summary>
     Task<bool> SaveShiftNotesAsync(Guid shiftId, string? notes, CancellationToken ct = default);
     /// <summary>حساب زيادة/عجز خاص بالخزينة يُستخدم عند اعتماد المحاسب — 0076.</summary>
     Task<bool> SetTreasuryOverShortAccountAsync(Guid treasuryId, Guid? accountId,
@@ -71,14 +86,14 @@ public interface ITreasuryRepository : IShiftGate
     Task<Shift?> GetShiftAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<Shift>> ListShiftsAsync(Guid? branchId, DateTime? from, DateTime? to,
         int limit, CancellationToken ct = default);
-    /// <summary>أرصدة افتتاح الوردية للفرع: مرحل من الحسابات + تحت المراجعة + عدادات الأجهزة.</summary>
+    /// <summary>أرصدة افتتاح الشفت للفرع: مرحل من الحسابات + تحت المراجعة + عدادات الأجهزة.</summary>
     Task<ShiftOpeningBalances> GetShiftOpeningBalancesAsync(Guid branchId,
         CancellationToken ct = default);
     Task<ShiftReport> GetShiftReportAsync(Guid shiftId, CancellationToken ct = default);
     Task<IReadOnlyList<ShiftReviewItem>> ListReviewItemsAsync(Guid shiftId,
         CancellationToken ct = default);
     Task<Shift> ReviewShiftAsync(Guid shiftId, Guid userId, CancellationToken ct = default);
-    /// <summary>الورديات المفتوحة التي تجاوزت موعد الإغلاق الآلي (5 صباحاً).</summary>
+    /// <summary>الشفتات المفتوحة التي تجاوزت موعد الإغلاق الآلي (5 صباحاً).</summary>
     Task<IReadOnlyList<Shift>> ListShiftsDueForAutoCloseAsync(DateTimeOffset cutoff,
         CancellationToken ct = default);
     new Task<bool> HasOpenShiftAsync(Guid userId, Guid? branchId,
@@ -100,25 +115,6 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
 {
     private readonly IDbConnectionFactory _factory;
     public TreasuryRepository(IDbConnectionFactory factory) => _factory = factory;
-
-    public async Task<Guid> CreateTreasuryAsync(Guid id, TreasuryInput input, Guid userId,
-        CancellationToken ct = default)
-    {
-        await using var connection = await _factory.OpenAsync(ct);
-        return await connection.ExecuteScalarAsync<Guid>(new CommandDefinition("""
-            INSERT INTO treasuries (id, branch_id, code, name_ar, name_en, treasury_type, account_id,
-                opening_balance, over_short_account_id, collection_fee_percent,
-                collection_fee_account_id, created_by)
-            VALUES (@id, @BranchId, @Code, @NameAr, @NameEn, @TreasuryType, @AccountId,
-                    @OpeningBalance, @OverShortAccountId, @CollectionFeePercent,
-                    @CollectionFeeAccountId, @userId)
-            RETURNING id
-            """, new { id, input.BranchId, input.Code, input.NameAr, input.NameEn,
-                input.TreasuryType, input.AccountId, input.OpeningBalance,
-                input.OverShortAccountId, input.CollectionFeePercent,
-                input.CollectionFeeAccountId, userId },
-            cancellationToken: ct));
-    }
 
     public async Task<Guid> CreateMethodAsync(Guid id, TreasuryMethodInput input, Guid userId,
         CancellationToken ct = default)
@@ -156,14 +152,32 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
             cancellationToken: ct)) > 0;
     }
 
-    /// <summary>تشغيل/إيقاف متابعة طريقة الدفع في الوردية — 0075.</summary>
+    /// <summary>تشغيل/إيقاف متابعة طريقة الدفع في الشفت — 0075/0093.</summary>
     public async Task<bool> SetMethodFollowInShiftAsync(Guid id, bool followInShift,
         CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
-        return await connection.ExecuteAsync(new CommandDefinition(
+        await using var tx = await connection.BeginTransactionAsync(ct);
+
+        var updated = await connection.ExecuteAsync(new CommandDefinition(
             "UPDATE treasury_methods SET follow_in_shift = @followInShift " +
-            "WHERE id = @id AND is_active", new { id, followInShift }, cancellationToken: ct)) > 0;
+            "WHERE id = @id AND is_active", new { id, followInShift }, tx,
+            cancellationToken: ct)) > 0;
+        if (!updated)
+        {
+            await tx.RollbackAsync(ct);
+            return false;
+        }
+
+        // الخزينة هي طريقة الدفع: تُزامن علامة المتابعة على مستوى الخزينة — 0093.
+        await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE treasuries t SET follow_in_shift = EXISTS (
+                SELECT 1 FROM treasury_methods m
+                WHERE m.treasury_id = t.id AND m.is_active AND m.follow_in_shift)
+            WHERE t.id = (SELECT treasury_id FROM treasury_methods WHERE id = @id)
+            """, new { id }, tx, cancellationToken: ct));
+        await tx.CommitAsync(ct);
+        return true;
     }
 
     /// <summary>نسبة عمولة التحصيل وحساب ترحيلها — 0081.</summary>
@@ -199,10 +213,40 @@ public sealed partial class TreasuryRepository : ITreasuryRepository
                    t.over_short_account_id AS OverShortAccountId,
                    t.collection_fee_percent AS CollectionFeePercent,
                    t.collection_fee_account_id AS CollectionFeeAccountId,
+                   t.provider_fee_percent AS ProviderFeePercent,
+                   t.provider_fee_amount AS ProviderFeeAmount,
+                   t.provider_fee_account_id AS ProviderFeeAccountId,
+                   t.follow_in_shift AS FollowInShift,
                    t.is_active AS IsActive
             FROM treasuries t JOIN accounts a ON a.id = t.account_id
             WHERE t.is_active AND (@branchId::uuid IS NULL OR t.branch_id = @branchId::uuid)
             ORDER BY t.code
+            """, new { branchId }, cancellationToken: ct))).ToList();
+    }
+
+    /// <summary>خزائن الفرع بما فيها المؤرشفة (شاشة الخزائن) — 0093.</summary>
+    public async Task<IReadOnlyList<Treasury>> ListTreasuriesAsync(Guid? branchId,
+        bool includeArchived, CancellationToken ct = default)
+    {
+        if (!includeArchived) return await ListTreasuriesAsync(branchId, ct);
+
+        await using var connection = await _factory.OpenAsync(ct);
+        return (await connection.QueryAsync<Treasury>(new CommandDefinition("""
+            SELECT t.id AS Id, t.branch_id AS BranchId, t.code AS Code, t.name_ar AS NameAr,
+                   t.name_en AS NameEn, t.treasury_type AS TreasuryType, t.account_id AS AccountId,
+                   t.is_main AS IsMain,
+                   a.code AS AccountCode, a.name_ar AS AccountName, t.opening_balance AS OpeningBalance,
+                   t.over_short_account_id AS OverShortAccountId,
+                   t.collection_fee_percent AS CollectionFeePercent,
+                   t.collection_fee_account_id AS CollectionFeeAccountId,
+                   t.provider_fee_percent AS ProviderFeePercent,
+                   t.provider_fee_amount AS ProviderFeeAmount,
+                   t.provider_fee_account_id AS ProviderFeeAccountId,
+                   t.follow_in_shift AS FollowInShift,
+                   t.is_active AS IsActive
+            FROM treasuries t JOIN accounts a ON a.id = t.account_id
+            WHERE @branchId::uuid IS NULL OR t.branch_id = @branchId::uuid
+            ORDER BY t.is_active DESC, t.code
             """, new { branchId }, cancellationToken: ct))).ToList();
     }
 

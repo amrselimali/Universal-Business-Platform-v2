@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Ubp.Tests;
 
-/// <summary>بوابة الوردية: مستخدم بلا وردية مفتوحة لا يسجّل في أي شاشة، ولا يملك الترحيل.</summary>
+/// <summary>بوابة الشفت: مستخدم بلا شفت مفتوحة لا يسجّل في أي شاشة، ولا يملك الترحيل.</summary>
 public sealed class ShiftGateTests
 {
     private sealed class EmptyPermissions : IPermissionRepository

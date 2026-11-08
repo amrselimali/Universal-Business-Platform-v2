@@ -29,6 +29,7 @@ public sealed class OperatingExpenseInput
     public DateTime DocDate { get; set; } = DateTime.Today;
     public Guid SupplierId { get; set; }
     public Guid? TreasuryId { get; set; }
+    /// <summary>اختياري: تُستخدم طريقة الخزينة الافتراضية تلقائياً — 0093.</summary>
     public Guid? TreasuryMethodId { get; set; }
     public string? Notes { get; set; }
     public List<OperatingExpenseLineInput> Lines { get; set; } = new();
@@ -83,6 +84,6 @@ public sealed class OperatingExpense
         Array.Empty<OperatingExpenseLine>();
 
     public bool IsDraft => Status == OperatingExpenseStatuses.Draft;
-    /// <summary>مسدد من الشاشة (خزينة/طريقة دفع) أو آجل على حساب المورد.</summary>
-    public bool IsPaid => TreasuryMethodId is not null;
+    /// <summary>مسدد من الشاشة (خزينة) أو آجل على حساب المورد.</summary>
+    public bool IsPaid => TreasuryId is not null;
 }

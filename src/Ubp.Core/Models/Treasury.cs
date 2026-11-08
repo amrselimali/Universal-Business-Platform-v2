@@ -62,10 +62,18 @@ public sealed class Treasury
     public Guid AccountId { get; set; }
     /// <summary>حساب ترحيل زيادة/عجز هذه الخزينة عند اعتماد المحاسب (0076).</summary>
     public Guid? OverShortAccountId { get; set; }
-    /// <summary>نسبة عمولة التحصيل المخصومة في الوردية (0081).</summary>
+    /// <summary>نسبة عمولة التحصيل المحمَّلة على العميل (0081/0093).</summary>
     public decimal CollectionFeePercent { get; set; }
-    /// <summary>حساب ترحيل عمولة التحصيل (0081).</summary>
+    /// <summary>حساب ترحيل عمولة التحصيل المحمَّلة على العميل (0081/0093).</summary>
     public Guid? CollectionFeeAccountId { get; set; }
+    /// <summary>نسبة عمولة التحصيل المحمَّلة من مزود الخدمة (0093).</summary>
+    public decimal ProviderFeePercent { get; set; }
+    /// <summary>عمولة ثابتة محمَّلة من مزود الخدمة (0093).</summary>
+    public decimal ProviderFeeAmount { get; set; }
+    /// <summary>حساب ترحيل عمولة مزود الخدمة (0093).</summary>
+    public Guid? ProviderFeeAccountId { get; set; }
+    /// <summary>الخزينة يتم متابعتها في الشفت (رصيدها = أول مدة عند فتح الشفت) — 0093.</summary>
+    public bool FollowInShift { get; set; } = true;
     public string? AccountCode { get; set; }
     public string? AccountName { get; set; }
     public decimal OpeningBalance { get; set; }
@@ -86,12 +94,20 @@ public sealed class TreasuryInput
     public string? NameEn { get; set; }
     public string TreasuryType { get; set; } = TreasuryTypes.Cash;
     public Guid AccountId { get; set; }
-    /// <summary>حساب زيادة/عجز الخزينة (اختياري) — يُستخدم عند ترحيل فرق الوردية.</summary>
+    /// <summary>حساب زيادة/عجز الخزينة (اختياري) — يُستخدم عند ترحيل فرق الشفت.</summary>
     public Guid? OverShortAccountId { get; set; }
-    /// <summary>نسبة عمولة التحصيل (0081).</summary>
+    /// <summary>نسبة عمولة التحصيل المحمَّلة على العميل (0081/0093).</summary>
     public decimal CollectionFeePercent { get; set; }
-    /// <summary>حساب ترحيل عمولة التحصيل (0081).</summary>
+    /// <summary>حساب ترحيل عمولة التحصيل المحمَّلة على العميل (0081/0093).</summary>
     public Guid? CollectionFeeAccountId { get; set; }
+    /// <summary>نسبة عمولة التحصيل المحمَّلة من مزود الخدمة (0093).</summary>
+    public decimal ProviderFeePercent { get; set; }
+    /// <summary>عمولة ثابتة محمَّلة من مزود الخدمة (0093).</summary>
+    public decimal ProviderFeeAmount { get; set; }
+    /// <summary>حساب ترحيل عمولة مزود الخدمة (0093).</summary>
+    public Guid? ProviderFeeAccountId { get; set; }
+    /// <summary>متابعة الخزينة في الشفت (0093).</summary>
+    public bool FollowInShift { get; set; } = true;
     public decimal OpeningBalance { get; set; }
 }
 
@@ -108,7 +124,7 @@ public sealed class TreasuryMethod
     public decimal FeeFixed { get; set; }
     public bool RequiresReference { get; set; }
     public bool IsActive { get; set; } = true;
-    /// <summary>طريقة الدفع متابَعة في الوردية (تظهر أرصدتها في شاشة فتح الوردية) — 0075.</summary>
+    /// <summary>طريقة الدفع متابَعة في الشفت (تظهر أرصدتها في شاشة فتح الشفت) — 0075.</summary>
     public bool FollowInShift { get; set; } = true;
     public string? TreasuryName { get; set; }
 }
@@ -125,7 +141,7 @@ public sealed class TreasuryMethodInput
     public decimal FeePercent { get; set; }
     public decimal FeeFixed { get; set; }
     public bool RequiresReference { get; set; }
-    /// <summary>متابعة طريقة الدفع في الوردية (افتراضي: نعم) — 0075.</summary>
+    /// <summary>متابعة طريقة الدفع في الشفت (افتراضي: نعم) — 0075.</summary>
     public bool FollowInShift { get; set; } = true;
 }
 

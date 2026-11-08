@@ -23,7 +23,6 @@ public partial class OperatingExpenseDialog : ComponentBase
     private sealed class LineModel
     {
         public string? Description { get; set; }
-        public Account? Account { get; set; }
         public Guid? CostCenterId { get; set; }
         public ItemOption? Item { get; set; }
         public Guid? WarehouseId { get; set; }
@@ -36,17 +35,13 @@ public partial class OperatingExpenseDialog : ComponentBase
     private readonly List<LineModel> _lines = new();
     private IReadOnlyList<Branch> Branches = Array.Empty<Branch>();
     private IReadOnlyList<Warehouse> _warehouses = Array.Empty<Warehouse>();
-    private IReadOnlyList<Account> _accounts = Array.Empty<Account>();
     private IReadOnlyList<CostCenter> _costCenters = Array.Empty<CostCenter>();
     private IReadOnlyList<TreasuryModel> _treasuries = Array.Empty<TreasuryModel>();
-    private IReadOnlyList<TreasuryMethod> _methods = Array.Empty<TreasuryMethod>();
     private Guid _branchId;
     private DateTime? _docDate = DateTime.Today;
     private Partner? _supplier;
     private Guid _treasuryId;
-    private Guid _methodId;
     private bool _onCredit;
-    private string? _notes;
     private bool _busy;
 
     private decimal Total => Math.Round(_lines.Sum(l => l.Amount), 2, MidpointRounding.AwayFromZero);
@@ -62,7 +57,6 @@ public partial class OperatingExpenseDialog : ComponentBase
         Branches = await BranchApi.OptionsAsync(actor);
         _branchId = BranchId ?? actor.CurrentBranchId ?? Branches.FirstOrDefault()?.Id ?? Guid.Empty;
         _warehouses = await Lookup.WarehousesAsync(actor);
-        _accounts = await Lookup.PostableAccountsAsync(actor);
         await ReloadBranchAsync();
         AddLine();
     }
@@ -73,9 +67,7 @@ public partial class OperatingExpenseDialog : ComponentBase
         _costCenters = await Lookup.CostCentersAsync(actor,
             _branchId == Guid.Empty ? actor.CurrentBranchId : _branchId);
         _treasuries = await Lookup.TreasuriesAsync(actor, _branchId);
-        _methods = await Lookup.TreasuryMethodsAsync(actor, _branchId);
         _treasuryId = _treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
-        _methodId = _methods.FirstOrDefault(m => m.TreasuryId == _treasuryId)?.Id ?? Guid.Empty;
     }
 
     private async Task OnBranchChanged(Guid branchId)
@@ -83,12 +75,6 @@ public partial class OperatingExpenseDialog : ComponentBase
         _branchId = branchId;
         foreach (var line in _lines) line.WarehouseId = null;
         await ReloadBranchAsync();
-    }
-
-    private void OnTreasuryChanged(Guid treasuryId)
-    {
-        _treasuryId = treasuryId;
-        _methodId = _methods.FirstOrDefault(m => m.TreasuryId == treasuryId)?.Id ?? Guid.Empty;
     }
 
     private void OnItemChanged(LineModel line, ItemOption? item)
@@ -104,9 +90,6 @@ public partial class OperatingExpenseDialog : ComponentBase
     private static string SupplierLabel(Partner? partner) =>
         partner is null ? string.Empty : $"{partner.Code} — {partner.NameAr}";
 
-    private static string AccountLabel(Account? account) =>
-        account is null ? string.Empty : $"{account.Code} — {account.NameAr}";
-
     private static string ItemLabel(ItemOption? item) =>
         item is null ? string.Empty : $"{item.Code} — {item.NameAr}";
 
@@ -115,17 +98,6 @@ public partial class OperatingExpenseDialog : ComponentBase
 
     private Task<IEnumerable<ItemOption>> SearchItems(string? search, CancellationToken ct) =>
         LoadAsync(search, (actor, text) => Lookup.ItemsAsync(actor, text, 50, false, ct));
-
-    private Task<IEnumerable<Account>> SearchAccounts(string? search, CancellationToken ct)
-    {
-        var term = (search ?? string.Empty).Trim();
-        var matches = term.Length == 0
-            ? _accounts
-            : _accounts.Where(a => a.Code.Contains(term, StringComparison.OrdinalIgnoreCase)
-                                   || a.NameAr.Contains(term, StringComparison.OrdinalIgnoreCase)
-                                   || (a.NameEn ?? "").Contains(term, StringComparison.OrdinalIgnoreCase));
-        return Task.FromResult(matches.Take(50));
-    }
 
     private async Task<IEnumerable<T>> LoadAsync<T>(string? search,
         Func<ActorContext, string?, Task<IReadOnlyList<T>>> load)

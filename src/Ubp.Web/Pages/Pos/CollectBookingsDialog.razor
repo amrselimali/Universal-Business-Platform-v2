@@ -49,10 +49,10 @@
             </MudTable>
 
             <MudDivider Class="my-3" />
-            <MudText Typo="Typo.subtitle2" Class="mb-2">@T.T("pos.payment_methods")</MudText>
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@T.T("treasury.treasuries")</MudText>
             <MudTable Items="_payments" Dense="true" Elevation="0" Class="ubp-table">
                 <HeaderContent>
-                    <MudTh>@T.T("treasury.method")</MudTh>
+                    <MudTh>@T.T("treasury.treasury")</MudTh>
                     <MudTh Align="Right">@T.T("pos.payment_total")</MudTh>
                     <MudTh Align="Right">@T.T("pos.collected_amount")</MudTh>
                     <MudTh Align="Right">@T.T("pos.fee")</MudTh>
@@ -60,12 +60,13 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
-                        <MudSelect T="Guid" Value="context.MethodId" Dense="true"
-                                   ValueChanged="@(v => PickMethod(context, v))">
-                            @foreach (var method in Methods)
+                        <MudSelect T="Guid" Value="context.TreasuryId" Dense="true"
+                                   ValueChanged="@(v => PickTreasury(context, v))">
+                            @foreach (var treasury in Treasuries)
                             {
-                                <MudSelectItem T="Guid" Value="@method.Id">
-                                    @method.Code — @method.NameAr (@method.FeePercent.ToString("N2")%)
+                                <MudSelectItem T="Guid" Value="@treasury.Id">
+                                    @treasury.Code — @treasury.NameAr
+                                    (@treasury.ProviderFeePercent.ToString("N2")%)
                                 </MudSelectItem>
                             }
                         </MudSelect>
@@ -133,7 +134,7 @@
 @code {
     private sealed class PayLine
     {
-        public Guid MethodId { get; set; }
+        public Guid TreasuryId { get; set; }
         public decimal Total { get; set; }
         public decimal Fee { get; set; }
         public decimal Collected => Math.Max(Total - Fee, 0);
@@ -143,8 +144,8 @@
     [Parameter] public Guid BranchId { get; set; }
     [Parameter] public Guid CustomerId { get; set; }
     [Parameter] public string? CustomerName { get; set; }
-    [Parameter] public IReadOnlyList<TreasuryMethod> Methods { get; set; } =
-        Array.Empty<TreasuryMethod>();
+    [Parameter] public IReadOnlyList<Treasury> Treasuries { get; set; } =
+        Array.Empty<Treasury>();
 
     private List<BookingCollectionRow> _rows = new();
     private List<PayLine> _payments = new();
@@ -189,39 +190,39 @@
         StateHasChanged();
     }
 
-    private decimal FeeFor(Guid methodId, decimal total)
+    private decimal FeeFor(Guid treasuryId, decimal total)
     {
-        var method = Methods.FirstOrDefault(m => m.Id == methodId);
-        return method is null ? 0m
-            : Math.Round(total * method.FeePercent / 100m + method.FeeFixed, 2,
-                MidpointRounding.AwayFromZero);
+        var treasury = Treasuries.FirstOrDefault(t => t.Id == treasuryId);
+        return treasury is null ? 0m
+            : Math.Round(total * treasury.ProviderFeePercent / 100m + treasury.ProviderFeeAmount,
+                2, MidpointRounding.AwayFromZero);
     }
 
     private void AddPayment()
     {
-        var method = Methods.FirstOrDefault();
-        if (method is null) return;
+        var treasury = Treasuries.FirstOrDefault();
+        if (treasury is null) return;
         var remaining = Math.Max(SelectedTotal - _payments.Sum(p => p.Collected), 0);
-        var fee = FeeFor(method.Id, remaining);
+        var fee = FeeFor(treasury.Id, remaining);
         _payments.Add(new PayLine
         {
-            MethodId = method.Id,
+            TreasuryId = treasury.Id,
             Total = Math.Round(remaining + fee, 2, MidpointRounding.AwayFromZero), Fee = fee
         });
         StateHasChanged();
     }
 
-    private void PickMethod(PayLine line, Guid methodId)
+    private void PickTreasury(PayLine line, Guid treasuryId)
     {
-        line.MethodId = methodId;
-        line.Fee = FeeFor(methodId, line.Total);
+        line.TreasuryId = treasuryId;
+        line.Fee = FeeFor(treasuryId, line.Total);
         StateHasChanged();
     }
 
     private void SetTotal(PayLine line, decimal total)
     {
         line.Total = Math.Max(total, 0);
-        line.Fee = FeeFor(line.MethodId, line.Total);
+        line.Fee = FeeFor(line.TreasuryId, line.Total);
         StateHasChanged();
     }
 
@@ -243,8 +244,7 @@
             .ToList();
         var payments = _payments.Where(p => p.Total > 0).Select(p => new PosPaymentInput
         {
-            TreasuryId = Methods.FirstOrDefault(m => m.Id == p.MethodId)?.TreasuryId ?? Guid.Empty,
-            TreasuryMethodId = p.MethodId, Amount = p.Total
+            TreasuryId = p.TreasuryId, TreasuryMethodId = Guid.Empty, Amount = p.Total
         }).ToList();
         if (lines.Count == 0 || payments.Count == 0) return;
 

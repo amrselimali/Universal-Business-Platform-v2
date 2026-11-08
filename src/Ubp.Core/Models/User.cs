@@ -20,7 +20,7 @@ public sealed class User
     /// <summary>يُمنع كل وصول آخر حتى تُغيَّر كلمة المرور (الترحيل 0036).</summary>
     public bool MustChangePassword { get; set; }
 
-    /// <summary>لا يسجّل في أي شاشة إلا بوردية مفتوحة، وتسجيلاته مسودات للمراجعة (0074).</summary>
+    /// <summary>لا يسجّل في أي شاشة إلا بشفت مفتوحة، وتسجيلاته مسودات للمراجعة (0074).</summary>
     public bool RequiresShift { get; set; }
 
     public bool IsLocked => LockedUntil.HasValue && LockedUntil.Value > DateTimeOffset.UtcNow;
@@ -62,7 +62,7 @@ public sealed class UserInput
     public bool IsSuperAdmin { get; set; }
     /// <summary>يُطلب من المستخدم تغيير كلمة المرور عند أول دخول.</summary>
     public bool MustChangePassword { get; set; }
-    /// <summary>مستخدم وردية: لا تسجيل بلا وردية مفتوحة، وكل تسجيلاته مسودات للمراجعة.</summary>
+    /// <summary>مستخدم شفت: لا تسجيل بلا شفت مفتوحة، وكل تسجيلاته مسودات للمراجعة.</summary>
     public bool RequiresShift { get; set; }
     public List<Guid> BranchIds { get; set; } = new();
     public Guid? DefaultBranchId { get; set; }

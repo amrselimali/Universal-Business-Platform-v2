@@ -15,6 +15,9 @@ public interface IEmployeeRepository
     /// <summary>موظفو الفروع المحددة + موظفو الشركة (branch_id IS NULL) — 0094.</summary>
     Task<IReadOnlyList<Employee>> ListOptionsAsync(IReadOnlyCollection<Guid> branchIds,
         bool allBranches, CancellationToken ct = default);
+    /// <summary>كل الموظفين النشطين في الفروع المحددة (بلا شرط منفّذ الخدمة) — 0093.</summary>
+    Task<IReadOnlyList<Employee>> ListActiveOptionsAsync(IReadOnlyCollection<Guid> branchIds,
+        bool allBranches, CancellationToken ct = default);
     Task<Employee?> GetAsync(Guid id, CancellationToken ct = default);
     Task<Employee?> GetByCodeAsync(string code, CancellationToken ct = default);
     Task<Guid> CreateAsync(Guid id, EmployeeInput input, Guid userId, CancellationToken ct = default);
@@ -92,6 +95,19 @@ public sealed class EmployeeRepository : IEmployeeRepository
         var rows = await connection.QueryAsync<Employee>(new CommandDefinition(
             $"SELECT {Columns} FROM employees e " +
             "WHERE e.is_active AND e.is_service_executor " +
+            "AND (@allBranches OR e.branch_id IS NULL OR e.branch_id = ANY(@branchIds)) " +
+            "ORDER BY e.name_ar",
+            new { allBranches, branchIds = branchIds.ToArray() }, cancellationToken: ct));
+        return rows.ToList();
+    }
+
+    public async Task<IReadOnlyList<Employee>> ListActiveOptionsAsync(
+        IReadOnlyCollection<Guid> branchIds, bool allBranches, CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        var rows = await connection.QueryAsync<Employee>(new CommandDefinition(
+            $"SELECT {Columns} FROM employees e " +
+            "WHERE e.is_active " +
             "AND (@allBranches OR e.branch_id IS NULL OR e.branch_id = ANY(@branchIds)) " +
             "ORDER BY e.name_ar",
             new { allBranches, branchIds = branchIds.ToArray() }, cancellationToken: ct));

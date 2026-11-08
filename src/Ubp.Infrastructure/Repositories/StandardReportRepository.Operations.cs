@@ -7,7 +7,7 @@ namespace Ubp.Infrastructure.Repositories;
 
 public sealed partial class StandardReportRepository
 {
-    /// <summary>تسوية الورديات: المفتوح/المتوقع/المعدود والفرق لكل وردية في الفرع.</summary>
+    /// <summary>تسوية الشفتات: المفتوح/المتوقع/المعدود والفرق لكل شفت في الفرع.</summary>
     public async Task<ReportTable> ShiftVarianceAsync(DateOnly from, DateOnly to, Guid[] branchIds,
         CancellationToken ct = default)
     {

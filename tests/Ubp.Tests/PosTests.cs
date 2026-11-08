@@ -14,7 +14,7 @@ public sealed class PosTests : IClassFixture<TestDb>
     public PosTests(TestDb db) => _db = db;
 
     private sealed record Fixture(Guid Branch, Guid Warehouse, Item Item, Partner Customer,
-        Guid TreasuryId, Guid CashMethod, Guid CardMethod);
+        Guid TreasuryId, Guid CashMethod, Guid CardMethod, Guid CardTreasuryId);
 
     private async Task<Fixture> SetupAsync(string suffix)
     {
@@ -47,7 +47,17 @@ public sealed class PosTests : IClassFixture<TestDb>
             FeePercent = 2m
         }, actor.UserId);
 
-        return new Fixture(branch, warehouse, item, customer, treasuryId, cash, card);
+        // الخزائن هي طرق الدفع: عمولة مزود الخدمة تُعرَّف على الخزينة نفسها — 0093.
+        var cardTreasury = Guid.CreateVersion7();
+        await _db.TreasuryRepo.CreateTreasuryAsync(cardTreasury, new TreasuryInput
+        {
+            BranchId = branch, Code = "POS-TC-" + suffix, NameAr = "خزينة بطاقة " + suffix,
+            TreasuryType = TreasuryTypes.Bank, AccountId = chart["1130"].Id,
+            ProviderFeePercent = 2m
+        }, actor.UserId);
+
+        return new Fixture(branch, warehouse, item, customer, treasuryId, cash, card,
+            cardTreasury);
     }
 
     private async Task<PosReceipt> CheckoutAsync(Fixture f, decimal quantity,
@@ -157,19 +167,19 @@ public sealed class PosTests : IClassFixture<TestDb>
     }
 
     [Fact]
-    public async Task Pos_checkout_accepts_multiple_methods_with_fees()
+    public async Task Pos_checkout_accepts_multiple_treasuries_with_fees()
     {
         var f = await SetupAsync("2");
         var receipt = await CheckoutAsync(f, 1,
             new PosPaymentInput { TreasuryId = f.TreasuryId, TreasuryMethodId = f.CashMethod,
                 Amount = 60 },
-            new PosPaymentInput { TreasuryId = f.TreasuryId, TreasuryMethodId = f.CardMethod,
+            new PosPaymentInput { TreasuryId = f.CardTreasuryId, TreasuryMethodId = Guid.Empty,
                 Amount = 40 });
 
         Assert.Equal(100m, receipt.Paid);
         Assert.Equal(0.8m, receipt.FeeTotal);
-        var voucher = Assert.Single(receipt.Vouchers);
-        Assert.Equal(2, voucher.Lines);
+        Assert.Equal(2, receipt.Vouchers.Count);
+        Assert.All(receipt.Vouchers, v => Assert.Equal(1, v.Lines));
 
         await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
         await connection.OpenAsync();
@@ -177,12 +187,20 @@ public sealed class PosTests : IClassFixture<TestDb>
             "SELECT a.code, l.debit, l.credit FROM journal_entry_lines l " +
             "JOIN accounts a ON a.id = l.account_id WHERE l.entry_id = " +
             "(SELECT journal_entry_id FROM vouchers WHERE id = @id)",
-            new { id = voucher.VoucherId })).ToList();
+            new { id = receipt.Vouchers[0].VoucherId })).ToList();
 
         Assert.Contains(entries, l => l.Code == "1101" && l.Debit == 60m);
-        Assert.Contains(entries, l => l.Code == "1130" && l.Debit == 39.2m);
-        Assert.Contains(entries, l => l.Code == "5200" && l.Debit == 0.8m);
-        Assert.Contains(entries, l => l.Code == "1110" && l.Credit == 100m);
+        Assert.Contains(entries, l => l.Code == "1110" && l.Credit == 60m);
+
+        var cardEntries = (await connection.QueryAsync<(string Code, decimal Debit, decimal Credit)>(
+            "SELECT a.code, l.debit, l.credit FROM journal_entry_lines l " +
+            "JOIN accounts a ON a.id = l.account_id WHERE l.entry_id = " +
+            "(SELECT journal_entry_id FROM vouchers WHERE id = @id)",
+            new { id = receipt.Vouchers[1].VoucherId })).ToList();
+
+        Assert.Contains(cardEntries, l => l.Code == "1130" && l.Debit == 39.2m);
+        Assert.Contains(cardEntries, l => l.Code == "5200" && l.Debit == 0.8m);
+        Assert.Contains(cardEntries, l => l.Code == "1110" && l.Credit == 40m);
     }
 
     [Fact]

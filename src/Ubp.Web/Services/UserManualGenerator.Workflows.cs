@@ -52,13 +52,13 @@ public sealed partial class UserManualGenerator
             new("عكس القيد", "/accounting/entries", ActionCodes.Reverse),
             new("إغلاق الفترة", "/accounting/periods", ActionCodes.ClosePeriod)
         ]),
-        new("دورة الخزينة", "سند قبض/صرف، ترحيل، تخصيص، ثم وردية وفتح/إغلاق.",
+        new("دورة الخزينة", "سند قبض/صرف، ترحيل، تخصيص، ثم شفت وفتح/إغلاق.",
         [
             new("إنشاء سند", "/treasury/vouchers", ActionCodes.Create),
             new("ترحيل السند", "/treasury/vouchers", ActionCodes.Post),
             new("تخصيص على مستند", "/treasury/vouchers", ActionCodes.Edit),
-            new("فتح وردية", "/treasury/shifts", ActionCodes.Open),
-            new("إغلاق الوردية", "/treasury/shifts", ActionCodes.Close)
+            new("فتح شفت", "/treasury/shifts", ActionCodes.Open),
+            new("إغلاق الشفت", "/treasury/shifts", ActionCodes.Close)
         ]),
         new("دورة الأصول الثابتة", "شراء الأصل، قراءة العدّاد، الصيانة، الإهلاك، ثم الاستبعاد.",
         [
@@ -205,8 +205,8 @@ public sealed partial class UserManualGenerator
             [ActionCodes.RunTests] = ("تشغيل الاختبارات", "ينفّذ اختبارات الجودة.", "قد يحتاج قاعدة QA منفصلة.", "qa_test_runs"),
             [ActionCodes.Confirm] = ("تأكيد", "يثبت الحجز ويحجز الكميات.", "الكميات متاحة؛ الحجز غير ملغي.", "UPDATE"),
             [ActionCodes.Manage] = ("إدارة", "إدارة المواعيد/الحالة.", "لا تعارض لنفس الموظف.", "UPDATE"),
-            [ActionCodes.Close] = ("إغلاق", "يغلق الوردية/السجل.", "وردية واحدة مفتوحة لكل خزينة.", "UPDATE"),
-            [ActionCodes.Reopen] = ("إعادة فتح", "يعيد فتح وردية مغلقة.", "سبب مطلوب.", "UPDATE"),
+            [ActionCodes.Close] = ("إغلاق", "يغلق الشفت/السجل.", "شفت واحدة مفتوحة لكل خزينة.", "UPDATE"),
+            [ActionCodes.Reopen] = ("إعادة فتح", "يعيد فتح شفت مغلقة.", "سبب مطلوب.", "UPDATE"),
             [ActionCodes.Reconcile] = ("مطابقة", "يعرض فروق المستندات/الأستاذ.", "قراءة فقط.", "لا شيء"),
             [ActionCodes.ViewUnposted] = ("عرض غير المرحّل", "يعرض المستندات المرحّلة بلا قيد.", "قراءة فقط.", "لا شيء")
         };

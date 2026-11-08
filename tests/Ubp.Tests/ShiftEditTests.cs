@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Ubp.Tests;
 
-/// <summary>تعديل بيانات الوردية الموحّد: يعدّل المستند الأصلي أثناء الفتح/المراجعة ويُمنع بعد الاعتماد.</summary>
+/// <summary>تعديل بيانات الشفت الموحّد: يعدّل المستند الأصلي أثناء الفتح/المراجعة ويُمنع بعد الاعتماد.</summary>
 public sealed class ShiftEditTests : IClassFixture<TestDb>
 {
     private readonly TestDb _db;
@@ -18,9 +18,9 @@ public sealed class ShiftEditTests : IClassFixture<TestDb>
     {
         var actor = await _db.AdminActorAsync();
         var chart = await _db.SeedAccountingAsync();
-        var branch = await _db.CreateBranchAsync("SE-B-" + suffix, "فرع تعديل الوردية " + suffix);
+        var branch = await _db.CreateBranchAsync("SE-B-" + suffix, "فرع تعديل الشفت " + suffix);
         var supplier = await _db.PartnerRepo.CreateAsync(PartnerKind.Supplier, new PartnerInput
-        { Code = "SE-S-" + suffix, NameAr = "مورد تعديل الوردية " + suffix });
+        { Code = "SE-S-" + suffix, NameAr = "مورد تعديل الشفت " + suffix });
         await _db.AccountingSettings().SetDefaultAsync(actor, PostingKeys.SupplierPayable,
             chart["2100"].Id);
         var shift = await _db.TreasuryService().OpenShiftAsync(actor, new ShiftInput

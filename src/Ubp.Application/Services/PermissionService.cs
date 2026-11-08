@@ -24,13 +24,13 @@ public sealed class PermissionService
         _shiftGate = shiftGate;
     }
 
-    /// <summary>أفعال قراءة لا تتطلب وردية مفتوحة؛ وما عداها تسجيل يمنعه غياب الوردية.</summary>
+    /// <summary>أفعال قراءة لا تتطلب شفت مفتوحة؛ وما عداها تسجيل يمنعه غياب الشفت.</summary>
     private static bool IsReadOnlyAction(string action) =>
         action is ActionCodes.View or ActionCodes.Print or ActionCodes.Export
             or ActionCodes.ExportCsv or ActionCodes.ExportXlsx or ActionCodes.Preview
             or ActionCodes.SaveFilter or ActionCodes.DeleteFilter or ActionCodes.Open;
 
-    /// <summary>أفعال الترحيل المحاسبي محجوبة عن مستخدم الوردية: تسجيلاته تبقى مسودات للمراجعة.</summary>
+    /// <summary>أفعال الترحيل المحاسبي محجوبة عن مستخدم الشفت: تسجيلاته تبقى مسودات للمراجعة.</summary>
     private static bool IsPostingAction(string action) =>
         action is ActionCodes.Post or ActionCodes.Reconcile or ActionCodes.Reverse;
 

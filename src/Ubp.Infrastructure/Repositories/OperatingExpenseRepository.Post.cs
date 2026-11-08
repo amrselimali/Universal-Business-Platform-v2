@@ -74,7 +74,7 @@ public sealed partial class OperatingExpenseRepository
             userId, ct);
 
         Guid? voucherId = null;
-        if (head.TreasuryMethodId is not null)
+        if (head.TreasuryId is not null)
             voucherId = await PostPaymentAsync(connection, tx, head, total, docNo, userId, ct);
 
         await connection.ExecuteAsync(new CommandDefinition("""

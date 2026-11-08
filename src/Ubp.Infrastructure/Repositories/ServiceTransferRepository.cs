@@ -175,7 +175,7 @@ public sealed class ServiceTransferRepository : IServiceTransferRepository
     }
 
     /// <summary>
-    /// ترحيل التحويل داخل معاملة قائمة (يُستخدم أيضًا عند اعتماد مراجعة الوردية).
+    /// ترحيل التحويل داخل معاملة قائمة (يُستخدم أيضًا عند اعتماد مراجعة الشفت).
     /// </summary>
     public static async Task PostCoreAsync(NpgsqlConnection connection, NpgsqlTransaction tx,
         Guid transferId, Guid userId, CancellationToken ct = default)

@@ -157,8 +157,8 @@
                 ToCustomerId = _toCustomerId, DocDate = DateTime.Today, Lines = lines
             });
             Snackbar.Add(result.Status == ServiceTransferStatuses.Posted
-                    ? $"تم ترحيل تحويل الخدمات {result.DocNo} وتحديث أرصدة العميلين والوردية"
-                    : $"تم حفظ تحويل الخدمات {result.DocNo} (مسودة — تُعتمد عند مراجعة الوردية)",
+                    ? $"تم ترحيل تحويل الخدمات {result.DocNo} وتحديث أرصدة العميلين والشفت"
+                    : $"تم حفظ تحويل الخدمات {result.DocNo} (مسودة — تُعتمد عند مراجعة الشفت)",
                 Severity.Success);
             MudDialog.Close(DialogResult.Ok(result));
         }

@@ -13,6 +13,7 @@ public sealed partial class OperatingExpenseRepository
         await using var connection = await _factory.OpenAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
 
+        await ResolveDefaultsAsync(connection, tx, input, ct);
         await ValidateAsync(connection, tx, input, ct);
 
         var total = input.Lines.Sum(l => l.Amount);

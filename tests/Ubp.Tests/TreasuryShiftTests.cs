@@ -25,11 +25,11 @@ public sealed class TreasuryShiftTests : IClassFixture<TestDb>
         await settings.SetDefaultAsync(actor, PostingKeys.SupplierAdvances, chart["2100"].Id);
         await settings.SetDefaultAsync(actor, PostingKeys.CashOverShort, chart["5490"].Id);
 
-        var branch = await _db.CreateBranchAsync("TS-B-" + suffix, "فرع وردية " + suffix);
+        var branch = await _db.CreateBranchAsync("TS-B-" + suffix, "فرع شفت " + suffix);
         var treasuryId = Guid.CreateVersion7();
         await _db.TreasuryRepo.CreateTreasuryAsync(treasuryId, new TreasuryInput
         {
-            BranchId = branch, Code = "TS-T-" + suffix, NameAr = "خزينة وردية " + suffix,
+            BranchId = branch, Code = "TS-T-" + suffix, NameAr = "خزينة شفت " + suffix,
             TreasuryType = TreasuryTypes.Cash, AccountId = chart["1101"].Id
         }, actor.UserId);
 
@@ -41,9 +41,9 @@ public sealed class TreasuryShiftTests : IClassFixture<TestDb>
         }, actor.UserId);
 
         var customer = await _db.PartnerRepo.CreateAsync(PartnerKind.Customer, new PartnerInput
-        { Code = "TS-C-" + suffix, NameAr = "عميل وردية " + suffix });
+        { Code = "TS-C-" + suffix, NameAr = "عميل شفت " + suffix });
         var supplier = await _db.PartnerRepo.CreateAsync(PartnerKind.Supplier, new PartnerInput
-        { Code = "TS-S-" + suffix, NameAr = "مورد وردية " + suffix });
+        { Code = "TS-S-" + suffix, NameAr = "مورد شفت " + suffix });
 
         return new Fixture(branch, treasuryId, cash, customer, supplier, chart);
     }

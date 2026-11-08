@@ -145,7 +145,7 @@
         }
         catch (AppException ex)
         {
-            // مثل «لا يمكن التسجيل قبل فتح وردية»: رسالة واضحة بدل انهيار الحوار.
+            // مثل «لا يمكن التسجيل قبل فتح شفت»: رسالة واضحة بدل انهيار الحوار.
             Snackbar.Add(T.T(ex.Code), Severity.Error);
             MudDialog.Cancel();
             return;

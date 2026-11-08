@@ -40,10 +40,12 @@ public sealed class PosCollectionMethodTests : IClassFixture<TestDb>
         { Code = "PM-C" + suffix, NameAr = "عميل طرق التحصيل " + suffix });
 
         var treasuryId = Guid.CreateVersion7();
+        // الخزائن هي طرق الدفع: العمولة والحساب الوسيط على الخزينة نفسها — 0093.
         await _db.TreasuryRepo.CreateTreasuryAsync(treasuryId, new TreasuryInput
         {
             BranchId = branch, Code = "PM-T" + suffix, NameAr = "خزينة طرق التحصيل " + suffix,
-            TreasuryType = TreasuryTypes.Cash, AccountId = chart["1101"].Id
+            TreasuryType = TreasuryTypes.Bank, AccountId = chart["1130"].Id,
+            ProviderFeePercent = feePercent, ProviderFeeAccountId = feeAccountId
         }, actor.UserId);
         var methodId = Guid.CreateVersion7();
         await _db.TreasuryRepo.CreateMethodAsync(methodId, new TreasuryMethodInput

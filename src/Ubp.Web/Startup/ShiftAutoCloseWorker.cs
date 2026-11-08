@@ -6,7 +6,7 @@ using Ubp.Application.Services;
 namespace Ubp.Web.Startup;
 
 /// <summary>
-/// إغلاق آلي للورديات الساعة 5 صباحاً كل يوم: يغلق كل وردية مفتوحة تجاوزت الخامسة
+/// إغلاق آلي للشفتات الساعة 5 صباحاً كل يوم: يغلق كل شفت مفتوحة تجاوزت الخامسة
 /// بمطابقة المتوقع، ويحوّل تسجيلاتها للمراجعة (0074).
 /// </summary>
 public sealed class ShiftAutoCloseWorker : BackgroundService
@@ -54,7 +54,7 @@ public sealed class ShiftAutoCloseWorker : BackgroundService
         return await treasury.AutoCloseAsync(Cutoff(now), ct);
     }
 
-    /// <summary>آخر الخامسة صباحاً مرّت: وردية فُتحت بعدها لا تُغلق قبل الخامسة التالية.</summary>
+    /// <summary>آخر الخامسة صباحاً مرّت: شفت فُتحت بعدها لا تُغلق قبل الخامسة التالية.</summary>
     public static DateTimeOffset Cutoff(DateTimeOffset now)
     {
         var cutoff = new DateTimeOffset(now.Year, now.Month, now.Day, 5, 0, 0, now.Offset);

@@ -33,7 +33,7 @@ public sealed partial class ShiftEditRepository
             ?? throw new ValidationAppException("validation.journal_not_found");
 
         var entryId = Guid.CreateVersion7();
-        var description = $"فرق تعديل وردية {docNo}";
+        var description = $"فرق تعديل شفت {docNo}";
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO journal_entries
                 (id, journal_id, branch_id, entry_date, reference, description, status,

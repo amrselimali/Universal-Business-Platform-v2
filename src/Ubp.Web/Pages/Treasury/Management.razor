@@ -30,6 +30,9 @@ else
                     <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
                 }
             </MudSelect>
+            <MudSwitch T="bool" Value="_includeArchived" Color="Color.Warning"
+                       Label="@T.T("treasury.show_archived")"
+                       ValueChanged="OnIncludeArchivedChanged" />
         </div>
 
         <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
@@ -40,26 +43,60 @@ else
                 <MudTh>@T.T("treasury.type")</MudTh>
                 <MudTh>@T.T("treasury.account")</MudTh>
                 <MudTh Align="Right">@T.T("treasury.opening_balance")</MudTh>
+                <MudTh>@T.T("treasury.follow_in_shift")</MudTh>
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd><span class="ubp-code">@context.Code</span></MudTd>
-                <MudTd>@context.DisplayName(IsEnglish)</MudTd>
+                <MudTd>
+                    @context.DisplayName(IsEnglish)
+                    @if (!context.IsActive)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="ms-2">
+                            @T.T("treasury.archived")
+                        </MudChip>
+                    }
+                </MudTd>
                 <MudTd>@T.T("treasury.type_" + context.TreasuryType)</MudTd>
                 <MudTd>@context.AccountCode — @context.AccountName</MudTd>
                 <MudTd Align="Right">@context.OpeningBalance.ToString("N2")</MudTd>
+                <MudTd>
+                    @if (context.IsActive && Can(ActionCodes.ManageMethods))
+                    {
+                        <MudSwitch T="bool" Value="context.FollowInShift" Color="Color.Success"
+                                   ValueChanged="@(v => ToggleFollowAsync(context, v))" />
+                    }
+                    else
+                    {
+                        <MudText>@(context.FollowInShift ? "✓" : "—")</MudText>
+                    }
+                </MudTd>
                 <MudTd Align="Right">
                     <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true"
                              AnchorOrigin="Origin.BottomRight">
-                        @if (Can(ActionCodes.ManageMethods))
+                        @if (context.IsActive && Can(ActionCodes.Edit))
                         {
-                            <MudMenuItem OnClick="@(() => MethodsAsync(context))"
-                                         Icon="@Icons.Material.Filled.CreditCard">
-                                @T.T("treasury.methods")
+                            <MudMenuItem OnClick="@(() => EditAsync(context))"
+                                         Icon="@Icons.Material.Filled.Edit">
+                                @T.T("common.edit")
                             </MudMenuItem>
-                            <MudMenuItem OnClick="@(() => OverShortAsync(context))"
-                                         Icon="@Icons.Material.Filled.AccountBalanceWallet">
+                            <MudMenuItem OnClick="@(() => SettingsAsync(context))"
+                                         Icon="@Icons.Material.Filled.Settings">
                                 @T.T("treasury.settings_menu")
+                            </MudMenuItem>
+                        }
+                        @if (context.IsActive && Can(ActionCodes.Delete))
+                        {
+                            <MudMenuItem OnClick="@(() => ArchiveAsync(context))"
+                                         Icon="@Icons.Material.Filled.Archive">
+                                @T.T("treasury.archive")
+                            </MudMenuItem>
+                        }
+                        @if (!context.IsActive && Can(ActionCodes.Edit))
+                        {
+                            <MudMenuItem OnClick="@(() => RestoreAsync(context))"
+                                         Icon="@Icons.Material.Filled.Unarchive">
+                                @T.T("treasury.restore")
                             </MudMenuItem>
                         }
                     </MudMenu>
@@ -73,6 +110,7 @@ else
     private IReadOnlyList<Treasury> _items = Array.Empty<Treasury>();
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private Guid? _branchId;
+    private bool _includeArchived;
 
     private bool IsEnglish => T.Language == "en";
 
@@ -86,13 +124,19 @@ else
 
     private async Task ReloadAsync()
     {
-        _items = await Treasury.ListTreasuriesAsync(Actor!, _branchId);
+        _items = await Treasury.ListTreasuriesAsync(Actor!, _branchId, _includeArchived);
     }
 
-    private async Task OnBranchChanged(Guid? value)
+    private Task OnBranchChanged(Guid? value)
     {
         _branchId = value;
-        await RunAsync(ReloadAsync);
+        return RunAsync(ReloadAsync);
+    }
+
+    private Task OnIncludeArchivedChanged(bool value)
+    {
+        _includeArchived = value;
+        return RunAsync(ReloadAsync);
     }
 
     private async Task AddAsync()
@@ -109,10 +153,24 @@ else
         }
     }
 
-    private async Task OverShortAsync(Treasury treasury)
+    private async Task EditAsync(Treasury treasury)
     {
-        var dialog = await Dialogs.ShowAsync<TreasuryOverShortDialog>(
-            T.T("treasury.over_short_account"),
+        var dialog = await Dialogs.ShowAsync<TreasuryDialog>(T.T("treasury.edit_treasury"),
+            new DialogParameters
+            {
+                ["Branches"] = _branches, ["DefaultBranchId"] = _branchId, ["Model"] = treasury
+            });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await RunAsync(ReloadAsync);
+            ShowSuccess("common.saved");
+        }
+    }
+
+    private async Task SettingsAsync(Treasury treasury)
+    {
+        var dialog = await Dialogs.ShowAsync<TreasurySettingsDialog>(
+            T.T("treasury.settings_menu"),
             new DialogParameters { ["Treasury"] = treasury });
         if ((await dialog.Result) is { Canceled: false })
         {
@@ -121,12 +179,34 @@ else
         }
     }
 
-    private async Task MethodsAsync(Treasury treasury)
+    private async Task ArchiveAsync(Treasury treasury)
     {
-        var dialog = await Dialogs.ShowAsync<TreasuryMethodsDialog>(treasury.DisplayName(IsEnglish),
-            new DialogParameters { ["Treasury"] = treasury });
-        if ((await dialog.Result) is { Canceled: false }) ShowSuccess("common.saved");
+        var confirmed = await Dialogs.ShowMessageBoxAsync(T.T("treasury.archive_confirm"),
+            $"{treasury.Code} — {treasury.DisplayName(IsEnglish)}",
+            yesText: T.T("treasury.archive"), cancelText: T.T("common.cancel"));
+        if (confirmed != true) return;
+
+        await RunAsync(async () =>
+        {
+            await Treasury.ArchiveTreasuryAsync(Actor!, treasury.Id);
+            await ReloadAsync();
+            ShowSuccess("common.saved");
+        });
     }
+
+    private Task RestoreAsync(Treasury treasury) => RunAsync(async () =>
+    {
+        await Treasury.RestoreTreasuryAsync(Actor!, treasury.Id);
+        await ReloadAsync();
+        ShowSuccess("common.saved");
+    });
+
+    private Task ToggleFollowAsync(Treasury treasury, bool followInShift) => RunAsync(async () =>
+    {
+        await Treasury.SetTreasuryFollowInShiftAsync(Actor!, treasury.Id, followInShift);
+        await ReloadAsync();
+        ShowSuccess("common.saved");
+    });
 
     private string BranchLabel(Guid? id) =>
         id is null ? "—" : _branches.FirstOrDefault(b => b.Id == id)?.NameAr ?? "—";

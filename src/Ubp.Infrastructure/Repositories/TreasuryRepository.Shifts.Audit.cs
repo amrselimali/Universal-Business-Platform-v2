@@ -28,7 +28,7 @@ public sealed partial class TreasuryRepository
             ORDER BY i.doc_date, i.doc_no, i.entity_id
             """, new { shiftId }, cancellationToken: ct))).ToList();
 
-    /// <summary>ترحيل الوردية للحسابات: تعليمها «تحت المراجعة» حتى لو بلا بيانات — 0079.</summary>
+    /// <summary>ترحيل الشفت للحسابات: تعليمها «تحت المراجعة» حتى لو بلا بيانات — 0079.</summary>
     public async Task<bool> PostShiftAsync(Guid shiftId, Guid userId, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
@@ -39,7 +39,7 @@ public sealed partial class TreasuryRepository
     }
 
     /// <summary>
-    /// اعتماد مراجعة الوردية بواسطة يوزر محاسب (صلاحية APPROVE على شاشة الورديات):
+    /// اعتماد مراجعة الشفت بواسطة يوزر محاسب (صلاحية APPROVE على شاشة الشفتات):
     /// يُرحّل فرق كل خزينة (زيادة/عجز) على حساب الخزينة المخصص أو الافتراضي، ويحوّل
     /// مسودات عدّ النقدية إلى «posted»، ثم يغلق المراجعة — 0076.
     /// </summary>
@@ -99,7 +99,7 @@ public sealed partial class TreasuryRepository
 
                 await CreateVoucherEntryAsync(connection, tx, Guid.CreateVersion7(),
                     row.TreasuryType, shift.BranchId, DateTime.Today, shift.Code,
-                    $"{(variance > 0 ? "زيادة" : "عجز")} وردية {shift.Code}", gl, userId,
+                    $"{(variance > 0 ? "زيادة" : "عجز")} شفت {shift.Code}", gl, userId,
                     row.Id, ct, "cash_shift");
 
                 entryId = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition("""
@@ -116,7 +116,7 @@ public sealed partial class TreasuryRepository
                 """, new { userId, entryId, id = row.Id }, tx, cancellationToken: ct));
         }
 
-        // ترحيل عمولة التحصيل بنسبة الخزينة إلى حسابها المربوط (0081).
+        // ترحيل عمولة التحصيل المحمَّلة على العميل إلى حسابها المربوط (0081/0093).
         var fees = await connection.QueryAsync<(Guid TreasuryAccountId, Guid FeeAccountId,
             string TreasuryType, decimal Fee)>(new CommandDefinition("""
             SELECT t.account_id, t.collection_fee_account_id, t.treasury_type,
@@ -142,13 +142,13 @@ public sealed partial class TreasuryRepository
             };
             await CreateVoucherEntryAsync(connection, tx, Guid.CreateVersion7(),
                 fee.TreasuryType, shift.BranchId, DateTime.Today, shift.Code,
-                $"عمولة تحصيل وردية {shift.Code}", feeGl, userId, null, ct, "cash_shift");
+                $"عمولة تحصيل محملة على العميل {shift.Code}", feeGl, userId, null, ct, "cash_shift");
         }
 
         // تطبيق تعديلات المراجعة على المستندات الأصلية وإنشاء قيود الفرق (موجب/سالب) — 0084.
         await ReviewAdjustmentRepository.ApplyPendingCoreAsync(connection, tx, shiftId, userId, ct);
 
-        // ترحيل تحويلات الخدمات المسودة داخل الوردية: نقل الكميات والقيد بين حسابَي العميلين (0083).
+        // ترحيل تحويلات الخدمات المسودة داخل الشفت: نقل الكميات والقيد بين حسابَي العميلين (0083).
         var pendingTransfers = await connection.QueryAsync<Guid>(new CommandDefinition("""
             SELECT st.id
             FROM service_transfers st

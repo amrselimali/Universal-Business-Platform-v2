@@ -7,6 +7,68 @@ namespace Ubp.Infrastructure.Repositories;
 
 public sealed partial class OperatingExpenseRepository
 {
+    /// <summary>
+    /// تعبئة الحسابات الافتراضية قبل التحقق: الحساب الذي يُرحَّل عليه المصروف يُحدَّد افتراضياً
+    /// من شاشة إعدادات الحسابات (لا يُطلب في الشاشة)، وطريقة الدفع الداخلية للخزينة تُستنتج
+    /// تلقائياً — 0093.
+    /// </summary>
+    private static async Task ResolveDefaultsAsync(NpgsqlConnection connection,
+        NpgsqlTransaction tx, OperatingExpenseInput input, CancellationToken ct)
+    {
+        if (input.TreasuryId == Guid.Empty) input.TreasuryId = null;
+        if (input.TreasuryMethodId == Guid.Empty) input.TreasuryMethodId = null;
+        if (input.TreasuryId is { } treasuryId && input.TreasuryMethodId is null)
+            input.TreasuryMethodId = await DefaultMethodIdAsync(connection, tx, treasuryId, ct);
+
+        Guid? defaultAccount = null;
+        foreach (var line in input.Lines.Where(l => l.AccountId == Guid.Empty))
+        {
+            // سطر مخزني: يُحمَّل على حساب مخزون تصنيف الصنف (أو حساب المخزون الافتراضي).
+            if (line.ItemId is { } itemId)
+            {
+                var stockAccount = await StockAccountAsync(connection, tx, itemId, ct);
+                if (stockAccount is { } accountId && accountId != Guid.Empty)
+                {
+                    line.AccountId = accountId;
+                    continue;
+                }
+            }
+
+            // سطر مصروف: يُحدَّد الحساب افتراضياً من شاشة إعدادات الحسابات — 0093.
+            defaultAccount ??= await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+                "SELECT account_id FROM posting_defaults WHERE setting_key = @key",
+                new { key = PostingKeys.OperatingExpense }, tx, cancellationToken: ct));
+            if (defaultAccount is null || defaultAccount == Guid.Empty)
+                throw new ValidationAppException("validation.posting_account_missing",
+                    new Dictionary<string, string>
+                    {
+                        ["key"] = PostingKeys.OperatingExpense, ["module"] = "expenses"
+                    });
+            line.AccountId = defaultAccount.Value;
+        }
+    }
+
+    /// <summary>حساب تحميل سطر مخزني: حساب مخزون التصنيف ثم حساب المخزون الافتراضي — 0093.</summary>
+    private static async Task<Guid?> StockAccountAsync(NpgsqlConnection connection,
+        NpgsqlTransaction tx, Guid itemId, CancellationToken ct) =>
+        await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition("""
+            SELECT COALESCE(
+                (SELECT ca.inventory_account_id FROM items i
+                 JOIN item_category_accounts ca ON ca.category_id = i.category_id
+                 WHERE i.id = @itemId AND ca.is_active),
+                (SELECT account_id FROM posting_defaults WHERE setting_key = @key))
+            """, new { itemId, key = PostingKeys.StockInventory }, tx, cancellationToken: ct));
+
+    /// <summary>معرّف الطريقة الافتراضية للخزينة (أو أول طريقة نشطة لها) — 0093.</summary>
+    internal static async Task<Guid?> DefaultMethodIdAsync(NpgsqlConnection connection,
+        NpgsqlTransaction? tx, Guid treasuryId, CancellationToken ct) =>
+        await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition("""
+            SELECT id FROM treasury_methods
+            WHERE treasury_id = @treasuryId AND is_active
+            ORDER BY (code = 'DEFAULT') DESC, code
+            LIMIT 1
+            """, new { treasuryId }, tx, cancellationToken: ct));
+
     /// <summary>تحقق بنيوي قبل الحفظ: المورد، طريقة الدفع، الحسابات، والبنود المخزنية.</summary>
     private static async Task ValidateAsync(NpgsqlConnection connection, NpgsqlTransaction tx,
         OperatingExpenseInput input, CancellationToken ct)
@@ -17,7 +79,7 @@ public sealed partial class OperatingExpenseRepository
             throw new ValidationAppException("validation.expense_date_invalid");
         if (input.Lines.Count == 0)
             throw new ValidationAppException("validation.document_has_no_lines");
-        if ((input.TreasuryId is null) != (input.TreasuryMethodId is null))
+        if (input.TreasuryId is null && input.TreasuryMethodId is not null)
             throw new ValidationAppException("validation.expense_payment_incomplete");
 
         var supplier = await connection.ExecuteScalarAsync<int>(new CommandDefinition(

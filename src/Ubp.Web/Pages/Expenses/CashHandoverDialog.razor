@@ -18,18 +18,13 @@
                 </MudSelect>
                 <MudNumericField @bind-Value="_amount" Label="@T.T("expenses.cash_handover_amount")"
                                  Variant="Variant.Outlined" Min="0.01m" Format="N2" Required="true" />
-                <MudSelect T="Guid" @bind-Value="_clearingAccountId"
-                           Label="@T.T("expenses.cash_clearing_account")"
-                           Variant="Variant.Outlined" Required="true">
-                    @foreach (var account in _clearingAccounts)
-                    {
-                        <MudSelectItem T="Guid" Value="@account.Id">
-                            @account.Code — @account.DisplayName(_english)
-                        </MudSelectItem>
-                    }
-                </MudSelect>
-                <MudNumericField @bind-Value="_commission" Label="@T.T("expenses.handover_commission")"
-                                 Variant="Variant.Outlined" Min="0m" Format="N2" />
+                @if (FollowInShift)
+                {
+                    <MudNumericField @bind-Value="_commission"
+                                     Label="@T.T("expenses.handover_commission")"
+                                     Variant="Variant.Outlined" Min="0m" Format="N2"
+                                     HelperText="@T.T("expenses.handover_commission_hint")" />
+                }
                 <MudTextField @bind-Value="_notes" Label="@T.T("common.notes")"
                               Variant="Variant.Outlined" MaxLength="500" />
             </div>
@@ -54,14 +49,18 @@
 
     private MudForm _form = default!;
     private IReadOnlyList<Core.Models.Treasury> _treasuries = Array.Empty<Core.Models.Treasury>();
-    private IReadOnlyList<Core.Models.Account> _clearingAccounts = Array.Empty<Core.Models.Account>();
     private Guid _treasuryId;
-    private Guid _clearingAccountId;
     private decimal _amount;
     private decimal _commission;
     private string? _notes;
     private bool _busy;
     private bool _english;
+
+    private Core.Models.Treasury? Selected =>
+        _treasuries.FirstOrDefault(t => t.Id == _treasuryId);
+
+    /// <summary>عمولة التسليم تظهر فقط للخزائن المتابَعة في الشفت — 0093.</summary>
+    private bool FollowInShift => Selected?.FollowInShift == true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -71,21 +70,23 @@
             var actor = await UserContext.RequireAsync();
             _treasuries = await Lookup.TreasuriesAsync(actor, BranchId);
             _treasuryId = _treasuries.FirstOrDefault()?.Id ?? Guid.Empty;
-            _clearingAccounts = await Lookup.CashClearingAccountsAsync(actor);
-            _clearingAccountId = _clearingAccounts.FirstOrDefault()?.Id ?? Guid.Empty;
         }
         catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
     }
 
-    private void OnTreasuryChanged(Guid value) => _treasuryId = value;
+    private void OnTreasuryChanged(Guid value)
+    {
+        _treasuryId = value;
+        // الافتراضي صفر دائماً، ويبقى صفراً للخزينة النقدية — 0093.
+        _commission = 0;
+    }
 
     private void Cancel() => MudDialog.Cancel();
 
     private async Task SaveAsync()
     {
         await _form.Validate();
-        if (!_form.IsValid || _treasuryId == Guid.Empty || _clearingAccountId == Guid.Empty ||
-            _amount <= 0)
+        if (!_form.IsValid || _treasuryId == Guid.Empty || _amount <= 0)
         {
             Snackbar.Add(T.T("validation.required_fields"), Severity.Warning);
             return;
@@ -98,8 +99,8 @@
             await Treasury.CreateCashHandoverAsync(actor, new Core.Models.CashHandoverInput
             {
                 BranchId = BranchId, TreasuryId = _treasuryId,
-                ClearingAccountId = _clearingAccountId, Amount = _amount,
-                CommissionAmount = _commission,
+                ClearingAccountId = Guid.Empty, Amount = _amount,
+                CommissionAmount = FollowInShift ? _commission : 0,
                 DocDate = DateTime.Today, Notes = _notes
             });
             MudDialog.Close(DialogResult.Ok(true));

@@ -14,6 +14,9 @@ TestResults/
 .pg/
 .pg18/
 .pgdata/
+.pgdata2/
+.pglib/
+.pg16/
 .libs/
 
 # ملف الـ workflow لا يُدفع عبر تطبيق بلا صلاحية workflows؛

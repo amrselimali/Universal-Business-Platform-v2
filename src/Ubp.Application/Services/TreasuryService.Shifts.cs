@@ -6,8 +6,8 @@ using Ubp.Core.Security;
 namespace Ubp.Application.Services;
 
 /// <summary>
-/// الورديات (كل شاشات التطبيق وليس خزينة واحدة): صلاحيات + تحقق + تدقيق.
-/// الوردية للفرع، واحدة مفتوحة فقط، ورصيد الافتتاح محسوب غير قابل للتعديل (0074).
+/// الشفتات (كل شاشات التطبيق وليس خزينة واحدة): صلاحيات + تحقق + تدقيق.
+/// الشفت للفرع، واحدة مفتوحة فقط، ورصيد الافتتاح محسوب غير قابل للتعديل (0074).
 /// </summary>
 public sealed partial class TreasuryService
 {
@@ -21,7 +21,7 @@ public sealed partial class TreasuryService
             limit, ct);
     }
 
-    /// <summary>حفظ القراءة الفعلية لعداد جهاز (تُرحَّل من الوردية).</summary>
+    /// <summary>حفظ القراءة الفعلية لعداد جهاز (تُرحَّل من الشفت).</summary>
     public async Task SetMeterReadingAsync(ActorContext actor, Guid assetId, decimal value,
         CancellationToken ct = default)
     {
@@ -32,7 +32,7 @@ public sealed partial class TreasuryService
             new { current_meter_value = value }, ct);
     }
 
-    /// <summary>حفظ ملاحظات الوردية (تظهر في العرض والإغلاق).</summary>
+    /// <summary>حفظ ملاحظات الشفت (تظهر في العرض والإغلاق).</summary>
     public async Task SaveNotesAsync(ActorContext actor, Guid shiftId, string? notes,
         CancellationToken ct = default)
     {
@@ -43,7 +43,7 @@ public sealed partial class TreasuryService
             new { notes }, ct);
     }
 
-    /// <summary>عدّ النقدية المسجّل لكل خزينة في وردية (مسودة حتى اعتماد المحاسب).</summary>
+    /// <summary>عدّ النقدية المسجّل لكل خزينة في شفت (مسودة حتى اعتماد المحاسب).</summary>
     public async Task<IReadOnlyList<ShiftCashCount>> ListCashCountsAsync(ActorContext actor,
         Guid shiftId, CancellationToken ct = default)
     {
@@ -59,7 +59,7 @@ public sealed partial class TreasuryService
         return await _treasury.GetOpenShiftAsync(branchId, ct);
     }
 
-    /// <summary>أرصدة فتح الوردية للفرع: كلها محسوبة ويُعرض الرقم إجبارياً بلا تعديل.</summary>
+    /// <summary>أرصدة فتح الشفت للفرع: كلها محسوبة ويُعرض الرقم إجبارياً بلا تعديل.</summary>
     public async Task<ShiftOpeningBalances> GetOpeningBalancesAsync(ActorContext actor,
         Guid branchId, CancellationToken ct = default)
     {
@@ -89,7 +89,7 @@ public sealed partial class TreasuryService
     }
 
     /// <summary>
-    /// إغلاق وردية: يُعرض تقرير الوردية أولاً، ثم يُرحّل كل ما سُجّل للمراجعة.
+    /// إغلاق شفت: يُعرض تقرير الشفت أولاً، ثم يُرحّل كل ما سُجّل للمراجعة.
     /// countedCash = null يعني إغلاقاً آلياً (5 صباحاً) بمطابقة المتوقع.
     /// </summary>
     public async Task<Shift> CloseShiftAsync(ActorContext actor, Guid shiftId,
@@ -113,7 +113,7 @@ public sealed partial class TreasuryService
         return shift;
     }
 
-    /// <summary>إغلاق آلي لكل وردية تجاوزت الخامسة صباحاً (يستدعيه العامل الخلفي).</summary>
+    /// <summary>إغلاق آلي لكل شفت تجاوزت الخامسة صباحاً (يستدعيه العامل الخلفي).</summary>
     public async Task<int> AutoCloseAsync(DateTimeOffset cutoff, CancellationToken ct = default)
     {
         var due = await _treasury.ListShiftsDueForAutoCloseAsync(cutoff, ct);
@@ -128,7 +128,7 @@ public sealed partial class TreasuryService
             }
             catch (AppException)
             {
-                // وردية تغيّرت حالتها بين القراءة والإغلاق — تُترك للدورة التالية.
+                // شفت تغيّرت حالتها بين القراءة والإغلاق — تُترك للدورة التالية.
             }
         }
         return closed;
@@ -150,7 +150,7 @@ public sealed partial class TreasuryService
         return await _treasury.ListDenominationsAsync(shiftId, ct);
     }
 
-    /// <summary>إعادة فتح وردية مغلقة بسبب موثّق وعكس قيد فرقها.</summary>
+    /// <summary>إعادة فتح شفت مغلقة بسبب موثّق وعكس قيد فرقها.</summary>
     public async Task<Shift> ReopenShiftAsync(ActorContext actor, Guid shiftId, string reason,
         CancellationToken ct = default)
     {

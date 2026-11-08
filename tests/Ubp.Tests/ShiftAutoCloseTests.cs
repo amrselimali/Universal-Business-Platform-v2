@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Ubp.Tests;
 
-/// <summary>الإغلاق الآلي للورديات: آخر الخامسة صباحاً مرّ هو حد الإغلاق.</summary>
+/// <summary>الإغلاق الآلي للشفتات: آخر الخامسة صباحاً مرّ هو حد الإغلاق.</summary>
 public sealed class ShiftAutoCloseTests
 {
     [Fact]

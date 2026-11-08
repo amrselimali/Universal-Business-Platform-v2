@@ -2,13 +2,13 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">@T.T("treasury.add_treasury")</MudText>
+        <MudText Typo="Typo.h6">@(IsEdit ? T.T("treasury.edit_treasury") : T.T("treasury.add_treasury"))</MudText>
     </TitleContent>
     <DialogContent>
         <MudForm @ref="_form">
             <div class="ubp-form-grid">
                 <MudSelect T="Guid" @bind-Value="_input.BranchId" Label="@T.T("common.branch")"
-                           Variant="Variant.Outlined" Required="true">
+                           Variant="Variant.Outlined" Required="true" Disabled="IsEdit">
                     @foreach (var branch in Branches)
                     {
                         <MudSelectItem T="Guid" Value="@branch.Id">@branch.NameAr</MudSelectItem>
@@ -38,10 +38,10 @@
                 <MudNumericField @bind-Value="_input.OpeningBalance" Label="@T.T("treasury.opening_balance")"
                                  Variant="Variant.Outlined" Min="0m" Format="N2" />
                 <MudNumericField @bind-Value="_input.CollectionFeePercent"
-                                 Label="@T.T("treasury.collection_fee_percent")"
+                                 Label="@T.T("treasury.customer_collection_fee_percent")"
                                  Variant="Variant.Outlined" Min="0" Max="100" Format="N2" />
                 <MudSelect T="Guid?" @bind-Value="_input.CollectionFeeAccountId" Clearable="true"
-                           Label="@T.T("treasury.collection_fee_account")"
+                           Label="@T.T("treasury.customer_collection_fee_account")"
                            Variant="Variant.Outlined">
                     @foreach (var account in _accounts)
                     {
@@ -50,6 +50,8 @@
                         </MudSelectItem>
                     }
                 </MudSelect>
+                <MudSwitch T="bool" @bind-Value="_input.FollowInShift" Color="Color.Success"
+                           Label="@T.T("treasury.follow_in_shift")" />
             </div>
         </MudForm>
     </DialogContent>
@@ -64,6 +66,7 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public IReadOnlyList<Branch> Branches { get; set; } = Array.Empty<Branch>();
     [Parameter] public Guid? DefaultBranchId { get; set; }
+    [Parameter] public Treasury? Model { get; set; }
 
     [Inject] private TreasuryService Treasury { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
@@ -76,10 +79,31 @@
     private bool _busy;
     private bool _english;
 
+    private bool IsEdit => Model is not null;
+
     protected override async Task OnInitializedAsync()
     {
         _english = T.Language == "en";
-        _input.BranchId = DefaultBranchId ?? Branches.FirstOrDefault()?.Id ?? Guid.Empty;
+        if (Model is null)
+        {
+            _input.BranchId = DefaultBranchId ?? Branches.FirstOrDefault()?.Id ?? Guid.Empty;
+        }
+        else
+        {
+            _input = new TreasuryInput
+            {
+                BranchId = Model.BranchId, Code = Model.Code, NameAr = Model.NameAr,
+                NameEn = Model.NameEn, TreasuryType = Model.TreasuryType,
+                AccountId = Model.AccountId, OpeningBalance = Model.OpeningBalance,
+                OverShortAccountId = Model.OverShortAccountId,
+                CollectionFeePercent = Model.CollectionFeePercent,
+                CollectionFeeAccountId = Model.CollectionFeeAccountId,
+                ProviderFeePercent = Model.ProviderFeePercent,
+                ProviderFeeAmount = Model.ProviderFeeAmount,
+                ProviderFeeAccountId = Model.ProviderFeeAccountId,
+                FollowInShift = Model.FollowInShift
+            };
+        }
 
         var actor = await UserContext.GetAsync();
         if (actor is not null) _accounts = await Treasury.PostableAccountsAsync(actor);
@@ -96,8 +120,16 @@
         try
         {
             var actor = await UserContext.RequireAsync();
-            var saved = await Treasury.CreateTreasuryAsync(actor, _input);
-            MudDialog.Close(DialogResult.Ok(saved));
+            if (Model is null)
+            {
+                var saved = await Treasury.CreateTreasuryAsync(actor, _input);
+                MudDialog.Close(DialogResult.Ok(saved));
+            }
+            else
+            {
+                await Treasury.UpdateTreasuryAsync(actor, Model.Id, _input);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
         }
         catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
         finally { _busy = false; }

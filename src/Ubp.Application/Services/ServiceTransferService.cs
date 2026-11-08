@@ -44,8 +44,8 @@ public sealed class ServiceTransferService
                 transfer.DocNo, input.FromCustomerId, input.ToCustomerId,
                 transfer.TotalQuantity, transfer.TotalAmount
             }, ct);
-        // يبقى التحويل مسودةً ظاهرةً في الوردية وكشوف الحسابات كحركة معلّقة، ويُعتمد ويُرحَّل
-        // عند مراجعة الوردية (مع إمكانية تعديل الكمية قبل الترحيل).
+        // يبقى التحويل مسودةً ظاهرةً في الشفت وكشوف الحسابات كحركة معلّقة، ويُعتمد ويُرحَّل
+        // عند مراجعة الشفت (مع إمكانية تعديل الكمية قبل الترحيل).
         return transfer;
     }
 
@@ -67,7 +67,7 @@ public sealed class ServiceTransferService
     }
 
     /// <summary>
-    /// ترحيل التحويل: يفعّله يوزر المراجعة صاحب صلاحية الاعتماد على الورديات ويُنشئ قيد
+    /// ترحيل التحويل: يفعّله يوزر المراجعة صاحب صلاحية الاعتماد على الشفتات ويُنشئ قيد
     /// الفرق بين حسابَي العميلين عندما يُرحَّل التحويل.
     /// </summary>
     public async Task<ServiceTransfer> PostAsync(ActorContext actor, Guid transferId,

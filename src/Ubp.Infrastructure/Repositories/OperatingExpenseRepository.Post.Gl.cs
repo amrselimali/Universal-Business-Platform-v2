@@ -1,6 +1,7 @@
 using Dapper;
 using Npgsql;
 using Ubp.Core.Models;
+using Ubp.Core.Results;
 
 namespace Ubp.Infrastructure.Repositories;
 
@@ -21,18 +22,23 @@ public sealed partial class OperatingExpenseRepository
             docNo, $"مصروفات تشغيلية {docNo}", gl, userId, "operating_expense", head.Id, ct);
     }
 
-    /// <summary>سداد فوري: سند صرف مرحّل (للخزينة والوردية) + قيد مدين المورد / دائن الخزينة.</summary>
+    /// <summary>سداد فوري: سند صرف مرحّل (للخزينة والشفت) + قيد مدين المورد / دائن الخزينة.</summary>
     private static async Task<Guid> PostPaymentAsync(NpgsqlConnection connection,
         NpgsqlTransaction tx, PostHeader head, decimal total, string docNo, Guid userId,
         CancellationToken ct)
     {
+        // الخزائن هي طرق الدفع: تُستخدم الطريقة الافتراضية للخزينة تلقائياً — 0093.
+        var methodId = head.TreasuryMethodId
+                       ?? await DefaultMethodIdAsync(connection, tx, head.TreasuryId!.Value, ct)
+                       ?? throw new ValidationAppException("validation.treasury_method_not_found");
+
         var method = await connection.QuerySingleAsync<(Guid AccountId, Guid? ClearingAccountId,
             string TreasuryType)>(new CommandDefinition("""
             SELECT t.account_id AS AccountId, m.clearing_account_id AS ClearingAccountId,
                    t.treasury_type AS TreasuryType
             FROM treasury_methods m JOIN treasuries t ON t.id = m.treasury_id
             WHERE m.id = @methodId
-            """, new { methodId = head.TreasuryMethodId }, tx, cancellationToken: ct));
+            """, new { methodId }, tx, cancellationToken: ct));
 
         var partyName = await connection.ExecuteScalarAsync<string>(new CommandDefinition(
             "SELECT name_ar FROM suppliers WHERE id = @id", new { id = head.SupplierId }, tx,
@@ -63,7 +69,7 @@ public sealed partial class OperatingExpenseRepository
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO voucher_lines (voucher_id, line_no, treasury_method_id, amount, fee_amount)
             VALUES (@voucherId, 1, @methodId, @amount, 0)
-            """, new { voucherId, methodId = head.TreasuryMethodId, amount = total }, tx,
+            """, new { voucherId, methodId, amount = total }, tx,
             cancellationToken: ct));
 
         var gl = new List<EntryLine>

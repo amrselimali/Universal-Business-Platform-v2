@@ -19,7 +19,7 @@ public sealed class PermissionRegistryTests
     {
         var shifts = AppRegistry.ByCode[ScreenCodes.TreasuryShifts];
         Assert.Contains(ActionCodes.Edit, shifts.Actions.Select(a => a.Code));
-        // عمليات الوردية الأساسية تبقى قابلة للمنح.
+        // عمليات الشفت الأساسية تبقى قابلة للمنح.
         foreach (var code in new[]
                  { ActionCodes.Open, ActionCodes.Close, ActionCodes.Reopen, ActionCodes.Approve })
             Assert.Contains(code, shifts.Actions.Select(a => a.Code));
