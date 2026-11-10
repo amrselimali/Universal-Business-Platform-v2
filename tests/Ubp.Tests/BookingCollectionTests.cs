@@ -96,6 +96,30 @@ public sealed class BookingCollectionTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Draft_collection_is_counted_in_paid_and_cancel_restores_the_remaining()
+    {
+        var actor = await _db.AdminActorAsync();
+        var f = await SetupAsync("6");
+        var service = _db.BookingCollections();
+
+        var input = CollectInput(f.Branch, f.Customer.Id, f.TreasuryId, f.MethodId,
+            f.Booking.Id, 100);
+        input.DraftOnly = true;
+        var draft = await service.CollectAsync(actor, input);
+
+        // السداد المؤقت (مسودة) يخفض غير المسدد حتى قبل الترحيل — 0095.
+        var rows = await service.ListOutstandingAsync(actor, f.Branch, f.Customer.Id);
+        var row = Assert.Single(rows);
+        Assert.Equal(100m, row.PaidAmount);
+        Assert.Equal(200m, row.RemainingAmount);
+
+        // إلغاء المسودة يعيد المتبقي كما كان.
+        await _db.TreasuryService().CancelVoucherAsync(actor, draft.VoucherId);
+        var after = await service.ListOutstandingAsync(actor, f.Branch, f.Customer.Id);
+        Assert.Equal(0m, Assert.Single(after).PaidAmount);
+    }
+
+    [Fact]
     public async Task Collection_posts_a_receipt_voucher_allocated_to_the_booking()
     {
         var actor = await _db.AdminActorAsync();

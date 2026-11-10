@@ -138,9 +138,26 @@ public sealed partial class TreasuryRepository
     public async Task<bool> DeleteVoucherAsync(Guid id, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
-        return await connection.ExecuteAsync(new CommandDefinition(
-            "DELETE FROM vouchers WHERE id = @id AND status = 'draft'", new { id },
-            cancellationToken: ct)) > 0;
+        await using var tx = await connection.BeginTransactionAsync(ct);
+
+        // مسودة التحصيل قد تكون خصّصت مبالغ على الحجوزات: تُحذف معها حتى يعود «غير المسدد» — 0095.
+        await connection.ExecuteAsync(new CommandDefinition("""
+            DELETE FROM booking_payments
+            WHERE voucher_id = @id
+              AND EXISTS (SELECT 1 FROM vouchers v WHERE v.id = @id AND v.status = 'draft')
+            """, new { id }, tx, cancellationToken: ct));
+
+        var deleted = await connection.ExecuteAsync(new CommandDefinition(
+            "DELETE FROM vouchers WHERE id = @id AND status = 'draft'", new { id }, tx,
+            cancellationToken: ct));
+        if (deleted == 0)
+        {
+            await tx.RollbackAsync(ct);
+            return false;
+        }
+
+        await tx.CommitAsync(ct);
+        return true;
     }
 
     /// <summary>تخصيص دفعة (سند مرحّل) على فاتورة مرحّلة مع منع تجاوز مبلغ السند.</summary>
@@ -227,9 +244,24 @@ public sealed partial class TreasuryRepository
     public async Task<bool> CancelVoucherAsync(Guid id, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
-        return await connection.ExecuteAsync(new CommandDefinition(
+        await using var tx = await connection.BeginTransactionAsync(ct);
+
+        var updated = await connection.ExecuteAsync(new CommandDefinition(
             "UPDATE vouchers SET status = 'cancelled' WHERE id = @id AND status = 'draft'",
-            new { id }, cancellationToken: ct)) > 0;
+            new { id }, tx, cancellationToken: ct));
+        if (updated == 0)
+        {
+            await tx.RollbackAsync(ct);
+            return false;
+        }
+
+        // إلغاء مسودة التحصيل يعيد المبالغ المخصّصة على الحجوزات إلى «غير المسدد» — 0095.
+        await connection.ExecuteAsync(new CommandDefinition(
+            "DELETE FROM booking_payments WHERE voucher_id = @id", new { id }, tx,
+            cancellationToken: ct));
+
+        await tx.CommitAsync(ct);
+        return true;
     }
 
 }

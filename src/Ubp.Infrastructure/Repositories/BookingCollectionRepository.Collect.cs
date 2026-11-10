@@ -172,17 +172,6 @@ public sealed partial class BookingCollectionRepository
             vouchers.Add((id, input.DraftOnly ? null : no, groupCollected));
         }
 
-        // ترحيل المسودة لا يخصّص أي مبلغ (لا أثر على الحسابات).
-        if (input.DraftOnly)
-        {
-            await tx.CommitAsync(ct);
-            return new BookingCollectionResult
-            {
-                VoucherId = vouchers[0].Id, VoucherNo = null, Total = collectedTotal,
-                Fee = feeTotal, Bookings = lines.Count
-            };
-        }
-
         // توزيع المبلغ المحصل (قد يكون جزئيًا) على الحجوزات المحددة بحدود المتبقي لكل حجز.
         var voucherIndex = 0;
         var voucherRemaining = vouchers[0].Collected;
@@ -190,11 +179,14 @@ public sealed partial class BookingCollectionRepository
         foreach (var line in lines)
         {
             if (collectedRemaining <= 0) break;
+            var isInvoice = string.Equals(line.Kind, "invoice", StringComparison.OrdinalIgnoreCase);
+            // المسودة تُخصَّص على الحجوزات (لتخفيض غير المسدد) بلا أي ترحيل محاسبي،
+            // ولا تُخصَّص على الفواتير (لا أثر محاسبي قبل الترحيل) — 0095.
+            if (input.DraftOnly && isInvoice) continue;
             var cap = Math.Round(line.Amount, 2, MidpointRounding.AwayFromZero);
             var amount = Math.Min(cap, collectedRemaining);
             collectedRemaining = Math.Round(collectedRemaining - amount, 2,
                 MidpointRounding.AwayFromZero);
-            var isInvoice = string.Equals(line.Kind, "invoice", StringComparison.OrdinalIgnoreCase);
             while (amount > 0)
             {
                 var take = Math.Min(amount, voucherRemaining);
@@ -236,8 +228,8 @@ public sealed partial class BookingCollectionRepository
         await tx.CommitAsync(ct);
         return new BookingCollectionResult
         {
-            VoucherId = vouchers[0].Id, VoucherNo = vouchers[0].No, Total = collectedTotal,
-            Fee = feeTotal, Bookings = lines.Count
+            VoucherId = vouchers[0].Id, VoucherNo = input.DraftOnly ? null : vouchers[0].No,
+            Total = collectedTotal, Fee = feeTotal, Bookings = lines.Count
         };
     }
 }
