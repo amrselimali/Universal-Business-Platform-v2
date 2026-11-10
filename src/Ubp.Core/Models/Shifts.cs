@@ -173,6 +173,8 @@ public sealed class ShiftReport
     public int IdleCustomersCount { get; set; }
     /// <summary>عدد حجوزات الغد المؤكدة فقط (يُعرض عدداً فقط) — 0094.</summary>
     public int TomorrowBookingsCount { get; set; }
+    /// <summary>عدد حجوزات الغد غير المؤكدة (باستثناء الملغى/المنتهي) — 0095.</summary>
+    public int TomorrowBookingsUnconfirmedCount { get; set; }
     public List<ShiftAppointmentRow> TomorrowAppointments { get; set; } = new();
     /// <summary>عدّ النقدية لكل خزينة (مسودة حتى اعتماد المحاسب) — 0076.</summary>
     public List<ShiftCashCount> CashCounts { get; set; } = new();

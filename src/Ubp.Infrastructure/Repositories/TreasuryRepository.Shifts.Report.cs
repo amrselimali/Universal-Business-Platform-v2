@@ -192,15 +192,15 @@ public sealed partial class TreasuryRepository
 
         report.Meters = (await connection.QueryAsync<ShiftMeterMovementRow>(new CommandDefinition("""
             SELECT fa.id AS AssetId, fa.code AS Code, fa.name_ar AS NameAr,
+                   -- أول المدة = القراءة الفعلية المسجَّلة في آخر شفت سابق (أياً كانت حالته)،
+                   -- وليس القراءة المسجَّلة داخل الشفت الحالي — 0095.
                    COALESCE((SELECT r.value FROM asset_meter_readings r
-                             WHERE r.asset_id = fa.id AND r.reading_at < @openedAt
-                             ORDER BY r.reading_at DESC LIMIT 1),
-                            fa.current_meter_value - COALESCE(cons.consumed, 0)) AS Opening,
+                             WHERE r.asset_id = fa.id AND r.created_at < @openedAt
+                             ORDER BY r.created_at DESC, r.value DESC LIMIT 1), 0) AS Opening,
                    COALESCE(cons.consumed, 0) AS Consumed,
                    COALESCE((SELECT r.value FROM asset_meter_readings r
-                             WHERE r.asset_id = fa.id AND r.reading_at < @openedAt
-                             ORDER BY r.reading_at DESC LIMIT 1),
-                            fa.current_meter_value - COALESCE(cons.consumed, 0))
+                             WHERE r.asset_id = fa.id AND r.created_at < @openedAt
+                             ORDER BY r.created_at DESC, r.value DESC LIMIT 1), 0)
                        + COALESCE(cons.consumed, 0) AS Closing,
                    fa.current_meter_value AS Actual
             FROM fixed_assets fa
@@ -311,6 +311,15 @@ public sealed partial class TreasuryRepository
             FROM bookings b
             WHERE b.branch_id = @branchId AND b.booking_date = current_date + 1
               AND b.status = 'confirmed'
+            """, new { branchId = shift.BranchId }, cancellationToken: ct));
+
+        // حجوزات الغد غير المؤكدة (باستثناء الملغى والمنتهي) بجانب المؤكدة — 0095.
+        report.TomorrowBookingsUnconfirmedCount = await connection.ExecuteScalarAsync<int>(
+            new CommandDefinition("""
+            SELECT count(*)::int
+            FROM bookings b
+            WHERE b.branch_id = @branchId AND b.booking_date = current_date + 1
+              AND b.status NOT IN ('confirmed', 'cancelled', 'expired')
             """, new { branchId = shift.BranchId }, cancellationToken: ct));
 
         report.TomorrowAppointments = (await connection.QueryAsync<ShiftAppointmentRow>(new CommandDefinition("""

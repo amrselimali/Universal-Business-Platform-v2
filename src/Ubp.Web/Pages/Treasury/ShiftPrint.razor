@@ -36,6 +36,10 @@ else
     protected override async Task OnLoadAsync()
     {
         _report = await TreasuryApi.GetShiftReportAsync(Actor!, Id);
+        // مطابقة شاشة العرض: النقد المعدود غير المسجَّل يبدأ بالمتوقع (للشفت المفتوح فقط).
+        if (_report.Shift.IsOpen)
+            foreach (var row in _report.CashCounts)
+                row.CountedCash ??= row.ExpectedCash;
         // الاسم الافتراضي للتصدير = تاريخ الإقفال + مستخدم الإقفال.
         var closedAt = _report.Shift.ClosedAt ?? _report.Shift.OpenedAt;
         var user = _report.Shift.ClosedByName ?? _report.Shift.Username ?? "";

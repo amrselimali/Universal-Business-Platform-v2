@@ -1844,5 +1844,6 @@
   "treasury.report_tomorrow_bookings_confirmed": "Confirmed tomorrow bookings",
   "treasury.meter_units_default": "Meter units",
   "common.saving": "Saving...",
-  "treasury.closed_by_user": "Closed by"
+  "treasury.closed_by_user": "Closed by",
+  "treasury.report_tomorrow_bookings_unconfirmed": "Unconfirmed tomorrow bookings"
 }

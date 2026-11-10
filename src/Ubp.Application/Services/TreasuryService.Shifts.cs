@@ -43,6 +43,19 @@ public sealed partial class TreasuryService
             new { notes }, ct);
     }
 
+    /// <summary>
+    /// حفظ النقد المعدود لخزينة داخل الشفت المفتوح فور الكتابة (مسودة) — 0095.
+    /// </summary>
+    public async Task SaveCountedCashAsync(ActorContext actor, Guid shiftId, Guid treasuryId,
+        decimal countedCash, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.TreasuryShifts, ActionCodes.Open, ct: ct);
+        if (!await _treasury.SaveCashCountAsync(shiftId, treasuryId, countedCash, ct))
+            throw new NotFoundAppException();
+        await _audit.WriteAsync(actor, "shift_cash_counts", shiftId.ToString(), "UPDATE", null,
+            new { treasuryId, countedCash }, ct);
+    }
+
     /// <summary>عدّ النقدية المسجّل لكل خزينة في شفت (مسودة حتى اعتماد المحاسب).</summary>
     public async Task<IReadOnlyList<ShiftCashCount>> ListCashCountsAsync(ActorContext actor,
         Guid shiftId, CancellationToken ct = default)

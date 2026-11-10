@@ -27,8 +27,11 @@ else
                           AdornmentIcon="@Icons.Material.Filled.Search" Class="ubp-search" />
             <MudSwitch T="bool" Value="_onlyRemaining" ValueChanged="OnRemainingChanged"
                        Label="@T.T("reservations.only_remaining")" Color="Color.Primary" />
-            <MudDatePicker @bind-Date="_extendTo" Label="@T.T("reservations.extend_to")"
-                           Variant="Variant.Outlined" Class="ubp-date" />
+            @if (Can(ActionCodes.ExtendReservation))
+            {
+                <MudDatePicker @bind-Date="_extendTo" Label="@T.T("reservations.extend_to")"
+                               Variant="Variant.Outlined" Class="ubp-date" />
+            }
             <MudButton Variant="Variant.Text" OnClick="RefreshAsync">@T.T("common.refresh")</MudButton>
         </div>
 
@@ -58,12 +61,18 @@ else
                     <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success"
                                Disabled="@(_busy || context.RemainingQty <= 0 || !Can(ActionCodes.Execute))"
                                OnClick="@(() => ExecuteAsync(context))">@T.T("reservations.execute")</MudButton>
-                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning"
-                               Disabled="@(_busy || !Can(ActionCodes.ExtendReservation))"
-                               OnClick="@(() => ExtendAsync(context))">@T.T("reservations.extend")</MudButton>
-                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
-                               Disabled="@(_busy || !Can(ActionCodes.ReleaseReservation))"
-                               OnClick="@(() => ReleaseAsync(context))">@T.T("reservations.release")</MudButton>
+                    @if (Can(ActionCodes.ExtendReservation))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning"
+                                   Disabled="@(_busy)"
+                                   OnClick="@(() => ExtendAsync(context))">@T.T("reservations.extend")</MudButton>
+                    }
+                    @if (Can(ActionCodes.ReleaseReservation))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                                   Disabled="@(_busy)"
+                                   OnClick="@(() => ReleaseAsync(context))">@T.T("reservations.release")</MudButton>
+                    }
                 </MudTd>
             </RowTemplate>
             <PagerContent>

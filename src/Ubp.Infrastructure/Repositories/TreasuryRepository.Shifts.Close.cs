@@ -159,6 +159,27 @@ public sealed partial class TreasuryRepository
             new { shiftId, notes }, cancellationToken: ct)) > 0;
     }
 
+    /// <summary>
+    /// حفظ النقد المعدود لخزينة في الشفت المفتوح فور الكتابة (مسودة) مع حساب الفرق،
+    /// حتى لا يضيع ما سجّله المستخدم عند إعادة فتح التقرير أو طباعته — 0095.
+    /// </summary>
+    public async Task<bool> SaveCashCountAsync(Guid shiftId, Guid treasuryId,
+        decimal countedCash, CancellationToken ct = default)
+    {
+        if (countedCash < 0) throw new ValidationAppException("validation.shift_counted_cash");
+        await using var connection = await _factory.OpenAsync(ct);
+        var updated = await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE shift_cash_counts c
+            SET counted_cash = @counted,
+                variance = ROUND(@counted - c.expected_cash, 2)
+            WHERE c.shift_id = @shiftId AND c.treasury_id = @treasuryId
+              AND EXISTS (SELECT 1 FROM cashier_shifts s
+                          WHERE s.id = c.shift_id AND s.status = 'open')
+            """, new { shiftId, treasuryId, counted = Math.Round(countedCash, 2,
+                MidpointRounding.AwayFromZero) }, cancellationToken: ct));
+        return updated > 0;
+    }
+
     public async Task<IReadOnlyList<ShiftCashCount>> ListCashCountsAsync(Guid shiftId,
         CancellationToken ct = default)
     {

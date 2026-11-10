@@ -28,7 +28,7 @@
             </MudText>
             <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.PictureAsPdf"
-                       Href="@PrintUrl" Target="_blank">@T.T("treasury.export_pdf")</MudButton>
+                       OnClick="ExportPdfAsync">@T.T("treasury.export_pdf")</MudButton>
             @if (_saving)
             {
                 <MudText Typo="Typo.caption" Class="ubp-muted">@T.T("common.saving")</MudText>
@@ -157,7 +157,8 @@
                 @if (Editable)
                 {
                     <MudNumericField T="decimal" Value="context.CountedCash ?? 0m" Min="0m" Format="N2"
-                                     Dense="true" ValueChanged="@(v => context.CountedCash = v)" />
+                                     Dense="true"
+                                     ValueChanged="@(v => OnCountedCashChanged(context, v))" />
                 }
                 else
                 {
@@ -186,6 +187,8 @@
     </MudText>
     <MudText Typo="Typo.body2" Class="mt-1">
         @T.T("treasury.report_tomorrow_bookings_confirmed"): <b>@Report.TomorrowBookingsCount</b>
+        —
+        @T.T("treasury.report_tomorrow_bookings_unconfirmed"): <b>@Report.TomorrowBookingsUnconfirmedCount</b>
     </MudText>
 
     @if (Report.TomorrowAppointments.Count > 0)

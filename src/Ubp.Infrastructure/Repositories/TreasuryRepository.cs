@@ -79,6 +79,9 @@ public interface ITreasuryRepository : IShiftGate
 
     /// <summary>حفظ ملاحظات الشفت (0078).</summary>
     Task<bool> SaveShiftNotesAsync(Guid shiftId, string? notes, CancellationToken ct = default);
+    /// <summary>حفظ النقد المعدود لخزينة داخل شفت مفتوح (مسودة) فور الكتابة — 0095.</summary>
+    Task<bool> SaveCashCountAsync(Guid shiftId, Guid treasuryId, decimal countedCash,
+        CancellationToken ct = default);
     /// <summary>حساب زيادة/عجز خاص بالخزينة يُستخدم عند اعتماد المحاسب — 0076.</summary>
     Task<bool> SetTreasuryOverShortAccountAsync(Guid treasuryId, Guid? accountId,
         CancellationToken ct = default);

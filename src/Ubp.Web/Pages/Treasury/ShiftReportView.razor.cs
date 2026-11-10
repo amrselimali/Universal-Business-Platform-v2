@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MudBlazor;
 using Ubp.Application.Services;
 using Ubp.Core.Models;
@@ -25,10 +26,11 @@ public partial class ShiftReportView : IDisposable
     [Inject] private UserContext UserContext { get; set; } = default!;
     [Inject] private UiCulture T { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private bool _saving;
     private string? _meterUnitsLabel;
-    private readonly Dictionary<string, CancellationTokenSource> _debounce = new();
+    private readonly Dictionary<string, (CancellationTokenSource Cts, Func<Task> Save)> _debounce = new();
 
     /// <summary>رابط صفحة الطباعة/التصدير (اسم الملف الافتراضي = تاريخ الإقفال ومستخدم الإقفال).</summary>
     private string PrintUrl => $"/treasury/shifts/{Report.Shift.Id}/print";
@@ -46,8 +48,26 @@ public partial class ShiftReportView : IDisposable
 
     public void Dispose()
     {
-        foreach (var cts in _debounce.Values) cts.Cancel();
+        foreach (var entry in _debounce.Values) entry.Cts.Cancel();
         _debounce.Clear();
+    }
+
+    /// <summary>تصدير PDF: حفظ أي تعديل معلّق أولاً ثم فتح صفحة الطباعة في تبويب جديد.</summary>
+    private async Task ExportPdfAsync()
+    {
+        await FlushPendingAsync();
+        await JS.InvokeVoidAsync("ubpOpenPrint", PrintUrl);
+    }
+
+    /// <summary>تنفيذ كل الحفظ المؤجل فوراً قبل الطباعة/التصدير.</summary>
+    private async Task FlushPendingAsync()
+    {
+        foreach (var entry in _debounce.Values.ToList())
+        {
+            if (!entry.Cts.IsCancellationRequested)
+                await SaveNowAsync(entry.Cts, entry.Save);
+            entry.Cts.Cancel();
+        }
     }
 
     // ---------------- حفظ فوري (بلا أزرار حفظ) ----------------
@@ -68,6 +88,16 @@ public partial class ShiftReportView : IDisposable
         Debounce($"meter:{assetId}", () => Treasury.SetMeterReadingAsync(_actor!, assetId, value));
     }
 
+    /// <summary>النقد المعدود يُحفظ فور الكتابة حتى لا يضيع عند إعادة الفتح أو الطباعة — 0095.</summary>
+    private void OnCountedCashChanged(ShiftCashCount row, decimal value)
+    {
+        row.CountedCash = value;
+        if (!Editable) return;
+        var treasuryId = row.TreasuryId;
+        Debounce($"cash:{treasuryId}", () => Treasury.SaveCountedCashAsync(
+            _actor!, Report.Shift.Id, treasuryId, value));
+    }
+
     private ActorContext? _actor;
 
     /// <summary>تأخير بسيط ثم حفظ تلقائي؛ أي كتابة جديدة تُلغي الحفظ السابق لنفس الحقل.</summary>
@@ -75,11 +105,11 @@ public partial class ShiftReportView : IDisposable
     {
         if (_debounce.TryGetValue(key, out var previous))
         {
-            previous.Cancel();
-            previous.Dispose();
+            previous.Cts.Cancel();
+            previous.Cts.Dispose();
         }
         var cts = new CancellationTokenSource();
-        _debounce[key] = cts;
+        _debounce[key] = (cts, save);
         _ = Task.Run(async () =>
         {
             try

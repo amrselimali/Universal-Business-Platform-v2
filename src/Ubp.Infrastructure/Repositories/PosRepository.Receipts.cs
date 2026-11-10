@@ -17,11 +17,18 @@ public sealed partial class PosRepository
                    v.total_amount AS Total, v.fee_total AS AllocatedTotal,
                    v.journal_entry_id AS JournalEntryId,
                    t.name_ar AS TreasuryName,
-                   (SELECT string_agg(DISTINCT i.name_ar, ' • ')
-                    FROM booking_payments bp
-                    JOIN booking_lines bl ON bl.booking_id = bp.booking_id
-                    JOIN items i ON i.id = bl.item_id
-                    WHERE bp.voucher_id = v.id) AS Services
+                   -- عمود الخدمة: أسماء الخدمات التي تم سداد قيمتها (وإن لم توجد خدمات تُعرض الأصناف) — 0095.
+                   COALESCE(
+                     (SELECT string_agg(DISTINCT i.name_ar, ' • ')
+                      FROM booking_payments bp
+                      JOIN booking_lines bl ON bl.booking_id = bp.booking_id
+                      JOIN items i ON i.id = bl.item_id
+                      WHERE bp.voucher_id = v.id AND i.item_type = 'SERVICE'),
+                     (SELECT string_agg(DISTINCT i.name_ar, ' • ')
+                      FROM booking_payments bp
+                      JOIN booking_lines bl ON bl.booking_id = bp.booking_id
+                      JOIN items i ON i.id = bl.item_id
+                      WHERE bp.voucher_id = v.id)) AS Services
             FROM vouchers v
             LEFT JOIN treasuries t ON t.id = v.treasury_id
             WHERE v.voucher_type = 'receipt' AND v.party_type = 'C'
