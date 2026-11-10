@@ -129,12 +129,13 @@ public sealed partial class BookingCollectionRepository
 
             var id = Guid.CreateVersion7();
             await connection.ExecuteAsync(new CommandDefinition("""
-                INSERT INTO vouchers (id, branch_id, doc_date, status, voucher_type, party_type,
-                    party_id, party_name, treasury_id, total_amount, fee_total, notes, created_by)
-                VALUES (@id, @branchId, @docDate, 'draft', 'receipt', 'C', @customerId,
+                INSERT INTO vouchers (id, branch_id, doc_date, doc_no, status, voucher_type,
+                    party_type, party_id, party_name, treasury_id, total_amount, fee_total, notes,
+                    created_by)
+                VALUES (@id, @branchId, @docDate, @no, 'draft', 'receipt', 'C', @customerId,
                         (SELECT name_ar FROM customers WHERE id = @customerId), @treasuryId,
                         @groupGross, @groupFee, @notes, @userId)
-                """, new { id, branchId = input.BranchId, docDate,
+                """, new { id, branchId = input.BranchId, docDate, no,
                     customerId = input.CustomerId, treasuryId = group.Key, groupGross,
                     groupFee, notes = input.Notes, userId }, tx, cancellationToken: ct));
 

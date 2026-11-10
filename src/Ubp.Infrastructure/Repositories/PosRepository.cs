@@ -156,13 +156,15 @@ public sealed partial class PosRepository : IPosRepository
                 input.DocDate, "RCV", ct);
 
             await connection.ExecuteAsync(new CommandDefinition("""
-                INSERT INTO vouchers (id, branch_id, doc_date, status, voucher_type, party_type,
-                    party_id, party_name, treasury_id, total_amount, fee_total, created_by)
-                VALUES (@voucherId, @BranchId, @docDate, 'draft', 'receipt', 'C', @CustomerId,
-                        (SELECT name_ar FROM customers WHERE id = @CustomerId), @TreasuryId,
-                        @amount, @groupFee, @userId)
+                INSERT INTO vouchers (id, branch_id, doc_date, doc_no, status, voucher_type,
+                    party_type, party_id, party_name, treasury_id, total_amount, fee_total,
+                    created_by)
+                VALUES (@voucherId, @BranchId, @docDate, @voucherNo, 'draft', 'receipt', 'C',
+                        @CustomerId, (SELECT name_ar FROM customers WHERE id = @CustomerId),
+                        @TreasuryId, @amount, @groupFee, @userId)
                 """, new { voucherId, input.BranchId, docDate = input.DocDate.Date,
-                    input.CustomerId, treasuryId = group.Key, amount, groupFee, userId }, tx,
+                    input.CustomerId, treasuryId = group.Key, amount, groupFee, voucherNo,
+                    userId }, tx,
                 cancellationToken: ct));
 
             var gl = new List<EntryLine>();

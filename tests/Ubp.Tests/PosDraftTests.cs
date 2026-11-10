@@ -63,7 +63,8 @@ public sealed class PosDraftTests : IClassFixture<TestDb>
             "SELECT status, doc_no, journal_entry_id FROM vouchers WHERE id = @id",
             new { id = voucher.VoucherId });
         Assert.Equal("draft", head.Status);
-        Assert.Null(head.DocNo);
+        // رقم الإيصال يُحفظ منذ الحفظ (مسودة) ليظهر في عرض/طباعة الإيصال — 0095.
+        Assert.StartsWith("RCV-", head.DocNo);
         Assert.Null(head.JournalEntryId);
         // «تسجيل» (مسودة) يخصّص المبلغ على الحجز ليخفض غير المسدد رغم أنه بلا ترحيل محاسبي — 0095.
         var paid = await connection.ExecuteScalarAsync<decimal>(

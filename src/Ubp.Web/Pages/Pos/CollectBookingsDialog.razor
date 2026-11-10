@@ -51,11 +51,12 @@
 
             <MudPaper Elevation="0" Class="pa-2 mt-2">
                 <div class="pos-receipt-totals">
-                    <div><span>@T.T("pos.paid_previously")</span><span>@SelectedPaidBefore.ToString("N2")</span></div>
-                    <div><span>@T.T("pos.total_fees")</span><span>@FeeTotal.ToString("N2")</span></div>
-                    <div><b>@T.T("pos.grand_due")</b><b>@((SelectedTotal + FeeTotal).ToString("N2"))</b></div>
-                    <div><span>@T.T("pos.collected_amount")</span><span>@CollectedTotal.ToString("N2")</span></div>
-                    <div><span>@T.T("pos.remaining")</span><span>@RemainingAfter.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.due_value")</span><span>@SelectedBookingTotal.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.tax")</span><span>@(0m.ToString("N2"))</span></div>
+                    <div><span>@T.T("pos.collection_fee")</span><span>@FeeTotal.ToString("N2")</span></div>
+                    <div><b>@T.T("pos.grand_due")</b><b>@((SelectedBookingTotal + FeeTotal).ToString("N2"))</b></div>
+                    <div><span>@T.T("pos.paid_amount")</span><span>@PaidTotal.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.remaining")</span><span>@ReceiptRemaining.ToString("N2")</span></div>
                 </div>
             </MudPaper>
 
