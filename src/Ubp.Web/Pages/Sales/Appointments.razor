@@ -5,7 +5,6 @@
 @inject BranchService Branches
 @inject IDialogService Dialogs
 @inject IDisplayFormatter Fmt
-@inject IJSRuntime JS
 <PageTitle>@T.T("screen.sales_appointments")</PageTitle>
 
 @if (Denied) { <ForbiddenView /> }
@@ -14,9 +13,6 @@ else
 {
     <PageHeader Title="@T.T("screen.sales_appointments")" Subtitle="@T.T("sales.appointments_hint")">
         <Actions>
-            <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
-                       StartIcon="@Icons.Material.Filled.PictureAsPdf"
-                       OnClick="ExportPdfAsync">@T.T("treasury.export_pdf")</MudButton>
             @if (Can(ActionCodes.Manage))
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
@@ -133,15 +129,6 @@ else
             await ReloadAsync();
             ShowSuccess("common.saved");
         });
-
-    /// <summary>تصدير المعروض بعد الفلاتر إلى PDF (صفحة طباعة مستقلة بالطول) — 0095.</summary>
-    private async Task ExportPdfAsync()
-    {
-        var date = (_date ?? DateTime.Today).ToString("yyyy-MM-dd");
-        var url = $"/sales/appointments/print?date={date}" +
-                  (_branchId is { } branch ? $"&branch={branch}" : "");
-        await JS.InvokeVoidAsync("ubpOpenPrint", url);
-    }
 
     private string BranchLabel(Guid? id) =>
         id is null ? "—" : _branches.FirstOrDefault(b => b.Id == id)?.NameAr ?? "—";

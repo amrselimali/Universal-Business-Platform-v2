@@ -1,0 +1,136 @@
+@page "/sales/bookings/print"
+@attribute [Authorize]
+@layout EmptyLayout
+@inherits SecurePageBase
+@inject BookingService BookingApi
+@inject BranchService Branches
+@inject IDisplayFormatter Fmt
+@inject IJSRuntime JS
+<PageTitle>@FileName</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <div class="ubp-print-page ubp-print-report">
+        <div class="ubp-toolbar ubp-print-hide">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Print"
+                       OnClick="PrintAsync">@T.T("treasury.export_pdf")</MudButton>
+            <MudText Typo="Typo.caption" Class="ubp-muted">@FileName</MudText>
+        </div>
+
+        <div class="ubp-print-title">@LongTitle</div>
+
+        <MudTable Items="_items" Dense="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("sales.customer")</MudTh>
+                <MudTh>@T.T("sales.booking_no")</MudTh>
+                <MudTh>@T.T("sales.booking_date")</MudTh>
+                <MudTh>@T.T("sales.appointment_time")</MudTh>
+                <MudTh>@T.T("sales.reserved_service")</MudTh>
+                <MudTh>@T.T("common.notes")</MudTh>
+                <MudTh>@T.T("sales.booking_created_by")</MudTh>
+                <MudTh>@T.T("sales.assigned_employee")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.CustomerName</MudTd>
+                <MudTd>@(context.DocNo ?? "—")</MudTd>
+                <MudTd>@context.BookingDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd>
+                    @if (context.StartsAt is not null && context.EndsAt is not null)
+                    {
+                        <span dir="ltr">@Fmt.Time(context.StartsAt) – @Fmt.Time(context.EndsAt)</span>
+                    }
+                    else { <text>—</text> }
+                </MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.ItemsSummary) ? "—" : context.ItemsSummary)</MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.Notes) ? "—" : context.Notes)</MudTd>
+                <MudTd>@(context.CreatedByName ?? "—")</MudTd>
+                <MudTd>@(context.EmployeeName ?? "—")</MudTd>
+                <MudTd>@T.T("sales.status_" + StatusKey(context.Status))</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="ubp-muted pa-4">@T.T("common.no_records")</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "branches")] public string? BranchIdsRaw { get; set; }
+    [SupplyParameterFromQuery(Name = "from")] public DateTime? From { get; set; }
+    [SupplyParameterFromQuery(Name = "to")] public DateTime? To { get; set; }
+    [SupplyParameterFromQuery(Name = "statuses")] public string? StatusesRaw { get; set; }
+    [SupplyParameterFromQuery(Name = "search")] public string? Search { get; set; }
+
+    private IReadOnlyList<Booking> _items = Array.Empty<Booking>();
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private string _branchName = "";
+    private DateTime? _from;
+    private DateTime? _to;
+    private List<string> _statuses = new();
+    private bool _printed;
+
+    protected override string ScreenCode => ScreenCodes.SalesBookings;
+
+    private string LongTitle =>
+        $"{_branchName} - {T.T("sales.print_word_bookings")} - {T.T("sales.print_period_label")} " +
+        $"{T.T("common.from_date")} {(_from?.ToString("yyyy-MM-dd") ?? "—")} " +
+        $"{T.T("common.to_date")} {(_to?.ToString("yyyy-MM-dd") ?? "—")} - {Actor?.Username}";
+
+    /// <summary>اسم الملف الافتراضي عند الحفظ كـ PDF = الفرع - حجوزات - اليوم.</summary>
+    private string FileName =>
+        $"{_branchName} - {T.T("sales.print_word_bookings")} - {DateTime.Today:yyyy-MM-dd}";
+
+    private static string StatusKey(string status) => status switch
+    {
+        BookingStatuses.Confirmed => "confirmed",
+        BookingStatuses.PartiallyDelivered => "partial",
+        BookingStatuses.Completed => "completed",
+        BookingStatuses.Cancelled => "cancelled",
+        _ => "draft"
+    };
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        _from = From ?? DateTime.Today;
+        _to = To ?? DateTime.Today;
+
+        var ids = string.IsNullOrWhiteSpace(BranchIdsRaw)
+            ? new List<Guid>()
+            : BranchIdsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => Guid.TryParse(x, out var id) ? id : Guid.Empty)
+                .Where(id => id != Guid.Empty).ToList();
+        if (ids.Count == 0)
+            ids = _branches.Select(b => b.Id).ToList();
+
+        _statuses = string.IsNullOrWhiteSpace(StatusesRaw)
+            ? new List<string> { BookingStatuses.Draft, BookingStatuses.Confirmed }
+            : StatusesRaw.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+
+        var names = _branches.Where(b => ids.Contains(b.Id)).Select(b => b.NameAr).ToList();
+        _branchName = names.Count == 0 ? "—"
+            : names.Count == _branches.Count ? string.Join("، ", names) : string.Join("، ", names);
+
+        var result = await BookingApi.ListAsync(Actor!, new BookingFilter
+        {
+            BranchIds = ids, Statuses = _statuses, Source = BookingSources.Manual,
+            Search = Search, From = _from, To = _to
+        }, new PageRequest { Page = 1, PageSize = 500 });
+        _items = result.Items;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_printed && !Loading && !Denied)
+        {
+            _printed = true;
+            await JS.InvokeVoidAsync("ubpPrintOnLoad");
+        }
+    }
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("ubpPrintOnLoad");
+}
