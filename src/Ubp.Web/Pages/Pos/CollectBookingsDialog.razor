@@ -27,14 +27,14 @@
                     <MudTh>@T.T("pos.services")</MudTh>
                     <MudTh Align="Right">@T.T("accounting.total")</MudTh>
                     <MudTh Align="Right">@T.T("pos.paid_previously")</MudTh>
-                    <MudTh Align="Right">@T.T("pos.remaining_due")</MudTh>
+                    <MudTh Align="Right">@T.T("pos.remaining")</MudTh>
                     <MudTh></MudTh>
                     <MudTh Align="Right">@T.T("pos.collect_amount")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@context.BookingNo</MudTd>
                     <MudTd>@context.Services</MudTd>
-                    <MudTd Align="Right">@context.TotalAmount.ToString("N2")</MudTd>
+                    <MudTd Align="Right"><b>@context.TotalAmount.ToString("N2")</b></MudTd>
                     <MudTd Align="Right">@context.PaidAmount.ToString("N2")</MudTd>
                     <MudTd Align="Right"><b>@context.RemainingAmount.ToString("N2")</b></MudTd>
                     <MudTd>
@@ -48,6 +48,16 @@
                     </MudTd>
                 </RowTemplate>
             </MudTable>
+
+            <MudPaper Elevation="0" Class="pa-2 mt-2">
+                <div class="pos-receipt-totals">
+                    <div><span>@T.T("pos.paid_previously")</span><span>@SelectedPaidBefore.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.total_fees")</span><span>@FeeTotal.ToString("N2")</span></div>
+                    <div><b>@T.T("pos.grand_due")</b><b>@((SelectedTotal + FeeTotal).ToString("N2"))</b></div>
+                    <div><span>@T.T("pos.collected_amount")</span><span>@CollectedTotal.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.remaining")</span><span>@RemainingAfter.ToString("N2")</span></div>
+                </div>
+            </MudPaper>
 
             <MudDivider Class="my-3" />
             <MudText Typo="Typo.subtitle2" Class="mb-2">@T.T("treasury.treasuries")</MudText>

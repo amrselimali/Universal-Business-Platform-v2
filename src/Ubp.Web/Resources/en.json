@@ -1860,5 +1860,6 @@
   "pos.collection_fee": "Collection fee",
   "pos.due_value": "Total due value",
   "pos.grand_due": "Grand total due",
-  "pos.paid_amount": "Paid"
+  "pos.paid_amount": "Paid",
+  "pos.total_fees": "Total fees"
 }

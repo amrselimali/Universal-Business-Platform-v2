@@ -48,6 +48,14 @@ public partial class CollectBookingsDialog
     private decimal RemainingOnServices => Math.Max(Math.Round(SelectedTotal - CollectedTotal, 2,
         MidpointRounding.AwayFromZero), 0);
 
+    /// <summary>مجموع «المسدد سابقًا» للحجوزات المعلَّمة — 0095.</summary>
+    private decimal SelectedPaidBefore => Math.Round(_rows.Where(r => r.Selected)
+        .Sum(r => r.PaidAmount), 2, MidpointRounding.AwayFromZero);
+
+    /// <summary>الرصيد المتبقي على الحجوزات المعلَّمة بعد التحصيل الحالي — 0095.</summary>
+    private decimal RemainingAfter => Math.Max(Math.Round(SelectedTotal - CollectedTotal, 2,
+        MidpointRounding.AwayFromZero), 0);
+
     private async Task ReloadRowsAsync(ActorContext actor)
     {
         _rows = (await Collections.ListOutstandingAsync(actor, BranchId, CustomerId)).ToList();

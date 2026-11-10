@@ -28,18 +28,13 @@ public sealed partial class TreasuryRepository
                        v.total_amount AS Collected,
                        0::numeric AS Revenue, 0::numeric AS Quantity, 0::numeric AS MeterUnits,
                        NULL::text AS EmployeeName,
-                       -- عمود الخدمة في تقرير الشفت: أسماء الخدمات المسدَّدة بهذا السند — 0095.
-                       COALESCE(
-                         (SELECT string_agg(DISTINCT i.name_ar, ' • ')
-                          FROM booking_payments bp
-                          JOIN booking_lines bl ON bl.booking_id = bp.booking_id
-                          JOIN items i ON i.id = bl.item_id
-                          WHERE bp.voucher_id = v.id AND i.item_type = 'SERVICE'),
-                         (SELECT string_agg(DISTINCT i.name_ar, ' • ')
-                          FROM booking_payments bp
-                          JOIN booking_lines bl ON bl.booking_id = bp.booking_id
-                          JOIN items i ON i.id = bl.item_id
-                          WHERE bp.voucher_id = v.id)) AS ItemName,
+                       -- كل بنود الإيصال (خدمات + تنفيذ مباشر) بكمياتها — 0095.
+                       (SELECT string_agg(i.name_ar || ' × ' ||
+                                 trim(to_char(bl.quantity, 'FM999999990.##')), ' • ')
+                        FROM booking_payments bp
+                        JOIN booking_lines bl ON bl.booking_id = bp.booking_id
+                        JOIN items i ON i.id = bl.item_id
+                        WHERE bp.voucher_id = v.id) AS ItemName,
                        0::numeric AS UnitPrice,
                        'تحصيل/قبض'::varchar AS Source, NULL::text AS ComplaintEmployeeName
                 FROM vouchers v

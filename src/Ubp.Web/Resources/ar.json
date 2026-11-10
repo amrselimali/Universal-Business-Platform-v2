@@ -1860,5 +1860,6 @@
   "pos.collection_fee": "عمولة التحصيل",
   "pos.due_value": "إجمالي القيمة المستحقة",
   "pos.grand_due": "إجمالي المستحق",
-  "pos.paid_amount": "المسدد"
+  "pos.paid_amount": "المسدد",
+  "pos.total_fees": "إجمالي العمولات"
 }

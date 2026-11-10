@@ -42,11 +42,17 @@ public sealed partial class BookingCollectionRepository : IBookingCollectionRepo
     {
         await using var connection = await _factory.OpenAsync(ct);
         var rows = await connection.QueryAsync<BookingCollectionRow>(new CommandDefinition("""
-            SELECT 'booking'::varchar AS Kind, booking_id AS BookingId, booking_no AS BookingNo,
-                   booking_date AS BookingDate, COALESCE(services, items) AS Services,
-                   total_amount AS TotalAmount, paid_amount AS PaidAmount,
-                   remaining_amount AS RemainingAmount
-            FROM v_customer_booking_balances
+            SELECT 'booking'::varchar AS Kind, v.booking_id AS BookingId,
+                   v.booking_no AS BookingNo, v.booking_date AS BookingDate,
+                   -- كل بنود الحجز (خدمات + تنفيذ مباشر) بكمياتها في عمود الخدمات — 0095.
+                   COALESCE((SELECT string_agg(i.name_ar || ' × ' ||
+                                trim(to_char(l.quantity, 'FM999999990.##')), ' • ')
+                             FROM booking_lines l JOIN items i ON i.id = l.item_id
+                             WHERE l.booking_id = v.booking_id),
+                            v.items) AS Services,
+                   v.total_amount AS TotalAmount, v.paid_amount AS PaidAmount,
+                   v.remaining_amount AS RemainingAmount
+            FROM v_customer_booking_balances v
             WHERE branch_id = @branchId AND customer_id = @customerId
               AND status NOT IN ('cancelled', 'reversed')
               AND remaining_amount > 0

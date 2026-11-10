@@ -149,6 +149,8 @@ public sealed partial class PosRepository : IPosRepository
         {
             var voucherId = Guid.CreateVersion7();
             var amount = group.Sum(p => p.Amount);
+            // عمولة التحصيل تُحفظ على الإيصال نفسه لتظهر في عرضه/طباعته مثل شاشة التسجيل — 0095.
+            var groupFee = Math.Round(group.Sum(p => p.Fee), 2, MidpointRounding.AwayFromZero);
             var treasuryType = group.First().TreasuryType;
             var voucherNo = await NextNumberAsync(connection, tx, "RCV", input.BranchId,
                 input.DocDate, "RCV", ct);
@@ -158,9 +160,9 @@ public sealed partial class PosRepository : IPosRepository
                     party_id, party_name, treasury_id, total_amount, fee_total, created_by)
                 VALUES (@voucherId, @BranchId, @docDate, 'draft', 'receipt', 'C', @CustomerId,
                         (SELECT name_ar FROM customers WHERE id = @CustomerId), @TreasuryId,
-                        @amount, 0, @userId)
+                        @amount, @groupFee, @userId)
                 """, new { voucherId, input.BranchId, docDate = input.DocDate.Date,
-                    input.CustomerId, treasuryId = group.Key, amount, userId }, tx,
+                    input.CustomerId, treasuryId = group.Key, amount, groupFee, userId }, tx,
                 cancellationToken: ct));
 
             var gl = new List<EntryLine>();
