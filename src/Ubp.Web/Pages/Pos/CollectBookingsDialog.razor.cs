@@ -48,6 +48,14 @@ public partial class CollectBookingsDialog
     private decimal RemainingOnServices => Math.Max(Math.Round(SelectedTotal - CollectedTotal, 2,
         MidpointRounding.AwayFromZero), 0);
 
+    /// <summary>مجموع «المسدد سابقًا» للحجوزات المعلَّمة — 0095.</summary>
+    private decimal SelectedPaidBefore => Math.Round(_rows.Where(r => r.Selected)
+        .Sum(r => r.PaidAmount), 2, MidpointRounding.AwayFromZero);
+
+    /// <summary>اسم الخزينة لعرضه بجانب المبلغ المحصل — 0095.</summary>
+    private string TreasuryName(Guid treasuryId) => Treasuries
+        .FirstOrDefault(t => t.Id == treasuryId)?.NameAr ?? "—";
+
     /// <summary>إجمالي القيمة المستحقة = مجموع القيم الأصلية للحجوزات المعلَّمة — 0095.</summary>
     private decimal SelectedBookingTotal => Math.Round(_rows.Where(r => r.Selected)
         .Sum(r => r.TotalAmount), 2, MidpointRounding.AwayFromZero);

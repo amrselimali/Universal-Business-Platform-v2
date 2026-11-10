@@ -1861,5 +1861,6 @@
   "pos.due_value": "Total due value",
   "pos.grand_due": "Grand total due",
   "pos.paid_amount": "Paid",
-  "pos.total_fees": "Total fees"
+  "pos.total_fees": "Total fees",
+  "pos.receipt_preview": "Receipt preview"
 }

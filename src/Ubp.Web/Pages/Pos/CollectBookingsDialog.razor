@@ -49,13 +49,37 @@
                 </RowTemplate>
             </MudTable>
 
-            <MudPaper Elevation="0" Class="pa-2 mt-2">
+            <MudPaper Elevation="0" Class="pa-2 mt-2 ubp-receipt-preview">
+                <MudText Typo="Typo.subtitle2" Class="mb-1">@T.T("pos.receipt_preview")</MudText>
+                <MudText Typo="Typo.body2" Class="mb-1">@CustomerName</MudText>
+                <table class="ubp-preview-table">
+                    <thead>
+                        <tr>
+                            <th>@T.T("pos.booking_service_price")</th>
+                            <th class="num">@T.T("pos.booking_value_col")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _rows.Where(r => r.Selected))
+                        {
+                            <tr>
+                                <td>@row.BookingNo — @row.Services</td>
+                                <td class="num">@row.TotalAmount.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
                 <div class="pos-receipt-totals">
-                    <div><span>@T.T("pos.due_value")</span><span>@SelectedBookingTotal.ToString("N2")</span></div>
-                    <div><span>@T.T("pos.tax")</span><span>@(0m.ToString("N2"))</span></div>
-                    <div><span>@T.T("pos.collection_fee")</span><span>@FeeTotal.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.paid_previously")</span><span>@SelectedPaidBefore.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.total_fees")</span><span>@FeeTotal.ToString("N2")</span></div>
                     <div><b>@T.T("pos.grand_due")</b><b>@((SelectedBookingTotal + FeeTotal).ToString("N2"))</b></div>
-                    <div><span>@T.T("pos.paid_amount")</span><span>@PaidTotal.ToString("N2")</span></div>
+                    @foreach (var payment in _payments.Where(x => x.Total > 0))
+                    {
+                        <div>
+                            <span>@T.T("pos.collected_amount") — @TreasuryName(payment.TreasuryId)</span>
+                            <span>@payment.Total.ToString("N2")</span>
+                        </div>
+                    }
                     <div><span>@T.T("pos.remaining")</span><span>@ReceiptRemaining.ToString("N2")</span></div>
                 </div>
             </MudPaper>
