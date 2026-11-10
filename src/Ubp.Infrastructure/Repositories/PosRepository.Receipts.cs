@@ -114,9 +114,13 @@ public sealed partial class PosRepository
             WHERE l.voucher_id = @id ORDER BY l.line_no
             """, new { id = voucherId }, cancellationToken: ct))).ToList();
 
-        var createdAt = await connection.ExecuteScalarAsync<DateTime>(new CommandDefinition(
-            "SELECT created_at FROM vouchers WHERE id = @id", new { id = voucherId },
-            cancellationToken: ct));
+        var head = await connection.QuerySingleAsync<(DateTime CreatedAt, string? DocNo)>(
+            new CommandDefinition(
+                "SELECT created_at AS CreatedAt, doc_no AS DocNo FROM vouchers WHERE id = @id",
+                new { id = voucherId }, cancellationToken: ct));
+        var createdAt = head.CreatedAt;
+        // ترتيب الإيصالات داخل نفس عملية التحصيل: الأقدم رقمًا هو الإيصال الأول — 0095.
+        var docNo = head.DocNo ?? "";
 
         var rows = (await connection.QueryAsync<ReceiptDbLine>(new CommandDefinition("""
             SELECT b.id AS BookingId, b.doc_no AS BookingNo, i.name_ar AS ItemName,
@@ -124,19 +128,33 @@ public sealed partial class PosRepository
                    bl.net_amount AS NetAmount, bl.tax_amount AS TaxAmount,
                    b.total_amount AS BookingTotal,
                    (b.created_at >= @createdAt) AS IsSale,
+                   -- المتبقي بعد هذا الإيصال: يخصم دفعات هذا الإيصال والإيصالات الأسبق في نفس العملية.
                    GREATEST(b.total_amount - b.deposit_amount - COALESCE((
-                       SELECT SUM(bp2.amount) FROM booking_payments bp2
-                       WHERE bp2.booking_id = b.id), 0), 0) AS BookingRemaining,
+                       SELECT SUM(bp2.amount)
+                       FROM booking_payments bp2
+                       JOIN vouchers w2 ON w2.id = bp2.voucher_id
+                       WHERE bp2.booking_id = b.id
+                         AND (w2.created_at < @createdAt
+                              OR (w2.created_at = @createdAt
+                                  AND COALESCE(w2.doc_no, '') <= @docNo))), 0), 0)
+                     AS BookingRemaining,
+                   -- المسدد سابقًا: دفعات الإيصالات الأسبق فقط (ترتيب إنشاء الإيصال/رقمه).
                    b.deposit_amount + COALESCE((
-                       SELECT SUM(bp3.amount) FROM booking_payments bp3
-                       WHERE bp3.booking_id = b.id AND bp3.paid_at < @createdAt), 0) AS PaidBefore
+                       SELECT SUM(bp3.amount)
+                       FROM booking_payments bp3
+                       JOIN vouchers w3 ON w3.id = bp3.voucher_id
+                       WHERE bp3.booking_id = b.id
+                         AND (w3.created_at < @createdAt
+                              OR (w3.created_at = @createdAt
+                                  AND COALESCE(w3.doc_no, '') < @docNo))), 0)
+                     AS PaidBefore
             FROM booking_payments bp
             JOIN bookings b ON b.id = bp.booking_id
             JOIN booking_lines bl ON bl.booking_id = b.id
             JOIN items i ON i.id = bl.item_id
             WHERE bp.voucher_id = @id
             ORDER BY b.doc_no, bl.line_no
-            """, new { id = voucherId, createdAt }, cancellationToken: ct))).ToList();
+            """, new { id = voucherId, createdAt, docNo }, cancellationToken: ct))).ToList();
 
         var sale = rows.Any(r => r.IsSale);
         voucher.IsCollectionReceipt = rows.Count > 0 && !sale;
@@ -152,8 +170,11 @@ public sealed partial class PosRepository
                 MidpointRounding.AwayFromZero);
             voucher.TaxTotal = Math.Round(saleRows.Sum(r => r.TaxAmount), 2,
                 MidpointRounding.AwayFromZero);
-            voucher.RemainingDue = Math.Max(Math.Round(voucher.DueTotal + voucher.TaxTotal +
-                voucher.FeeTotal - voucher.TotalAmount, 2, MidpointRounding.AwayFromZero), 0);
+            // المتبقي بعد هذا الإيصال = متبقي الحجوزات بعد خصم دفعات هذا الإيصال والأسبق منها.
+            voucher.RemainingDue = Math.Round(rows.GroupBy(r => r.BookingId)
+                .Sum(g => g.First().BookingRemaining), 2, MidpointRounding.AwayFromZero);
+            voucher.PaidBefore = Math.Round(rows.GroupBy(r => r.BookingId)
+                .Sum(g => g.First().PaidBefore), 2, MidpointRounding.AwayFromZero);
         }
         else
         {

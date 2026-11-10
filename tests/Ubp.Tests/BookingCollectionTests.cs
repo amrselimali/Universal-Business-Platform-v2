@@ -96,6 +96,49 @@ public sealed class BookingCollectionTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Multiple_payment_methods_create_sequential_receipts()
+    {
+        var actor = await _db.AdminActorAsync();
+        var f = await SetupAsync("7");
+        var cashAccount = (await _db.AccountRepo.ListAllAsync(true))
+            .First(a => a.Code == "1101").Id;
+        var secondTreasury = Guid.CreateVersion7();
+        await _db.TreasuryRepo.CreateTreasuryAsync(secondTreasury, new TreasuryInput
+        {
+            BranchId = f.Branch, Code = "BC-T7B", NameAr = "خزينة ثانية",
+            TreasuryType = TreasuryTypes.Cash, AccountId = cashAccount
+        }, actor.UserId);
+
+        await _db.BookingCollections().CollectAsync(actor, new BookingCollectionInput
+        {
+            BranchId = f.Branch, CustomerId = f.Customer.Id, DocDate = DateTime.Today,
+            Lines = { new BookingCollectionLineInput { BookingId = f.Booking.Id, Amount = 300 } },
+            Payments =
+            {
+                new PosPaymentInput { TreasuryId = f.TreasuryId, TreasuryMethodId = f.MethodId,
+                    Amount = 150 },
+                new PosPaymentInput { TreasuryId = secondTreasury, Amount = 150 }
+            }
+        });
+
+        await using var connection = new NpgsqlConnection(TestDb.AdminConnection);
+        await connection.OpenAsync();
+        var voucherIds = (await connection.QueryAsync<Guid>("""
+            SELECT v.id FROM booking_payments bp JOIN vouchers v ON v.id = bp.voucher_id
+            WHERE bp.booking_id = @id ORDER BY v.doc_no
+            """, new { id = f.Booking.Id })).ToList();
+        Assert.Equal(2, voucherIds.Count);
+
+        // الإيصال الأول: مسدد سابقًا 0 والمتبقي 150، والثاني: مسدد سابقًا 150 والمتبقي 0 — 0095.
+        var first = await _db.PosRepo.GetReceiptDetailAsync(voucherIds[0]);
+        var second = await _db.PosRepo.GetReceiptDetailAsync(voucherIds[1]);
+        Assert.Equal(0m, first!.PaidBefore);
+        Assert.Equal(150m, first.RemainingDue);
+        Assert.Equal(150m, second!.PaidBefore);
+        Assert.Equal(0m, second.RemainingDue);
+    }
+
+    [Fact]
     public async Task Draft_collection_is_counted_in_paid_and_cancel_restores_the_remaining()
     {
         var actor = await _db.AdminActorAsync();
