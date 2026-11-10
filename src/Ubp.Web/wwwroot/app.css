@@ -254,3 +254,10 @@ a { color: inherit; text-decoration: none; }
 /* سطر الشرح داخل إيصال القبض (خدمة/تاريخ حجز/مسدد سابقًا/متبقي) — 0095 */
 .ubp-receipt-booking { margin: 6px 0 10px; font-size: .82rem; }
 .ubp-receipt-booking > div { display: flex; justify-content: space-between; gap: 10px; }
+
+/* جدول الإيصال: رؤوس الأعمدة (الخدمة/الكمية/القيمة) — 0095 */
+.pos-receipt table thead th {
+    border-bottom: 1px dashed #94A3B8; font-size: .72rem; font-weight: 700;
+    text-align: start; padding: 2px 0;
+}
+.pos-receipt table thead th.num { text-align: end; }

@@ -171,24 +171,38 @@ public sealed class Voucher
     public int Version { get; set; } = 1;
     public List<VoucherLine> Lines { get; set; } = new();
 
-    /// <summary>خدمات الحجز المرتبطة بالإيصال (للعرض/الطباعة) — 0095.</summary>
-    public string? Services { get; set; }
-    /// <summary>تاريخ الحجز الأصلي المرتبط بالإيصال — 0095.</summary>
-    public DateTime? BookingDate { get; set; }
-    /// <summary>قيمة الخدمات (بنود الخدمة) في الحجز — 0095.</summary>
-    public decimal ServiceValue { get; set; }
-    /// <summary>إجمالي قيمة الحجز — 0095.</summary>
-    public decimal BookingTotal { get; set; }
-    /// <summary>المسدد سابقًا على الحجز قبل هذا الإيصال — 0095.</summary>
-    public decimal PaidBefore { get; set; }
-    /// <summary>المتبقي على الحجز بعد هذا الإيصال — 0095.</summary>
-    public decimal Remaining { get; set; }
+    /// <summary>سطور جدول الإيصال (خدمات/حجوزات) — 0095.</summary>
+    public List<ReceiptLineDisplay> DisplayLines { get; set; } = new();
+    /// <summary>true = إيصال سداد خدمات محجوزة (جدول حجوزات) بدل جدول البيع — 0095.</summary>
+    public bool IsCollectionReceipt { get; set; }
+    /// <summary>إجمالي القيمة المستحقة (قبل الضريبة وقبل العمولة) — 0095.</summary>
+    public decimal DueTotal { get; set; }
+    /// <summary>إجمالي الضريبة — 0095.</summary>
+    public decimal TaxTotal { get; set; }
+    /// <summary>إجمالي المستحق = المستحق + الضريبة + عمولة التحصيل — 0095.</summary>
+    public decimal GrandDue => Math.Round(DueTotal + TaxTotal + FeeTotal, 2,
+        MidpointRounding.AwayFromZero);
+    /// <summary>المسدد في هذا الإيصال — 0095.</summary>
+    public decimal PaidAmount => TotalAmount;
+    /// <summary>المتبقي بعد هذا الإيصال — 0095.</summary>
+    public decimal RemainingDue { get; set; }
 
     public bool IsDraft => Status == VoucherStatuses.Draft;
     public bool IsPosted => Status == VoucherStatuses.Posted;
 
     /// <summary>المبلغ الصافي الذي دخل/خرج فعلياً من الخزينة بعد المصاريف.</summary>
     public decimal NetAmount => Math.Round(TotalAmount - FeeTotal, 2, MidpointRounding.AwayFromZero);
+}
+
+/// <summary>سطر جدول إيصال القبض: خدمة/حجز بكميته وسعره وقيمته — 0095.</summary>
+public sealed class ReceiptLineDisplay
+{
+    /// <summary>نص الخلية الأولى: الخدمة (وحدها للبيع) أو «رقم الحجز — الخدمة — سعر الوحدة» للسداد.</summary>
+    public string Description { get; set; } = "";
+    public string? ServiceName { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal Value { get; set; }
 }
 
 public sealed class VoucherLine

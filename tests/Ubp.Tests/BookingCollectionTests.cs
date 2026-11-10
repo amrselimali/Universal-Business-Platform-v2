@@ -154,12 +154,16 @@ public sealed class BookingCollectionTests : IClassFixture<TestDb>
         // ويحمل خدمة الحجز وتاريخه والمسدد سابقًا والمتبقي — 0095.
         var receipts = await _db.Pos().ListReceiptsAsync(actor, f.Branch, null, null, 100);
         var receipt = Assert.Single(receipts, r => r.Id == result.VoucherId);
-        Assert.Contains("خدمة التحصيل", receipt.Services);
-        Assert.Equal(f.Booking.BookingDate.Date, receipt.BookingDate?.Date);
-        Assert.Equal(300m, receipt.ServiceValue);
-        Assert.Equal(300m, receipt.BookingTotal);
-        Assert.Equal(0m, receipt.PaidBefore);
-        Assert.Equal(100m, receipt.Remaining);
+        Assert.Contains("خدمة التحصيل", receipt.Description);
+
+        // جدول الإيصال (حجوزات) والإجماليات: المستحق 300، المسدد 200، المتبقي 100 — 0095.
+        var detail = await _db.PosRepo.GetReceiptDetailAsync(result.VoucherId);
+        Assert.NotNull(detail);
+        Assert.True(detail!.IsCollectionReceipt);
+        Assert.Equal(300m, detail.DueTotal);
+        Assert.Equal(200m, detail.PaidAmount);
+        Assert.Equal(100m, detail.RemainingDue);
+        Assert.Contains("خدمة التحصيل", Assert.Single(detail.DisplayLines).Description);
     }
 
     [Fact]

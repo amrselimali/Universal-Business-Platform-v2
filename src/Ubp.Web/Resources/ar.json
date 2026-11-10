@@ -1850,5 +1850,15 @@
   "pos.receipt_description": "الشرح",
   "pos.paid_before": "المسدد سابقًا",
   "pos.service_value": "قيمة الخدمة",
-  "pos.booking_value": "قيمة الحجز"
+  "pos.booking_value": "قيمة الحجز",
+  "pos.receipt_value": "قيمة الإيصال",
+  "pos.receipt_no": "رقم الإيصال",
+  "pos.service": "الخدمة",
+  "pos.value": "القيمة",
+  "pos.booking_service_price": "الحجز / الخدمة / سعر الوحدة",
+  "pos.booking_value_col": "إجمالي قيمة الحجز",
+  "pos.collection_fee": "عمولة التحصيل",
+  "pos.due_value": "إجمالي القيمة المستحقة",
+  "pos.grand_due": "إجمالي المستحق",
+  "pos.paid_amount": "المسدد"
 }

@@ -108,7 +108,7 @@ public sealed class ShiftRevenueTests : IClassFixture<TestDb>
             DateTime.Today, 100);
         var row = Assert.Single(rows);
         Assert.Equal("خزينة إيراد 2", row.TreasuryName);
-        Assert.Contains(f.Item.NameAr, row.Services);
+        Assert.Contains(f.Item.NameAr, row.Description);
         Assert.Equal(200m, row.Total);
 
         // فلتر يوم لا يشمله => لا نتائج.
@@ -148,7 +148,8 @@ public sealed class ShiftRevenueTests : IClassFixture<TestDb>
         var rows = await _db.Pos().ListReceiptsAsync(actor, f.Branch, DateTime.Today,
             DateTime.Today, 50);
         var row = Assert.Single(rows);
-        // عمود الخدمة يعرض اسم الخدمة التي تم سداد قيمتها — 0095.
-        Assert.Equal("خدمة مساج", row.Services);
+        // عمود الشرح يعرض الخدمة × الكمية — القيمة — 0095.
+        Assert.Contains("خدمة مساج", row.Description);
+        Assert.Contains("× 1", row.Description);
     }
 }

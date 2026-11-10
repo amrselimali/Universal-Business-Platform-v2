@@ -56,6 +56,10 @@ public partial class Terminal : SecurePageBase
     private Guid _branchId;
     private Guid _customerId;
     private string? _customerName;
+    /// <summary>رقم الإيصال المطبوع: رقم سند القبض الناتج (أو رقم الحجز كبديل).</summary>
+    private string ReceiptNo =>
+        _receipt?.Vouchers.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.VoucherNo))?.VoucherNo
+        ?? _receipt?.BookingNo ?? "—";
     private string? _customerPhone;
     private string? _customerSearch;
     private Guid _warehouseId;

@@ -74,18 +74,8 @@ public sealed class CommercialDocument
 
     /// <summary>اسم الخزينة المحصَّل عليها — عمود الخزينة في شاشة إيصالات POS.</summary>
     public string? TreasuryName { get; set; }
-    /// <summary>الخدمات/الأصناف المرتبطة بالإيصال — عمود الخدمة في شاشة إيصالات POS.</summary>
-    public string? Services { get; set; }
-    /// <summary>تاريخ الحجز الأصلي المرتبط بالإيصال (أقدم حجز) — 0095.</summary>
-    public DateTime? BookingDate { get; set; }
-    /// <summary>قيمة الخدمات (بنود الخدمة) في الحجز المرتبط بالإيصال — 0095.</summary>
-    public decimal ServiceValue { get; set; }
-    /// <summary>إجمالي قيمة الحجز المرتبط بالإيصال — 0095.</summary>
-    public decimal BookingTotal { get; set; }
-    /// <summary>المبلغ المسدد سابقًا على الحجز قبل هذا الإيصال — 0095.</summary>
-    public decimal PaidBefore { get; set; }
-    /// <summary>المبلغ المتبقي على الحجز بعد هذا الإيصال — 0095.</summary>
-    public decimal Remaining { get; set; }
+    /// <summary>مضمون جدول الإيصال في خلية واحدة: الخدمة×الكمية والسعر أو رقم الحجز — 0095.</summary>
+    public string? Description { get; set; }
 
     public bool IsDraft => Status == CommercialStatuses.Draft;
     public bool IsPosted => Status == CommercialStatuses.Posted;

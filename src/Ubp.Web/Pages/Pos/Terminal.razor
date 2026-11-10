@@ -296,35 +296,39 @@ else
 
             <div id="pos-print-area" class="pos-receipt ubp-print-receipt">
                 <div class="pos-receipt-head">
-                    <div><b>@T.T("pos.receipt")</b></div>
-                    <div>@_receipt.BookingNo · @DateTime.Now.ToString("yyyy-MM-dd HH:mm")</div>
+                    <div><b>@T.T("pos.receipt_no"): @ReceiptNo</b></div>
+                    <div>@_customerName</div>
                     @if (_receipt.Executed)
                     {
                         <div><b>@T.T("pos.direct_sale_done")</b></div>
                     }
-                    <div>@_customerName</div>
-                    @if (_receipt.ExpiresAt is not null && !_receipt.Executed)
-                    {
-                        <div>@T.T("sales.offer_expiry"): @_receipt.ExpiresAt.Value.ToLocalTime().ToString("yyyy-MM-dd")</div>
-                    }
                 </div>
                 <table>
+                    <thead>
+                        <tr>
+                            <th>@T.T("pos.service")</th>
+                            <th class="num">@T.T("common.quantity")</th>
+                            <th class="num">@T.T("pos.value")</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         @foreach (var line in _lastLines)
                         {
                             <tr>
-                                <td>@line.Name × @line.Quantity.ToString("N2")</td>
+                                <td>@line.Name</td>
+                                <td class="num">@line.Qty2.ToString("N2")</td>
                                 <td class="num">@line.Total.ToString("N2")</td>
                             </tr>
                         }
                     </tbody>
                 </table>
                 <div class="pos-receipt-totals">
-                    <div><span>@T.T("pos.net")</span><span>@_lastNet.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.due_value")</span><span>@_lastNet.ToString("N2")</span></div>
                     <div><span>@T.T("pos.tax")</span><span>@_receipt.TaxTotal.ToString("N2")</span></div>
-                    <div><span>@T.T("pos.fees")</span><span>@_receipt.FeeTotal.ToString("N2")</span></div>
-                    <div><b>@T.T("accounting.total")</b><b>@((_receipt.Total + _receipt.FeeTotal).ToString("N2"))</b></div>
-                    <div><span>@T.T("pos.paid")</span><span>@_receipt.Paid.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.collection_fee")</span><span>@_receipt.FeeTotal.ToString("N2")</span></div>
+                    <div><b>@T.T("pos.grand_due")</b><b>@((_receipt.Total + _receipt.FeeTotal).ToString("N2"))</b></div>
+                    <div><span>@T.T("pos.paid_amount")</span><span>@_receipt.Paid.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.remaining")</span><span>@Math.Max(_receipt.Total + _receipt.FeeTotal - _receipt.Paid, 0).ToString("N2")</span></div>
                 </div>
             </div>
         </MudPaper>

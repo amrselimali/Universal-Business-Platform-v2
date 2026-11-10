@@ -1850,5 +1850,15 @@
   "pos.receipt_description": "Description",
   "pos.paid_before": "Paid before",
   "pos.service_value": "Service value",
-  "pos.booking_value": "Booking value"
+  "pos.booking_value": "Booking value",
+  "pos.receipt_value": "Receipt value",
+  "pos.receipt_no": "Receipt no.",
+  "pos.service": "Service",
+  "pos.value": "Value",
+  "pos.booking_service_price": "Booking / service / unit price",
+  "pos.booking_value_col": "Original booking total",
+  "pos.collection_fee": "Collection fee",
+  "pos.due_value": "Total due value",
+  "pos.grand_due": "Grand total due",
+  "pos.paid_amount": "Paid"
 }

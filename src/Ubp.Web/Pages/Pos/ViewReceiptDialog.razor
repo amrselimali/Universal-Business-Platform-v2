@@ -2,6 +2,7 @@
 @inject UserContext UserContext
 @inject UiCulture T
 @inject IJSRuntime JS
+@inject ISnackbar Snackbar
 
 <MudDialog>
     <TitleContent>
@@ -20,59 +21,50 @@
         {
             <div id="receipt-view-area" class="pos-receipt ubp-print-receipt">
                 <div class="pos-receipt-head">
-                    <div><b>@T.T("pos.receipt")</b></div>
-                    <div>@_receipt.DocNo · @_receipt.DocDate.ToString("yyyy-MM-dd")</div>
+                    <div><b>@T.T("pos.receipt_no"): @_receipt.DocNo</b></div>
                     <div>@_receipt.PartyName</div>
-                    <div>@_receipt.TreasuryName</div>
-                </div>
-                <div class="ubp-receipt-booking">
-                    <div>
-                        <span>@T.T("pos.receipt_description")</span>
-                        <span>@(string.IsNullOrWhiteSpace(_receipt.Services) ? "—" : _receipt.Services)</span>
-                    </div>
-                    <div>
-                        <span>@T.T("sales.booking_date")</span>
-                        <span>@(_receipt.BookingDate is null ? "—" : _receipt.BookingDate.Value.ToString("yyyy-MM-dd"))</span>
-                    </div>
-                    <div>
-                        <span>@T.T("pos.service_value")</span>
-                        <span>@(_receipt.BookingDate is null ? "—" : _receipt.ServiceValue.ToString("N2"))</span>
-                    </div>
-                    <div>
-                        <span>@T.T("pos.booking_value")</span>
-                        <span>@(_receipt.BookingDate is null ? "—" : _receipt.BookingTotal.ToString("N2"))</span>
-                    </div>
-                    <div>
-                        <span>@T.T("pos.paid_before")</span>
-                        <span>@(_receipt.BookingDate is null ? "—" : _receipt.PaidBefore.ToString("N2"))</span>
-                    </div>
-                    <div>
-                        <span>@T.T("pos.remaining_due")</span>
-                        <span>@(_receipt.BookingDate is null ? "—" : _receipt.Remaining.ToString("N2"))</span>
-                    </div>
                 </div>
                 <table>
+                    <thead>
+                        <tr>
+                            @if (_receipt.IsCollectionReceipt)
+                            {
+                                <th>@T.T("pos.booking_service_price")</th>
+                                <th class="num">@T.T("pos.booking_value_col")</th>
+                            }
+                            else
+                            {
+                                <th>@T.T("pos.service")</th>
+                                <th class="num">@T.T("common.quantity")</th>
+                                <th class="num">@T.T("pos.value")</th>
+                            }
+                        </tr>
+                    </thead>
                     <tbody>
-                        @foreach (var line in _receipt.Lines)
+                        @foreach (var line in _receipt.DisplayLines)
                         {
                             <tr>
-                                <td>@line.MethodCode — @line.MethodName</td>
-                                <td class="num">@line.Amount.ToString("N2")</td>
+                                <td>@line.Description</td>
+                                @if (_receipt.IsCollectionReceipt)
+                                {
+                                    <td class="num">@line.Value.ToString("N2")</td>
+                                }
+                                else
+                                {
+                                    <td class="num">@line.Quantity.ToString("N2")</td>
+                                    <td class="num">@line.Value.ToString("N2")</td>
+                                }
                             </tr>
-                            @if (line.FeeAmount > 0)
-                            {
-                                <tr>
-                                    <td>@T.T("pos.fee")</td>
-                                    <td class="num">@line.FeeAmount.ToString("N2")</td>
-                                </tr>
-                            }
                         }
                     </tbody>
                 </table>
                 <div class="pos-receipt-totals">
-                    <div><b>@T.T("accounting.total")</b><b>@_receipt.TotalAmount.ToString("N2")</b></div>
-                    <div><span>@T.T("pos.fees")</span><span>@_receipt.FeeTotal.ToString("N2")</span></div>
-                    <div><span>@T.T("pos.collected_amount")</span><span>@_receipt.NetAmount.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.due_value")</span><span>@_receipt.DueTotal.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.tax")</span><span>@_receipt.TaxTotal.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.collection_fee")</span><span>@_receipt.FeeTotal.ToString("N2")</span></div>
+                    <div><b>@T.T("pos.grand_due")</b><b>@_receipt.GrandDue.ToString("N2")</b></div>
+                    <div><span>@T.T("pos.paid_amount")</span><span>@_receipt.PaidAmount.ToString("N2")</span></div>
+                    <div><span>@T.T("pos.remaining")</span><span>@_receipt.RemainingDue.ToString("N2")</span></div>
                 </div>
             </div>
         }
@@ -93,10 +85,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var actor = await UserContext.GetAsync();
-        if (actor is null) return;
-        _receipt = await Pos.GetReceiptAsync(actor, VoucherId);
-        _loading = false;
+        try
+        {
+            var actor = await UserContext.RequireAsync();
+            _receipt = await Pos.GetReceiptAsync(actor, VoucherId);
+        }
+        catch (AppException ex) { Snackbar?.Add(T.T(ex.Code), Severity.Error); }
+        finally { _loading = false; }
     }
 
     private void Cancel() => MudDialog.Cancel();
