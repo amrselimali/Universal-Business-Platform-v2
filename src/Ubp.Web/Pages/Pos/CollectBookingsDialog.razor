@@ -49,6 +49,55 @@
                 </RowTemplate>
             </MudTable>
 
+            <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1">@T.T("pos.receipt_preview")</MudText>
+            <div class="ubp-preview-receipts">
+                @{
+                    var cumulative = 0m;
+                }
+                @foreach (var payment in _payments.Where(x => x.Total > 0))
+                {
+                    cumulative += payment.Collected;
+                    <div class="ubp-preview-receipt">
+                        <div class="pos-receipt-head">
+                            <div><b>@T.T("pos.receipt_no"): —</b></div>
+                            <div>@CustomerName</div>
+                        </div>
+                        <table class="ubp-preview-table">
+                            <thead>
+                                <tr>
+                                    <th>@T.T("pos.booking_service_price")</th>
+                                    <th class="num">@T.T("pos.booking_value_col")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in _rows.Where(r => r.Selected))
+                                {
+                                    <tr>
+                                        <td>@row.BookingNo — @row.Services</td>
+                                        <td class="num">@row.TotalAmount.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <div class="pos-receipt-totals">
+                            <div><span>@T.T("pos.due_value")</span><span>@SelectedBookingTotal.ToString("N2")</span></div>
+                            <div><span>@T.T("pos.tax")</span><span>@(0m.ToString("N2"))</span></div>
+                            <div><span>@T.T("pos.paid_previously")</span><span>@SelectedPaidBefore.ToString("N2")</span></div>
+                            <div><span>@T.T("pos.collection_fee")</span><span>@payment.Fee.ToString("N2")</span></div>
+                            <div><b>@T.T("pos.grand_due")</b><b>@((SelectedBookingTotal + payment.Fee).ToString("N2"))</b></div>
+                            <div>
+                                <span>@T.T("pos.paid_amount") (@TreasuryName(payment.TreasuryId))</span>
+                                <span>@payment.Total.ToString("N2")</span>
+                            </div>
+                            <div>
+                                <span>@T.T("pos.remaining")</span>
+                                <span>@Math.Max(SelectedRemainingBefore - cumulative, 0).ToString("N2")</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
             <MudDivider Class="my-3" />
             <MudText Typo="Typo.subtitle2" Class="mb-2">@T.T("treasury.treasuries")</MudText>
             <MudTable Items="_payments" Dense="true" Elevation="0" Class="ubp-table">
@@ -88,34 +137,7 @@
             <MudButton Size="Size.Small" Variant="Variant.Outlined" Class="mt-2"
                        StartIcon="@Icons.Material.Filled.Add" OnClick="AddPayment">@T.T("pos.add_payment")</MudButton>
 
-            <div class="pos-receipt mt-3">
-                <div class="pos-receipt-head">
-                    <div><b>@T.T("pos.receipt")</b> — @T.T("pos.preview")</div>
-                    <div>@DateTime.Now.ToString("yyyy-MM-dd HH:mm")</div>
-                    <div>@CustomerName</div>
-                </div>
-                <table>
-                    <tbody>
-                        @foreach (var row in _rows.Where(r => r.Selected && r.Amount > 0))
-                        {
-                            <tr>
-                                <td>@row.BookingNo — @row.Services</td>
-                                <td class="num">@row.Amount.ToString("N2")</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-                <div class="pos-receipt-totals">
-                    <div><span>@T.T("pos.collected_amount")</span><span>@CollectedTotal.ToString("N2")</span></div>
-                    <div><span>@T.T("pos.fees")</span><span>@FeeTotal.ToString("N2")</span></div>
-                    <div><b>@T.T("accounting.total")</b><b>@GrandTotal.ToString("N2")</b></div>
-                    <div><span>@T.T("pos.paid")</span><span>@PaidTotal.ToString("N2")</span></div>
-                    <div><span>@T.T("pos.remaining_on_services")</span><span>@RemainingOnServices.ToString("N2")</span></div>
-                </div>
-                <div class="mt-2">
-                    <MudText Typo="Typo.caption" Class="ubp-muted">@T.T("pos.partial_allowed")</MudText>
-                </div>
-            </div>
+
         }
         <MudText Typo="Typo.caption" Class="ubp-muted d-block mt-2">
             @T.T("pos.collect_buttons_hint")
