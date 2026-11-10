@@ -175,6 +175,10 @@ public sealed class Voucher
     public string? Services { get; set; }
     /// <summary>تاريخ الحجز الأصلي المرتبط بالإيصال — 0095.</summary>
     public DateTime? BookingDate { get; set; }
+    /// <summary>قيمة الخدمات (بنود الخدمة) في الحجز — 0095.</summary>
+    public decimal ServiceValue { get; set; }
+    /// <summary>إجمالي قيمة الحجز — 0095.</summary>
+    public decimal BookingTotal { get; set; }
     /// <summary>المسدد سابقًا على الحجز قبل هذا الإيصال — 0095.</summary>
     public decimal PaidBefore { get; set; }
     /// <summary>المتبقي على الحجز بعد هذا الإيصال — 0095.</summary>

@@ -78,6 +78,10 @@ public sealed class CommercialDocument
     public string? Services { get; set; }
     /// <summary>تاريخ الحجز الأصلي المرتبط بالإيصال (أقدم حجز) — 0095.</summary>
     public DateTime? BookingDate { get; set; }
+    /// <summary>قيمة الخدمات (بنود الخدمة) في الحجز المرتبط بالإيصال — 0095.</summary>
+    public decimal ServiceValue { get; set; }
+    /// <summary>إجمالي قيمة الحجز المرتبط بالإيصال — 0095.</summary>
+    public decimal BookingTotal { get; set; }
     /// <summary>المبلغ المسدد سابقًا على الحجز قبل هذا الإيصال — 0095.</summary>
     public decimal PaidBefore { get; set; }
     /// <summary>المبلغ المتبقي على الحجز بعد هذا الإيصال — 0095.</summary>

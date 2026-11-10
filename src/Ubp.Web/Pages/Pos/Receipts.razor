@@ -37,6 +37,8 @@ else
                 <MudTh>@T.T("sales.customer")</MudTh>
                 <MudTh>@T.T("treasury.treasury")</MudTh>
                 <MudTh>@T.T("pos.receipt_description")</MudTh>
+                <MudTh Align="Right">@T.T("pos.service_value")</MudTh>
+                <MudTh Align="Right">@T.T("pos.booking_value")</MudTh>
                 <MudTh Align="Right">@T.T("pos.paid_before")</MudTh>
                 <MudTh Align="Right">@T.T("pos.remaining_due")</MudTh>
                 <MudTh Align="Right">@T.T("accounting.total")</MudTh>
@@ -54,6 +56,12 @@ else
                             @T.T("sales.booking_date"): @context.BookingDate.Value.ToString("yyyy-MM-dd")
                         </div>
                     }
+                </MudTd>
+                <MudTd Align="Right">
+                    @(context.BookingDate is null ? "—" : context.ServiceValue.ToString("N2"))
+                </MudTd>
+                <MudTd Align="Right">
+                    @(context.BookingDate is null ? "—" : context.BookingTotal.ToString("N2"))
                 </MudTd>
                 <MudTd Align="Right">
                     @(context.BookingDate is null ? "—" : context.PaidBefore.ToString("N2"))

@@ -35,6 +35,14 @@
                         <span>@(_receipt.BookingDate is null ? "—" : _receipt.BookingDate.Value.ToString("yyyy-MM-dd"))</span>
                     </div>
                     <div>
+                        <span>@T.T("pos.service_value")</span>
+                        <span>@(_receipt.BookingDate is null ? "—" : _receipt.ServiceValue.ToString("N2"))</span>
+                    </div>
+                    <div>
+                        <span>@T.T("pos.booking_value")</span>
+                        <span>@(_receipt.BookingDate is null ? "—" : _receipt.BookingTotal.ToString("N2"))</span>
+                    </div>
+                    <div>
                         <span>@T.T("pos.paid_before")</span>
                         <span>@(_receipt.BookingDate is null ? "—" : _receipt.PaidBefore.ToString("N2"))</span>
                     </div>

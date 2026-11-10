@@ -1848,5 +1848,7 @@
   "treasury.report_tomorrow_bookings_unconfirmed": "Unconfirmed tomorrow bookings",
   "pos.collect_buttons_hint": "Register = save as a draft without accounting posting (it still reduces the outstanding balance) • Save+WhatsApp = post, close and send the notification • Complete = post and close",
   "pos.receipt_description": "Description",
-  "pos.paid_before": "Paid before"
+  "pos.paid_before": "Paid before",
+  "pos.service_value": "Service value",
+  "pos.booking_value": "Booking value"
 }

@@ -42,6 +42,16 @@ public sealed partial class PosRepository
                     FROM booking_payments bp
                     JOIN bookings b ON b.id = bp.booking_id
                     WHERE bp.voucher_id = v.id) AS BookingDate,
+                   -- قيمة الخدمات وقيمة الحجز المرتبطة بالإيصال — 0095.
+                   COALESCE((SELECT SUM(bl.total_amount)
+                    FROM booking_payments bp
+                    JOIN booking_lines bl ON bl.booking_id = bp.booking_id
+                    JOIN items i ON i.id = bl.item_id
+                    WHERE bp.voucher_id = v.id AND i.item_type = 'SERVICE'), 0) AS ServiceValue,
+                   COALESCE((SELECT SUM(b.total_amount)
+                    FROM booking_payments bp
+                    JOIN bookings b ON b.id = bp.booking_id
+                    WHERE bp.voucher_id = v.id), 0) AS BookingTotal,
                    COALESCE((SELECT SUM(b.deposit_amount + COALESCE((
                         SELECT SUM(bp2.amount) FROM booking_payments bp2
                         WHERE bp2.booking_id = b.id AND bp2.paid_at < v.created_at), 0))
@@ -113,6 +123,16 @@ public sealed partial class PosRepository
                     FROM booking_payments bp
                     JOIN bookings b ON b.id = bp.booking_id
                     WHERE bp.voucher_id = v.id) AS BookingDate,
+                   -- قيمة الخدمات وقيمة الحجز المرتبطة بالإيصال — 0095.
+                   COALESCE((SELECT SUM(bl.total_amount)
+                    FROM booking_payments bp
+                    JOIN booking_lines bl ON bl.booking_id = bp.booking_id
+                    JOIN items i ON i.id = bl.item_id
+                    WHERE bp.voucher_id = v.id AND i.item_type = 'SERVICE'), 0) AS ServiceValue,
+                   COALESCE((SELECT SUM(b.total_amount)
+                    FROM booking_payments bp
+                    JOIN bookings b ON b.id = bp.booking_id
+                    WHERE bp.voucher_id = v.id), 0) AS BookingTotal,
                    COALESCE((SELECT SUM(b.deposit_amount + COALESCE((
                         SELECT SUM(bp2.amount) FROM booking_payments bp2
                         WHERE bp2.booking_id = b.id AND bp2.paid_at < v.created_at), 0))

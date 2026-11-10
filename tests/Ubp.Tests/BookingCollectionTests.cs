@@ -156,6 +156,8 @@ public sealed class BookingCollectionTests : IClassFixture<TestDb>
         var receipt = Assert.Single(receipts, r => r.Id == result.VoucherId);
         Assert.Contains("خدمة التحصيل", receipt.Services);
         Assert.Equal(f.Booking.BookingDate.Date, receipt.BookingDate?.Date);
+        Assert.Equal(300m, receipt.ServiceValue);
+        Assert.Equal(300m, receipt.BookingTotal);
         Assert.Equal(0m, receipt.PaidBefore);
         Assert.Equal(100m, receipt.Remaining);
     }
