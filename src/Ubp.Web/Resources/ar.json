@@ -1843,5 +1843,6 @@
   "treasury.export_pdf": "تصدير PDF",
   "treasury.report_tomorrow_bookings_confirmed": "حجوزات الغد المؤكدة",
   "treasury.meter_units_default": "وحدات العدّاد",
-  "common.saving": "جارٍ الحفظ..."
+  "common.saving": "جارٍ الحفظ...",
+  "treasury.closed_by_user": "مستخدم الإقفال"
 }

@@ -1843,5 +1843,6 @@
   "treasury.export_pdf": "Export PDF",
   "treasury.report_tomorrow_bookings_confirmed": "Confirmed tomorrow bookings",
   "treasury.meter_units_default": "Meter units",
-  "common.saving": "Saving..."
+  "common.saving": "Saving...",
+  "treasury.closed_by_user": "Closed by"
 }

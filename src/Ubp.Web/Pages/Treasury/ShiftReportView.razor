@@ -1,6 +1,25 @@
 @inject IDisplayFormatter Fmt
 
 <div class="ubp-shift-report">
+    <div class="ubp-shift-report-head">
+        <div class="ubp-shift-report-title">
+            @T.T("treasury.shift_report") — @Report.Shift.Code
+        </div>
+        <div class="ubp-shift-report-meta">
+            <span>@T.T("common.branch"): @Report.Shift.BranchName</span>
+            <span>@T.T("treasury.opened_at"): @Fmt.DateTime(Report.Shift.OpenedAt)</span>
+            <span>
+                @T.T("treasury.closed_at"): @(Report.Shift.ClosedAt is null
+                    ? "—" : Fmt.DateTime(Report.Shift.ClosedAt.Value))
+            </span>
+            <span>@T.T("treasury.user"): @Report.Shift.Username</span>
+            @if (!string.IsNullOrWhiteSpace(Report.Shift.ClosedByName))
+            {
+                <span>@T.T("treasury.closed_by_user"): @Report.Shift.ClosedByName</span>
+            }
+        </div>
+    </div>
+
     @if (!PrintMode)
     {
         <div class="ubp-toolbar ubp-print-hide">
@@ -169,24 +188,26 @@
         @T.T("treasury.report_tomorrow_bookings_confirmed"): <b>@Report.TomorrowBookingsCount</b>
     </MudText>
 
-    <MudExpansionPanels MultiExpansion="true" Elevation="0" Dense="true" Class="mt-3">
-        <MudExpansionPanel Text="@($"{T.T("treasury.report_tomorrow_appointments")} ({Report.TomorrowAppointments.Count})")"
-                           @bind-Expanded="_appointmentsExpanded">
-            <MudTable Items="Report.TomorrowAppointments" Dense="true" Elevation="0" Class="ubp-table">
-                <HeaderContent>
-                    <MudTh>@T.T("common.employee")</MudTh>
-                    <MudTh>@T.T("sales.work_start_time")</MudTh>
-                    <MudTh>@T.T("sales.work_end_time")</MudTh>
-                    <MudTh>@T.T("common.status")</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd>@context.EmployeeName</MudTd>
-                    <MudTd>@Fmt.DateTime(context.StartsAt)</MudTd>
-                    <MudTd>@Fmt.DateTime(context.EndsAt)</MudTd>
-                    <MudTd>@StatusText(context.Status)</MudTd>
-                </RowTemplate>
-            </MudTable>
-        </MudExpansionPanel>
-    </MudExpansionPanels>
+    @if (Report.TomorrowAppointments.Count > 0)
+    {
+        <MudDivider Class="my-2" />
+        <MudText Typo="Typo.subtitle2" Class="mt-3">
+            @T.T("treasury.report_tomorrow_appointments") (@Report.TomorrowAppointments.Count)
+        </MudText>
+        <MudTable Items="Report.TomorrowAppointments" Dense="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("common.employee")</MudTh>
+                <MudTh>@T.T("sales.work_start_time")</MudTh>
+                <MudTh>@T.T("sales.work_end_time")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.EmployeeName</MudTd>
+                <MudTd>@Fmt.DateTime(context.StartsAt)</MudTd>
+                <MudTd>@Fmt.DateTime(context.EndsAt)</MudTd>
+                <MudTd>@StatusText(context.Status)</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
 </div>
 

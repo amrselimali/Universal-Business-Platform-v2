@@ -27,7 +27,6 @@ public partial class ShiftReportView : IDisposable
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
     private bool _saving;
-    private bool _appointmentsExpanded;
     private string? _meterUnitsLabel;
     private readonly Dictionary<string, CancellationTokenSource> _debounce = new();
 
@@ -41,7 +40,6 @@ public partial class ShiftReportView : IDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        _appointmentsExpanded = true;
         var settings = await Settings.GetAsync();
         _meterUnitsLabel = settings.MeterUnitLabel;
     }
