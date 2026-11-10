@@ -84,7 +84,7 @@
                             <div><span>@T.T("pos.tax")</span><span>@(0m.ToString("N2"))</span></div>
                             <div><span>@T.T("pos.paid_previously")</span><span>@SelectedPaidBefore.ToString("N2")</span></div>
                             <div><span>@T.T("pos.collection_fee")</span><span>@payment.Fee.ToString("N2")</span></div>
-                            <div><b>@T.T("pos.grand_due")</b><b>@((SelectedBookingTotal + payment.Fee).ToString("N2"))</b></div>
+                            <div><b>@T.T("pos.grand_due")</b><b>@((SelectedBookingTotal - SelectedPaidBefore + payment.Fee).ToString("N2"))</b></div>
                             <div>
                                 <span>@T.T("pos.paid_amount") (@TreasuryName(payment.TreasuryId))</span>
                                 <span>@payment.Total.ToString("N2")</span>
