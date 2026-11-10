@@ -217,8 +217,9 @@ public sealed partial class PosRepository : IPosRepository
         receipt.TaxTotal = lines.Sum(l => l.TaxAmount);
 
         // تسجيل المبالغ المحصلة على الحجز: أساس «المسدد سابقًا» في تحصيل الخدمات المحجوزة.
-        // ترحيل المسودة لا يثبت أي سداد (لا أثر على الحسابات).
-        foreach (var voucher in input.DraftOnly ? new List<PosPaymentResult>() : receipt.Vouchers)
+        // يُسجَّل حتى في «تسجيل» (مسودة) ليخفض المتبقي غير المسدد فورًا، بلا أي ترحيل محاسبي؛
+        // وإلغاء/حذف المسودة يحذف هذه التخصيصات — 0095.
+        foreach (var voucher in receipt.Vouchers)
         {
             await connection.ExecuteAsync(new CommandDefinition("""
                 INSERT INTO booking_payments (booking_id, voucher_id, amount, created_by, notes)

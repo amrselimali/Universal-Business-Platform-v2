@@ -65,8 +65,10 @@ public sealed class PosDraftTests : IClassFixture<TestDb>
         Assert.Equal("draft", head.Status);
         Assert.Null(head.DocNo);
         Assert.Null(head.JournalEntryId);
-        Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
-            "SELECT count(*)::int FROM booking_payments WHERE voucher_id = @id",
-            new { id = voucher.VoucherId }));
+        // «تسجيل» (مسودة) يخصّص المبلغ على الحجز ليخفض غير المسدد رغم أنه بلا ترحيل محاسبي — 0095.
+        var paid = await connection.ExecuteScalarAsync<decimal>(
+            "SELECT COALESCE(SUM(amount), 0) FROM booking_payments WHERE voucher_id = @id",
+            new { id = voucher.VoucherId });
+        Assert.Equal(100m, paid);
     }
 }
