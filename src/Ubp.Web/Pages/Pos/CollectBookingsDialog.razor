@@ -126,23 +126,18 @@
         @if (_canDraft)
         {
             <MudButton Color="Color.Warning" Variant="Variant.Outlined" OnClick="DraftAsync"
-                       Disabled="@CannotSave">@T.T("pos.save_draft_only")</MudButton>
-        }
-        @if (_canCollect)
-        {
-            <MudButton Color="Color.Primary" Variant="Variant.Outlined" OnClick="CollectAsync"
-                       Disabled="@CannotSave">@T.T("pos.collect_confirm")</MudButton>
+                       Disabled="CannotSave">@T.T("pos.save_draft_only")</MudButton>
         }
         @if (_canWhatsApp)
         {
             <MudButton Color="Color.Success" Variant="Variant.Outlined" OnClick="WhatsAppAsync"
                        StartIcon="@Icons.Material.Filled.Send"
-                       Disabled="@CannotSave">@T.T("pos.save_and_send_whatsapp")</MudButton>
+                       Disabled="CannotSave">@T.T("pos.save_and_send_whatsapp")</MudButton>
         }
         @if (_canComplete)
         {
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CompleteAsync"
-                       Disabled="@CannotSave">@T.T("pos.complete")</MudButton>
+                       Disabled="CannotSave">@T.T("pos.complete")</MudButton>
         }
     </DialogActions>
 </MudDialog>

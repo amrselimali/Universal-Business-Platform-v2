@@ -1800,12 +1800,12 @@
   "action.add_meter_reading": "إضافة قراءة عدّاد",
   "action.approve": "اعتماد",
   "action.cancel_outbox": "إلغاء الإرسال",
-  "action.checkout": "إتمام البيع",
+  "action.checkout": "تحصيل وإتمام البيع (الشاشة الرئيسية)",
   "action.clear_all": "مسح الكل",
   "action.close_maintenance": "إغلاق صيانة",
-  "action.collect": "تحصيل خدمات محجوزة",
+  "action.collect": "تحصيل الخدمات المحجوزة (فتح نافذة التحصيل وأزرارها)",
   "action.complete": "إكمال",
-  "action.complete_collection": "إتمام التحصيل",
+  "action.complete_collection": "اتمام التحصيل (ترحيل وإغلاق)",
   "action.export": "تصدير",
   "action.extend_reservation": "تمديد الحجز",
   "action.mark_as_read": "تعليم كمقروء",
@@ -1846,5 +1846,5 @@
   "common.saving": "جارٍ الحفظ...",
   "treasury.closed_by_user": "مستخدم الإقفال",
   "treasury.report_tomorrow_bookings_unconfirmed": "حجوزات الغد غير المؤكدة",
-  "pos.collect_buttons_hint": "تسجيل = حفظ كمسودة بلا ترحيل ولا يُثبت السداد • تحصيل = ترحيل فوري للسند مع بقاء النافذة • حفظ واتساب = ترحيل وإغلاق وإرسال الإشعار • إتمام = ترحيل وإغلاق النافذة"
+  "pos.collect_buttons_hint": "تسجيل = حفظ كمسودة بلا ترحيل ولا يُثبت السداد • حفظ واتساب = ترحيل وإغلاق وإرسال الإشعار • إتمام = ترحيل وإغلاق النافذة"
 }

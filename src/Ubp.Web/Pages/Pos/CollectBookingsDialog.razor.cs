@@ -31,7 +31,6 @@ public partial class CollectBookingsDialog
     private bool _loading = true;
     private bool _busy;
     private bool _canDraft;
-    private bool _canCollect;
     private bool _canWhatsApp;
     private bool _canComplete;
 
@@ -64,15 +63,16 @@ public partial class CollectBookingsDialog
             var actor = await UserContext.GetAsync();
             if (actor is null) { MudDialog.Cancel(); return; }
 
-            // صلاحيات أزرار النافذة: تسجيل / تحصيل / حفظ واتساب / اتمام.
-            _canDraft = await Permissions.HasAsync(actor, ScreenCodes.PosTerminal,
-                ActionCodes.SaveDraft);
-            _canCollect = await Permissions.HasAsync(actor, ScreenCodes.PosTerminal,
+            // صلاحيات أزرار النافذة: تسجيل / حفظ واتساب / اتمام.
+            // كل أزرار التحصيل مشروطة أيضاً بصلاحية «تحصيل الخدمات المحجوزة» (COLLECT) — 0095.
+            var canCollect = await Permissions.HasAsync(actor, ScreenCodes.PosTerminal,
                 ActionCodes.Collect);
-            _canWhatsApp = await Permissions.HasAsync(actor, ScreenCodes.PosTerminal,
-                ActionCodes.SendWhatsApp);
-            _canComplete = await Permissions.HasAsync(actor, ScreenCodes.PosTerminal,
-                ActionCodes.CompleteCollection);
+            _canDraft = canCollect && await Permissions.HasAsync(actor, ScreenCodes.PosTerminal,
+                ActionCodes.SaveDraft);
+            _canWhatsApp = canCollect && await Permissions.HasAsync(actor,
+                ScreenCodes.PosTerminal, ActionCodes.SendWhatsApp);
+            _canComplete = canCollect && await Permissions.HasAsync(actor,
+                ScreenCodes.PosTerminal, ActionCodes.CompleteCollection);
 
             // بلا شفت مفتوح تُغلق النافذة برسالة واضحة بدلاً من التعليق بلا بيانات.
             if (!await Collections.HasOpenShiftAsync(actor, BranchId))
@@ -147,7 +147,6 @@ public partial class CollectBookingsDialog
                                CollectedTotal > SelectedTotal;
 
     private Task DraftAsync() => SaveAsync(draftOnly: true, closeAfter: false);
-    private Task CollectAsync() => SaveAsync(draftOnly: false, closeAfter: false);
     private Task CompleteAsync() => SaveAsync(draftOnly: false, closeAfter: true);
     private Task WhatsAppAsync() => SaveAsync(draftOnly: false, closeAfter: true);
 
