@@ -76,6 +76,12 @@ public sealed class CommercialDocument
     public string? TreasuryName { get; set; }
     /// <summary>الخدمات/الأصناف المرتبطة بالإيصال — عمود الخدمة في شاشة إيصالات POS.</summary>
     public string? Services { get; set; }
+    /// <summary>تاريخ الحجز الأصلي المرتبط بالإيصال (أقدم حجز) — 0095.</summary>
+    public DateTime? BookingDate { get; set; }
+    /// <summary>المبلغ المسدد سابقًا على الحجز قبل هذا الإيصال — 0095.</summary>
+    public decimal PaidBefore { get; set; }
+    /// <summary>المبلغ المتبقي على الحجز بعد هذا الإيصال — 0095.</summary>
+    public decimal Remaining { get; set; }
 
     public bool IsDraft => Status == CommercialStatuses.Draft;
     public bool IsPosted => Status == CommercialStatuses.Posted;

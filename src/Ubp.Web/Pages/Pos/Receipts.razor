@@ -36,18 +36,32 @@ else
                 <MudTh>@T.T("common.date")</MudTh>
                 <MudTh>@T.T("sales.customer")</MudTh>
                 <MudTh>@T.T("treasury.treasury")</MudTh>
-                <MudTh>@T.T("pos.services")</MudTh>
+                <MudTh>@T.T("pos.receipt_description")</MudTh>
+                <MudTh Align="Right">@T.T("pos.paid_before")</MudTh>
+                <MudTh Align="Right">@T.T("pos.remaining_due")</MudTh>
                 <MudTh Align="Right">@T.T("accounting.total")</MudTh>
-                <MudTh>@T.T("common.status")</MudTh>
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd>@context.DocDate.ToString("yyyy-MM-dd")</MudTd>
                 <MudTd>@context.PartyName</MudTd>
                 <MudTd>@(string.IsNullOrWhiteSpace(context.TreasuryName) ? "—" : context.TreasuryName)</MudTd>
-                <MudTd>@(string.IsNullOrWhiteSpace(context.Services) ? "—" : context.Services)</MudTd>
+                <MudTd>
+                    @(string.IsNullOrWhiteSpace(context.Services) ? "—" : context.Services)
+                    @if (context.BookingDate is not null)
+                    {
+                        <div class="ubp-muted ubp-small">
+                            @T.T("sales.booking_date"): @context.BookingDate.Value.ToString("yyyy-MM-dd")
+                        </div>
+                    }
+                </MudTd>
+                <MudTd Align="Right">
+                    @(context.BookingDate is null ? "—" : context.PaidBefore.ToString("N2"))
+                </MudTd>
+                <MudTd Align="Right">
+                    @(context.BookingDate is null ? "—" : context.Remaining.ToString("N2"))
+                </MudTd>
                 <MudTd Align="Right">@context.Total.ToString("N2")</MudTd>
-                <MudTd>@T.T("accounting.status_" + context.Status)</MudTd>
                 <MudTd Align="Right">
                     <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
                                    Title="@T.T("pos.view_receipt")" Color="Color.Primary"

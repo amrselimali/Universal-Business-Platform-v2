@@ -1,5 +1,5 @@
 window.ubpPrint = function () {
-    const receipt = document.getElementById('pos-print-area');
+    const receipt = document.querySelector('.ubp-print-receipt');
     if (receipt) document.body.classList.add('ubp-pos-print');
     window.print();
     if (receipt) {

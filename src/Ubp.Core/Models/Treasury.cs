@@ -171,6 +171,15 @@ public sealed class Voucher
     public int Version { get; set; } = 1;
     public List<VoucherLine> Lines { get; set; } = new();
 
+    /// <summary>خدمات الحجز المرتبطة بالإيصال (للعرض/الطباعة) — 0095.</summary>
+    public string? Services { get; set; }
+    /// <summary>تاريخ الحجز الأصلي المرتبط بالإيصال — 0095.</summary>
+    public DateTime? BookingDate { get; set; }
+    /// <summary>المسدد سابقًا على الحجز قبل هذا الإيصال — 0095.</summary>
+    public decimal PaidBefore { get; set; }
+    /// <summary>المتبقي على الحجز بعد هذا الإيصال — 0095.</summary>
+    public decimal Remaining { get; set; }
+
     public bool IsDraft => Status == VoucherStatuses.Draft;
     public bool IsPosted => Status == VoucherStatuses.Posted;
 

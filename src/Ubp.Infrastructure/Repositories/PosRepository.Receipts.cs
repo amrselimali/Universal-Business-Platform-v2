@@ -36,7 +36,24 @@ public sealed partial class PosRepository
                       JOIN items i ON i.id = bl.item_id
                       WHERE b.customer_id = v.party_id AND b.branch_id = v.branch_id
                         AND b.booking_date = v.doc_date AND b.source = 'pos'
-                        AND i.item_type = 'SERVICE')) AS Services
+                        AND i.item_type = 'SERVICE')) AS Services,
+                   -- تاريخ الحجز الأصلي + المسدد سابقًا + المتبقي للحجوزات المرتبطة بهذا الإيصال — 0095.
+                   (SELECT MIN(b.booking_date)
+                    FROM booking_payments bp
+                    JOIN bookings b ON b.id = bp.booking_id
+                    WHERE bp.voucher_id = v.id) AS BookingDate,
+                   COALESCE((SELECT SUM(b.deposit_amount + COALESCE((
+                        SELECT SUM(bp2.amount) FROM booking_payments bp2
+                        WHERE bp2.booking_id = b.id AND bp2.paid_at < v.created_at), 0))
+                    FROM booking_payments bp
+                    JOIN bookings b ON b.id = bp.booking_id
+                    WHERE bp.voucher_id = v.id), 0) AS PaidBefore,
+                   COALESCE((SELECT SUM(GREATEST(b.total_amount - b.deposit_amount - COALESCE((
+                        SELECT SUM(bp3.amount) FROM booking_payments bp3
+                        WHERE bp3.booking_id = b.id), 0), 0))
+                    FROM booking_payments bp
+                    JOIN bookings b ON b.id = bp.booking_id
+                    WHERE bp.voucher_id = v.id), 0) AS Remaining
             FROM vouchers v
             LEFT JOIN treasuries t ON t.id = v.treasury_id
             WHERE v.voucher_type = 'receipt' AND v.party_type = 'C'
@@ -79,7 +96,35 @@ public sealed partial class PosRepository
                    v.treasury_id AS TreasuryId, t.code AS TreasuryCode,
                    t.name_ar AS TreasuryName, v.total_amount AS TotalAmount,
                    v.fee_total AS FeeTotal, v.notes AS Notes, v.posted_at AS PostedAt,
-                   v.version AS Version
+                   v.version AS Version,
+                   -- بيانات الحجز/الخدمة لعرضها داخل الإيصال — 0095.
+                   COALESCE(
+                     (SELECT string_agg(DISTINCT i.name_ar, ' • ')
+                      FROM booking_payments bp
+                      JOIN booking_lines bl ON bl.booking_id = bp.booking_id
+                      JOIN items i ON i.id = bl.item_id
+                      WHERE bp.voucher_id = v.id AND i.item_type = 'SERVICE'),
+                     (SELECT string_agg(DISTINCT i.name_ar, ' • ')
+                      FROM booking_payments bp
+                      JOIN booking_lines bl ON bl.booking_id = bp.booking_id
+                      JOIN items i ON i.id = bl.item_id
+                      WHERE bp.voucher_id = v.id)) AS Services,
+                   (SELECT MIN(b.booking_date)
+                    FROM booking_payments bp
+                    JOIN bookings b ON b.id = bp.booking_id
+                    WHERE bp.voucher_id = v.id) AS BookingDate,
+                   COALESCE((SELECT SUM(b.deposit_amount + COALESCE((
+                        SELECT SUM(bp2.amount) FROM booking_payments bp2
+                        WHERE bp2.booking_id = b.id AND bp2.paid_at < v.created_at), 0))
+                    FROM booking_payments bp
+                    JOIN bookings b ON b.id = bp.booking_id
+                    WHERE bp.voucher_id = v.id), 0) AS PaidBefore,
+                   COALESCE((SELECT SUM(GREATEST(b.total_amount - b.deposit_amount - COALESCE((
+                        SELECT SUM(bp3.amount) FROM booking_payments bp3
+                        WHERE bp3.booking_id = b.id), 0), 0))
+                    FROM booking_payments bp
+                    JOIN bookings b ON b.id = bp.booking_id
+                    WHERE bp.voucher_id = v.id), 0) AS Remaining
             FROM vouchers v JOIN treasuries t ON t.id = v.treasury_id
             WHERE v.id = @id AND v.voucher_type = 'receipt' AND v.party_type = 'C'
             """, new { id = voucherId }, cancellationToken: ct));

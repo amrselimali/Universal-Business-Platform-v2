@@ -18,13 +18,30 @@
         }
         else
         {
-            <div id="receipt-view-area" class="pos-receipt">
+            <div id="receipt-view-area" class="pos-receipt ubp-print-receipt">
                 <div class="pos-receipt-head">
                     <div><b>@T.T("pos.receipt")</b></div>
                     <div>@_receipt.DocNo · @_receipt.DocDate.ToString("yyyy-MM-dd")</div>
                     <div>@_receipt.PartyName</div>
                     <div>@_receipt.TreasuryName</div>
-                    <div>@T.T("accounting.status_" + _receipt.Status)</div>
+                </div>
+                <div class="ubp-receipt-booking">
+                    <div>
+                        <span>@T.T("pos.receipt_description")</span>
+                        <span>@(string.IsNullOrWhiteSpace(_receipt.Services) ? "—" : _receipt.Services)</span>
+                    </div>
+                    <div>
+                        <span>@T.T("sales.booking_date")</span>
+                        <span>@(_receipt.BookingDate is null ? "—" : _receipt.BookingDate.Value.ToString("yyyy-MM-dd"))</span>
+                    </div>
+                    <div>
+                        <span>@T.T("pos.paid_before")</span>
+                        <span>@(_receipt.BookingDate is null ? "—" : _receipt.PaidBefore.ToString("N2"))</span>
+                    </div>
+                    <div>
+                        <span>@T.T("pos.remaining_due")</span>
+                        <span>@(_receipt.BookingDate is null ? "—" : _receipt.Remaining.ToString("N2"))</span>
+                    </div>
                 </div>
                 <table>
                     <tbody>

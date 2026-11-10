@@ -150,9 +150,14 @@ public sealed class BookingCollectionTests : IClassFixture<TestDb>
         Assert.Contains(entries, l => l.Code == "1101" && l.Debit == 200m);
         Assert.Contains(entries, l => l.Code == "1110" && l.Credit == 200m);
 
-        // إيصال التحصيل يظهر في شاشة إيصالات POS (حتى لو كان الحجز بتاريخ أقدم).
+        // إيصال التحصيل يظهر في شاشة إيصالات POS (حتى لو كان الحجز بتاريخ أقدم)
+        // ويحمل خدمة الحجز وتاريخه والمسدد سابقًا والمتبقي — 0095.
         var receipts = await _db.Pos().ListReceiptsAsync(actor, f.Branch, null, null, 100);
-        Assert.Contains(receipts, r => r.Id == result.VoucherId);
+        var receipt = Assert.Single(receipts, r => r.Id == result.VoucherId);
+        Assert.Contains("خدمة التحصيل", receipt.Services);
+        Assert.Equal(f.Booking.BookingDate.Date, receipt.BookingDate?.Date);
+        Assert.Equal(0m, receipt.PaidBefore);
+        Assert.Equal(100m, receipt.Remaining);
     }
 
     [Fact]

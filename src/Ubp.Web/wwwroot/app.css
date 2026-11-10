@@ -127,8 +127,9 @@ a { color: inherit; text-decoration: none; }
 /* POS receipt printing: only the receipt block is printed */
 @media print {
     body.ubp-pos-print * { visibility: hidden; }
-    body.ubp-pos-print #pos-print-area, body.ubp-pos-print #pos-print-area * { visibility: visible; }
-    body.ubp-pos-print #pos-print-area {
+    body.ubp-pos-print .ubp-print-receipt,
+    body.ubp-pos-print .ubp-print-receipt * { visibility: visible; }
+    body.ubp-pos-print .ubp-print-receipt {
         position: absolute;
         inset-block-start: 0;
         inset-inline-start: 0;
@@ -249,3 +250,7 @@ a { color: inherit; text-decoration: none; }
 .pos-receipt table { width: 100%; }
 .pos-receipt .num { text-align: left; }
 .pos-receipt-totals > div { display: flex; justify-content: space-between; }
+
+/* سطر الشرح داخل إيصال القبض (خدمة/تاريخ حجز/مسدد سابقًا/متبقي) — 0095 */
+.ubp-receipt-booking { margin: 6px 0 10px; font-size: .82rem; }
+.ubp-receipt-booking > div { display: flex; justify-content: space-between; gap: 10px; }
