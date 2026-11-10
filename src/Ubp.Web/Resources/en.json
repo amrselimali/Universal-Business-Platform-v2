@@ -1862,5 +1862,7 @@
   "pos.grand_due": "Grand total due",
   "pos.paid_amount": "Paid",
   "pos.total_fees": "Total fees",
-  "pos.receipt_preview": "Receipt preview"
+  "pos.receipt_preview": "Receipt preview",
+  "sales.print_word_bookings": "Bookings",
+  "sales.print_period_label": "Booking period"
 }

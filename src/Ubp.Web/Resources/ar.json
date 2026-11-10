@@ -1862,5 +1862,7 @@
   "pos.grand_due": "إجمالي المستحق",
   "pos.paid_amount": "المسدد",
   "pos.total_fees": "إجمالي العمولات",
-  "pos.receipt_preview": "معاينة الإيصال"
+  "pos.receipt_preview": "معاينة الإيصال",
+  "sales.print_word_bookings": "حجوزات",
+  "sales.print_period_label": "فترة الحجز"
 }

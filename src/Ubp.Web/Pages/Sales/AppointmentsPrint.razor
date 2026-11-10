@@ -1,0 +1,95 @@
+@page "/sales/appointments/print"
+@attribute [Authorize]
+@layout EmptyLayout
+@inherits SecurePageBase
+@inject SalesFulfillmentService Fulfillment
+@inject BranchService Branches
+@inject IDisplayFormatter Fmt
+@inject IJSRuntime JS
+<PageTitle>@FileName</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading) { <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div> }
+else
+{
+    <div class="ubp-print-page ubp-print-report">
+        <div class="ubp-toolbar ubp-print-hide">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Print"
+                       OnClick="PrintAsync">@T.T("treasury.export_pdf")</MudButton>
+            <MudText Typo="Typo.caption" Class="ubp-muted">@FileName</MudText>
+        </div>
+
+        <div class="ubp-print-title">@LongTitle</div>
+
+        <MudTable Items="_items" Dense="true" Elevation="0" Class="ubp-table">
+            <HeaderContent>
+                <MudTh>@T.T("common.date")</MudTh>
+                <MudTh>@T.T("sales.start")</MudTh>
+                <MudTh>@T.T("sales.end")</MudTh>
+                <MudTh>@T.T("sales.employee")</MudTh>
+                <MudTh>@T.T("sales.customer")</MudTh>
+                <MudTh>@T.T("common.notes")</MudTh>
+                <MudTh>@T.T("common.status")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@Fmt.DateOnly(DateOnly.FromDateTime(Fmt.ToUserTime(context.StartsAt).Date))</MudTd>
+                <MudTd>@Fmt.Time(context.StartsAt)</MudTd>
+                <MudTd>@Fmt.Time(context.EndsAt)</MudTd>
+                <MudTd>@context.EmployeeName</MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.CustomerName) ? "—" : context.CustomerName)</MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.Notes) ? "—" : context.Notes)</MudTd>
+                <MudTd>@T.T("sales.appointment_" + context.Status)</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="ubp-muted pa-4">@T.T("common.no_records")</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "branch")] public Guid? BranchId { get; set; }
+    [SupplyParameterFromQuery(Name = "date")] public DateTime? Date { get; set; }
+
+    private IReadOnlyList<Appointment> _items = Array.Empty<Appointment>();
+    private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
+    private string _branchName = "";
+    private DateTime _day = DateTime.Today;
+    private bool _printed;
+
+    protected override string ScreenCode => ScreenCodes.SalesAppointments;
+
+    private string LongTitle =>
+        $"{_branchName} - {T.T("sales.print_word_bookings")} - {T.T("sales.print_period_label")} " +
+        $"{T.T("common.from_date")} {_day:yyyy-MM-dd} {T.T("common.to_date")} {_day:yyyy-MM-dd} - " +
+        $"{Actor?.Username}";
+
+    /// <summary>اسم الملف الافتراضي عند الحفظ كـ PDF = الفرع - حجوزات - اليوم.</summary>
+    private string FileName =>
+        $"{_branchName} - {T.T("sales.print_word_bookings")} - {DateTime.Today:yyyy-MM-dd}";
+
+    protected override async Task OnLoadAsync()
+    {
+        _branches = await Branches.OptionsAsync(Actor!);
+        _day = Date?.Date ?? DateTime.Today;
+        var branchId = BranchId
+                       ?? Actor!.CurrentBranchId
+                       ?? (Actor.AllowedBranchIds.Count > 0 ? Actor.AllowedBranchIds.First() : (Guid?)null)
+                       ?? _branches.FirstOrDefault()?.Id;
+        BranchId = branchId;
+        _branchName = _branches.FirstOrDefault(b => b.Id == branchId)?.NameAr ?? "—";
+        _items = await Fulfillment.ListAppointmentsAsync(Actor!, branchId, _day);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_printed && !Loading && !Denied)
+        {
+            _printed = true;
+            await JS.InvokeVoidAsync("ubpPrintOnLoad");
+        }
+    }
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("ubpPrintOnLoad");
+}
