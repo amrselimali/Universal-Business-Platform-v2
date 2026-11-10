@@ -116,4 +116,39 @@ public sealed class ShiftRevenueTests : IClassFixture<TestDb>
             DateTime.Today.AddDays(-5), DateTime.Today.AddDays(-4), 100);
         Assert.Empty(outside);
     }
+
+    [Fact]
+    public async Task Pos_receipt_service_column_lists_paid_service_names()
+    {
+        var actor = await _db.AdminActorAsync();
+        var f = await SetupAsync("3");
+        var service = await _db.CreateItemAsync("SR-SVC-3", "خدمة مساج");
+        await using (var connection = new NpgsqlConnection(TestDb.AdminConnection))
+        {
+            await connection.OpenAsync();
+            await connection.ExecuteAsync("UPDATE items SET item_type = 'SERVICE' WHERE id = @id",
+                new { id = service.Id });
+        }
+
+        await _db.Pos().CheckoutAsync(actor, new PosCheckoutInput
+        {
+            BranchId = f.Branch, CustomerId = f.Customer.Id, WarehouseId = f.Warehouse,
+            DocDate = DateTime.Today,
+            Lines =
+            {
+                new PosLineInput
+                {
+                    ItemId = service.Id, UnitId = service.BaseUnitId,
+                    Quantity = 1, UnitPrice = 200
+                }
+            },
+            Payments = { new PosPaymentInput { TreasuryId = f.TreasuryId, Amount = 200 } }
+        });
+
+        var rows = await _db.Pos().ListReceiptsAsync(actor, f.Branch, DateTime.Today,
+            DateTime.Today, 50);
+        var row = Assert.Single(rows);
+        // عمود الخدمة يعرض اسم الخدمة التي تم سداد قيمتها — 0095.
+        Assert.Equal("خدمة مساج", row.Services);
+    }
 }

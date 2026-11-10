@@ -28,7 +28,15 @@ public sealed partial class PosRepository
                       FROM booking_payments bp
                       JOIN booking_lines bl ON bl.booking_id = bp.booking_id
                       JOIN items i ON i.id = bl.item_id
-                      WHERE bp.voucher_id = v.id)) AS Services
+                      WHERE bp.voucher_id = v.id),
+                     -- احتياطي: خدمات حجز نقطة البيع لنفس العميل/الفرع/اليوم (إيصالات قديمة/مسودات).
+                     (SELECT string_agg(DISTINCT i.name_ar, ' • ')
+                      FROM bookings b
+                      JOIN booking_lines bl ON bl.booking_id = b.id
+                      JOIN items i ON i.id = bl.item_id
+                      WHERE b.customer_id = v.party_id AND b.branch_id = v.branch_id
+                        AND b.booking_date = v.doc_date AND b.source = 'pos'
+                        AND i.item_type = 'SERVICE')) AS Services
             FROM vouchers v
             LEFT JOIN treasuries t ON t.id = v.treasury_id
             WHERE v.voucher_type = 'receipt' AND v.party_type = 'C'

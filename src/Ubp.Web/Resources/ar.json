@@ -1845,5 +1845,6 @@
   "treasury.meter_units_default": "وحدات العدّاد",
   "common.saving": "جارٍ الحفظ...",
   "treasury.closed_by_user": "مستخدم الإقفال",
-  "treasury.report_tomorrow_bookings_unconfirmed": "حجوزات الغد غير المؤكدة"
+  "treasury.report_tomorrow_bookings_unconfirmed": "حجوزات الغد غير المؤكدة",
+  "pos.collect_buttons_hint": "تسجيل = حفظ كمسودة بلا ترحيل ولا يُثبت السداد • تحصيل = ترحيل فوري للسند مع بقاء النافذة • حفظ واتساب = ترحيل وإغلاق وإرسال الإشعار • إتمام = ترحيل وإغلاق النافذة"
 }

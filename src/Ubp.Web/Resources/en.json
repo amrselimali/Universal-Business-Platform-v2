@@ -1845,5 +1845,6 @@
   "treasury.meter_units_default": "Meter units",
   "common.saving": "Saving...",
   "treasury.closed_by_user": "Closed by",
-  "treasury.report_tomorrow_bookings_unconfirmed": "Unconfirmed tomorrow bookings"
+  "treasury.report_tomorrow_bookings_unconfirmed": "Unconfirmed tomorrow bookings",
+  "pos.collect_buttons_hint": "Register = save as a draft without posting or recording payment • Collect = post the receipt now and keep the dialog open • Save+WhatsApp = post, close and send the notification • Complete = post and close"
 }
