@@ -61,9 +61,16 @@
                 <div class="pos-receipt-totals">
                     <div><span>@T.T("pos.due_value")</span><span>@_receipt.DueTotal.ToString("N2")</span></div>
                     <div><span>@T.T("pos.tax")</span><span>@_receipt.TaxTotal.ToString("N2")</span></div>
+                    @if (_receipt.IsCollectionReceipt)
+                    {
+                        <div><span>@T.T("pos.paid_previously")</span><span>@_receipt.PaidBefore.ToString("N2")</span></div>
+                    }
                     <div><span>@T.T("pos.collection_fee")</span><span>@_receipt.FeeTotal.ToString("N2")</span></div>
                     <div><b>@T.T("pos.grand_due")</b><b>@_receipt.GrandDue.ToString("N2")</b></div>
-                    <div><span>@T.T("pos.paid_amount")</span><span>@_receipt.PaidAmount.ToString("N2")</span></div>
+                    <div>
+                        <span>@T.T("pos.paid_amount") (@_receipt.TreasuryName)</span>
+                        <span>@_receipt.PaidAmount.ToString("N2")</span>
+                    </div>
                     <div><span>@T.T("pos.remaining")</span><span>@_receipt.RemainingDue.ToString("N2")</span></div>
                 </div>
             </div>

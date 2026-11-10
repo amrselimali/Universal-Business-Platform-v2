@@ -179,6 +179,8 @@ public sealed class Voucher
     public decimal DueTotal { get; set; }
     /// <summary>إجمالي الضريبة — 0095.</summary>
     public decimal TaxTotal { get; set; }
+    /// <summary>المسدد سابقًا على الحجوزات قبل هذا الإيصال — 0095.</summary>
+    public decimal PaidBefore { get; set; }
     /// <summary>إجمالي المستحق = المستحق + الضريبة + عمولة التحصيل — 0095.</summary>
     public decimal GrandDue => Math.Round(DueTotal + TaxTotal + FeeTotal, 2,
         MidpointRounding.AwayFromZero);

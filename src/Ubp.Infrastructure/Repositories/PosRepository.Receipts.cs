@@ -19,6 +19,7 @@ public sealed partial class PosRepository
         public decimal TaxAmount { get; set; }
         public decimal BookingTotal { get; set; }
         public decimal BookingRemaining { get; set; }
+        public decimal PaidBefore { get; set; }
     }
 
     public async Task<IReadOnlyList<CommercialDocument>> ListReceiptsAsync(Guid? branchId,
@@ -125,7 +126,10 @@ public sealed partial class PosRepository
                    (b.created_at >= @createdAt) AS IsSale,
                    GREATEST(b.total_amount - b.deposit_amount - COALESCE((
                        SELECT SUM(bp2.amount) FROM booking_payments bp2
-                       WHERE bp2.booking_id = b.id), 0), 0) AS BookingRemaining
+                       WHERE bp2.booking_id = b.id), 0), 0) AS BookingRemaining,
+                   b.deposit_amount + COALESCE((
+                       SELECT SUM(bp3.amount) FROM booking_payments bp3
+                       WHERE bp3.booking_id = b.id AND bp3.paid_at < @createdAt), 0) AS PaidBefore
             FROM booking_payments bp
             JOIN bookings b ON b.id = bp.booking_id
             JOIN booking_lines bl ON bl.booking_id = b.id
@@ -171,6 +175,8 @@ public sealed partial class PosRepository
             voucher.TaxTotal = 0m;
             voucher.RemainingDue = Math.Round(rows.GroupBy(r => r.BookingId)
                 .Sum(g => g.First().BookingRemaining), 2, MidpointRounding.AwayFromZero);
+            voucher.PaidBefore = Math.Round(rows.GroupBy(r => r.BookingId)
+                .Sum(g => g.First().PaidBefore), 2, MidpointRounding.AwayFromZero);
         }
 
         return voucher;
