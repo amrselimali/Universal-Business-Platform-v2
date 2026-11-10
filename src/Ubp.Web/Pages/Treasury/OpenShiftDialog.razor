@@ -25,20 +25,17 @@
             <MudTable Items="_balances.Treasuries" Dense="true" Elevation="0" Class="ubp-table">
                 <HeaderContent>
                     <MudTh>@T.T("treasury.treasury")</MudTh>
-                    <MudTh>@T.T("treasury.type")</MudTh>
-                    <MudTh Align="Right">@T.T("treasury.first_period_balance")</MudTh>
+                    <MudTh Align="Right">@T.T("treasury.opening_balance")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd><span class="ubp-code">@context.Code</span> — @context.NameAr</MudTd>
-                    <MudTd>@T.T("treasury.type_" + context.TreasuryType)</MudTd>
                     <MudTd Align="Right"><b>@context.Total.ToString("N2")</b></MudTd>
                 </RowTemplate>
             </MudTable>
 
-            <MudTextField T="string" Label="@T.T("treasury.opening_cash")" ReadOnly="true"
-                          Variant="Variant.Outlined" Required="true" Class="mt-3"
-                          HelperText="@T.T("treasury.opening_cash_locked")"
-                          Text="@_balances.OpeningCash.ToString("N2")" />
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+                @T.T("treasury.opening_cash_locked")
+            </MudAlert>
 
             <MudText Typo="Typo.subtitle2" Class="mt-3">@T.T("treasury.meter_balance")</MudText>
             @if (_balances.Meters.Count == 0)

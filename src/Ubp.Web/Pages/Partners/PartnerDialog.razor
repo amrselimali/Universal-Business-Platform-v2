@@ -5,8 +5,18 @@
     <DialogContent>
         <MudForm @ref="_form">
             <div class="ubp-form-grid">
-                <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true" Variant="Variant.Outlined" MaxLength="50" />
-                <MudSelect T="Guid?" @bind-Value="_input.CategoryId" Label="@T.T("partners.category")" Variant="Variant.Outlined" Clearable="true">
+                @if (Kind == PartnerKind.Customer)
+                {
+                    <MudTextField Value="@CodeDisplay" Label="@T.T("common.code")" ReadOnly="true"
+                                  Variant="Variant.Outlined" MaxLength="50"
+                                  HelperText="@T.T("common.auto_generated")" />
+                }
+                else
+                {
+                    <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true" Variant="Variant.Outlined" MaxLength="50" />
+                }
+                <MudSelect T="Guid?" @bind-Value="_input.CategoryId" Label="@T.T("partners.category")" Variant="Variant.Outlined"
+                           Clearable="true" Required="@(Kind == PartnerKind.Customer)">
                     @foreach (var category in _categories)
                     {
                         <MudSelectItem T="Guid?" Value="@((Guid?)category.Id)">@CategoryName(category)</MudSelectItem>
@@ -14,13 +24,18 @@
                 </MudSelect>
                 <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true" Variant="Variant.Outlined" />
                 <MudTextField @bind-Value="_input.NameEn" Label="@T.T("common.name_en")" Variant="Variant.Outlined" />
-                <MudSelect T="string" @bind-Value="_input.ScopeType" Label="@T.T("partners.scope")" Variant="Variant.Outlined">
-                    <MudSelectItem Value="@("COMPANY")">@T.T("partners.scope_company")</MudSelectItem>
+                <MudSelect T="string" Value="_input.ScopeType" Label="@T.T("partners.scope")"
+                           Variant="Variant.Outlined" ValueChanged="OnScopeChanged">
+                    @if (_canUseCompanyScope)
+                    {
+                        <MudSelectItem Value="@("COMPANY")">@T.T("partners.scope_company")</MudSelectItem>
+                    }
                     <MudSelectItem Value="@("BRANCH")">@T.T("partners.scope_branch")</MudSelectItem>
                 </MudSelect>
                 @if (_input.ScopeType == "BRANCH")
                 {
-                    <MudSelect T="Guid?" @bind-Value="_input.BranchId" Label="@T.T("common.branch")" Variant="Variant.Outlined" Required="true">
+                    <MudSelect T="Guid?" Value="_input.BranchId" Label="@T.T("common.branch")"
+                               Variant="Variant.Outlined" Required="true" ValueChanged="OnBranchChanged">
                         @foreach (var branch in _branches)
                         {
                             <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>

@@ -20,6 +20,8 @@ public sealed partial class TreasuryRepository
         public string Code { get; set; } = "";
         public DateTimeOffset OpenedAt { get; set; }
         public DateTimeOffset? ClosedAt { get; set; }
+        public Guid? ClosedBy { get; set; }
+        public string? ClosedByName { get; set; }
         public decimal OpeningCash { get; set; }
         public decimal CarriedBalance { get; set; }
         public decimal ReviewBalance { get; set; }
@@ -43,6 +45,8 @@ public sealed partial class TreasuryRepository
                s.treasury_id AS TreasuryId, t.code AS TreasuryCode, t.name_ar AS TreasuryName,
                s.user_id AS UserId, u.username AS Username, s.code AS Code,
                s.opened_at AS OpenedAt, s.closed_at AS ClosedAt, s.opening_cash AS OpeningCash,
+               s.closed_by AS ClosedBy,
+               (SELECT u2.username FROM users u2 WHERE u2.id = s.closed_by) AS ClosedByName,
                s.carried_balance AS CarriedBalance, s.review_balance AS ReviewBalance,
                s.meter_balance AS MeterBalance, s.expected_cash AS ExpectedCash,
                s.counted_cash AS CountedCash, s.variance AS Variance, s.status AS Status,
@@ -188,6 +192,7 @@ public sealed partial class TreasuryRepository
         TreasuryId = row.TreasuryId, TreasuryCode = row.TreasuryCode,
         TreasuryName = row.TreasuryName, UserId = row.UserId, Username = row.Username,
         Code = row.Code, OpenedAt = row.OpenedAt, ClosedAt = row.ClosedAt,
+        ClosedBy = row.ClosedBy, ClosedByName = row.ClosedByName,
         OpeningCash = row.OpeningCash, CarriedBalance = row.CarriedBalance,
         ReviewBalance = row.ReviewBalance, MeterBalance = row.MeterBalance,
         ExpectedCash = row.ExpectedCash, CountedCash = row.CountedCash, Variance = row.Variance,

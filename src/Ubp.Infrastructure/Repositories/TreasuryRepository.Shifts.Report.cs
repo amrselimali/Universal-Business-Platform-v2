@@ -48,7 +48,10 @@ public sealed partial class TreasuryRepository
             ), executions AS (
                 SELECT c.name_ar AS CustomerName, NULL::varchar AS TreasuryType,
                        0::numeric AS Collected,
-                       0::numeric AS Revenue,
+                       -- إيراد التنفيذ = صافي سطر الحجز بنسبة الكمية المنفَّذة (الهدية بلا إيراد).
+                       CASE WHEN bl.operation_type = 'gift' THEN 0::numeric
+                            ELSE ROUND(bl.net_amount * el.quantity /
+                                       NULLIF(bl.quantity, 0), 2) END AS Revenue,
                        el.quantity AS Quantity, el.meter_units AS MeterUnits,
                        exe.name_ar AS EmployeeName, i.name_ar AS ItemName, bl.unit_price AS UnitPrice,
                        CASE WHEN bl.operation_type = 'treatment' THEN 'خدمة علاجية'
@@ -287,36 +290,10 @@ public sealed partial class TreasuryRepository
               AND (@until::timestamptz IS NULL OR a.created_at <= @until::timestamptz)
             """, args, cancellationToken: ct)));
 
-        report.IdleCustomers = (await connection.QueryAsync<ShiftCustomerRow>(new CommandDefinition("""
-            SELECT c.id AS CustomerId, c.code AS Code, c.name_ar AS NameAr, c.phone AS Phone,
-                   COALESCE(lb.last_at, la.last_at, lf.last_at) AS LastActivityAt,
-                   CASE
-                       WHEN lb.last_at IS NULL AND la.last_at IS NULL AND lf.last_at IS NULL
-                           THEN NULL
-                       WHEN lf.last_at IS NOT NULL
-                            AND lf.last_at >= COALESCE(lb.last_at, '-infinity'::timestamptz)
-                            AND lf.last_at >= COALESCE(la.last_at, '-infinity'::timestamptz)
-                           THEN 'متابعة'
-                       WHEN lb.last_at IS NOT NULL
-                            AND lb.last_at >= COALESCE(la.last_at, '-infinity'::timestamptz)
-                           THEN 'حجز'
-                       ELSE 'موعد' END AS LastActivity
+        // عملاء بلا متابعة أو حجز مستقبلي: يُعرض العدد فقط (بلا بيان تفصيلي) — 0094.
+        report.IdleCustomersCount = await connection.ExecuteScalarAsync<int>(new CommandDefinition("""
+            SELECT count(*)::int
             FROM customers c
-            LEFT JOIN LATERAL (
-                SELECT max(COALESCE(b.starts_at, b.booking_date::timestamptz)) AS last_at
-                FROM bookings b
-                WHERE b.customer_id = c.id AND b.status NOT IN ('cancelled', 'reversed')
-            ) lb ON true
-            LEFT JOIN LATERAL (
-                SELECT max(a.starts_at) AS last_at
-                FROM appointments a
-                WHERE a.customer_id = c.id AND a.status <> 'cancelled'
-            ) la ON true
-            LEFT JOIN LATERAL (
-                SELECT max(f.due_at) AS last_at
-                FROM follow_ups f
-                WHERE f.customer_id = c.id
-            ) lf ON true
             WHERE c.is_active AND c.branch_id = @branchId
               AND NOT EXISTS (
                   SELECT 1 FROM bookings b
@@ -326,21 +303,15 @@ public sealed partial class TreasuryRepository
                   SELECT 1 FROM follow_ups f
                   WHERE f.customer_id = c.id AND f.status = 'pending'
                     AND f.due_at::date > current_date)
-            ORDER BY c.code
-            LIMIT 500
-            """, args, cancellationToken: ct))).ToList();
+            """, new { branchId = shift.BranchId }, cancellationToken: ct));
 
-        report.TomorrowBookings = (await connection.QueryAsync<ShiftBookingRow>(new CommandDefinition("""
-            SELECT b.id AS Id, b.doc_no AS DocNo, c.name_ar AS CustomerName,
-                   b.booking_date AS BookingDate, b.starts_at AS StartsAt, b.status AS Status,
-                   b.total_amount AS TotalAmount, e.name_ar AS EmployeeName
+        // حجوزات الغد: الحالات المؤكدة فقط، ويُعرض العدد فقط — 0094.
+        report.TomorrowBookingsCount = await connection.ExecuteScalarAsync<int>(new CommandDefinition("""
+            SELECT count(*)::int
             FROM bookings b
-            LEFT JOIN customers c ON c.id = b.customer_id
-            LEFT JOIN employees e ON e.id = b.assigned_employee_id
             WHERE b.branch_id = @branchId AND b.booking_date = current_date + 1
-              AND b.status NOT IN ('cancelled', 'expired')
-            ORDER BY b.starts_at NULLS LAST, b.doc_no
-            """, args, cancellationToken: ct))).ToList();
+              AND b.status = 'confirmed'
+            """, new { branchId = shift.BranchId }, cancellationToken: ct));
 
         report.TomorrowAppointments = (await connection.QueryAsync<ShiftAppointmentRow>(new CommandDefinition("""
             SELECT a.id AS Id, e.name_ar AS EmployeeName, c.name_ar AS CustomerName,

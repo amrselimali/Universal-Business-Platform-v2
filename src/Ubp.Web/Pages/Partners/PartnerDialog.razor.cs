@@ -3,6 +3,7 @@ using MudBlazor;
 using Ubp.Application.Services;
 using Ubp.Core.Models;
 using Ubp.Core.Results;
+using Ubp.Core.Security;
 using Ubp.Web.Services;
 
 namespace Ubp.Web.Pages.Partners;
@@ -26,7 +27,12 @@ public partial class PartnerDialog
     private IReadOnlyList<CustomFieldDefinition> _fields = Array.Empty<CustomFieldDefinition>();
     private readonly Dictionary<string, string?> _values = new(StringComparer.OrdinalIgnoreCase);
     private bool _busy;
+    private bool _canUseCompanyScope;
+    private string? _nextCode;
     private bool IsEdit => Model is not null;
+
+    /// <summary>كود العميل يُولَّد آليًا لكل فرع (بداية من 1) ولا يُعدَّل.</summary>
+    private string CodeDisplay => IsEdit ? Model!.Code : _nextCode ?? "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -36,13 +42,15 @@ public partial class PartnerDialog
         var entity = Kind == PartnerKind.Customer ? "customers" : "suppliers";
         _fields = (await CustomFields.ListActiveAsync(entity)).ToList();
 
+        // نطاق «الشركة» متاح فقط لمن يملك كل الفروع؛ غيره يُقيَّد بفرع من فروعه.
+        _canUseCompanyScope = actor.IsSuperAdmin;
+
         if (Model is null)
         {
-            if (actor.CurrentBranchId.HasValue)
-            {
-                _input.ScopeType = "BRANCH";
-                _input.BranchId = actor.CurrentBranchId;
-            }
+            _input.ScopeType = "BRANCH";
+            _input.BranchId = actor.CurrentBranchId ?? _branches.FirstOrDefault()?.Id
+                              ?? actor.AllowedBranchIds.FirstOrDefault();
+            await RefreshNextCodeAsync(actor);
             return;
         }
 
@@ -56,6 +64,30 @@ public partial class PartnerDialog
         };
         foreach (var pair in Model.CustomFields)
             _values[pair.Key] = pair.Value?.ToString();
+    }
+
+    /// <summary>يُحدِّث معاينة الكود التالي للفرع المختار (قراءة فقط).</summary>
+    private async Task RefreshNextCodeAsync(ActorContext? actor = null)
+    {
+        if (Kind != PartnerKind.Customer || IsEdit) return;
+        actor ??= await UserContext.RequireAsync();
+        var scope = _input.ScopeType == "BRANCH" ? "BRANCH" : "COMPANY";
+        _nextCode = await Partners.NextCodeAsync(actor, Kind,
+            scope == "BRANCH" ? _input.BranchId : null, scope);
+    }
+
+    private async Task OnScopeChanged(string scopeType)
+    {
+        _input.ScopeType = scopeType == "COMPANY" && _canUseCompanyScope ? "COMPANY" : "BRANCH";
+        if (_input.ScopeType == "BRANCH" && _input.BranchId is null)
+            _input.BranchId = _branches.FirstOrDefault()?.Id;
+        await RefreshNextCodeAsync();
+    }
+
+    private async Task OnBranchChanged(Guid? branchId)
+    {
+        _input.BranchId = branchId;
+        await RefreshNextCodeAsync();
     }
 
     private string CategoryName(PartnerCategory category) =>

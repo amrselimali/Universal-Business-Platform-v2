@@ -6,6 +6,21 @@ namespace Ubp.Infrastructure.Repositories;
 
 public sealed partial class PartnerRepository
 {
+    /// <summary>
+    /// الكود التالي للطرف داخل نطاق/فرع: أكبر كود رقمي + 1 (بدءًا من 1)،
+    /// ويتجاهل الأكواد غير الرقمية القديمة — 0094.
+    /// </summary>
+    public async Task<string> NextCodeAsync(PartnerKind kind, string scopeType, Guid? branchId,
+        CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteScalarAsync<string>(new CommandDefinition($"""
+            SELECT (COALESCE(MAX(NULLIF(regexp_replace(code, '[^0-9]', '', 'g'), '')::bigint), 0) + 1)::text
+            FROM {Table(kind)}
+            WHERE scope_type = @scopeType AND branch_id IS NOT DISTINCT FROM @branchId
+            """, new { scopeType, branchId }, cancellationToken: ct)) ?? "1";
+    }
+
     public async Task<Partner> CreateAsync(PartnerKind kind, PartnerInput input,
         CancellationToken ct = default)
     {

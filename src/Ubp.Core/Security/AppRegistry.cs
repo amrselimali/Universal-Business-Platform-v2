@@ -80,11 +80,13 @@ public static partial class AppRegistry
 
         new(ScreenCodes.Customers, "/partners/customers", "People", "screen.customers", GroupPartners,
             new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit),
-                    A(ActionCodes.Delete), A(ActionCodes.ToggleActive) }),
+                    A(ActionCodes.Delete), A(ActionCodes.ToggleActive),
+                    A(ActionCodes.ManageCategories) }),
 
         new(ScreenCodes.Suppliers, "/partners/suppliers", "LocalShipping", "screen.suppliers", GroupPartners,
             new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit),
-                    A(ActionCodes.Delete), A(ActionCodes.ToggleActive) }),
+                    A(ActionCodes.Delete), A(ActionCodes.ToggleActive),
+                    A(ActionCodes.ManageCategories) }),
 
         new(ScreenCodes.FinancialPeriods, "/accounting/periods", "EventNote", "screen.periods", GroupDefinitions,
             new[] { A(ActionCodes.View), A(ActionCodes.Add), A(ActionCodes.Edit), A(ActionCodes.Delete),
@@ -268,16 +270,6 @@ public static partial class AppRegistry
             "screen.posting_center", GroupAccounting,
             new[] { A(ActionCodes.View), A(ActionCodes.ViewUnposted), A(ActionCodes.Reconcile) },
             "accounting.posting"),
-
-        new(ScreenCodes.PosTerminal, "/pos/terminal", "PointOfSale", "screen.pos_terminal",
-            GroupSales,
-            new[] { A(ActionCodes.View), A(ActionCodes.Checkout), A(ActionCodes.Collect),
-                    A(ActionCodes.SendWhatsApp), A(ActionCodes.SaveDraft),
-                    A(ActionCodes.TransferService) }, "pos.terminal"),
-
-        new(ScreenCodes.PosReceipts, "/pos/receipts", "ReceiptLong", "screen.pos_receipts",
-            GroupSales,
-            new[] { A(ActionCodes.View), A(ActionCodes.Print) }, "pos.receipts"),
 
         new(ScreenCodes.FollowUps, "/sales/follow-ups", "NotificationsActive",
             "screen.follow_ups", GroupSales,

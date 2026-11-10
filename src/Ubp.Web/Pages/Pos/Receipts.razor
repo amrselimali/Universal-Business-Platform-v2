@@ -22,22 +22,30 @@ else
                     <MudSelectItem T="Guid?" Value="@((Guid?)branch.Id)">@branch.NameAr</MudSelectItem>
                 }
             </MudSelect>
+            <MudDatePicker Date="_from" Label="@T.T("common.from_date")"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="yyyy-MM-dd"
+                           Editable="true" DateChanged="OnFromChanged" />
+            <MudDatePicker Date="_to" Label="@T.T("common.to_date")"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="yyyy-MM-dd"
+                           Editable="true" DateChanged="OnToChanged" />
         </div>
 
         <MudTable Items="_items" Dense="true" Hover="true" Striped="true" Elevation="0"
                   RowsPerPage="25" Class="ubp-table">
             <HeaderContent>
-                <MudTh>@T.T("sales.invoice_no")</MudTh>
                 <MudTh>@T.T("common.date")</MudTh>
                 <MudTh>@T.T("sales.customer")</MudTh>
+                <MudTh>@T.T("treasury.treasury")</MudTh>
+                <MudTh>@T.T("pos.services")</MudTh>
                 <MudTh Align="Right">@T.T("accounting.total")</MudTh>
                 <MudTh>@T.T("common.status")</MudTh>
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd><span class="ubp-code">@context.DocNo</span></MudTd>
                 <MudTd>@context.DocDate.ToString("yyyy-MM-dd")</MudTd>
                 <MudTd>@context.PartyName</MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.TreasuryName) ? "—" : context.TreasuryName)</MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.Services) ? "—" : context.Services)</MudTd>
                 <MudTd Align="Right">@context.Total.ToString("N2")</MudTd>
                 <MudTd>@T.T("accounting.status_" + context.Status)</MudTd>
                 <MudTd Align="Right">
@@ -49,7 +57,18 @@ else
                                    OnClick="@(() => SendWhatsAppAsync(context))" />
                 </MudTd>
             </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="ubp-muted pa-4">@T.T("common.no_records")</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25, 50 }"
+                               RowsPerPageString="@T.T("common.rows_per_page")" />
+            </PagerContent>
         </MudTable>
+
+        <MudText Typo="Typo.body2" Class="pa-4">
+            @T.T("accounting.total"): <b>@_items.Sum(i => i.Total).ToString("N2")</b>
+        </MudText>
     </MudPaper>
 }
 
@@ -57,6 +76,8 @@ else
     private IReadOnlyList<CommercialDocument> _items = Array.Empty<CommercialDocument>();
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private Guid? _branchId;
+    private DateTime? _from = DateTime.Today;
+    private DateTime? _to = DateTime.Today;
 
     protected override string ScreenCode => ScreenCodes.PosReceipts;
 
@@ -68,9 +89,11 @@ else
     }
 
     private async Task ReloadAsync() =>
-        _items = await Pos.ListReceiptsAsync(Actor!, _branchId, 200);
+        _items = await Pos.ListReceiptsAsync(Actor!, _branchId, _from, _to, 500);
 
     private Task OnBranchChanged(Guid? value) { _branchId = value; return RunAsync(ReloadAsync); }
+    private Task OnFromChanged(DateTime? value) { _from = value; return RunAsync(ReloadAsync); }
+    private Task OnToChanged(DateTime? value) { _to = value; return RunAsync(ReloadAsync); }
     private string BranchLabel(Guid? id) =>
         id is null ? "—" : _branches.FirstOrDefault(b => b.Id == id)?.NameAr ?? "—";
 

@@ -9,8 +9,11 @@ else
         <Actions>
             @if (Can(ActionCodes.Add))
             {
-                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Category"
-                           OnClick="ManageCategoriesAsync">@T.T("partners.categories")</MudButton>
+                if (Can(ActionCodes.ManageCategories))
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Category"
+                               OnClick="ManageCategoriesAsync">@T.T("partners.categories")</MudButton>
+                }
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                            OnClick="AddAsync">@T.T("common.add")</MudButton>
             }
@@ -43,7 +46,10 @@ else
                 <MudTh>@T.T("partners.category")</MudTh>
                 <MudTh>@T.T("partners.scope")</MudTh>
                 <MudTh>@T.T("common.phone")</MudTh>
-                <MudTh>@T.T("partners.credit_limit")</MudTh>
+                @if (Kind != PartnerKind.Customer)
+                {
+                    <MudTh>@T.T("partners.credit_limit")</MudTh>
+                }
                 <MudTh>@T.T("common.status")</MudTh>
                 <MudTh Align="Right">@T.T("common.actions")</MudTh>
             </HeaderContent>
@@ -62,7 +68,10 @@ else
                     }
                 </MudTd>
                 <MudTd DataLabel="@T.T("common.phone")">@(context.Phone ?? "—")</MudTd>
-                <MudTd DataLabel="@T.T("partners.credit_limit")">@context.CreditLimit.ToString("N2")</MudTd>
+                @if (Kind != PartnerKind.Customer)
+                {
+                    <MudTd DataLabel="@T.T("partners.credit_limit")">@context.CreditLimit.ToString("N2")</MudTd>
+                }
                 <MudTd DataLabel="@T.T("common.status")">
                     <MudSwitch T="bool" Value="@context.IsActive" Color="Color.Success"
                                Disabled="@(!Can(ActionCodes.ToggleActive))"

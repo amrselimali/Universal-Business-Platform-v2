@@ -13,6 +13,14 @@ public static partial class AppRegistry
     {
         new(Reservations, "/sales/reservations", "BookmarkAdded", "screen.reservations", GroupSales,
             new[] { SA(View), SA(Execute), SA(ReleaseReservation), SA(ExtendReservation),
-                    SA(ExportCsv), SA(Print) })
+                    SA(ExportCsv), SA(Print) }),
+
+        // نقطة البيع وإيصالاتها (نُقلت هنا للحفاظ على سقف 300 سطر في AppRegistry.cs).
+        new(PosTerminal, "/pos/terminal", "PointOfSale", "screen.pos_terminal", GroupSales,
+            new[] { SA(View), SA(Checkout), SA(Collect), SA(SendWhatsApp), SA(SaveDraft),
+                    SA(CompleteCollection), SA(TransferService) }, "pos.terminal"),
+
+        new(PosReceipts, "/pos/receipts", "ReceiptLong", "screen.pos_receipts", GroupSales,
+            new[] { SA(View), SA(Print) }, "pos.receipts")
     };
 }

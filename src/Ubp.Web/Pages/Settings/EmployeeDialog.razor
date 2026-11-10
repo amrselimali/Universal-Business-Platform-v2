@@ -7,18 +7,28 @@
     <DialogContent>
         <MudForm @ref="_form">
             <div class="ubp-form-grid">
-                <MudTextField @bind-Value="_input.Code" Label="@T.T("common.code")" Required="true"
-                              Variant="Variant.Outlined" MaxLength="30" />
+                @if (Model is null)
+                {
+                    <MudTextField Value="@(_nextCode ?? "")" Label="@T.T("common.code")"
+                                  ReadOnly="true" Variant="Variant.Outlined" MaxLength="30"
+                                  HelperText="@T.T("common.auto_generated")" />
+                }
+                else
+                {
+                    <MudTextField Value="@_input.Code" Label="@T.T("common.code")"
+                                  ReadOnly="true" Variant="Variant.Outlined" MaxLength="30"
+                                  HelperText="@T.T("common.auto_generated")" />
+                }
                 <MudTextField @bind-Value="_input.NameAr" Label="@T.T("common.name_ar")" Required="true"
                               Variant="Variant.Outlined" />
                 <MudTextField @bind-Value="_input.NameEn" Label="@T.T("common.name_en")"
                               Variant="Variant.Outlined" />
-                <MudTextField @bind-Value="_input.Phone" Label="@T.T("common.phone")"
+                <MudTextField @bind-Value="_input.Phone" Label="@T.T("common.phone")" Required="true"
                               Variant="Variant.Outlined" MaxLength="30" />
                 <MudTextField @bind-Value="_input.Email" Label="@T.T("settings.email")"
                               Variant="Variant.Outlined" MaxLength="200" />
                 <MudTextField @bind-Value="_input.JobTitle" Label="@T.T("settings.job_title")"
-                              Variant="Variant.Outlined" MaxLength="100" />
+                              Required="true" Variant="Variant.Outlined" MaxLength="100" />
                 <MudSelect T="Guid?" @bind-Value="_input.RoleId" Label="@T.T("settings.admin_role")"
                            Variant="Variant.Outlined" Clearable="true">
                     @foreach (var role in _roles)
@@ -28,8 +38,9 @@
                         </MudSelectItem>
                     }
                 </MudSelect>
-                <MudSelect T="Guid?" @bind-Value="_input.BranchId" Label="الفرع (أو الشركة)"
+                <MudSelect T="Guid?" Value="_input.BranchId" Label="الفرع (أو الشركة)"
                            Variant="Variant.Outlined" Clearable="true"
+                           ValueChanged="OnBranchChanged"
                            HelperText="اتركه فارغًا = موظف على مستوى الشركة">
                     @foreach (var branch in _branches)
                     {
@@ -85,6 +96,7 @@
     private IReadOnlyList<Branch> _branches = Array.Empty<Branch>();
     private DateTime? _hireDate;
     private bool _busy;
+    private string? _nextCode;
 
     protected override async Task OnInitializedAsync()
     {
@@ -97,6 +109,8 @@
             // الافتراضي = فرع المستخدم الحالي (ولا يظهر غير فروع المستخدم).
             if (Model is null && actor.CurrentBranchId is { } currentBranch)
                 _input.BranchId = currentBranch;
+            if (Model is null)
+                _nextCode = await MasterData.NextEmployeeCodeAsync(actor, _input.BranchId);
         }
 
         if (Model is null) return;
@@ -111,6 +125,16 @@
             BranchId = Model.BranchId
         };
         _hireDate = Model.HireDate;
+    }
+
+    /// <summary>يُحدِّث معاينة الكود الآلي عند تغيير فرع الموظف (للإضافة فقط).</summary>
+    private async Task OnBranchChanged(Guid? branchId)
+    {
+        _input.BranchId = branchId;
+        if (Model is not null) return;
+        var actor = await UserContext.GetAsync();
+        if (actor is null) return;
+        _nextCode = await MasterData.NextEmployeeCodeAsync(actor, branchId);
     }
 
     private string RoleName(Role role) =>

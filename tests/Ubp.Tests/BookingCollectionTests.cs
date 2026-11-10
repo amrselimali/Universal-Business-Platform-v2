@@ -127,7 +127,7 @@ public sealed class BookingCollectionTests : IClassFixture<TestDb>
         Assert.Contains(entries, l => l.Code == "1110" && l.Credit == 200m);
 
         // إيصال التحصيل يظهر في شاشة إيصالات POS (حتى لو كان الحجز بتاريخ أقدم).
-        var receipts = await _db.Pos().ListReceiptsAsync(actor, f.Branch, 100);
+        var receipts = await _db.Pos().ListReceiptsAsync(actor, f.Branch, null, null, 100);
         Assert.Contains(receipts, r => r.Id == result.VoucherId);
     }
 

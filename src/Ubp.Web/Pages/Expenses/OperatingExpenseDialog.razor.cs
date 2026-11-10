@@ -17,6 +17,7 @@ public partial class OperatingExpenseDialog : ComponentBase
     [Inject] private LookupService Lookup { get; set; } = default!;
     [Inject] private BranchService BranchApi { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private PermissionService Permissions { get; set; } = default!;
     [Inject] private UiCulture T { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
@@ -43,6 +44,8 @@ public partial class OperatingExpenseDialog : ComponentBase
     private Guid _treasuryId;
     private bool _onCredit;
     private bool _busy;
+    /// <summary>صلاحية «حفظ وترحيل»: بلا ترحيل يظهر زر «حفظ» فقط.</summary>
+    private bool _canPost;
 
     private decimal Total => Math.Round(_lines.Sum(l => l.Amount), 2, MidpointRounding.AwayFromZero);
 
@@ -54,6 +57,8 @@ public partial class OperatingExpenseDialog : ComponentBase
     protected override async Task OnInitializedAsync()
     {
         var actor = await UserContext.RequireAsync();
+        _canPost = await Permissions.HasAsync(actor, ScreenCodes.OperatingExpenses,
+            ActionCodes.Post);
         Branches = await BranchApi.OptionsAsync(actor);
         _branchId = BranchId ?? actor.CurrentBranchId ?? Branches.FirstOrDefault()?.Id ?? Guid.Empty;
         _warehouses = await Lookup.WarehousesAsync(actor);

@@ -21,14 +21,16 @@ public sealed class EmployeeBranchTests : IClassFixture<TestDb>
 
         var withBranch = await svc.SaveEmployeeAsync(actor, null, 0, new EmployeeInput
         {
-            Code = "EB-E-1", NameAr = "موظف بفرع", IsServiceExecutor = true, BranchId = branch
+            Code = "EB-E-1", NameAr = "موظف بفرع", IsServiceExecutor = true, BranchId = branch,
+            Phone = "01000000101", JobTitle = "منفذ خدمات"
         });
         Assert.Equal(branch, withBranch.BranchId);
         Assert.Equal("فرع الموظف", withBranch.BranchName);
 
         var company = await svc.SaveEmployeeAsync(actor, null, 0, new EmployeeInput
         {
-            Code = "EB-E-2", NameAr = "موظف الشركة", IsServiceExecutor = true
+            Code = "EB-E-2", NameAr = "موظف الشركة", IsServiceExecutor = true,
+            Phone = "01000000102", JobTitle = "مشرف"
         });
         Assert.Null(company.BranchId);
     }
@@ -50,6 +52,7 @@ public sealed class EmployeeBranchTests : IClassFixture<TestDb>
             _db.MasterData().SaveEmployeeAsync(limited, null, 0, new EmployeeInput
             {
                 Code = "EB-E-3", NameAr = "موظف أجنبي", IsServiceExecutor = true,
+                Phone = "01000000103", JobTitle = "منفذ",
                 BranchId = foreign
             }));
         _ = admin;

@@ -61,11 +61,13 @@ public sealed class PosService
     }
 
     public async Task<IReadOnlyList<CommercialDocument>> ListReceiptsAsync(ActorContext actor,
-        Guid? branchId, int limit = 100, CancellationToken ct = default)
+        Guid? branchId, DateTime? from, DateTime? to, int limit = 200,
+        CancellationToken ct = default)
     {
         await _permissions.RequireAsync(actor, ScreenCodes.PosReceipts, ActionCodes.View, ct: ct);
         // لا يبقى الفلتر فارغًا لغير السوبر أدمن (إلغاء الفلتر لا يعرض كل الفروع) — 0096.
-        return await _pos.ListReceiptsAsync(BranchScope.Effective(actor, branchId), limit, ct);
+        return await _pos.ListReceiptsAsync(BranchScope.Effective(actor, branchId), from, to,
+            limit, ct);
     }
 
     /// <summary>إعادة إرسال إيصال قبض إلى العميل عبر واتساب (من شاشة إيصالات POS).</summary>

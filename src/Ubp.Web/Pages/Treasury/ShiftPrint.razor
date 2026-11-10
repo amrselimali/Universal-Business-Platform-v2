@@ -1,0 +1,58 @@
+@page "/treasury/shifts/{Id:guid}/print"
+@attribute [Authorize]
+@layout EmptyLayout
+@inherits SecurePageBase
+@inject TreasuryService TreasuryApi
+@inject IJSRuntime JS
+<PageTitle>@_title</PageTitle>
+
+@if (Denied) { <ForbiddenView /> }
+else if (Loading || _report is null)
+{
+    <div class="ubp-loading"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <div class="ubp-print-page">
+        <div class="ubp-toolbar ubp-print-hide">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Print"
+                       OnClick="PrintAsync">@T.T("treasury.export_pdf")</MudButton>
+            <MudText Typo="Typo.caption" Class="ubp-muted">@_title</MudText>
+        </div>
+        <ShiftReportView Report="_report" Editable="false" PrintMode="true" />
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private ShiftReport? _report;
+    private string _title = "";
+    private bool _printed;
+
+    protected override string ScreenCode => ScreenCodes.TreasuryShifts;
+
+    protected override async Task OnLoadAsync()
+    {
+        _report = await TreasuryApi.GetShiftReportAsync(Actor!, Id);
+        // الاسم الافتراضي للتصدير = تاريخ الإقفال + مستخدم الإقفال.
+        var closedAt = _report.Shift.ClosedAt ?? _report.Shift.OpenedAt;
+        var user = _report.Shift.ClosedByName ?? _report.Shift.Username ?? "";
+        _title = string.IsNullOrWhiteSpace(user)
+            ? closedAt.ToString("yyyy-MM-dd")
+            : $"{closedAt:yyyy-MM-dd} - {user}";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // فتح/طباعة تلقائية عندما يصبح التقرير جاهزاً (يمكن الحفظ كـ PDF من نافذة الطباعة).
+        if (!_printed && _report is not null)
+        {
+            _printed = true;
+            await JS.InvokeVoidAsync("ubpPrintOnLoad");
+        }
+    }
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("ubpPrintOnLoad");
+}

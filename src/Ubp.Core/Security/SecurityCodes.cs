@@ -160,4 +160,8 @@ public static class ActionCodes
     public const string Collect = "COLLECT";
     public const string SendWhatsApp = "SEND_WHATSAPP";
     public const string TransferService = "TRANSFER_SERVICE";
+    /// <summary>إتمام تحصيل الخدمات المحجوزة من نقطة البيع (زر «اتمام» في نافذة التحصيل).</summary>
+    public const string CompleteCollection = "COMPLETE_COLLECTION";
+    /// <summary>إدارة تصنيفات العملاء/الموردين من شاشة الأطراف.</summary>
+    public const string ManageCategories = "MANAGE_CATEGORIES";
 }

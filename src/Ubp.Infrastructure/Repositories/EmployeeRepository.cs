@@ -20,6 +20,8 @@ public interface IEmployeeRepository
         bool allBranches, CancellationToken ct = default);
     Task<Employee?> GetAsync(Guid id, CancellationToken ct = default);
     Task<Employee?> GetByCodeAsync(string code, CancellationToken ct = default);
+    /// <summary>الكود التسلسلي التالي للموظف داخل فرعه (بدءًا من 1) — 0094.</summary>
+    Task<string> NextCodeAsync(Guid? branchId, CancellationToken ct = default);
     Task<Guid> CreateAsync(Guid id, EmployeeInput input, Guid userId, CancellationToken ct = default);
     Task<Employee?> UpdateAsync(Guid id, int version, EmployeeInput input, Guid userId, CancellationToken ct = default);
     Task<Employee?> SetActiveAsync(Guid id, bool isActive, Guid userId, CancellationToken ct = default);
@@ -126,6 +128,16 @@ public sealed class EmployeeRepository : IEmployeeRepository
         await using var connection = await _factory.OpenAsync(ct);
         return await connection.QuerySingleOrDefaultAsync<Employee>(new CommandDefinition(
             $"SELECT {Columns} FROM employees e WHERE e.code = @code", new { code }, cancellationToken: ct));
+    }
+
+    public async Task<string> NextCodeAsync(Guid? branchId, CancellationToken ct = default)
+    {
+        await using var connection = await _factory.OpenAsync(ct);
+        return await connection.ExecuteScalarAsync<string>(new CommandDefinition("""
+            SELECT (COALESCE(MAX(NULLIF(regexp_replace(code, '[^0-9]', '', 'g'), '')::bigint), 0) + 1)::text
+            FROM employees
+            WHERE branch_id IS NOT DISTINCT FROM @branchId
+            """, new { branchId }, cancellationToken: ct)) ?? "1";
     }
 
     public async Task<Guid> CreateAsync(Guid id, EmployeeInput i, Guid userId, CancellationToken ct = default)

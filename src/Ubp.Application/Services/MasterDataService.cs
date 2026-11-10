@@ -93,7 +93,12 @@ public sealed partial class MasterDataService
         input.Code = (input.Code ?? "").Trim().ToUpperInvariant();
         input.NameAr = (input.NameAr ?? "").Trim();
         input.NameEn = string.IsNullOrWhiteSpace(input.NameEn) ? null : input.NameEn.Trim();
-        if (input.Code.Length is 0 or > 30) throw new ValidationAppException("validation.code_required");
+        input.Phone = string.IsNullOrWhiteSpace(input.Phone) ? null : input.Phone.Trim();
+        input.JobTitle = string.IsNullOrWhiteSpace(input.JobTitle) ? null : input.JobTitle.Trim();
+        // الهاتف والوظيفة من البيانات الإجبارية لتسجيل الموظف.
+        if (input.Phone is null) throw new ValidationAppException("validation.employee_phone_required");
+        if (input.JobTitle is null)
+            throw new ValidationAppException("validation.employee_job_title_required");
         if (input.NameAr.Length is 0 or > 200) throw new ValidationAppException("validation.name_required");
         if (!input.IsBookingReceiver && !input.IsSeller && !input.IsServiceExecutor &&
             input.RoleId is null)
@@ -101,6 +106,12 @@ public sealed partial class MasterDataService
         // فرع الموظف (أو null = الشركة): النطاق «الشركة» للسوبر أدمن فقط، وغيره داخل فروعه.
         if (input.BranchId is { } employeeBranch) BranchScope.Ensure(actor, employeeBranch);
         else if (!actor.IsSuperAdmin) input.BranchId = actor.CurrentBranchId ?? actor.AllowedBranchIds.FirstOrDefault();
+
+        // الكود تسلسلي آلي لكل فرع بدءًا من 1 عند الإضافة، وغير قابل للتعديل — 0094.
+        if (id is null)
+            input.Code = await _employees.NextCodeAsync(input.BranchId, ct);
+        else if (input.Code.Length is 0 or > 30)
+            throw new ValidationAppException("validation.code_required");
 
         try
         {
@@ -120,6 +131,17 @@ public sealed partial class MasterDataService
             return updated;
         }
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
+    }
+
+    /// <summary>
+    /// الكود التالي للموظف داخل فرعه (بدءًا من 1) لعرضه للقراءة فقط في شاشة الإضافة — 0094.
+    /// </summary>
+    public async Task<string> NextEmployeeCodeAsync(ActorContext actor, Guid? branchId,
+        CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, ScreenCodes.Employees, ActionCodes.View, ct: ct);
+        if (branchId is { } id) BranchScope.Ensure(actor, id);
+        return await _employees.NextCodeAsync(branchId, ct);
     }
 
     public async Task<Employee> SetEmployeeActiveAsync(ActorContext actor, Guid id, bool isActive,

@@ -8,15 +8,22 @@ namespace Ubp.Infrastructure.Repositories;
 public sealed partial class PosRepository
 {
     public async Task<IReadOnlyList<CommercialDocument>> ListReceiptsAsync(Guid? branchId,
-        int limit, CancellationToken ct = default)
+        DateTime? from, DateTime? to, int limit, CancellationToken ct = default)
     {
         await using var connection = await _factory.OpenAsync(ct);
         return (await connection.QueryAsync<CommercialDocument>(new CommandDefinition("""
             SELECT v.id AS Id, v.voucher_type AS DocType, v.doc_no AS DocNo, v.doc_date AS DocDate,
                    v.status AS Status, v.branch_id AS BranchId, v.party_name AS PartyName,
                    v.total_amount AS Total, v.fee_total AS AllocatedTotal,
-                   v.journal_entry_id AS JournalEntryId
+                   v.journal_entry_id AS JournalEntryId,
+                   t.name_ar AS TreasuryName,
+                   (SELECT string_agg(DISTINCT i.name_ar, ' • ')
+                    FROM booking_payments bp
+                    JOIN booking_lines bl ON bl.booking_id = bp.booking_id
+                    JOIN items i ON i.id = bl.item_id
+                    WHERE bp.voucher_id = v.id) AS Services
             FROM vouchers v
+            LEFT JOIN treasuries t ON t.id = v.treasury_id
             WHERE v.voucher_type = 'receipt' AND v.party_type = 'C'
               AND (EXISTS (SELECT 1 FROM bookings b
                            WHERE b.customer_id = v.party_id AND b.source = 'pos'
@@ -24,8 +31,12 @@ public sealed partial class PosRepository
                    -- إيصالات تحصيل الخدمات المحجوزة (مرتبطة بالحجوزات عبر booking_payments)
                    OR EXISTS (SELECT 1 FROM booking_payments bp WHERE bp.voucher_id = v.id))
               AND (@branchId::uuid IS NULL OR v.branch_id = @branchId::uuid)
+              -- فلتر «من يوم إلى يوم»؛ الافتراضي في الشاشة = تاريخ اليوم.
+              AND (@from::date IS NULL OR v.doc_date >= @from::date)
+              AND (@to::date IS NULL OR v.doc_date <= @to::date)
             ORDER BY v.doc_date DESC, v.id DESC LIMIT @limit
-            """, new { branchId, limit = Math.Clamp(limit, 1, 200) }, cancellationToken: ct)))
+            """, new { branchId, from, to, limit = Math.Clamp(limit, 1, 500) },
+            cancellationToken: ct)))
             .ToList();
     }
 

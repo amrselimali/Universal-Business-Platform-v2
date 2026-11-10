@@ -60,24 +60,53 @@ public sealed class Phase4SetupTests : IClassFixture<TestDb>
     }
 
     [Fact]
-    public async Task Employee_requires_at_least_one_role_and_unique_code()
+    public async Task Employee_requires_at_least_one_role_and_gets_a_serial_code_per_branch()
     {
         var actor = await _db.AdminActorAsync();
         var service = _db.MasterData();
 
         var invalid = await Assert.ThrowsAsync<ValidationAppException>(async () =>
             await service.SaveEmployeeAsync(actor, null, 0, new EmployeeInput
-            { Code = "E1", NameAr = "موظف بلا دور" }));
+            {
+                Code = "E1", NameAr = "موظف بلا دور", Phone = "01000000201",
+                JobTitle = "منفذ"
+            }));
         Assert.Equal("validation.employee_role_required", invalid.Code);
 
         var created = await service.SaveEmployeeAsync(actor, null, 0, new EmployeeInput
-        { Code = "E1", NameAr = "موظف مبيعات", IsSeller = true });
+        {
+            Code = "E1", NameAr = "موظف مبيعات", IsSeller = true, Phone = "01000000202",
+            JobTitle = "مبيعات"
+        });
 
         Assert.True(created.IsSeller);
-        var duplicate = await Assert.ThrowsAsync<ValidationAppException>(async () =>
+        // الكود يُولَّد آليًا داخل نطاق الفرع (يتجاهل الكود المُرسل) ويتزايد بمقدار 1.
+        Assert.True(int.TryParse(created.Code, out var firstCode),
+            "الكود المتولد يجب أن يكون رقميًا: " + created.Code);
+
+        var next = await service.SaveEmployeeAsync(actor, null, 0, new EmployeeInput
+        {
+            Code = "E1", NameAr = "موظف مبيعات 2", IsSeller = true, Phone = "01000000203",
+            JobTitle = "مبيعات"
+        });
+        Assert.Equal(firstCode + 1, int.Parse(next.Code));
+    }
+
+    [Fact]
+    public async Task Employee_requires_phone_and_job_title()
+    {
+        var actor = await _db.AdminActorAsync();
+        var service = _db.MasterData();
+
+        var noPhone = await Assert.ThrowsAsync<ValidationAppException>(async () =>
             await service.SaveEmployeeAsync(actor, null, 0, new EmployeeInput
-            { Code = "E1", NameAr = "مكرر", IsSeller = true }));
-        Assert.Equal("validation.duplicate_code", duplicate.Code);
+            { NameAr = "موظف بلا هاتف", IsSeller = true, JobTitle = "مبيعات" }));
+        Assert.Equal("validation.employee_phone_required", noPhone.Code);
+
+        var noJob = await Assert.ThrowsAsync<ValidationAppException>(async () =>
+            await service.SaveEmployeeAsync(actor, null, 0, new EmployeeInput
+            { NameAr = "موظف بلا وظيفة", IsSeller = true, Phone = "01000000204" }));
+        Assert.Equal("validation.employee_job_title_required", noJob.Code);
     }
 
     [Fact]
@@ -90,6 +119,7 @@ public sealed class Phase4SetupTests : IClassFixture<TestDb>
         var created = await service.SaveEmployeeAsync(actor, null, 0, new EmployeeInput
         {
             Code = "E-ROLE", NameAr = "موظف استقبال", RoleId = role.Id,
+            Phone = "01000000205",
             JobTitle = "مشرف استقبال"
         });
 

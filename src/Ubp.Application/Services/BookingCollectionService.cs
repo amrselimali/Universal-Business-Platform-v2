@@ -16,12 +16,27 @@ public sealed class BookingCollectionService
     private readonly PermissionService _permissions;
     private readonly AuditService _audit;
     private readonly IReceiptNotifier _notifier;
+    private readonly IShiftGate? _shiftGate;
 
     public BookingCollectionService(IBookingCollectionRepository collections,
-        PermissionService permissions, AuditService audit, IReceiptNotifier notifier)
+        PermissionService permissions, AuditService audit, IReceiptNotifier notifier,
+        IShiftGate? shiftGate = null)
     {
         _collections = collections; _permissions = permissions; _audit = audit;
-        _notifier = notifier;
+        _notifier = notifier; _shiftGate = shiftGate;
+    }
+
+    /// <summary>
+    /// هل يوجد شفت مفتوح للفرع؟ تُستخدم قبل فتح نافذة التحصيل لإظهار رسالة
+    /// «يجب فتح شفت أولاً» بدلاً من تعليق النافذة بلا بيانات.
+    /// </summary>
+    public async Task<bool> HasOpenShiftAsync(ActorContext actor, Guid branchId,
+        CancellationToken ct = default)
+    {
+        if (!actor.RequiresShift) return true;
+        if (_shiftGate is null) return true;
+        return await _shiftGate.HasOpenShiftAsync(actor.UserId, branchId,
+            actor.AllowedBranchIds, ct);
     }
 
     public async Task<IReadOnlyList<BookingCollectionRow>> ListOutstandingAsync(

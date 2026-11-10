@@ -24,6 +24,9 @@ public sealed class Shift
     public string Code { get; set; } = "";
     public DateTimeOffset OpenedAt { get; set; }
     public DateTimeOffset? ClosedAt { get; set; }
+    /// <summary>مستخدم إقفال الشفت (يُستخدم في اسم ملف تصدير PDF) — 0094.</summary>
+    public Guid? ClosedBy { get; set; }
+    public string? ClosedByName { get; set; }
     public decimal OpeningCash { get; set; }
     public decimal CarriedBalance { get; set; }
     public decimal ReviewBalance { get; set; }
@@ -166,8 +169,10 @@ public sealed class ShiftReport
     public Shift Shift { get; set; } = new();
     /// <summary>التحصيلات والإيرادات في جدول واحد مرتب بالعميل (0077).</summary>
     public List<ShiftCollectionRow> Lines { get; set; } = new();
-    public List<ShiftCustomerRow> IdleCustomers { get; set; } = new();
-    public List<ShiftBookingRow> TomorrowBookings { get; set; } = new();
+    /// <summary>عدد عملاء بلا متابعة أو حجز مستقبلي (يُعرض عدداً فقط) — 0094.</summary>
+    public int IdleCustomersCount { get; set; }
+    /// <summary>عدد حجوزات الغد المؤكدة فقط (يُعرض عدداً فقط) — 0094.</summary>
+    public int TomorrowBookingsCount { get; set; }
     public List<ShiftAppointmentRow> TomorrowAppointments { get; set; } = new();
     /// <summary>عدّ النقدية لكل خزينة (مسودة حتى اعتماد المحاسب) — 0076.</summary>
     public List<ShiftCashCount> CashCounts { get; set; } = new();

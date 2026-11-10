@@ -12,6 +12,9 @@ public interface IPartnerRepository
     Task<Partner?> GetAsync(PartnerKind kind, Guid id, CancellationToken ct = default);
     Task<Partner?> GetByCodeAsync(PartnerKind kind, string code, CancellationToken ct = default);
     Task<Partner> CreateAsync(PartnerKind kind, PartnerInput input, CancellationToken ct = default);
+    /// <summary>الكود التسلسلي التالي للطرف داخل نطاق/فرع، بدءًا من 1 — 0094.</summary>
+    Task<string> NextCodeAsync(PartnerKind kind, string scopeType, Guid? branchId,
+        CancellationToken ct = default);
     Task<Partner?> UpdateAsync(PartnerKind kind, Guid id, int version, PartnerInput input,
         CancellationToken ct = default);
     Task<bool> DeleteAsync(PartnerKind kind, Guid id, CancellationToken ct = default);

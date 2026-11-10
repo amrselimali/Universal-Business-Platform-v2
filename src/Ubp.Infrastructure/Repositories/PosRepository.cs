@@ -10,8 +10,9 @@ public interface IPosRepository
 {
     Task<PosReceipt> CheckoutAsync(PosCheckoutInput input, Guid userId, bool reserveStock,
         bool allowNegative, CancellationToken ct = default);
-    Task<IReadOnlyList<CommercialDocument>> ListReceiptsAsync(Guid? branchId, int limit,
-        CancellationToken ct = default);
+    /// <summary>إيصالات التحصيل للفرع مع فلتر تاريخ (يوم إلى يوم) — شاشة إيصالات POS.</summary>
+    Task<IReadOnlyList<CommercialDocument>> ListReceiptsAsync(Guid? branchId, DateTime? from,
+        DateTime? to, int limit, CancellationToken ct = default);
     /// <summary>رأس إيصال قبض (عميل/رقم/إجمالي/فرع) لإعادة إرسال الإشعار.</summary>
     Task<(Guid? CustomerId, string? DocNo, decimal Total, Guid BranchId)> GetReceiptHeaderAsync(
         Guid voucherId, CancellationToken ct = default);

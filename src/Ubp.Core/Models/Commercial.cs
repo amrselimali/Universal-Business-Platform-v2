@@ -72,6 +72,11 @@ public sealed class CommercialDocument
     public int Version { get; set; } = 1;
     public int LinesCount { get; set; }
 
+    /// <summary>اسم الخزينة المحصَّل عليها — عمود الخزينة في شاشة إيصالات POS.</summary>
+    public string? TreasuryName { get; set; }
+    /// <summary>الخدمات/الأصناف المرتبطة بالإيصال — عمود الخدمة في شاشة إيصالات POS.</summary>
+    public string? Services { get; set; }
+
     public bool IsDraft => Status == CommercialStatuses.Draft;
     public bool IsPosted => Status == CommercialStatuses.Posted;
 }

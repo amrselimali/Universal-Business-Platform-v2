@@ -16,10 +16,17 @@
         }
         else
         {
-            <ShiftReportView Report="_report" Editable="@(CanEdit)" />
+            <ShiftReportView @ref="_view" Report="_report" Editable="@(CanEdit)" />
         }
     </DialogContent>
     <DialogActions>
+        @if (_canEditShift && _report is not null &&
+             (_report.Shift.IsOpen || _report.Shift.IsPendingReview))
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Edit" OnClick="OpenEditAsync"
+                       Disabled="_busy">@T.T("treasury.edit_shift_data")</MudButton>
+        }
         <MudButton OnClick="Cancel" Disabled="_busy">
             @T.T(ReadOnly || !Shift.IsOpen ? "common.close" : "common.cancel")
         </MudButton>
@@ -38,11 +45,15 @@
 
     [Inject] private TreasuryService Treasury { get; set; } = default!;
     [Inject] private UserContext UserContext { get; set; } = default!;
+    [Inject] private PermissionService Permissions { get; set; } = default!;
+    [Inject] private IDialogService Dialogs { get; set; } = default!;
     [Inject] private UiCulture T { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
     private ShiftReport? _report;
+    private ShiftReportView? _view;
     private bool _busy;
+    private bool _canEditShift;
 
     // العرض والإغلاق كلاهما يسمح بإدخال النقد المعدود/الملاحظات/القراءات للشفت المفتوح.
     private bool CanEdit => Shift.IsOpen;
@@ -52,12 +63,30 @@
         try
         {
             var actor = await UserContext.RequireAsync();
+            // زر «تعديل بيانات الشفت» ضمن الصلاحيات (تعطيل/تشغيل حسب المستخدم).
+            _canEditShift = await Permissions.HasAsync(actor, ScreenCodes.TreasuryShifts,
+                ActionCodes.Edit);
             _report = await Treasury.GetShiftReportAsync(actor, Shift.Id);
             if (CanEdit)
                 foreach (var row in _report.CashCounts)
                     row.CountedCash ??= row.ExpectedCash;
         }
         catch (AppException ex) { Snackbar.Add(T.T(ex.Code), Severity.Error); }
+    }
+
+    private async Task OpenEditAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<ShiftEditDialog>(T.T("treasury.edit_shift_data"),
+            new DialogParameters
+            {
+                ["ShiftId"] = Shift.Id, ["BranchId"] = Shift.BranchId
+            },
+            new DialogOptions { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true });
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            var actor = await UserContext.RequireAsync();
+            _report = await Treasury.GetShiftReportAsync(actor, Shift.Id);
+        }
     }
 
     private void Cancel() => MudDialog.Cancel();

@@ -55,6 +55,24 @@ public sealed class PartnerService
         catch (PostgresException ex) { throw DbErrorMapper.Map(ex); }
     }
 
+    /// <summary>
+    /// الكود التالي للطرف: يُحسب داخل نطاق/فرع محدد بدءًا من 1 (للعميل يُعرض
+    /// للقراءة فقط في شاشة الإضافة، والحفظ يولّده على الخادم أيضًا).
+    /// </summary>
+    public async Task<string> NextCodeAsync(ActorContext actor, PartnerKind kind, Guid? branchId,
+        string? scopeType = null, CancellationToken ct = default)
+    {
+        await _permissions.RequireAsync(actor, Screen(kind), ActionCodes.View, ct: ct);
+        var scope = string.Equals(scopeType, "COMPANY", StringComparison.OrdinalIgnoreCase)
+            ? "COMPANY" : "BRANCH";
+        if (scope == "BRANCH")
+        {
+            if (branchId is null) return "1";
+            BranchScope.Ensure(actor, branchId.Value);
+        }
+        return await _repository.NextCodeAsync(kind, scope, scope == "BRANCH" ? branchId : null, ct);
+    }
+
     public async Task<Partner> UpdateAsync(ActorContext actor, PartnerKind kind, Guid id, int version,
         PartnerInput input, CancellationToken ct = default)
     {
@@ -176,7 +194,7 @@ public sealed class PartnerService
         input.ScopeType = string.Equals(input.ScopeType, "BRANCH", StringComparison.OrdinalIgnoreCase)
             ? "BRANCH" : "COMPANY";
 
-        if (input.Code.Length == 0 || input.Code.Length > 50)
+        if (input.Code.Length > 50 || (kind != PartnerKind.Customer && input.Code.Length == 0))
             throw new ValidationAppException("validation.code_required");
         if (input.NameAr.Length == 0 || input.NameAr.Length > 255)
             throw new ValidationAppException("validation.name_required");
@@ -200,12 +218,24 @@ public sealed class PartnerService
                 throw new ForbiddenException("error.branch_not_allowed");
         }
 
+        // العميل يُكوَّد آليًا لكل فرع بدءًا من 1، والكود غير قابل للتعديل من الشاشة.
+        if (kind == PartnerKind.Customer && excludeId is null)
+            input.Code = await _repository.NextCodeAsync(kind, input.ScopeType, input.BranchId, ct);
+        else if (kind == PartnerKind.Customer && input.Code.Length == 0)
+            // تعديل بلا كود: يُبقى كود العميل الحالي بدلاً من تصفيره.
+            input.Code = (await _repository.GetAsync(kind, excludeId!.Value, ct))?.Code ?? input.Code;
+
         if (input.CategoryId.HasValue)
         {
             var category = await _repository.GetCategoryAsync(kind, input.CategoryId.Value, ct)
                 ?? throw new ValidationAppException("validation.category_not_found");
             if (!category.IsActive)
                 throw new ValidationAppException("validation.category_inactive");
+        }
+        // التصنيف إجباري عند تكويد العميل.
+        else if (kind == PartnerKind.Customer)
+        {
+            throw new ValidationAppException("validation.partner_category_required");
         }
 
         var entity = kind == PartnerKind.Customer ? "customers" : "suppliers";

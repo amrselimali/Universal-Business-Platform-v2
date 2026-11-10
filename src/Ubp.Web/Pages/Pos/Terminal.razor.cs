@@ -270,6 +270,12 @@ public partial class Terminal : SecurePageBase
     private async Task CollectBookingsAsync()
     {
         if (_customerId == Guid.Empty || _branchId == Guid.Empty) return;
+        // لا شفت مفتوح => رسالة واضحة بدلاً من نافذة تظل تحمّل بلا بيانات.
+        if (!await Collections.HasOpenShiftAsync(Actor!, _branchId))
+        {
+            Snackbar.Add(T.T("pos.open_shift_first"), Severity.Warning);
+            return;
+        }
         if (_treasuries.Count == 0)
         {
             Snackbar.Add(T.T("pos.no_collection_methods"), Severity.Warning);
