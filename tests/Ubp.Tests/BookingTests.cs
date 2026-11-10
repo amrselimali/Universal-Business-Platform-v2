@@ -75,6 +75,30 @@ public sealed class BookingTests : IClassFixture<TestDb>
     }
 
     [Fact]
+    public async Task Service_booking_is_confirmed_without_stock_quantity()
+    {
+        var actor = await _db.AdminActorAsync();
+        var service = _db.BookingService();
+        var (branch, warehouse, _, customer, _) = await SetupAsync("SV");
+
+        // خدمة بلا أي رصيد مخزني: يجب أن يُؤكد حجز الموعد رغم تفعيل حجز المخزون — 0095.
+        var unit = await _db.UnitRepo.CreateAsync(new UnitInput
+        { Code = "BK-SVU-" + Guid.NewGuid().ToString("N")[..6], NameAr = "وحدة خدمة" });
+        var serviceItem = await _db.ItemRepo.CreateAsync(new ItemInput
+        {
+            Code = "BK-SVC-" + Guid.NewGuid().ToString("N")[..6], NameAr = "خدمة موعد",
+            ItemType = "SERVICE", BaseUnitId = unit.Id,
+            Units = new List<ItemUnitInput> { new() { UnitId = unit.Id, ConversionFactor = 1 } }
+        });
+
+        var booking = await CreateBookingAsync(branch, warehouse, customer, serviceItem, 5);
+        var confirmed = await service.ConfirmAsync(actor, booking.Id);
+
+        Assert.Equal(BookingStatuses.Confirmed, confirmed.Status);
+        Assert.StartsWith("BK-", confirmed.DocNo);
+    }
+
+    [Fact]
     public async Task Booking_times_with_non_utc_offset_are_stored_as_utc()
     {
         var actor = await _db.AdminActorAsync();

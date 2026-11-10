@@ -172,8 +172,9 @@ public sealed partial class BookingRepository
         await EnsureScheduledEmployeeAsync(connection, tx, id, ct);
 
         var lines = (await connection.QueryAsync<(Guid Id, Guid ItemId, Guid WarehouseId,
-            decimal Quantity, string? ItemCode)>(new CommandDefinition("""
-            SELECT l.id, l.item_id, l.warehouse_id, l.quantity, i.code AS item_code
+            decimal Quantity, string? ItemCode, string ItemType)>(new CommandDefinition("""
+            SELECT l.id, l.item_id, l.warehouse_id, l.quantity, i.code AS item_code,
+                   i.item_type AS item_type
             FROM booking_lines l JOIN items i ON i.id = l.item_id
             WHERE l.booking_id = @id ORDER BY l.line_no
             """, new { id }, tx, cancellationToken: ct))).ToList();
@@ -182,7 +183,8 @@ public sealed partial class BookingRepository
 
         foreach (var line in lines)
         {
-            if (reserveStock)
+            // الخدمات لا تُحجز لها كمية مخزنية: لا يُشترط توفر رصيد لتأكيد حجز موعد خدمة — 0095.
+            if (reserveStock && string.Equals(line.ItemType, "GOODS", StringComparison.OrdinalIgnoreCase))
             {
                 var available = await connection.ExecuteScalarAsync<decimal>(new CommandDefinition(
                     "SELECT COALESCE(fn_stock_available(@itemId, @warehouseId), 0)",
